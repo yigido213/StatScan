@@ -1,0 +1,6 @@
+{
+  "version": "3.3.0",
+  "url": "StatScan-3.3.0.ssu",
+  "sha256": "c3abaa5c7d18c99f6c560d494024b29bdfb07c5a9cc44918c52cf83e2d845f13",
+  "notes": "3.3.0: dogrudan dinamik analiz, tuzak veri (stealer/clipper tespiti), otomatik guncelleme"
+}
