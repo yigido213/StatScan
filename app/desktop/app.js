@@ -18,12 +18,13 @@ function start(ctx) {
     const shipped = path.join(ctx.bundledRoot, 'dyn', 'statscan-dyn.config.json'); return fs.existsSync(shipped) ? shipped : user;
   }
   /* Uygulama ayarlari (guncelleme kaynagi). Dosya yoksa ornek olusturulur. */
+  const DEFAULT_FEED = 'https://raw.githubusercontent.com/yigido213/StatScan/main/latest.json'; /* ayar bossa kullanilir; paket imzasi her durumda dogrulanir */
   function appConfig() {
     const f = userFile('statscan-app.config.json'); let c = null;
     try { c = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { c = null; }
     if (!c) { c = { update: { feedUrl: '', auto: true } }; try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(c, null, 2)); } catch (e) { /* yazilamazsa varsayilan */ } }
     const u = c.update && typeof c.update === 'object' ? c.update : {};
-    return { file: f, feedUrl: typeof u.feedUrl === 'string' ? u.feedUrl.trim() : '', auto: u.auto !== false };
+    return { file: f, feedUrl: typeof u.feedUrl === 'string' && u.feedUrl.trim() ? u.feedUrl.trim() : DEFAULT_FEED, auto: u.auto !== false };
   }
   function buildService() {
     const engine = D.loadEngine(HTML); let cfg;
