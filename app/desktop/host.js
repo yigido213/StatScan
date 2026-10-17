@@ -50,7 +50,10 @@ function createHost(deps) {
     'app:showConfig': async () => { if (deps.configPath) deps.showItemInFolder(deps.configPath); return { ok: true, path: deps.configPath || null }; },
     'app:info': async () => ({ version: deps.version || '', platform: process.platform, configPath: deps.configPath || null })
   };
-  return { handlers, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
+  /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. obf.js) */
+  const obf = require('./obf.js').createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
+  if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
+  return { handlers, obf, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
 module.exports = { createHost, riskyList, VT_RE };

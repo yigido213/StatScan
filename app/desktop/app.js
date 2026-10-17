@@ -92,7 +92,7 @@ function start(ctx) {
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
-    host = createHost({ service: buildService(), confirm, openExternal: (u) => shell.openExternal(u), showItemInFolder: (p) => shell.showItemInFolder(p), configPath: configPath(), version: ctx.version });
+    host = createHost({ obfOutputRoot: path.join(app.getPath('documents'), 'StatScan-Cikti'), obfToolsDir: userFile('tools'), service: buildService(), confirm, openExternal: (u) => shell.openExternal(u), showItemInFolder: (p) => shell.showItemInFolder(p), configPath: configPath(), version: ctx.version });
     host.register(ipcMain);
     setMenu(); createWindow();
     if (ctx.rolledBack) setTimeout(() => dialog.showMessageBox(win, { type: 'warning', title: 'Güncelleme geri alındı', message: 'Önceki güncelleme kullanılmadı; uygulamayla gelen sürüm açıldı.', detail: String(ctx.rolledBack) }), 1500);

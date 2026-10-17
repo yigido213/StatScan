@@ -12,5 +12,10 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   openFeatures: () => call('dyn:features'),
   openVirusTotal: (url) => call('app:openVT', String(url)),
   showConfig: () => call('app:showConfig'),
-  info: () => call('app:info')
+  info: () => call('app:info'),
+  obfTools: () => call('obf:tools'),
+  obfSave: (req) => call('obf:save', req),
+  obfStart: (req) => call('obf:start', req),
+  obfJob: (id) => call('obf:job', String(id)),
+  obfCancel: (id) => call('obf:cancel', String(id))
 }));
