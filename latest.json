@@ -1,6 +1,6 @@
 {
-  "version": "3.6.0",
-  "url": "StatScan-3.6.0.ssu",
-  "sha256": "310d0d4c8a66d2a6f368bca2c66809a2e1bde46215b4dd05b00c82c6008279a3",
-  "notes": "3.6.0: kanit modeli (Gozlem/Cikarim/Sezgisel, ATT&CK), analiz defteri, PE/.NET/ELF/Mach-O/Office/PDF/arsiv analizorleri, hex/entropi/dize araclari, dinamik LOLBin bulgulari"
+  "version": "3.7.0",
+  "url": "StatScan-3.7.0.ssu",
+  "sha256": "ba59af93db1ad27b137a2934a040e2dcf597e2d32efdb57ba69d73bc29eef7ae",
+  "notes": "3.7.0: otomatik obfuscation analizi, statik deobfuscation (JS/PowerShell/VBS/batch/Python), Java/.NET yapi dokumu, onayli harici decompiler koprusu"
 }
