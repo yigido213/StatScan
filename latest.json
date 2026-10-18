@@ -1,6 +1,6 @@
 {
-  "version": "3.7.0",
-  "url": "StatScan-3.7.0.ssu",
-  "sha256": "ba59af93db1ad27b137a2934a040e2dcf597e2d32efdb57ba69d73bc29eef7ae",
-  "notes": "3.7.0: otomatik obfuscation analizi, statik deobfuscation (JS/PowerShell/VBS/batch/Python), Java/.NET yapi dokumu, onayli harici decompiler koprusu"
+  "version": "3.7.1",
+  "url": "StatScan-3.7.1.ssu",
+  "sha256": "2e179cbbf35a63bb19ffe9c6e80826cd39fa68bda0fd279f4b9548d81c5d74bf",
+  "notes": "Güncelleme düzeltmesi: harici decompiler köprüsü host.js içine alındı (güncelleyici yeni dosya yoluna izin vermiyordu)."
 }

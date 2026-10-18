@@ -1,5 +1,5 @@
 // harici decompiler koprusu testi (sahte arac ile): node tools/test/obf-host.cjs
-const fs = require('fs'), os = require('os'), path = require('path'); const { createObfHost, detectTools } = require('../../app/desktop/obf.js');
+const fs = require('fs'), os = require('os'), path = require('path'); const { createObfHost, detectTools } = require('../../app/desktop/host.js').obfModule;
 let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
 (async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'obft-')); const bin = path.join(tmp, 'bin'); fs.mkdirSync(bin);
