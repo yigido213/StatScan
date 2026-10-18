@@ -1,6 +1,6 @@
 {
-  "version": "4.0.0",
-  "url": "StatScan-4.0.0.ssu",
-  "sha256": "4412510d2017f5f87940c79560322ec9425618f41376e004f0cdae64be253180",
-  "notes": "StatScan 4.0: IDA Pro/Ghidra decompile (4000 fonksiyon sınırı kaldırıldı, uzun zaman aşımı), IDAPython yoksa Hex-Rays toplu modu, obfuscation analizi + güvenli deobfuscation, kanıt modeli."
+  "version": "4.1.0",
+  "url": "StatScan-4.1.0.ssu",
+  "sha256": "c104592757b54d0645329c2259c060b4c2f1416ece49176c867b2f3ff868f96c",
+  "notes": "4.1: fonksiyon risk sıralaması, Minecraft mod kontrolleri, java/javaw.exe muafiyeti, toplu rapor özeti."
 }
