@@ -32,7 +32,7 @@ function start(ctx) {
     return D.createService({ config: cfg, engine, deps: {} });
   }
   async function confirm(o) {
-    const r = await dialog.showMessageBox(win, { type: 'warning', buttons: [o.cancel, o.ok], defaultId: 0, cancelId: 0, title: o.title, message: o.title, detail: o.message, noLink: true });
+    const r = await dialog.showMessageBox(win, { type: 'warning', buttons: [o.cancel || 'Vazgeç', o.ok || 'Tamam'], defaultId: 0, cancelId: 0, title: o.title, message: o.title, detail: o.message, noLink: true });
     return r.response === 1;
   }
   async function offerRestart(version, notes) {

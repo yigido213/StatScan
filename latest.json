@@ -1,6 +1,6 @@
 {
-  "version": "3.8.0",
-  "url": "StatScan-3.8.0.ssu",
-  "sha256": "4c479ad9f7cba39c3b9faa832af6b0fbc0d849cfd15381a1627090a6a0b70201",
-  "notes": "IDA Pro (Hex-Rays) ve Ghidra ile yerel kod decompile (kuruluysa, onayla, çalıştırmadan)."
+  "version": "3.8.1",
+  "url": "StatScan-3.8.1.ssu",
+  "sha256": "58d7bc45fa61e344c19b3e072c4463cc1e90cba9ec26cc679ee46ded0b6c160b",
+  "notes": "Düzeltme: harici decompiler onay penceresi 'Tamam'a basılsa da reddediyordu."
 }
