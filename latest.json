@@ -1,6 +1,6 @@
 {
-  "version": "3.8.1",
-  "url": "StatScan-3.8.1.ssu",
-  "sha256": "58d7bc45fa61e344c19b3e072c4463cc1e90cba9ec26cc679ee46ded0b6c160b",
-  "notes": "Düzeltme: harici decompiler onay penceresi 'Tamam'a basılsa da reddediyordu."
+  "version": "3.8.2",
+  "url": "StatScan-3.8.2.ssu",
+  "sha256": "bb6b6ac3f134794fe939f2ae3cc13483edd8464ab980a183b7a4a89b237c867b",
+  "notes": "IDA: IDAPython yoksa Hex-Rays toplu moduna otomatik geçiş; hata ayrıntıları ve araç kaydı; 'null' yazısı düzeltildi."
 }
