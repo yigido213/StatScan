@@ -1,6 +1,6 @@
 {
-  "version": "3.8.2",
-  "url": "StatScan-3.8.2.ssu",
-  "sha256": "bb6b6ac3f134794fe939f2ae3cc13483edd8464ab980a183b7a4a89b237c867b",
-  "notes": "IDA: IDAPython yoksa Hex-Rays toplu moduna otomatik geçiş; hata ayrıntıları ve araç kaydı; 'null' yazısı düzeltildi."
+  "version": "4.0.0",
+  "url": "StatScan-4.0.0.ssu",
+  "sha256": "4412510d2017f5f87940c79560322ec9425618f41376e004f0cdae64be253180",
+  "notes": "StatScan 4.0: IDA Pro/Ghidra decompile (4000 fonksiyon sınırı kaldırıldı, uzun zaman aşımı), IDAPython yoksa Hex-Rays toplu modu, obfuscation analizi + güvenli deobfuscation, kanıt modeli."
 }

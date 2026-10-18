@@ -505,7 +505,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 <body>
 <a class="skip" href="#main">İçeriğe geç</a>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>3.8</small></h1></div>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>4.0</small></h1></div>
   <p class="tagline">JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; istersen Windows Sandbox’ta davranış analizi yapar.</p>
   <div class="hright">
     <span class="lock" title="Dosyalar tarayıcı belleğinde işlenir, hiçbir yere gönderilmez."><i aria-hidden="true"></i><span class="t">Yerel · hiçbir şey yüklenmez</span></span>
@@ -2956,7 +2956,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '3.8.2', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.0.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -3008,7 +3008,7 @@ async function obfRun(u8, name, opts) {
   }
 }
 /*#endregion obf*/
-const api = { SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '3.8.2', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.0.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 

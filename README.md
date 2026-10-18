@@ -33,3 +33,12 @@ EXE/DLL/ELF/Mach-O için obfuscation panelinde, makinede **zaten kurulu** IDA Pr
 - Her çalıştırmada onay istenir; dosya çalıştırılmaz, araç yalnızca yükleyip analiz eder. Betikleri StatScan sabit olarak üretir (girdiden gelmez). Çıktı `Documents/StatScan-Cikti/…` altında: `decompiled.c`, `functions.txt` (+ IDA'da `disassembly.asm`).
 - Kısmi sonuç başarılı gösterilmez: durum dosyası yoksa "başarısız", fonksiyonların bir kısmı decompile edilemediyse "kısmi" olarak raporlanır.
 - Bilinen sınırlar: gerçek IDA/Ghidra ile test edilmedi (yalnızca sahte araçlarla); paketli/obfuscated dosyada çıktı anlamsız olabilir; Hex-Rays lisansı hedef mimariyi içermiyorsa yalnızca disassembly üretilir.
+
+
+## 4.0
+
+3.5'ten bu yana eklenenlerin toplu sürümü: kanıt modeli + analiz defteri, PE/.NET/ELF/Mach-O/Office/PDF/arşiv çözümleyiciler, otomatik obfuscation analizi ve güvenli statik deobfuscation, onaylı harici decompiler köprüsü (ILSpy, CFR, Procyon, jadx, **IDA Pro**, **Ghidra**).
+
+- IDA/Ghidra decompile artık 4000 fonksiyonla sınırlı değil (üst sınır 1.000.000 fonksiyon / 400 MB çıktı); varsayılan zaman aşımı 60 dk, en çok 4 saat. Çok büyük programlarda süre ve disk kullanımı artar; panelden İptal edilebilir.
+- IDAPython yoksa Hex-Rays toplu moduna otomatik geçiş; araç kaydı `_statscan_arac-log.txt`.
+- Bilinen sınırlar: IDA/Ghidra köprüsü gerçek araçlarla yalnızca kullanıcı denemesiyle doğrulandı, otomatik testler sahte araçlarla; kod çalıştırmaya bağlı obfuscation (string şifreleme, sanallaştırma, CFF) açılmaz; Windows Sandbox kısmı bu ortamda çalıştırılmadı.
