@@ -505,7 +505,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 <body>
 <a class="skip" href="#main">İçeriğe geç</a>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>3.7</small></h1></div>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>3.8</small></h1></div>
   <p class="tagline">JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; istersen Windows Sandbox’ta davranış analizi yapar.</p>
   <div class="hright">
     <span class="lock" title="Dosyalar tarayıcı belleğinde işlenir, hiçbir yere gönderilmez."><i aria-hidden="true"></i><span class="t">Yerel · hiçbir şey yüklenmez</span></span>
@@ -2719,7 +2719,7 @@ function analyzeContainerHdr(u8, kind, name, st) {
    gercek decompile (yalniz yerlesik yapi dokumu; gercek decompile icin harici arac gerekir ve masaustu kabugunda onayla calisir). */
 const OBF_LIM = { srcMax: 24e6, binMax: 200e6, layers: 4, outMax: 40e6, entries: 400, entryCap: 8e6, jarBudget: 160e6 };
 const obfTick = () => new Promise((r) => setTimeout(r, 0));
-const OBF_TOOLS = { dotnet: ['ilspycmd'], jar: ['cfr', 'procyon', 'jadx'], 'java-class': ['cfr', 'procyon'], apk: ['jadx'] };
+const OBF_TOOLS = { dotnet: ['ilspycmd'], jar: ['cfr', 'procyon', 'jadx'], 'java-class': ['cfr', 'procyon'], apk: ['jadx'], pe: ['ida', 'ghidra'], elf: ['ida', 'ghidra'], macho: ['ida', 'ghidra'] };
 function obfCheck(ctx) { if (ctx.signal && ctx.signal.aborted) { const e = new Error('iptal'); e.cancelled = true; throw e; } }
 const obfStep = (ctx, id, label, status, note) => { const s = { id, label, status, note: note || '' }; ctx.steps.push(s); return s; };
 const obfProg = (ctx, pct, label) => { try { if (ctx.onProgress) ctx.onProgress(Math.max(0, Math.min(100, Math.round(pct))), label); } catch (e) {} };
@@ -2956,7 +2956,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '3.7.1', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '3.8.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -2999,7 +2999,7 @@ async function obfRun(u8, name, opts) {
     if (k.id === 'java-class' || k.id === 'jar') { const r = await buildJavaOutline(u8, k.id, name, ctx); res.tools.builtin.push('yerleşik Java sınıf yapı dökümü'); out(base + '.yapi.txt', 'text/plain', r.text, 'Sınıf/metot/dize/başvuru dökümü — gerçek decompile DEĞİL', 'output', { partial: !!r.partial }); obfStep(ctx, 'outline', 'Java yapı dökümü', r.partial ? 'partial' : 'done', (r.done || 1) + ' sınıf'); obfStep(ctx, 'decompile', 'Java decompile (CFR/Procyon/jadx)', 'unsupported', 'Yerleşik değil; makinede kurulu bir decompiler varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
     else if (k.id === 'dotnet') { const r = buildNetOutline(u8, name); res.tools.builtin.push('yerleşik .NET meta veri dökümü'); out(base + '.yapi.txt', 'text/plain', r.text, '.NET meta veri dökümü — gerçek decompile DEĞİL', 'output', { partial: !!r.partial }); obfStep(ctx, 'outline', '.NET meta veri dökümü', r.partial ? 'partial' : 'done', 'türler, üyeler, P/Invoke, kaynaklar'); obfStep(ctx, 'decompile', '.NET decompile (ilspycmd)', 'unsupported', 'Yerleşik değil; kurulu ilspycmd varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
     else if (k.id === 'apk') { obfStep(ctx, 'decompile', 'APK/DEX decompile (jadx)', 'unsupported', 'Yerleşik değil; kurulu jadx varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
-    else { obfStep(ctx, 'decompile', 'Yerel kod decompile', 'unsupported', 'Yerel (native) kod için yerleşik decompiler yok; Ghidra/IDA/rizin gibi araçlar gerekir. Bu araç yalnızca paketleme/obfuscation analizi yapar'); }
+    else { obfStep(ctx, 'decompile', 'Yerel kod decompile', 'unsupported', 'Yerel (native) kod için yerleşik decompiler yok. Masaüstü uygulamasında makinede kurulu IDA Pro (Hex-Rays) veya Ghidra onayınla çalıştırılabilir.' + (res.obfuscation.detected ? ' DİKKAT: paketleme/obfuscation tespit edildi; paketli dosyada decompile çıktısı çoğunlukla anlamsızdır, önce açılması gerekir.' : '')); }
     obfStep(ctx, 'deobf', 'Otomatik deobfuscation', res.obfuscation.detected ? 'unsupported' : 'skipped', res.obfuscation.detected ? 'İkili dosyalarda otomatik açma yapılmaz (ör. UPX açma/ConfuserEx temizleme için harici, güvenilir araçlar gerekir)' : 'Gerek yok');
     const ps = res.outputs.some((o) => o.partial) || ctx.limits.length; return finish(ps ? 'partial' : 'done', ps ? 'Bazı girdiler sınırlar nedeniyle atlandı.' : '');
   } catch (e) {
@@ -3008,7 +3008,7 @@ async function obfRun(u8, name, opts) {
   }
 }
 /*#endregion obf*/
-const api = { SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '3.7.1', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '3.8.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -3236,7 +3236,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     if (!host) { box.append(h('p', { class: 'fine' }, 'Gerçek decompile için uygun araçlar: ' + res.externalPlan.join(', ') + '. Harici araç çalıştırma yalnızca masaüstü uygulamasında, makinede ZATEN kurulu araçlarla ve onayınla yapılır; hiçbir şey indirilmez veya kurulmaz.')); return box; }
     const body = h('div'); box.append(body); (async () => {
       const r = await host.obfTools(); const use = (r.tools || []).filter((t) => res.externalPlan.includes(t.id) && t.kinds.includes(res.kind.id));
-      if (!use.length) { body.append(h('p', { class: 'fine' }, 'Bu tür için kurulu bir decompiler bulunamadı (aranan: ' + res.externalPlan.join(', ') + '). Araçlar sessizce indirilmez/kurulmaz; kendi kurduğun güvenilir bir araç PATH’te ya da ' + 'kullanıcı verisi “tools” klasöründe (.jar) bulunursa burada görünür.')); return; }
+      if (!use.length) { body.append(h('p', { class: 'fine' }, 'Bu tür için kurulu bir decompiler bulunamadı (aranan: ' + res.externalPlan.join(', ') + '). Araçlar sessizce indirilmez/kurulmaz; kendi kurduğun güvenilir bir araç PATH’te ya da ' + 'kullanıcı verisi “tools” klasöründe (.jar) bulunursa burada görünür.' + (res.externalPlan.includes('ida') ? ' IDA/Ghidra standart konumlarda (Program Files, C:\\, Downloads, IDADIR/GHIDRA_INSTALL_DIR) aranır; başka yerdeyse “tools” klasörüne paths.json koy: {"ida":"C:\\\\yol\\\\idat64.exe","ghidra":"C:\\\\yol\\\\support\\\\analyzeHeadless.bat"}' + (r.toolsDir ? ' (klasör: ' + r.toolsDir + ')' : '') : ''))); return; }
       for (const t of use) { const st = h('div', { class: 'fine' }); const bar = h('div', { class: 'obar', hidden: '' }, h('i')); const cancel = h('button', { type: 'button', hidden: '' }, 'İptal'); let jid = null;
         const run = h('button', { type: 'button', onclick: async () => { run.disabled = true; st.textContent = 'Onay bekleniyor…'; const data = new Uint8Array(await file.arrayBuffer()); const s = await host.obfStart({ tool: t.id, kind: res.kind.id, name: file.name, data, dirToken: ctl.dirToken }); if (s.error) { st.textContent = s.message; run.disabled = false; return; } jid = s.id; ctl.dirToken = s.dirToken; bar.hidden = false; bar.classList.add('ind'); cancel.hidden = false; cancel.onclick = () => host.obfCancel(jid);
           for (;;) { await new Promise((x) => setTimeout(x, 700)); const j = await host.obfJob(jid); if (j.error) { st.textContent = j.message; break; } if (j.state === 'running') { st.textContent = t.label + ' çalışıyor… (' + Math.round((Date.now() - j.startedAt) / 1000) + ' sn)'; continue; } bar.hidden = true; cancel.hidden = true; run.disabled = false;

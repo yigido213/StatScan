@@ -1,6 +1,6 @@
 {
-  "version": "3.7.1",
-  "url": "StatScan-3.7.1.ssu",
-  "sha256": "2e179cbbf35a63bb19ffe9c6e80826cd39fa68bda0fd279f4b9548d81c5d74bf",
-  "notes": "Güncelleme düzeltmesi: harici decompiler köprüsü host.js içine alındı (güncelleyici yeni dosya yoluna izin vermiyordu)."
+  "version": "3.8.0",
+  "url": "StatScan-3.8.0.ssu",
+  "sha256": "4c479ad9f7cba39c3b9faa832af6b0fbc0d849cfd15381a1627090a6a0b70201",
+  "notes": "IDA Pro (Hex-Rays) ve Ghidra ile yerel kod decompile (kuruluysa, onayla, çalıştırmadan)."
 }
