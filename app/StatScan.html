@@ -872,12 +872,16 @@ const IOC_PATS = {
   reg: /\b(?:HKEY_[A-Z_]+|HKLM|HKCU)\\[\w\\ .{}-]{4,120}/g,
   path: /\b[A-Za-z]:\\(?:[\w .$-]+\\)*[\w .$-]{2,60}/g,
   btc: /\b(?:bc1[a-z0-9]{25,60}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b/g,
-  eth: /\b0x[a-fA-F0-9]{40}\b/g
+  eth: /\b0x[a-fA-F0-9]{40}\b/g,
+  webhook: /https?:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/(?:v\d+\/)?webhooks\/\d+\/[\w-]+/gi,
+  telegram: /api\.telegram\.org\/bot\d+:[\w-]{20,}/gi,
+  onion: /\b[a-z2-7]{16,56}\.onion\b/gi,
+  invite: /\bdiscord(?:\.gg|(?:app)?\.com\/invite)\/[\w-]{2,32}/gi
 };
-const newIoc = () => ({ url: new Set(), ip: new Set(), email: new Set(), reg: new Set(), path: new Set(), btc: new Set(), eth: new Set() });
+const newIoc = () => ({ url: new Set(), ip: new Set(), email: new Set(), reg: new Set(), path: new Set(), btc: new Set(), eth: new Set(), webhook: new Set(), telegram: new Set(), onion: new Set(), invite: new Set() });
 function addIoc(io, text, level) {
   if (!level || !text) return;
-  const keys = level >= 2 ? Object.keys(IOC_PATS) : ['url', 'ip'];
+  const keys = level >= 2 ? Object.keys(IOC_PATS) : ['url', 'ip', 'webhook', 'telegram', 'onion'];
   const t = text.length > 4e6 ? text.slice(0, 4e6) : text;
   for (const k of keys) {
     const re = IOC_PATS[k]; re.lastIndex = 0; let m, n = 0;
@@ -890,7 +894,7 @@ function addIoc(io, text, level) {
 }
 function finalizeIoc(io) {
   const o = {}; let any = false;
-  for (const k of Object.keys(io)) { const a = [...io[k]].slice(0, 40).map((x) => (k === 'url' ? mask(x) : x)); if (a.length) { o[k] = a; any = true; } }
+  for (const k of Object.keys(io)) { const a = [...io[k]].slice(0, 40).map((x) => (k === 'url' || k === 'webhook' || k === 'telegram' ? mask(x) : x)); if (a.length) { o[k] = a; any = true; } }
   const hosts = new Set(); for (const u of io.url) { try { hosts.add(new URL(u).hostname); } catch (e) {} }
   if (hosts.size) { o.domain = [...hosts].filter((h) => !BENIGN_HOSTS.test(h)).slice(0, 40); if (!o.domain.length) delete o.domain; }
   return any ? o : null;
@@ -1851,14 +1855,17 @@ async function scanBuffer(u8, name, st, depth) {
     else if (kind === 'rar' || kind === '7z' || kind === 'cab') { const r = analyzeContainerHdr(u8, kind, name, st); F = F.concat(r.findings); res.info = r.info; res.type = r.info.kind; ANL = r.analyses || []; }
     else if (kind === 'xz') { res.type = 'XZ arşivi'; F.push(mk('arch_unsupported', 'info', 3, 'XZ içeriği tarayıcıda açılamadı', 'Bu biçimin içindeki dosyalar taranamadı; yalnızca dış kabuk kapsandı.', 'Arşivi güvenli bir yerde aç ve içindeki dosyaları tara.', [], 'arch', { basis: 'fact' })); ANL = [led('xz', 'XZ açma', 'unsupported', 'tarayıcıda LZMA çözücü yok')]; }
     else if (kind === 'text') { res.type = 'Metin / betik'; const r = await analyzeText(u8, name, ext, st, depth); F = F.concat(r.findings); res.info = r.info; res.children = r.children; if (/^\s*<hta:application/i.test(decodeText(u8.subarray(0, 2000)))) F.push(mk('hta', 'high', 20, 'HTA uygulaması', 'HTA dosyaları tam yetkiyle betik çalıştırır.', 'Açma; içeriği düzenleyiciyle oku.', [], 'proc')); }
+    else if (cfg.parse && isAsar(u8)) { const r = await analyzeAsar(u8, name, st, depth); F = F.concat(r.findings); res.info = r.info; res.type = 'Electron asar paketi'; res.children = r.children; }
     else {
       res.type = 'Bilinmeyen ikili'; F = F.concat(textOf(u8));
+      if (cfg.ioc) { const io = newIoc(); addIoc(io, extractStrings(u8, 6, cfg.strCap).join('\n'), cfg.ioc); const fi = finalizeIoc(io); if (fi) res.info.iocs = fi; }
       if (res.entropy > 7.5 && u8.length > 20000) F.push(mk('bin_highent', 'low', 6, 'Yüksek entropili bilinmeyen veri', 'Şifreli veya sıkıştırılmış bir blob olabilir.', 'Başka bir dosyanın parçası mı kontrol et.', ['entropi ' + res.entropy], 'obf'));
       if (cfg.deepJar && u8.length <= 24e6) {
         const mzs = findAllMZ(u8, 0, 4); for (const off of mzs) { F.push(mk('pe_embedded', 'high', 14, 'Veri içinde gömülü PE', 'Bilinmeyen biçimli dosyanın içinde bir PE başlığı bulundu.', 'Gömülü dosya ayrıca taranıyor.', ['ofset 0x' + off.toString(16)], 'pe')); if (depth < cfg.depth) res.children.push(await scanBuffer(u8.slice(off), name + ' › gömülü PE @0x' + off.toString(16), st, depth + 1)); }
         const x = xorFindPE(u8, 24e6); if (x) { F.push(mk('xor_pe', 'crit', 35, 'XOR ile gizlenmiş çalıştırılabilir', 'Dosyada tek baytlık XOR anahtarıyla (0x' + x.key.toString(16) + ') gizlenmiş bir PE bulundu.', 'Çözülmüş içerik ayrıca taranır.', ['ofset 0x' + x.start.toString(16)], 'pe')); if (depth < cfg.depth) res.children.push(await scanBuffer(xorDecode(u8, x.start, x.key), name + ' › XOR çözülmüş PE', st, depth + 1)); }
       }
     }
+    if ((kind === 'pe' || kind === 'elf') && cfg.parse && depth < 6 && !st.stop) { try { const pr = await analyzePyInstaller(u8, name, st, depth); if (pr) { F = F.concat(pr.findings); res.children = res.children.concat(pr.children); Object.assign(res.info, pr.info); } } catch (e) { st.notes.add('PyInstaller içeriği ayrıştırılamadı: ' + String(e && e.message || e).slice(0, 60)); } }
     if (['pe', 'elf', 'macho', 'bin', 'text', 'zip'].includes(kind) && depth < 6) { const txt = (kind === 'text' || kind === 'bin' || kind === 'pe' || kind === 'elf' || kind === 'zip') ? (kind === 'text' ? decodeText(u8.subarray(0, Math.min(u8.length, 2e6))) : latin1(u8.subarray(0, Math.min(u8.length, 8e6)))) : ''; const sg = await sigScan(u8, kind, name, st, txt); F = F.concat(sg.findings); ANL = ANL.concat(sg.analyses); }
   } catch (e) { F.push(mk('scan_err', 'info', 0, 'Analiz hatası', String(e && e.message || e), 'Dosyayı başka bir araçla da kontrol et.', [])); st.unreadable++; }
   res.findings = sortF(applyCombos(F));
@@ -2736,9 +2743,10 @@ const lvl = (c) => (c >= 70 ? 'yüksek' : c >= 40 ? 'orta' : 'düşük');
 
 /* ----- tur tespiti ----- */
 const OBF_TEXT_EXT = { js: 'js', mjs: 'js', cjs: 'js', jse: 'js', ps1: 'ps', psm1: 'ps', psd1: 'ps', vbs: 'vbs', vbe: 'vbs', vba: 'vbs', bas: 'vbs', bat: 'bat', cmd: 'bat', py: 'py', pyw: 'py', sh: 'sh' };
-const OBF_LABEL = { js: 'JavaScript', ps: 'PowerShell', vbs: 'VBScript/VBA', bat: 'Toplu iş (batch)', py: 'Python', sh: 'Kabuk betiği', dotnet: '.NET assembly', pe: 'Yerel PE (EXE/DLL)', 'java-class': 'Java .class', jar: 'Java arşivi (JAR/WAR)', apk: 'Android APK', elf: 'ELF', macho: 'Mach-O', document: 'Belge', archive: 'Arşiv', unknown: 'Belirsiz' };
+const OBF_LABEL = { js: 'JavaScript', ps: 'PowerShell', vbs: 'VBScript/VBA', bat: 'Toplu iş (batch)', py: 'Python', sh: 'Kabuk betiği', dotnet: '.NET assembly', pe: 'Yerel PE (EXE/DLL)', 'java-class': 'Java .class', jar: 'Java arşivi (JAR/WAR)', apk: 'Android APK', elf: 'ELF', macho: 'Mach-O', asar: 'Electron asar paketi', document: 'Belge', archive: 'Arşiv', unknown: 'Belirsiz' };
 function obfKind(u8, name) {
   const ext = extOf(name); const s = sniff(u8, name); const ev = [];
+  if (s !== 'pe' && s !== 'zip' && isAsar(u8)) return { id: 'asar', conf: 97, basis: 'asar başlığı (Electron)', src: false };
   if (s === 'pe') { let clr = false; try { const p = parsePE(u8); clr = !!(p && p.clr); } catch (e) {} return { id: clr ? 'dotnet' : 'pe', conf: 98, basis: 'MZ/PE başlığı' + (clr ? ' + CLR üstbilgisi' : ''), src: false }; }
   if (s === 'class') return { id: 'java-class', conf: 98, basis: 'CAFEBABE', src: false };
   if (s === 'elf' || s === 'macho' || s === 'macho-fat') return { id: s === 'elf' ? 'elf' : 'macho', conf: 98, basis: s + ' başlığı', src: false };
@@ -3006,10 +3014,36 @@ async function obfRun(u8, name, opts) {
     obfStep(ctx, 'detect', 'Obfuscation/paketleme analizi', 'done', res.obfuscation.summary); obfProg(ctx, 40, 'Yapı dökümü');
     if (k.id === 'java-class' || k.id === 'jar') { const r = await buildJavaOutline(u8, k.id, name, ctx); res.tools.builtin.push('yerleşik Java sınıf yapı dökümü'); out(base + '.yapi.txt', 'text/plain', r.text, 'Sınıf/metot/dize/başvuru dökümü — gerçek decompile DEĞİL', 'output', { partial: !!r.partial }); obfStep(ctx, 'outline', 'Java yapı dökümü', r.partial ? 'partial' : 'done', (r.done || 1) + ' sınıf'); obfStep(ctx, 'decompile', 'Java decompile (CFR/Procyon/jadx)', 'unsupported', 'Yerleşik değil; makinede kurulu bir decompiler varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
     else if (k.id === 'dotnet') { const r = buildNetOutline(u8, name); res.tools.builtin.push('yerleşik .NET meta veri dökümü'); out(base + '.yapi.txt', 'text/plain', r.text, '.NET meta veri dökümü — gerçek decompile DEĞİL', 'output', { partial: !!r.partial }); obfStep(ctx, 'outline', '.NET meta veri dökümü', r.partial ? 'partial' : 'done', 'türler, üyeler, P/Invoke, kaynaklar'); obfStep(ctx, 'decompile', '.NET decompile (ilspycmd)', 'unsupported', 'Yerleşik değil; kurulu ilspycmd varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
+    else if (k.id === 'asar') {
+      const a = asarParse(u8); if (!a) { obfStep(ctx, 'unpack', 'asar açma', 'failed', 'Başlık okunamadı'); } else {
+        res.tools.builtin.push('yerleşik asar okuyucu'); const app = a.files.filter((f) => f.offset >= 0 && f.size > 0 && !/(^|\/)node_modules\//.test(f.path)); let nOut = 0, bytes = 0, nDeobf = 0, skipped = 0; const nm = a.files.filter((f) => /(^|\/)node_modules\//.test(f.path)).length;
+        for (const f of app) {
+          if (nOut >= OBF_LIM.entries || bytes + f.size > OBF_LIM.outMax || a.base + f.offset + f.size > u8.length) { skipped++; continue; } obfCheck(ctx); const data = u8.slice(a.base + f.offset, a.base + f.offset + f.size); bytes += f.size; nOut++;
+          out('asar-icerik/' + f.path, 'application/octet-stream', data, 'asar içinden çıkarıldı (değiştirilmedi)', 'output');
+          if (/\.(?:js|cjs|mjs)$/i.test(f.path) && f.size <= 2e6) { const t = decodeText(data); const mm = obfDetectSource('js', t); const cf = noisyOr(mm.filter((m) => m.id !== 'js_minified').map((m) => m.conf)); if (cf >= 20) { const rr = await runPipe(t, 'js', ctx); if (rr.steps.some((x) => x.n > 0)) { nDeobf++; out('asar-deobf/' + f.path.replace(/\.[^.]*$/, '') + '.deobf.js', 'text/javascript', rr.text, 'Statik dönüşümler uygulandı (eval/çalıştırma yok); orijinal kaynak olmayabilir', 'output'); } M.push({ id: 'asar_js_' + nOut, label: f.path + ' dosyasında obfuscation (güven %' + cf + ')', conf: cf, ev: mm.slice(0, 2).map((x) => x.label), basis: 'heuristic', resolved: false, why: 'statik dönüşümler tam çözüm sağlamayabilir' }); } }
+          if (nOut % 25 === 0) { obfProg(ctx, Math.min(80, 40 + nOut / 5), 'asar içeriği çıkarılıyor'); await obfTick(); }
+        }
+        obfStep(ctx, 'unpack', 'asar içeriği çıkarıldı', skipped ? 'partial' : 'done', nOut + ' dosya' + (nm ? ' · ' + nm + ' node_modules dosyası atlandı' : '') + (skipped ? ' · ' + skipped + ' dosya sınır nedeniyle çıkarılmadı' : '') + (nDeobf ? ' · ' + nDeobf + ' JS dosyasına statik deobfuscation uygulandı' : '')); if (skipped) ctx.limits.push({ kind: 'out', msg: skipped + ' dosya çıktı sınırı nedeniyle çıkarılmadı.' });
+        const unp = a.files.filter((f) => f.unpacked).length; if (unp) ctx.notes.push(unp + ' dosya .asar.unpacked klasöründe; bu dosyada bulunmadığı için çıkarılamadı.');
+        res.obfuscation = Object.assign(res.obfuscation, { methods: M }); const cf2 = noisyOr(M.map((m) => m.conf)); res.obfuscation = { detected: cf2 >= 40 ? true : (cf2 >= 20 ? null : false), confidence: cf2, level: lvl(cf2), methods: M, summary: cf2 >= 40 ? 'Uygulama JS dosyalarında obfuscation tespit edildi (güven %' + cf2 + ').' : (cf2 >= 20 ? 'Olası obfuscation (güven %' + cf2 + ').' : 'Obfuscation tespit edilmedi.') };
+      }
+    }
     else if (k.id === 'apk') { obfStep(ctx, 'decompile', 'APK/DEX decompile (jadx)', 'unsupported', 'Yerleşik değil; kurulu jadx varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
     else { obfStep(ctx, 'decompile', 'Yerel kod decompile', 'unsupported', 'Yerel (native) kod için yerleşik decompiler yok. Masaüstü uygulamasında makinede kurulu IDA Pro (Hex-Rays) veya Ghidra onayınla çalıştırılabilir.' + (res.obfuscation.detected ? ' DİKKAT: paketleme/obfuscation tespit edildi; paketli dosyada decompile çıktısı çoğunlukla anlamsızdır, önce açılması gerekir.' : '')); }
-    obfStep(ctx, 'deobf', 'Otomatik deobfuscation', res.obfuscation.detected ? 'unsupported' : 'skipped', res.obfuscation.detected ? 'İkili dosyalarda otomatik açma yapılmaz (ör. UPX açma/ConfuserEx temizleme için harici, güvenilir araçlar gerekir)' : 'Gerek yok');
-    const ps = res.outputs.some((o) => o.partial) || ctx.limits.length; return finish(ps ? 'partial' : 'done', ps ? 'Bazı girdiler sınırlar nedeniyle atlandı.' : '');
+    if (k.id === 'pe' || k.id === 'elf') {
+      let ex = null; try { ex = await pyiExtract(u8, { cap: OBF_LIM.outMax }); } catch (e) { obfStep(ctx, 'unpack', 'PyInstaller içeriği', 'failed', String(e && e.message || e).slice(0, 80)); }
+      if (ex && ex.info && !ex.info.bad) {
+        res.tools.builtin.push('yerleşik PyInstaller açıcı (çalıştırma yok)'); let nOut = 0, bytes = 0, skipped = 0; const idx = ['# PyInstaller içeriği', '', ex.info.py + ' · giriş betikleri: ' + (ex.info.scripts.join(', ') || '—'), 'Not: .pyc dosyaları DECOMPILE edilmedi. Kaynak için güvenli bir ortamda pycdc/uncompyle6/decompyle3 kullan.', ''];
+        for (const f of ex.files) { if (f.lib || f.kind === 'binary') { continue; } if (nOut >= OBF_LIM.entries || bytes + f.bytes.length > OBF_LIM.outMax) { skipped++; continue; } nOut++; bytes += f.bytes.length; out('pyinstaller/' + f.path, 'application/octet-stream', f.bytes, f.kind === 'data' ? 'veri girdisi' : '.pyc (başlık eklendi; decompile edilmedi)', 'output'); idx.push('- ' + f.path + ' (' + f.bytes.length + ' bayt)'); }
+        const strs = []; for (const f of ex.files) if ((f.kind === 'script' || (f.kind === 'module' && !f.lib)) && f.raw) strs.push('## ' + f.path, ...pyConstText(f.raw).slice(0, 400)); if (strs.length) out('pyinstaller/sabit-dizeler.txt', 'text/plain', strs.join('\n'), 'Betik/modüllerdeki dize sabitleri (marshal verisinden)', 'output');
+        out('pyinstaller/ozet.md', 'text/markdown', idx.join('\n') + '\n', 'Çıkarılan dosyaların listesi', 'report');
+        obfStep(ctx, 'unpack', 'PyInstaller içeriği çıkarıldı', ex.info.encrypted || skipped ? 'partial' : 'done', nOut + ' dosya · ' + ex.info.ownMods + ' özgün modül, ' + ex.info.libMods + ' kütüphane modülü (kütüphaneler çıkarılmadı)' + (ex.info.encrypted ? ' · ARŞİV ŞİFRELİ: içerik eksik' : '') + (skipped ? ' · ' + skipped + ' dosya sınır nedeniyle atlandı' : ''));
+        obfStep(ctx, 'pydecomp', 'Python bytecode decompile', 'unsupported', 'Yerleşik değil; .pyc dosyaları çıkarıldı, kaynak için kurulu pycdc/uncompyle6 kullan');
+        if (ex.info.encrypted) ctx.notes.push('PYZ şifreli olduğu için modüllerin bir kısmı çıkarılamadı; çıktı eksiktir.'); if (skipped) ctx.limits.push({ kind: 'out', msg: skipped + ' dosya çıktı sınırı nedeniyle çıkarılmadı.' });
+      }
+    }
+    if (k.id !== 'asar') obfStep(ctx, 'deobf', 'Otomatik deobfuscation', res.obfuscation.detected ? 'unsupported' : 'skipped', res.obfuscation.detected ? 'İkili dosyalarda otomatik açma yapılmaz (ör. UPX açma/ConfuserEx temizleme için harici, güvenilir araçlar gerekir)' : 'Gerek yok');
+    const encr = ctx.steps.some((x) => x.id === 'unpack' && x.status === 'partial'); const ps = res.outputs.some((o) => o.partial) || ctx.limits.length || encr; return finish(ps ? 'partial' : 'done', ps ? (encr && !ctx.limits.length ? 'Paketin içeriği tam açılamadı (ör. şifreli arşiv); çıktı eksik.' : 'Bazı girdiler sınırlar nedeniyle atlandı.') : '');
   } catch (e) {
     if (e && e.cancelled) { obfStep(ctx, 'cancel', 'İşlem', 'failed', 'Kullanıcı iptal etti'); return finish('cancelled', 'İşlem kullanıcı tarafından iptal edildi; çıktılar eksik.'); }
     obfStep(ctx, 'error', 'İşlem', 'failed', String((e && e.message) || e)); return finish('failed', 'Analiz tamamlanamadı: ' + String((e && e.message) || e) + '. Üretilen kısmi çıktılar güvenilir sayılmamalı.');
@@ -3045,7 +3079,170 @@ async function mcModChecks(c) {
   return F;
 }
 /*#endregion mc*/
-const api = { SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.1.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+/*#region ioc*/
+/* Tum sonuc agacindaki gostergeleri (IOC) tek listede toplar ve disa aktarir.
+ * Webhook/bot token'lari maskelidir (finalizeIoc). Hicbir ag istegi yapilmaz. */
+const IOC_ORDER = ['webhook', 'telegram', 'url', 'domain', 'ip', 'onion', 'invite', 'email', 'btc', 'eth', 'reg', 'path'];
+const IOC_LABEL = { webhook: 'Discord webhook', telegram: 'Telegram bot', url: 'URL', domain: 'Alan adı', ip: 'IP adresi', onion: '.onion adresi', invite: 'Discord daveti', email: 'E-posta', btc: 'Bitcoin cüzdanı', eth: 'Ethereum cüzdanı', reg: 'Kayıt defteri', path: 'Dosya yolu', wallet: 'Cüzdan', hash: 'Hash benzeri', cmd: 'Komut' };
+function iocHostOf(t, v) { if (t === 'domain') return v; if (t === 'url' || t === 'webhook') { try { return new URL(v.replace(/…\[gizlendi\]/g, '')).hostname; } catch (e) { return ''; } } if (t === 'telegram') return 'api.telegram.org'; if (t === 'onion') return v; return ''; }
+function collectIocTree(root) {
+  const map = new Map(); let truncated = false;
+  const walk = (r, depth) => {
+    if (depth > 12) return; const io = r.info && r.info.iocs;
+    if (io) for (const t of Object.keys(io)) for (const v of io[t] || []) { const k = t + '\0' + v; let e = map.get(k); if (!e) { if (map.size >= 5000) { truncated = true; continue; } e = { type: t, value: v, sources: new Set() }; map.set(k, e); } e.sources.add(r.name); }
+    for (const c of r.children || []) walk(c, depth + 1);
+  };
+  walk(root, 0);
+  const items = [...map.values()].map((e) => { const host = iocHostOf(e.type, e.value); return { type: e.type, label: IOC_LABEL[e.type] || e.type, value: e.value, host, benign: !!(host && BENIGN_HOSTS.test(host)), sources: [...e.sources].slice(0, 5), nsrc: e.sources.size }; });
+  items.sort((a, b) => (IOC_ORDER.indexOf(a.type) + 1 || 99) - (IOC_ORDER.indexOf(b.type) + 1 || 99) || a.value.localeCompare(b.value));
+  const counts = {}; for (const i of items) counts[i.type] = (counts[i.type] || 0) + 1;
+  return { items, counts, total: items.length, truncated, note: 'Göstergeler dosya içeriğindeki metinlerden çıkarıldı; hiçbirine bağlanılmadı. Bir göstergenin listede olması kötü amaçlı olduğunu göstermez (meşru adresler de çıkar). Webhook/bot token’ları maskelidir.' };
+}
+function iocDefangStr(s) { return String(s).replace(/^http/i, 'hxxp').replace(/\./g, '[.]').replace(/@/g, '[@]'); }
+const iocCsvCell = (v) => { v = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+/* fmt: 'txt' | 'csv' | 'json' | 'blocklist'; opts: { defang, includeBenign } */
+function iocExport(tree, fmt, opts) {
+  opts = opts || {}; const df = (t, v) => (opts.defang && /^(url|domain|ip|email|onion|telegram|webhook|invite)$/.test(t) ? iocDefangStr(v) : v);
+  const list = tree.items.filter((i) => opts.includeBenign || !i.benign);
+  if (fmt === 'json') return JSON.stringify({ tool: 'StatScan', kind: 'ioc', generated: new Date().toISOString(), note: tree.note, defanged: !!opts.defang, counts: tree.counts, truncated: tree.truncated, items: list.map((i) => ({ type: i.type, value: df(i.type, i.value), sources: i.sources, benignHost: i.benign })) }, null, 2);
+  if (fmt === 'csv') return '﻿' + [['tür', 'değer', 'bilinen_meşru_site', 'kaynak_dosyalar']].concat(list.map((i) => [i.label, df(i.type, i.value), i.benign ? 'evet' : '', i.sources.join(' | ') + (i.nsrc > i.sources.length ? ' …+' + (i.nsrc - i.sources.length) : '')])).map((r) => r.map(iocCsvCell).join(',')).join('\n');
+  if (fmt === 'blocklist') { const set = new Set(); for (const i of list) { if (i.type === 'ip') set.add(i.value); else if (i.host) set.add(i.host); } return [...set].sort().map((x) => (opts.defang ? iocDefangStr(x) : x)).join('\n') + '\n'; }
+  const L = ['# StatScan IOC listesi', '# ' + tree.note, '']; let cur = ''; for (const i of list) { if (i.type !== cur) { cur = i.type; L.push('', '## ' + i.label); } L.push(df(i.type, i.value)); } return L.join('\n') + '\n';
+}
+/*#endregion ioc*/
+/*#region pack*/
+/* PyInstaller (CArchive/PYZ) ve Electron asar paketlerini STATIK olarak acar. Hicbir sey calistirilmaz/yorumlanmaz.
+ * PyInstaller: icerik .pyc olarak cikarilir, dize/IOC/kural taramasindan gecer; kaynak koda DECOMPILE EDILMEZ (kurulu bir pycdc/uncompyle6 gerekir).
+ * Sifreli PYZ (AES anahtarli) acilamaz. asar: .asar.unpacked klasorundeki dosyalar bu dosyada yoktur. */
+const PYI_MAGIC = [0x4d, 0x45, 0x49, 0x0c, 0x0b, 0x0a, 0x0b, 0x0e];
+const PYI_STD = /^(?:__future__|_[a-z0-9_]*|abc|argparse|ast|asyncio|base64|bisect|calendar|cgi|codecs|collections|concurrent|configparser|contextlib|copy|csv|ctypes|dataclasses|datetime|decimal|difflib|dis|email|encodings|enum|errno|fnmatch|fractions|functools|gc|getpass|gettext|glob|gzip|hashlib|heapq|hmac|html|http|importlib|inspect|io|ipaddress|itertools|json|keyword|linecache|locale|logging|lzma|mimetypes|multiprocessing|netrc|nturl2path|numbers|opcode|operator|os|pathlib|pickle|pkgutil|platform|plistlib|posixpath|pprint|py_compile|queue|quopri|random|re|reprlib|runpy|sched|secrets|selectors|shlex|shutil|signal|site|smtplib|socket|socketserver|sre_[a-z]+|ssl|stat|statistics|string|stringprep|struct|subprocess|sysconfig|tarfile|tempfile|textwrap|threading|time|timeit|token|tokenize|traceback|tracemalloc|types|typing|unicodedata|unittest|urllib|uu|uuid|warnings|weakref|webbrowser|xml|zipfile|zipimport|zlib|pyimod\d+_[a-z]+|pkg_resources|setuptools|PyInstaller|pip|wheel|certifi|charset_normalizer|idna|urllib3|requests|six|packaging)(?:\.|$)/;
+const PYI_BIN_SKIP = /^(?:python\d*\.dll|libpython|vcruntime|msvcp|ucrtbase|api-ms-win|libcrypto|libssl|libffi|zlib|_ssl|_ctypes|_socket|_hashlib|_bz2|_lzma|_decimal|_elementtree|_multiprocessing|_queue|_asyncio|_overlapped|select|unicodedata|pyexpat|VCRUNTIME|MSVCP|base_library)/i;
+const PYC_MAGIC = { 36: [0x33, 0x0d, 0x0d, 0x0a], 37: [0x42, 0x0d, 0x0d, 0x0a], 38: [0x55, 0x0d, 0x0d, 0x0a], 39: [0x61, 0x0d, 0x0d, 0x0a], 310: [0x6f, 0x0d, 0x0d, 0x0a], 311: [0xa7, 0x0d, 0x0d, 0x0a], 312: [0xcb, 0x0d, 0x0d, 0x0a], 313: [0xf3, 0x0d, 0x0d, 0x0a] };
+function pyiFind(u8) {
+  if (!u8 || u8.length < 64) return null; const lo = Math.max(0, u8.length - 3e6);
+  for (let i = u8.length - 24; i >= lo; i--) { if (u8[i] !== 0x4d) continue; let ok = true; for (let j = 1; j < 8; j++) if (u8[i + j] !== PYI_MAGIC[j]) { ok = false; break; } if (ok) return i; }
+  return null;
+}
+function pyiParse(u8) {
+  const ck = pyiFind(u8); if (ck == null) return null; const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let ver21 = false, size = 24; if (ck + 88 <= u8.length) { const pl = ascii(u8, ck + 24, ck + 88); if (/^[\x20-\x7e\0]{3,64}$/.test(pl) && /py|lib|dll|so|\.\d/i.test(pl)) { ver21 = true; size = 88; } }
+  const pkgLen = dv.getInt32(ck + 8), toc = dv.getInt32(ck + 12), tocLen = dv.getInt32(ck + 16), pyver = dv.getInt32(ck + 20);
+  const pylib = ver21 ? ascii(u8, ck + 24, ck + 88).replace(/\0.*$/, '') : '';
+  const tail = u8.length - ck - size; const start = u8.length - (pkgLen + tail); if (pkgLen <= 0 || start < 0 || toc < 0 || tocLen <= 0 || start + toc + tocLen > u8.length) return { bad: true, cookie: ck };
+  const entries = []; let p = start + toc; const end = p + tocLen; let guard = 0;
+  while (p + 18 <= end && guard++ < 20000) { const el = dv.getInt32(p); if (el < 18 || p + el > end + 1) break; const pos = dv.getUint32(p + 4), csz = dv.getUint32(p + 8), usz = dv.getUint32(p + 12), flag = u8[p + 16], type = String.fromCharCode(u8[p + 17]); let name = ''; for (let i = p + 18; i < p + el && u8[i]; i++) name += String.fromCharCode(u8[i]); entries.push({ name, type, flag, pos: start + pos, csz, usz }); p += el; }
+  return { cookie: ck, start, pyver, pylib, entries, truncated: guard >= 20000 };
+}
+async function pyiData(u8, pk, e, cap) { if (e.pos < 0 || e.pos + e.csz > u8.length) throw new Error('girdi sınır dışı'); const raw = u8.subarray(e.pos, e.pos + e.csz); if (e.flag === 1) { const d = await inflateAny(raw, 'deflate', cap || 40e6); if (!d.length && e.usz > 0) throw new Error('zlib açılamadı'); return d; } return raw; }
+/* marshal alt kumesi: yalnizca PYZ icindekileri okumak icin (kod nesnesi calistirilmaz/yorumlanmaz) */
+function pyMarshalRead(u8, pos) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); let p = pos; const refs = []; let nodes = 0; const END = {};
+  const need = (n) => { if (p + n > u8.length) throw new Error('marshal: veri bitti'); };
+  const str = (n, enc) => { need(n); const s = enc === 'u' ? td8.decode(u8.subarray(p, p + n)) : String.fromCharCode.apply(null, u8.subarray(p, p + n)); p += n; return s; };
+  const rd = () => {
+    if (++nodes > 300000) throw new Error('marshal: sınır'); need(1); let t = u8[p++]; const fl = t & 0x80; t &= 0x7f; const c = String.fromCharCode(t); let v;
+    const reserve = () => (fl ? refs.push(undefined) - 1 : -1); const fin = (i, val) => { if (i >= 0) refs[i] = val; return val; };
+    switch (c) {
+      case 'N': v = null; break; case 'T': v = true; break; case 'F': v = false; break; case '0': return END; case '.': v = undefined; break;
+      case 'i': need(4); v = dv.getInt32(p, true); p += 4; break;
+      case 'I': need(8); v = Number(dv.getBigInt64(p, true)); p += 8; break;
+      case 'g': need(8); v = dv.getFloat64(p, true); p += 8; break;
+      case 'l': { need(4); const n = dv.getInt32(p, true); p += 4; const m = Math.abs(n); need(m * 2); let b = 0n; for (let i = m - 1; i >= 0; i--) b = (b << 15n) | BigInt(dv.getUint16(p + i * 2, true)); p += m * 2; v = Number(n < 0 ? -b : b); break; }
+      case 's': { need(4); const n = dv.getUint32(p, true); p += 4; v = str(n, 's'); break; }
+      case 't': case 'a': case 'A': case 'u': { need(4); const n = dv.getUint32(p, true); p += 4; v = str(n, c === 'u' ? 'u' : 's'); break; }
+      case 'z': case 'Z': { need(1); const n = u8[p++]; v = str(n, 's'); break; }
+      case 'r': { need(4); const i = dv.getUint32(p, true); p += 4; return refs[i]; }
+      case '(': case '[': case '<': case '>': { need(4); const n = dv.getUint32(p, true); p += 4; if (n > 100000) throw new Error('marshal: büyük kapsayıcı'); const ri = reserve(); const a = []; for (let i = 0; i < n; i++) a.push(rd()); return fin(ri, a); }
+      case ')': { need(1); const n = u8[p++]; const ri = reserve(); const a = []; for (let i = 0; i < n; i++) a.push(rd()); return fin(ri, a); }
+      case '{': { const ri = reserve(); const m = new Map(); for (;;) { const k = rd(); if (k === END) break; const val = rd(); m.set(k, val); if (m.size > 100000) throw new Error('marshal: büyük sözlük'); } return fin(ri, m); }
+      default: throw new Error('marshal: desteklenmeyen tür ' + c);
+    }
+    if (fl) refs.push(v); return v;
+  };
+  return rd();
+}
+async function pyzParse(u8, data) {
+  if (data.length < 12 || ascii(data, 0, 3) !== 'PYZ') return null; const dv = new DataView(data.buffer, data.byteOffset, data.byteLength); const magic = Array.from(data.subarray(4, 8)); const tocOff = dv.getUint32(8);
+  if (tocOff < 12 || tocOff >= data.length) return { magic, mods: [], bad: true };
+  let toc; try { toc = pyMarshalRead(data, tocOff); } catch (e) { return { magic, mods: [], bad: true, err: String(e.message || e) }; }
+  const items = toc instanceof Map ? [...toc] : (Array.isArray(toc) ? toc : []); const mods = [];
+  for (const it of items) { const nm = Array.isArray(it) ? it[0] : null; const v = Array.isArray(it) ? it[1] : null; if (typeof nm !== 'string' || !Array.isArray(v) || v.length < 3) continue; mods.push({ name: nm, ispkg: v[0], pos: v[1], len: v[2] }); if (mods.length >= 20000) break; }
+  return { magic, mods };
+}
+/* .pyc/marshal verisindeki dize sabitlerini (kisa ASCII 'z/Z', ASCII 'a/A', unicode 'u', bytes 's') tur baytlariyla karismadan toplar. Kod calistirilmaz. */
+function pyConstText(u8) {
+  const out = []; let tot = 0; const n = u8.length; const ok = (a, b) => { for (let k = a; k < b; k++) { const c = u8[k]; if (!((c >= 32 && c < 127) || c === 9 || c === 10 || c === 13)) return false; } return true; };
+  for (let i = 0; i + 2 < n && tot < 4e6; i++) {
+    const t = u8[i] & 0x7f; let len = -1, st = 0;
+    if (t === 0x7a || t === 0x5a) { len = u8[i + 1]; st = i + 2; }
+    else if ((t === 0x61 || t === 0x41 || t === 0x75 || t === 0x73 || t === 0x74) && i + 5 <= n) { len = u8[i + 1] | (u8[i + 2] << 8) | (u8[i + 3] << 16) | (u8[i + 4] << 24); st = i + 5; }
+    if (len < 4 || len > 65536 || st + len > n || !ok(st, st + len)) continue;
+    out.push(String.fromCharCode.apply(null, u8.subarray(st, st + len))); tot += len; i = st + len - 1;
+  }
+  return out;
+}
+const pycWrap = (data, magic, pyver) => { const hdr = pyver && pyver < 37 ? 12 : 16; const o = new Uint8Array(hdr + data.length); o.set(magic.slice(0, 4), 0); o.set(data, hdr); return o; };
+/* tum icerigi bellekte coz (sinirli). ret: { info, files:[{path, bytes, kind, lib}] } */
+async function pyiExtract(u8, opts) {
+  opts = opts || {}; const pk = pyiParse(u8); if (!pk) return null; if (pk.bad) return { info: { bad: true }, files: [], notes: ['PyInstaller çerezi bulundu ama içindekiler tablosu geçersiz/desteklenmiyor.'] };
+  const files = [], notes = []; const maxMods = opts.maxMods || 4000, cap = opts.cap || 60e6; let total = 0; let encrypted = false; let libMods = 0, ownMods = 0;
+  const py = pk.pyver >= 100 ? 'Python ' + Math.floor(pk.pyver / 100) + '.' + (pk.pyver % 100) : (pk.pyver >= 10 ? 'Python ' + Math.floor(pk.pyver / 10) + '.' + (pk.pyver % 10) : 'Python ?');
+  const fallbackMagic = PYC_MAGIC[pk.pyver >= 100 ? pk.pyver : 0] || null;
+  for (const e of pk.entries) {
+    if (total > cap) { notes.push('Toplam açılmış veri sınırı aşıldı; kalan girdiler açılmadı.'); break; }
+    let d = null; try { d = await pyiData(u8, pk, e, 30e6); } catch (er) { if (e.type === 'z' || e.type === 'Z') encrypted = true; notes.push(e.name + ': açılamadı (' + String(er.message || er).slice(0, 40) + ')'); continue; }
+    total += d.length;
+    if (e.type === 's') files.push({ path: 'scripts/' + e.name + '.pyc', bytes: pycWrap(d, fallbackMagic || [0, 0, 0, 0], pk.pyver), kind: 'script', lib: false, raw: d });
+    else if (e.type === 'z' || e.type === 'Z') {
+      const pz = await pyzParse(u8, d); if (!pz) { notes.push(e.name + ': PYZ başlığı tanınmadı'); continue; } if (pz.bad) { encrypted = true; notes.push(e.name + ': PYZ içindekiler tablosu okunamadı (şifreli olabilir)'); continue; }
+      let nfail = 0; for (const m of pz.mods.slice(0, maxMods)) { let md = null; try { md = await inflateAny(d.subarray(m.pos, m.pos + m.len), 'deflate', 8e6); } catch (er) { nfail++; continue; } if (!md.length) { nfail++; continue; } const lib = PYI_STD.test(m.name); lib ? libMods++ : ownMods++; total += md.length; files.push({ path: 'pyz/' + m.name.replace(/\./g, '/') + (m.ispkg ? '/__init__' : '') + '.pyc', bytes: pycWrap(md, pz.magic, pk.pyver), kind: 'module', lib, raw: md, mod: m.name }); }
+      if (pz.mods.length && nfail > pz.mods.length / 2) { encrypted = true; notes.push('PYZ modüllerinin çoğu açılamadı: arşiv şifreli (AES anahtarlı) olabilir.'); }
+    } else if (e.type === 'm' || e.type === 'M') files.push({ path: 'modules/' + e.name + '.pyc', bytes: pycWrap(d, fallbackMagic || [0, 0, 0, 0], pk.pyver), kind: 'module', lib: PYI_STD.test(e.name), raw: d, mod: e.name });
+    else if (e.type === 'b' || e.type === 'x' || e.type === 'd') files.push({ path: (e.type === 'b' ? 'binaries/' : 'data/') + e.name.replace(/\\/g, '/').replace(/^\/+/, ''), bytes: d, kind: e.type === 'b' ? 'binary' : 'data', lib: e.type === 'b' && PYI_BIN_SKIP.test(baseName(e.name)) });
+  }
+  return { info: { py, pyver: pk.pyver, pylib: pk.pylib, entries: pk.entries.length, scripts: files.filter((f) => f.kind === 'script').map((f) => f.path.replace(/^scripts\/|\.pyc$/g, '')), modules: files.filter((f) => f.kind === 'module').length, libMods, ownMods, encrypted, truncated: pk.truncated }, files, notes };
+}
+async function analyzePyInstaller(u8, name, st, depth) {
+  const F = [], kids = []; const ex = await pyiExtract(u8, { cap: Math.min(st.cfg.maxTotal || 60e6, 80e6) }); if (!ex) return null; const info = ex.info;
+  if (info.bad) return { findings: [mk('pyi_pack', 'info', 0, 'PyInstaller çerezi var ama içerik okunamadı', ex.notes[0], 'Dosyayı pyinstxtractor gibi bir araçla incele.', [], 'obf', { basis: 'fact' })], children: [], info: { pyinstaller: info } };
+  const own = ex.files.filter((f) => (f.kind === 'script' || f.kind === 'module') && !f.lib); const names = ex.files.map((f) => f.path).join('\n');
+  F.push(mk('pyi_pack', 'info', 1, 'PyInstaller ile paketlenmiş Python uygulaması', info.py + ' · ' + info.entries + ' girdi · ' + info.ownMods + ' özgün + ' + info.libMods + ' kütüphane modülü. İçerik .pyc olarak çıkarıldı ve taranıyor; hiçbir kod çalıştırılmadı. Kaynak koda DECOMPILE edilmedi.', 'Zararlı şüphesi varsa .pyc dosyalarını güvenli bir ortamda pycdc/uncompyle6 ile çöz.', ['giriş betikleri: ' + (info.scripts.slice(0, 6).join(', ') || '—')], 'obf', { basis: 'fact' }));
+  if (/pytransform|pyarmor/i.test(names)) F.push(mk('pyi_pyarmor', 'med', 8, 'PyArmor ile korunmuş Python kodu', 'Paket içinde PyArmor çalışma zamanı (pytransform) var; kod şifreli olduğu için analizi sınırlıdır.', 'Statik inceleme yetersiz kalır; güvenli bir ortamda davranış analizi gerekir.', ['pytransform/pyarmor modülü'], 'obf', { basis: 'fact', mitre: ['T1027'] }));
+  if (info.encrypted) F.push(mk('pyi_encrypted', 'low', 4, 'PyInstaller arşivi şifreli', 'PYZ içeriği açılamadı (AES anahtarlı paketleme olabilir). İçerik taranamadı.', 'İçeriği statik olarak değerlendiremedin; başka bir yöntemle incele.', ex.notes.slice(0, 3), 'obf', { basis: 'inference', mitre: ['T1027'] }));
+  const MAXK = st.cfg.deepJar ? 160 : 60; let n = 0;
+  for (const f of ex.files) {
+    if (n >= MAXK || st.stop) { if (n >= MAXK) limitHit(st, 'pyi', 'PyInstaller içeriğinde çok girdi var; ilk ' + MAXK + ' özgün/ilgili girdi tarandı.'); break; }
+    if (f.lib) continue; if (f.kind === 'binary' && f.bytes.length > 6e6) continue; if (f.kind === 'data' && f.bytes.length > 1e6) continue; if (depth + 1 > st.cfg.depth + 2) continue;
+    n++; const isCode = f.kind === 'script' || f.kind === 'module'; const kr = await scanBuffer(isCode ? new TextEncoder().encode(pyConstText(f.raw).join('\n')) : f.bytes, name + ' › ' + f.path + (isCode ? ' [sabit dizeler]' : ''), st, depth + 1); kids.push(kr);
+  }
+  return { findings: F, children: kids, info: { pyinstaller: { py: info.py, scripts: info.scripts, own: info.ownMods, lib: info.libMods, encrypted: info.encrypted } }, extracted: ex };
+}
+/* ---- Electron asar ---- */
+function isAsar(u8) { if (!u8 || u8.length < 24) return false; const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); if (dv.getUint32(0, true) !== 4) return false; const jl = dv.getUint32(12, true); return jl > 2 && 16 + jl <= u8.length && ascii(u8, 16, 25) === '{"files":' && dv.getUint32(4, true) >= jl + 4; }
+function asarParse(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); const hsz = dv.getUint32(4, true), jl = dv.getUint32(12, true); let j; try { j = JSON.parse(td8.decode(u8.subarray(16, 16 + jl))); } catch (e) { return null; }
+  const base = 8 + hsz; const files = []; const walk = (node, prefix, depth) => { if (depth > 30 || files.length > 60000) return; for (const [k, v] of Object.entries(node.files || {})) { const pth = prefix ? prefix + '/' + k : k; if (v && v.files) walk(v, pth, depth + 1); else if (v) files.push({ path: pth, size: v.size >>> 0, offset: v.unpacked ? -1 : Number(v.offset || 0), unpacked: !!v.unpacked, link: !!v.link }); } };
+  walk(j, '', 0); return { base, files };
+}
+async function analyzeAsar(u8, name, st, depth) {
+  const F = [], kids = []; const a = asarParse(u8); if (!a) return { findings: [mk('asar_bad', 'info', 0, 'asar başlığı okunamadı', 'Electron asar başlığı bozuk veya desteklenmiyor.', 'Dosyayı elle incele.', [], 'obf', { basis: 'fact' })], children: [], info: { kind: 'Electron asar' } };
+  const unp = a.files.filter((f) => f.unpacked).length; const info = { kind: 'Electron asar', asar: { files: a.files.length, unpacked: unp } };
+  const pj = a.files.find((f) => f.path === 'package.json' && f.offset >= 0); let main = '';
+  if (pj && a.base + pj.offset + pj.size <= u8.length) { try { const j = JSON.parse(td8.decode(u8.subarray(a.base + pj.offset, a.base + pj.offset + pj.size))); main = j.main || ''; info.asar.main = main; info.asar.pkg = j.name; } catch (e) { /* yoksay */ } }
+  F.push(mk('asar_pack', 'info', 1, 'Electron uygulama paketi (asar)', a.files.length + ' dosya' + (main ? ' · ana dosya: ' + main : '') + '. İçerik statik olarak taranıyor; hiçbir kod çalıştırılmadı.' + (unp ? ' ' + unp + ' dosya .asar.unpacked klasöründe olduğu için bu dosyada yok.' : ''), 'Uygulamanın kaynağından emin değilsen çalıştırma.', [], 'obf', { basis: 'fact' }));
+  const nodeMods = a.files.filter((f) => /\.node$/i.test(f.path) && f.offset >= 0); if (nodeMods.length) F.push(mk('asar_native', 'low', 4, 'Yerel eklenti (.node) içeriyor', 'asar içinde derlenmiş Node eklentileri var; JavaScript analizinin göremediği yerel kod çalıştırabilirler.', 'Eklentileri ayrıca tara.', nodeMods.slice(0, 5).map((f) => f.path), 'obf', { basis: 'fact' }));
+  const MAXK = st.cfg.deepJar ? 400 : 120; let n = 0, bytes = 0;
+  const cand = a.files.filter((f) => f.offset >= 0 && f.size > 0 && /\.(?:js|cjs|mjs|json|html|htm|node|ps1|bat|cmd|vbs|sh|py)$/i.test(f.path) && !/(^|\/)node_modules\//.test(f.path)).sort((x, y) => (x.path === main ? -1 : y.path === main ? 1 : 0));
+  for (const f of cand) {
+    if (n >= MAXK || st.stop) { if (n >= MAXK) limitHit(st, 'asar', 'asar içinde çok dosya var; ilk ' + MAXK + ' uygulama dosyası tarandı (node_modules hariç).'); break; }
+    if (f.size > (/\.node$/i.test(f.path) ? 8e6 : 3e6) || a.base + f.offset + f.size > u8.length) continue; if (bytes + f.size > 60e6) { limitHit(st, 'asar', 'asar toplam okuma sınırı aşıldı.'); break; } bytes += f.size; n++;
+    const kr = await scanBuffer(u8.slice(a.base + f.offset, a.base + f.offset + f.size), name + ' › ' + f.path, st, depth + 1); if (kr.score > 0 || f.path === main || (kr.info && kr.info.iocs)) kids.push(kr);
+  }
+  const nm = a.files.filter((f) => /(^|\/)node_modules\//.test(f.path)).length; if (nm) F.push(mk('asar_nm', 'info', 0, 'node_modules atlandı', nm + ' bağımlılık dosyası taranmadı (yalnızca uygulamanın kendi dosyaları incelenir).', 'Bağımlılıklar için npm audit gibi araçlar kullan.', [], 'obf', { basis: 'fact' }));
+  return { findings: F, children: kids, info };
+}
+/*#endregion pack*/
+const api = { iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.1.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -3186,6 +3383,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const cols = [...new Set(v.slice(0, 20).flatMap((o) => Object.keys(o)))].slice(0, 7); return h('div', { class: 'tbl' }, h('table', null, h('thead', null, h('tr', null, cols.map((c) => h('th', null, COLL[c] || c)))), h('tbody', null, v.slice(0, 100).map((o) => h('tr', null, cols.map((c) => h('td', null, typeof o[c] === 'object' && o[c] ? JSON.stringify(o[c]).slice(0, 80) : String(o[c] == null ? '' : o[c]))))))), v.length > 100 ? h('div', { class: 'fine' }, '… +' + (v.length - 100) + ' satır') : null); }
     if (typeof v === 'object') { if (d > 2) return document.createTextNode(JSON.stringify(v).slice(0, 200)); return h('dl', { class: 'facts sub' }, Object.entries(v).slice(0, 40).map(([k, x]) => h('div', null, h('dt', null, k), h('dd', null, valEl(x, d + 1))))); }
     return document.createTextNode(typeof v === 'boolean' ? (v ? 'evet' : 'hayır') : String(v));
+  }
+  function iocTreeBlock(r) {
+    if (!r.children || !r.children.length) return null; const tree = StatScan.iocTree(r); const own = r.info && r.info.iocs ? Object.values(r.info.iocs).reduce((n, a) => n + a.length, 0) : 0; if (tree.total === 0 || tree.total <= own) return null;
+    const st = { defang: true, benign: false }; const box = h('div', { class: 'iocall' }); const sum = h('p', { class: 'fine' });
+    const refresh = () => { const sh = tree.items.filter((i) => st.benign || !i.benign); sum.textContent = sh.length + ' gösterge (tüm alt dosyalar dahil): ' + Object.entries(tree.counts).map(([k, n]) => n + ' ' + (IOCL[k] || k).toLowerCase()).join(', ') + (tree.truncated ? ' · liste 5000’de kesildi' : ''); };
+    const IOCL = { webhook: 'webhook', telegram: 'telegram bot', url: 'URL', domain: 'alan adı', ip: 'IP', onion: 'onion', invite: 'davet', email: 'e-posta', btc: 'btc', eth: 'eth', reg: 'kayıt defteri', path: 'dosya yolu' };
+    const o = () => ({ defang: st.defang, includeBenign: st.benign });
+    const chk = (label, key) => h('label', { class: 'fine', style: 'display:inline-flex;gap:6px;align-items:center;margin-right:12px' }, h('input', { type: 'checkbox', checked: st[key] ? '' : null, onchange: (e) => { st[key] = e.target.checked; refresh(); } }), label);
+    box.append(h('div', { class: 'sechead' }, 'Tüm ağ göstergeleri (IOC) · ' + tree.total), sum, h('div', { class: 'actions' }, chk('Defang (hxxp, [.])', 'defang'), chk('Bilinen meşru siteleri de ekle', 'benign')),
+      h('div', { class: 'actions' }, h('button', { type: 'button', onclick: () => copy(StatScan.iocExport(tree, 'txt', o()), 'IOC listesi') }, 'Kopyala'), h('button', { type: 'button', onclick: () => save('statscan-ioc.txt', StatScan.iocExport(tree, 'txt', o()), 'text/plain') }, '.txt'), h('button', { type: 'button', onclick: () => save('statscan-ioc.csv', StatScan.iocExport(tree, 'csv', o()), 'text/csv') }, '.csv'), h('button', { type: 'button', onclick: () => save('statscan-ioc.json', StatScan.iocExport(tree, 'json', o()), 'application/json') }, '.json'), h('button', { type: 'button', onclick: () => save('statscan-engelleme-listesi.txt', StatScan.iocExport(tree, 'blocklist', o()), 'text/plain') }, 'Engelleme listesi (alan adı + IP)')),
+      h('p', { class: 'fine' }, tree.note)); refresh(); return box;
   }
   function structBlock(r) {
     const i = r.info || {}; const keys = Object.keys(i).filter((k) => !SKIPK.has(k) && i[k] != null && typeof i[k] !== 'function' && (typeof i[k] === 'object' || ['overlay', 'subsystem', 'rich'].includes(k))); if (!keys.length) return null;
@@ -3484,7 +3692,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('div', { class: 'scorebox' }, gauge(r.score, b, true), h('div', { class: 'verdict', style: 'color:var(--s' + b + ')' }, r.verdict), h('div', { class: 'vsub' }, assure(r, b)))),
       h('div', { class: 'hd2' }, ruler(r.score), r.profile && r.profile.some((p) => p.value > 0) ? radar(r.profile) : null),
       statusNotes(r));
-    const body = h('div', { class: 'body' }, summaryBox(r), factsOf(r), breakdown(r), cmpBtn ? h('div', { class: 'actions', style: 'padding:4px 0 8px' }, cmpBtn, h('span', { class: 'hint', style: 'flex-basis:auto' }, 'Aynı dosyayı diğer iki modla da tarar ve farkı gösterir.')) : null, cmpHolder, dynBlock(r), analysisBlock(r), structBlock(r), attackBlock(r), obfPanel(r), insp ? insp.el : null, viewer ? viewer.el : null, iocBlock(r.info), fbar, bodyHolder,
+    const body = h('div', { class: 'body' }, summaryBox(r), factsOf(r), breakdown(r), cmpBtn ? h('div', { class: 'actions', style: 'padding:4px 0 8px' }, cmpBtn, h('span', { class: 'hint', style: 'flex-basis:auto' }, 'Aynı dosyayı diğer iki modla da tarar ve farkı gösterir.')) : null, cmpHolder, dynBlock(r), analysisBlock(r), structBlock(r), attackBlock(r), obfPanel(r), insp ? insp.el : null, viewer ? viewer.el : null, iocTreeBlock(r), iocBlock(r.info), fbar, bodyHolder,
       r.info && r.info.urls && r.info.urls.length ? [h('div', { class: 'sechead' }, 'Bulunan adresler · ' + r.info.urls.length), h('pre', { class: 'ev' }, r.info.urls.join('\n'))] : null);
     const sec = h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, coverBlock(r), body, r.children && r.children.length ? kidsBlock(r.children) : null, h('p', { class: 'fine', style: 'padding:0 24px 18px;margin:0' }, r.disclaimer || ''));
     const num = sec.querySelector('.num'); if (num && !reduce()) { const to = r.score, t0 = performance.now(), D = 700; const step = (t) => { const p = Math.min(1, (t - t0) / D); num.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
