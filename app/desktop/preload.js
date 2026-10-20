@@ -17,5 +17,14 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   obfSave: (req) => call('obf:save', req),
   obfStart: (req) => call('obf:start', req),
   obfJob: (id) => call('obf:job', String(id)),
-  obfCancel: (id) => call('obf:cancel', String(id))
+  obfCancel: (id) => call('obf:cancel', String(id)),
+  watchSuggest: () => call('watch:suggest'),
+  watchChoose: () => call('watch:choose'),
+  watchSet: (l) => call('watch:set', Array.isArray(l) ? l.map(String) : []),
+  watchTake: () => call('watch:take'),
+  watchLog: () => call('watch:log'),
+  watchNote: (k, t, n) => call('watch:note', String(k), String(t), String(n || '')),
+  watchNotify: (t, b) => call('watch:notify', String(t), String(b)),
+  storeGet: (k) => call('store:get', String(k)),
+  storeSet: (k, v) => call('store:set', String(k), String(v))
 }));

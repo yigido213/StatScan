@@ -1,6 +1,6 @@
 {
-  "version": "4.1.0",
-  "url": "StatScan-4.1.0.ssu",
-  "sha256": "c104592757b54d0645329c2259c060b4c2f1416ece49176c867b2f3ff868f96c",
-  "notes": "4.1: fonksiyon risk sıralaması, Minecraft mod kontrolleri, java/javaw.exe muafiyeti, toplu rapor özeti."
+  "version": "4.2.0",
+  "url": "StatScan-4.2.0.ssu",
+  "sha256": "43f3567e58514551af1cc4dcda50a5509d5b36fc83610c44927bbf290e1aa528",
+  "notes": "Kendi dosyalarım (güvenilir liste, yeni davranış uyarısı, java muafiyet modu), klasör izleme, ağ IOC dışa aktarımı, PyInstaller/asar açıcı"
 }

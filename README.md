@@ -50,3 +50,13 @@ EXE/DLL/ELF/Mach-O için obfuscation panelinde, makinede **zaten kurulu** IDA Pr
 - **Minecraft mod/eklenti kontrolleri:** bildirilen giriş sınıfı/`plugin.yml` main sınıfı jar'da yok, meta veride bildirilmeyen gömülü jar (`META-INF/jars`), jar'da olmayan mixin sınıfları, bilinen mod adını taşıyan şüpheli jar.
 - **java.exe / javaw.exe muafiyeti:** dosyada `java.exe`/`javaw.exe` adı geçiyorsa ve çalma/sızdırma belirtisi yoksa (tarayıcı verisi, token, Minecraft hesap dosyası, webhook, DPAPI, keylogger, stealer kombinasyonu) ReadProcessMemory/WriteProcessMemory/enjeksiyon bulgusu puanlanmaz (bulgu bilgi olarak listede kalır). Çalma belirtisi varsa muafiyet uygulanmaz. Not: bu muafiyet, java'ya enjekte olan ama çalma göstergesi taşımayan bir dosyayı da düşük puanlar; zararsız anlamına gelmez.
 - **Toplu rapor:** HTML raporun başına "Önce bunlara bak" tablosu (en yüksek skorlu ilk 15 dosya). Klasör tarama, süzgeç ve CSV zaten vardı.
+
+
+## 4.2
+
+- **Kendi dosyalarım:** sonuç kartından bir dosyayı "Kendi dosyam olarak işaretle" ile kaydedersin (SHA-256 + ad ailesi + bulgu listesi). Aynı dosya tanınır; adı benzeyen yeni sürümde önceki sürüme göre **eklenen bulgular** ve skor farkı uyarı olarak gösterilir. İşaretlemek hiçbir bulguyu gizlemez veya puanı düşürmez. Liste soldaki "Kendi dosyalarım" panelinde; JSON dışa/içe aktarma var. Masaüstünde `userData/store.json`, tarayıcıda localStorage.
+- **java/javaw.exe muafiyet modu:** Herkese (varsayılan) / yalnızca işaretli dosyalara / kapalı. Muafiyet yine yalnızca çalma-sızdırma belirtisi yoksa uygulanır.
+- **Klasör izleme (yalnızca masaüstü):** seçtiğin klasörlere (İndirilenler, .minecraft/mods önerilir, otomatik açılmaz) gelen yeni dosyalar indirme bitince okunur, motorla taranır, eşik üstünde bildirim gelir; günlük tutulur. Dosya çalıştırılmaz/değiştirilmez/silinmez; StatScan çıktı klasörü izlenmez; 64 MB üstü taranmaz; yalnızca uygulama açıkken çalışır; izleme öncesi dosyalar taranmaz.
+- **Ağ IOC çıkarımı:** URL/IP/alan adı/webhook/Telegram/onion/davet bağlantıları tüm iç dosyalardan toplanır, tekilleştirilir, zararsız hostlar işaretlenir; txt/csv/json/engel listesi olarak dışa aktarılır (webhook/token maskeli, defang seçeneği).
+- **PyInstaller ve Electron asar açıcı:** PyInstaller CArchive/PYZ içindeki modül dizeleri ve `.pyc` dosyaları çıkarılıp taranır (AES şifreli PYZ/PyArmor "kısmi" bildirilir, `.pyc` decompile edilmez); `.asar` arşivleri açılıp taranır (`node_modules` atlanır, `.node` eklentileri işaretlenir; `.unpacked` dosyalar yoktur).
+- Testler: `node tools/test/{trust,ioc,pack,mc,smoke}.mjs`, `node tools/test/{watch,obf-host}.cjs`.

@@ -232,6 +232,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visib
 @keyframes grow { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
 .body { padding: 6px 24px 22px; display: grid; gap: 4px; }
 .sechead { font: 500 12px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 16px 0 6px; display: flex; align-items: center; gap: 10px; }
+.trustbox{margin:8px 0}.trow{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line,#ddd)}.tlist{max-height:260px;overflow:auto}
 .riskbox{margin-top:10px}.risklist{margin:6px 0 0;padding-left:20px}.risklist li{margin:6px 0}.risklist code{font:12px var(--f-mono);overflow-wrap:anywhere}
 .sechead label { margin-left: auto; text-transform: none; letter-spacing: 0; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font: 13px var(--f-body); }
 .find { border-top: 1px solid var(--line); padding: 14px 0; display: grid; gap: 7px; }
@@ -506,7 +507,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 <body>
 <a class="skip" href="#main">İçeriğe geç</a>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>4.1</small></h1></div>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>4.2</small></h1></div>
   <p class="tagline">JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; istersen Windows Sandbox’ta davranış analizi yapar.</p>
   <div class="hright">
     <span class="lock" title="Dosyalar tarayıcı belleğinde işlenir, hiçbir yere gönderilmez."><i aria-hidden="true"></i><span class="t">Yerel · hiçbir şey yüklenmez</span></span>
@@ -541,6 +542,8 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
     <div class="adv">
       <div class="railtitle">Gelişmiş</div>
       <details class="cover" id="dynbox"><summary id="dynsum">Dinamik analiz (Windows Sandbox)</summary><div class="dsec" id="dynbody"></div></details>
+      <details class="cover" id="watchbox" hidden><summary id="watchsum">Klasör izleme (masaüstü)</summary><div class="dsec" id="watchbody"></div></details>
+      <details class="cover" id="trustset"><summary id="trustsum">Kendi dosyalarım ve java muafiyeti</summary><div class="dsec" id="trustbody"></div></details>
       <details class="cover" id="rulebox"><summary id="rulesum">Kural paketi (isteğe bağlı): kendi kurallarını ekle</summary><div class="dsec" id="rulebody"></div></details>
       <details class="cover" id="diffbox"><summary>İki sürümü karşılaştır (ör. bir modun eski ve yeni sürümü)</summary>
         <div class="diffform">
@@ -1187,11 +1190,12 @@ function hitsToFindings(hits, out) {
 }
 const mk = (id, sev, w, title, why, act, ev, cat, x) => Object.assign({ id, sev, w, title, why, act, ev: ev || [], cat: cat || '' }, x || {});
 
-function applyCombos(f) {
+function applyCombos(f, st, ident) {
   /* java/javaw.exe hedefli enjeksiyon: calma belirtisi yoksa puanlanmaz (kullanici istegi: kendi Minecraft istemcisi/overlay araclari) */
   for (const x of f) if (x.id === 'pe_inject' && x.javaTarget) {
     const theft = f.some((y) => y !== x && !y.user && (y.cat === 'cred' || y.cat === 'exfil' || /^(exfil_|browser_data|mc_launcher|mc_token|j_mctoken|launcher_tokens|pe_dpapi|pe_keylog|combo_stealer|silentnet)/.test(y.id)));
-    if (!theft) { x.sev = 'info'; x.w = 0; x.title = 'java/javaw.exe hedefli bellek erişimi (puanlanmadı)'; x.why = 'Dosyada java.exe/javaw.exe adı geçiyor ve süreç belleğine okuma/yazma API’leri var. Çalma/sızdırma belirtisi (tarayıcı verisi, token, webhook vb.) bulunmadığı için bu bulgu puanlanmadı. Bu, dosyanın zararsız olduğunu göstermez: enjeksiyon Minecraft oturumunu okumak için de kullanılabilir.'; x.exempt = true; }
+    if (!theft && !javaAllowed(st && st.policy, ident)) x.why += ' (java/javaw.exe muafiyeti bu dosya için kapalı: Ayarlar > Kendi dosyalarım. Bulgu normal puanlandı.)';
+    else if (!theft) { x.sev = 'info'; x.w = 0; x.title = 'java/javaw.exe hedefli bellek erişimi (puanlanmadı)'; x.why = 'Dosyada java.exe/javaw.exe adı geçiyor ve süreç belleğine okuma/yazma API’leri var. Çalma/sızdırma belirtisi (tarayıcı verisi, token, webhook vb.) bulunmadığı için bu bulgu puanlanmadı. Bu, dosyanın zararsız olduğunu göstermez: enjeksiyon Minecraft oturumunu okumak için de kullanılabilir.'; x.exempt = true; }
     else x.why += ' Java/javaw.exe hedefi var VE çalma/sızdırma göstergeleri bulundu: muafiyet uygulanmadı.';
   }
   const base = f.filter((x) => !x.user); const ids = new Set(base.map((x) => x.id)); const cats = new Set(base.map((x) => x.cat).filter(Boolean));
@@ -1868,7 +1872,7 @@ async function scanBuffer(u8, name, st, depth) {
     if ((kind === 'pe' || kind === 'elf') && cfg.parse && depth < 6 && !st.stop) { try { const pr = await analyzePyInstaller(u8, name, st, depth); if (pr) { F = F.concat(pr.findings); res.children = res.children.concat(pr.children); Object.assign(res.info, pr.info); } } catch (e) { st.notes.add('PyInstaller içeriği ayrıştırılamadı: ' + String(e && e.message || e).slice(0, 60)); } }
     if (['pe', 'elf', 'macho', 'bin', 'text', 'zip'].includes(kind) && depth < 6) { const txt = (kind === 'text' || kind === 'bin' || kind === 'pe' || kind === 'elf' || kind === 'zip') ? (kind === 'text' ? decodeText(u8.subarray(0, Math.min(u8.length, 2e6))) : latin1(u8.subarray(0, Math.min(u8.length, 8e6)))) : ''; const sg = await sigScan(u8, kind, name, st, txt); F = F.concat(sg.findings); ANL = ANL.concat(sg.analyses); }
   } catch (e) { F.push(mk('scan_err', 'info', 0, 'Analiz hatası', String(e && e.message || e), 'Dosyayı başka bir araçla da kontrol et.', [])); st.unreadable++; }
-  res.findings = sortF(applyCombos(F));
+  res.findings = sortF(applyCombos(F, st, { sha256: res.sha256, name }));
   res.analyses = depth === 0 ? baseLedger(kind, cfg, res, st).concat(ANL) : ANL;
   const own = score(res.findings); const kidMax = res.children.reduce((a, c) => Math.max(a, c.score), 0);
   res.ownScore = own; res.score = Math.min(100, Math.max(own, kidMax)); res.verdict = verdict(res.score); res.profile = profile(res.findings);
@@ -1881,7 +1885,7 @@ async function scanBuffer(u8, name, st, depth) {
 async function scanFile(file, opts) {
   opts = opts || {}; const t0 = Date.now(); const mode = MODES[opts.mode] || MODES.normal; const limit = opts.timeLimitMs || mode.limitMs;
   const fname = file.name || 'dosya'; const size = file.size != null ? file.size : (file.data ? file.data.length : 0);
-  const st = { cfg: mode, notes: new Set(), limits: [], partial: false, stop: false, classCount: 0, cache: new Map(), stats: { files: 0, classes: 0 }, bytes: 0, unreadable: 0, skips: new Map(), onProgress: opts.onProgress, cancelled: false, cur: fname, t0, lastP: 0, lastY: 0, entryCap: mode.entryCap,
+  const st = { policy: opts.policy || null, cfg: mode, notes: new Set(), limits: [], partial: false, stop: false, classCount: 0, cache: new Map(), stats: { files: 0, classes: 0 }, bytes: 0, unreadable: 0, skips: new Map(), onProgress: opts.onProgress, cancelled: false, cur: fname, t0, lastP: 0, lastY: 0, entryCap: mode.entryCap,
     rules: opts.rulePack && opts.rulePack.rules && opts.rulePack.rules.length ? STR_RULES.concat(opts.rulePack.rules) : STR_RULES,
     tick() { if (Date.now() - t0 > limit) { if (!st.stop) limitHit(st, 'time', 'Süre sınırına ulaşıldı (' + Math.round(limit / 1000) + ' sn); tarama kısmi kaldı.'); st.stop = true; } if (opts.cancel && opts.cancel()) { if (!st.cancelled) { st.cancelled = true; limitHit(st, 'cancel', 'Tarama kullanıcı tarafından iptal edildi; sonuçlar kısmi.'); } st.stop = true; } } };
   let res;
@@ -1894,6 +1898,7 @@ async function scanFile(file, opts) {
   }
   if (opts.rulePack && opts.rulePack.rules) res.rulepack = { name: opts.rulePack.name, version: opts.rulePack.version, date: opts.rulePack.date, sha256: opts.rulePack.sha256, count: opts.rulePack.count };
   res.analyses = (res.analyses || []).concat(NEVER_LED);
+  { const tr = trustEvaluate(res, opts.policy); if (tr) res.trust = tr; }
   res.mode = mode.id; res.modeLabel = mode.label; res.partial = st.partial; res.limits = st.limits; res.notes = [...st.notes]; if (st.unreadable) res.notes.push(st.unreadable + ' girdi okunamadı veya ayrıştırılamadı.');
   res.skipped = [...st.skips].map(([k, n]) => ({ key: k, label: SKIP_LABELS[k] || k, count: n })).filter((x) => x.count > 0);
   res.coverage = { ran: mode.ran, skipped: mode.skipped, never: mode.never, limits: { depth: mode.depth, maxTotal: mode.maxTotal, entryCap: mode.entryCap, maxEntries: mode.maxEntries, timeMs: limit } };
@@ -2972,7 +2977,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.1.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.2.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -3242,7 +3247,35 @@ async function analyzeAsar(u8, name, st, depth) {
   return { findings: F, children: kids, info };
 }
 /*#endregion pack*/
-const api = { iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.1.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+/*#region trust*/
+/* "Kendi dosyalarim": kullanicinin isaretledigi dosyalar (sha256 + ad ailesi), surum farki ve java muafiyeti politikasi.
+ * Isaretli olmak bulgulari GIZLEMEZ; yalnizca "bu senin dosyan" bilgisini ve surumler arasi farki gosterir. */
+function trustNameKey(name) {
+  const b = baseName(name || '').toLowerCase(); const ext = extOf(b); const stem = b.replace(/\.[^.]*$/, '');
+  const k = stem.replace(/\d+(?:[._+-][0-9a-z]+)*/g, '').replace(/[\s._+()\[\]-]+/g, ' ').trim(); return k + '.' + ext;
+}
+function trustFlatIds(res) {
+  const m = new Map(); const walk = (r, d) => { if (d > 12) return; for (const f of r.findings || []) if (f.w > 0 && !m.has(f.id)) m.set(f.id, { id: f.id, title: f.title, sev: f.sev, w: f.w, where: r.name }); for (const c of r.children || []) walk(c, d + 1); }; walk(res, 0); return m;
+}
+function trustSnapshot(res, extra) {
+  const ids = [...trustFlatIds(res).keys()]; return Object.assign({ sha256: res.sha256, name: baseName(res.name), key: trustNameKey(res.name), size: res.size, score: res.score, ids, addedAt: new Date().toISOString(), note: '', javaExempt: false }, extra || {});
+}
+const trustPub = (e) => ({ name: e.name, note: e.note || '', addedAt: e.addedAt, score: e.score, javaExempt: !!e.javaExempt, sha256: e.sha256 });
+function trustEvaluate(res, policy) {
+  const list = (policy && policy.trusted) || []; if (!list.length || !res || !res.sha256) return null;
+  const exact = list.find((e) => e.sha256 && e.sha256 === res.sha256); if (exact) return { status: 'exact', entry: trustPub(exact) };
+  const key = trustNameKey(res.name); if (key.length <= 4) return null; const nv = list.find((e) => e.key === key); if (!nv) return null;
+  const cur = trustFlatIds(res); const had = new Set(nv.ids || []); const fresh = [...cur.values()].filter((c) => !had.has(c.id)); const gone = (nv.ids || []).filter((id) => !cur.has(id));
+  const delta = res.score - (nv.score || 0);
+  return { status: 'newversion', entry: trustPub(nv), newFindings: fresh.slice(0, 20), goneIds: gone.slice(0, 20), scoreBefore: nv.score || 0, scoreNow: res.score, delta, alert: fresh.length > 0 || delta >= 10 };
+}
+function javaAllowed(policy, ident) {
+  const mode = (policy && policy.javaExempt) || 'all'; if (mode === 'all') return true; if (mode === 'off') return false;
+  const list = (policy && policy.trusted) || []; const key = ident && ident.name ? trustNameKey(ident.name) : '';
+  return list.some((e) => e.javaExempt && ((ident && e.sha256 && e.sha256 === ident.sha256) || (key.length > 4 && e.key === key)));
+}
+/*#endregion trust*/
+const api = { trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.2.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -3384,6 +3417,89 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     if (typeof v === 'object') { if (d > 2) return document.createTextNode(JSON.stringify(v).slice(0, 200)); return h('dl', { class: 'facts sub' }, Object.entries(v).slice(0, 40).map(([k, x]) => h('div', null, h('dt', null, k), h('dd', null, valEl(x, d + 1))))); }
     return document.createTextNode(typeof v === 'boolean' ? (v ? 'evet' : 'hayır') : String(v));
   }
+
+  /* ---------- Kendi dosyalarim + politika ---------- */
+  const policy = { javaExempt: 'all', trusted: [] }; const curPolicy = () => ({ javaExempt: policy.javaExempt, trusted: policy.trusted });
+  const PSTORE = {
+    async get() { try { if (window.statscanHost && window.statscanHost.storeGet) { const v = await window.statscanHost.storeGet('policy'); return v ? JSON.parse(v) : null; } } catch (e) { /* yedek: localStorage */ } try { const v = store.get('statscan.policy'); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    async set() { const v = JSON.stringify(policy); try { if (window.statscanHost && window.statscanHost.storeSet) { const r = await window.statscanHost.storeSet('policy', v); if (!r || !r.error) return; } } catch (e) { /* yedek */ } store.set('statscan.policy', v); }
+  };
+  const cleanEntry = (e) => { if (!e || typeof e !== 'object' || !/^[0-9a-f]{64}$/i.test(String(e.sha256 || ''))) return null; const str = (v, n) => String(v == null ? '' : v).slice(0, n); return { sha256: String(e.sha256).toLowerCase(), name: str(e.name, 120), key: str(e.key, 120), size: +e.size || 0, score: Math.max(0, Math.min(100, +e.score || 0)), ids: Array.isArray(e.ids) ? e.ids.slice(0, 300).map((x) => str(x, 60)) : [], addedAt: str(e.addedAt, 40), note: str(e.note, 80), javaExempt: !!e.javaExempt }; };
+  const mergePolicy = (p) => { if (!p || typeof p !== 'object') return; if (['all', 'trusted', 'off'].includes(p.javaExempt)) policy.javaExempt = p.javaExempt; if (Array.isArray(p.trusted)) { const m = new Map(policy.trusted.map((e) => [e.sha256, e])); for (const x of p.trusted.slice(0, 500)) { const c = cleanEntry(x); if (c) m.set(c.sha256, c); } policy.trusted = [...m.values()].slice(0, 500); } };
+  const policyReady = PSTORE.get().then((p) => { mergePolicy(p); renderTrustSettings(); }).catch(() => {});
+  const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('tr-TR'); } catch (e) { return ''; } };
+  function renderTrustSettings() {
+    const body = $('#trustbody'); if (!body) return; const sum = $('#trustsum'); if (sum) sum.textContent = 'Kendi dosyalarım ve java muafiyeti' + (policy.trusted.length ? ' · ' + policy.trusted.length + ' dosya' : '');
+    const sel = h('select', { 'aria-label': 'Java muafiyeti', onchange: async (e) => { policy.javaExempt = e.target.value; await PSTORE.set(); toast('Java muafiyeti: ' + e.target.selectedOptions[0].textContent); } }, [['all', 'Herkese uygula (varsayılan)'], ['trusted', 'Yalnızca “java muafiyeti verdiğim” dosyalara'], ['off', 'Kapalı (her zaman puanla)']].map(([v, t]) => h('option', { value: v, selected: policy.javaExempt === v ? '' : null }, t)));
+    const rows = policy.trusted.slice().sort((a, b) => String(b.addedAt).localeCompare(String(a.addedAt))).map((e) => h('div', { class: 'trow' }, h('div', null, h('b', null, e.name), h('span', { class: 'fine' }, ' · ' + fmtDate(e.addedAt) + ' · skor ' + e.score + (e.note ? ' · ' + e.note : '') + ' · ' + e.sha256.slice(0, 10) + '…')),
+      h('span', { class: 'ofa' }, h('label', { class: 'fine', style: 'display:inline-flex;gap:4px;align-items:center' }, h('input', { type: 'checkbox', checked: e.javaExempt ? '' : null, onchange: async (ev) => { e.javaExempt = ev.target.checked; await PSTORE.set(); } }), 'java muafiyeti'), h('button', { type: 'button', onclick: async () => { policy.trusted = policy.trusted.filter((x) => x !== e); await PSTORE.set(); renderTrustSettings(); } }, 'Kaldır'))));
+    const imp = h('input', { type: 'file', accept: '.json,application/json', hidden: '', onchange: async (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; if (f.size > 2e6) { toast('Dosya çok büyük'); return; } try { const j = JSON.parse(await f.text()); const before = policy.trusted.length; mergePolicy({ trusted: j.trusted }); await PSTORE.set(); renderTrustSettings(); toast((policy.trusted.length - before) + ' yeni kayıt içe aktarıldı'); } catch (e) { toast('Geçerli bir dışa aktarım dosyası değil'); } } });
+    body.replaceChildren(
+      h('p', { class: 'fine', style: 'margin-top:0' }, 'Bir dosyayı sonuç kartından “Kendi dosyam olarak işaretle” ile ekleyebilirsin. İşaretlemek bulguları gizlemez; aynı dosya tekrar görülünce tanınır, adı benzeyen yeni sürümlerde ise önceki sürüme göre eklenen bulgular uyarı olarak gösterilir.'),
+      h('label', { class: 'fine' }, 'java.exe / javaw.exe hedefli bellek erişimi (ReadProcessMemory/WriteProcessMemory) şu durumda puanlanmasın: ', sel),
+      h('p', { class: 'fine' }, 'Muafiyet yalnızca çalma/sızdırma belirtisi (tarayıcı verisi, token, Minecraft hesap dosyası, webhook, keylogger vb.) YOKSA uygulanır. Yeni sürümler ad benzerliğiyle eşleşir; adı taklit eden bir dosya yine de bu belirtilerden birini taşırsa muaf tutulmaz.'),
+      rows.length ? h('div', { class: 'tlist' }, rows) : h('p', { class: 'fine' }, 'Henüz işaretli dosya yok.'),
+      h('div', { class: 'actions' }, h('button', { type: 'button', disabled: policy.trusted.length ? null : '', onclick: () => save('statscan-kendi-dosyalarim.json', JSON.stringify({ tool: 'StatScan', kind: 'trusted', trusted: policy.trusted }, null, 2), 'application/json') }, 'Dışa aktar (.json)'), h('button', { type: 'button', onclick: () => imp.click() }, 'İçe aktar…'), imp));
+  }
+  function trustBlock(r) {
+    if (!r.sha256 || r.verdict === 'Taranamadı') return null; const box = h('div', { class: 'trustbox' });
+    const mark = async (note, java) => { const e = StatScan.trustSnapshot(r, { note: String(note || '').slice(0, 80), javaExempt: !!java }); policy.trusted = policy.trusted.filter((x) => x.sha256 !== e.sha256 && !(e.key.length > 4 && x.key === e.key)); policy.trusted.push(e); await PSTORE.set(); renderTrustSettings(); draw(); toast('Kendi dosyalarına eklendi'); };
+    function draw() {
+      box.replaceChildren(); const mine = policy.trusted.find((e) => e.sha256 === r.sha256); const t = r.trust;
+      if (mine) { box.append(h('p', { class: 'note' }, h('b', null, 'Kendi dosyan: '), fmtDate(mine.addedAt) + ' tarihinde sen işaretledin' + (mine.note ? ' — “' + mine.note + '”' : '') + ' (aynı SHA-256). İşaretlemek bulguları gizlemez.'), h('div', { class: 'actions' }, h('button', { type: 'button', onclick: async () => { policy.trusted = policy.trusted.filter((x) => x !== mine); await PSTORE.set(); renderTrustSettings(); draw(); } }, 'İşareti kaldır'))); return; }
+      if (t && t.status === 'newversion') {
+        box.append(h('p', { class: t.alert ? 'note warn' : 'note' }, h('b', null, t.alert ? 'Dikkat — işaretli dosyanın yeni sürümü gibi görünüyor, ama davranışı değişmiş: ' : 'İşaretli dosyanın yeni sürümü gibi görünüyor: '), '“' + t.entry.name + '” (' + fmtDate(t.entry.addedAt) + ', skor ' + t.scoreBefore + ') → şimdi skor ' + t.scoreNow + (t.delta ? ' (' + (t.delta > 0 ? '+' : '') + t.delta + ')' : '') + '.'),
+          t.newFindings.length ? h('div', null, h('div', { class: 'sechead' }, 'Önceki sürümde olmayan bulgular · ' + t.newFindings.length), h('ul', { class: 'fine' }, t.newFindings.map((f) => h('li', null, '[' + (f.sev || '') + '] ' + f.title + ' (+' + f.w + ')')))) : h('p', { class: 'fine' }, 'Yeni bulgu yok.'),
+          t.goneIds.length ? h('p', { class: 'fine' }, 'Artık görülmeyen bulgular: ' + t.goneIds.join(', ')) : null,
+          h('div', { class: 'actions' }, h('button', { type: 'button', onclick: () => mark(t.entry.note, t.entry.javaExempt) }, 'Bu sürümü yeni referans yap'))); return;
+      }
+      const note = h('input', { type: 'text', maxlength: '80', placeholder: 'Not (isteğe bağlı, ör. “kendi istemcim”)', 'aria-label': 'Not', style: 'flex:1;min-width:160px' }); const jv = h('input', { type: 'checkbox' });
+      box.append(h('div', { class: 'sechead' }, 'Kendi dosyam'), h('div', { class: 'actions' }, note, h('label', { class: 'fine', style: 'display:inline-flex;gap:6px;align-items:center' }, jv, 'java muafiyeti ver'), h('button', { type: 'button', onclick: () => mark(note.value, jv.checked) }, 'Kendi dosyam olarak işaretle')), r.score >= 55 ? h('p', { class: 'note warn' }, 'Bu dosya yüksek skorlu. Yalnızca sen derlediysen/biliyorsan işaretle; işaretlemek bulguları gizlemez.') : h('p', { class: 'fine' }, 'Sonraki sürümlerde “yeni eklenen davranış” uyarısı için işaretle.'));
+    }
+    draw(); return box;
+  }
+
+  /* ---------- Klasor izleme (yalnizca masaustu) ---------- */
+  (function watchInit() {
+    const H = window.statscanHost; if (!H || !H.watchSet) return; $('#watchbox').hidden = false;
+    const W = { folders: [], enabled: false, threshold: 30 }; let busy = false, timer = null, logCache = []; const THR = [20, 30, 50, 70];
+    const persist = async () => { try { await H.storeSet('watch', JSON.stringify({ folders: W.folders, enabled: W.enabled, threshold: W.threshold })); } catch (e) { /* yoksay */ } };
+    async function apply() { if (!W.enabled || !W.folders.length) { await H.watchSet([]); stopPoll(); return { errors: [] }; } const r = await H.watchSet(W.folders); if (r && r.errors && r.errors.length) { for (const e of r.errors) W.folders = W.folders.filter((x) => x !== e.dir); toast(r.errors[0].message); await persist(); } startPoll(); return r; }
+    function stopPoll() { if (timer) { clearInterval(timer); timer = null; } }
+    function startPoll() { if (!timer) timer = setInterval(pump, 2500); }
+    async function pump() {
+      if (busy) return; busy = true;
+      try {
+        for (let n = 0; n < 5; n++) {
+          const t = await H.watchTake(); const it = t && t.item; if (!it) break;
+          if (it.tooBig) { await H.watchNote('info', it.name + ' — çok büyük, otomatik taranmadı (elle tara).', it.name); continue; } if (it.error) { await H.watchNote('error', it.name + ': ' + it.error, it.name); continue; }
+          let r; try { r = await StatScan.scanFile(new File([it.bytes], it.name), { mode: 'normal', rulePack, policy: curPolicy() }); } catch (e) { await H.watchNote('error', it.name + ' taranamadı: ' + (e && e.message || e), it.name); continue; }
+          const tr = r.trust; const exact = tr && tr.status === 'exact'; const newv = tr && tr.status === 'newversion' && tr.alert; const danger = r.score >= W.threshold || r.partial || r.verdict === 'Taranamadı';
+          const line = it.name + ' — skor ' + r.score + '/100 · ' + r.verdict + (r.partial ? ' · kısmi' : '') + (exact ? ' · kendi dosyan (aynı SHA-256)' : '') + (newv ? ' · işaretli dosyanın yeni sürümünde YENİ davranış (' + tr.newFindings.length + ' yeni bulgu)' : '');
+          if ((exact && !newv) || (!danger && !newv)) { await H.watchNote('scan', line, it.name); continue; }
+          await H.watchNote('alert', line, it.name); await H.watchNotify('StatScan: ' + (newv ? 'İşaretli dosyada yeni davranış' : 'Şüpheli dosya'), line);
+        }
+      } finally { busy = false; } if ($('#watchbox').open) refreshLog();
+    }
+    async function refreshLog() { try { const r = await H.watchLog(); logCache = (r && r.log) || []; renderLog(); } catch (e) { /* yoksay */ } }
+    function renderLog() { const el = $('#watchlog'); if (!el) return; el.replaceChildren(...(logCache.length ? logCache.slice(0, 40).map((l) => h('div', { class: 'trow' }, h('span', { class: l.kind === 'alert' ? 'note warn' : 'fine' }, new Date(l.t).toLocaleTimeString('tr-TR') + ' · ' + (l.kind === 'alert' ? 'UYARI · ' : '') + l.text))) : [h('p', { class: 'fine' }, 'Henüz kayıt yok.')])); }
+    async function render() {
+      const body = $('#watchbody'); let sug = []; try { sug = ((await H.watchSuggest()) || {}).suggestions || []; } catch (e) { /* yoksay */ }
+      const en = h('input', { type: 'checkbox', checked: W.enabled ? '' : null, onchange: async (e) => { W.enabled = e.target.checked; await persist(); await apply(); toast(W.enabled ? 'Klasör izleme açık' : 'Klasör izleme kapalı'); render(); } });
+      const thr = h('select', { 'aria-label': 'Uyarı eşiği', onchange: async (e) => { W.threshold = +e.target.value; await persist(); } }, THR.map((v) => h('option', { value: String(v), selected: W.threshold === v ? '' : null }, v + ' ve üzeri')));
+      const add = async (p) => { if (!p || W.folders.includes(p)) return; W.folders.push(p); await persist(); await apply(); render(); };
+      body.replaceChildren(
+        h('p', { class: 'fine', style: 'margin-top:0' }, 'Seçtiğin klasörlere yeni gelen dosyalar, indirme bitince (boyut sabitlenince) okunur ve motorla taranır. Dosya ÇALIŞTIRILMAZ, değiştirilmez, silinmez; yalnızca okunur. StatScan çıktı klasörü izlenmez. Yalnızca uygulama açıkken çalışır; izleme başladıktan önceki dosyalar taranmaz. 64 MB üstü dosyalar taranmaz, günlüğe not düşer.'),
+        h('label', { class: 'fine', style: 'display:flex;gap:6px;align-items:center' }, en, 'İzlemeyi aç'),
+        h('label', { class: 'fine' }, 'Bildirim eşiği (skor): ', thr, ' — kısmi/taranamayan sonuçlar ve işaretli dosyalardaki yeni davranışlar da bildirilir.'),
+        W.folders.length ? h('div', { class: 'tlist' }, W.folders.map((f) => h('div', { class: 'trow' }, h('span', null, f), h('button', { type: 'button', onclick: async () => { W.folders = W.folders.filter((x) => x !== f); await persist(); await apply(); render(); } }, 'Kaldır')))) : h('p', { class: 'fine' }, 'İzlenen klasör yok. Aşağıdan ekle (otomatik eklenmez).'),
+        h('div', { class: 'actions' }, sug.filter((x) => !W.folders.includes(x.path)).map((x) => h('button', { type: 'button', onclick: () => add(x.path), title: x.path }, '+ ' + x.label)), h('button', { type: 'button', onclick: async () => { const r = await H.watchChoose(); if (r && r.error) toast(r.message); else if (r && r.path) add(r.path); } }, 'Klasör ekle…')),
+        h('div', { class: 'sechead' }, 'Günlük'), h('div', { class: 'tlist', id: 'watchlog' }));
+      $('#watchsum').textContent = 'Klasör izleme (masaüstü)' + (W.enabled && W.folders.length ? ' · açık · ' + W.folders.length + ' klasör' : ''); refreshLog();
+    }
+    $('#watchbox').addEventListener('toggle', () => { if ($('#watchbox').open) render(); });
+    (async () => { try { const v = await H.storeGet('watch'); if (v) { const o = JSON.parse(v); W.folders = (Array.isArray(o.folders) ? o.folders : []).filter((x) => typeof x === 'string').slice(0, 12); W.enabled = !!o.enabled; if (THR.includes(+o.threshold)) W.threshold = +o.threshold; } await policyReady; await apply(); $('#watchsum').textContent = 'Klasör izleme (masaüstü)' + (W.enabled && W.folders.length ? ' · açık · ' + W.folders.length + ' klasör' : ''); } catch (e) { /* yoksay */ } })();
+  })();
   function iocTreeBlock(r) {
     if (!r.children || !r.children.length) return null; const tree = StatScan.iocTree(r); const own = r.info && r.info.iocs ? Object.values(r.info.iocs).reduce((n, a) => n + a.length, 0) : 0; if (tree.total === 0 || tree.total <= own) return null;
     const st = { defang: true, benign: false }; const box = h('div', { class: 'iocall' }); const sum = h('p', { class: 'fine' });
@@ -3609,7 +3725,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const f = fileOf.get(r); if (!f) { toast('Karşılaştırma için dosya artık yok; dosyayı yeniden seç'); return; }
     if (busy) { toast('Önceki tarama sürüyor'); return; }
     busy = true; btn.disabled = true; $('#prog').hidden = false; cancelled = false; const by = {}; by[r.mode] = r;
-    try { for (const m of ['quick', 'normal', 'deep']) { if (by[m]) continue; if (cancelled) break; $('#progfile').textContent = f.name + ' · ' + StatScan.MODES[m].label + ' mod'; await new Promise((x) => setTimeout(x, 30)); by[m] = await StatScan.scanFile(f, { mode: m, rulePack, cancel: () => cancelled, onProgress: (p) => onProgress(p, 0, 1) }); }
+    try { for (const m of ['quick', 'normal', 'deep']) { if (by[m]) continue; if (cancelled) break; $('#progfile').textContent = f.name + ' · ' + StatScan.MODES[m].label + ' mod'; await new Promise((x) => setTimeout(x, 30)); by[m] = await StatScan.scanFile(f, { mode: m, rulePack, policy: curPolicy(), cancel: () => cancelled, onProgress: (p) => onProgress(p, 0, 1) }); }
       holder.replaceChildren(cmpView(StatScan.compareModes(by))); }
     catch (e) { toast('Karşılaştırma yapılamadı: ' + (e && e.message || e)); }
     finally { $('#prog').hidden = true; busy = false; btn.disabled = false; }
@@ -3692,7 +3808,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('div', { class: 'scorebox' }, gauge(r.score, b, true), h('div', { class: 'verdict', style: 'color:var(--s' + b + ')' }, r.verdict), h('div', { class: 'vsub' }, assure(r, b)))),
       h('div', { class: 'hd2' }, ruler(r.score), r.profile && r.profile.some((p) => p.value > 0) ? radar(r.profile) : null),
       statusNotes(r));
-    const body = h('div', { class: 'body' }, summaryBox(r), factsOf(r), breakdown(r), cmpBtn ? h('div', { class: 'actions', style: 'padding:4px 0 8px' }, cmpBtn, h('span', { class: 'hint', style: 'flex-basis:auto' }, 'Aynı dosyayı diğer iki modla da tarar ve farkı gösterir.')) : null, cmpHolder, dynBlock(r), analysisBlock(r), structBlock(r), attackBlock(r), obfPanel(r), insp ? insp.el : null, viewer ? viewer.el : null, iocTreeBlock(r), iocBlock(r.info), fbar, bodyHolder,
+    const body = h('div', { class: 'body' }, summaryBox(r), trustBlock(r), factsOf(r), breakdown(r), cmpBtn ? h('div', { class: 'actions', style: 'padding:4px 0 8px' }, cmpBtn, h('span', { class: 'hint', style: 'flex-basis:auto' }, 'Aynı dosyayı diğer iki modla da tarar ve farkı gösterir.')) : null, cmpHolder, dynBlock(r), analysisBlock(r), structBlock(r), attackBlock(r), obfPanel(r), insp ? insp.el : null, viewer ? viewer.el : null, iocTreeBlock(r), iocBlock(r.info), fbar, bodyHolder,
       r.info && r.info.urls && r.info.urls.length ? [h('div', { class: 'sechead' }, 'Bulunan adresler · ' + r.info.urls.length), h('pre', { class: 'ev' }, r.info.urls.join('\n'))] : null);
     const sec = h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, coverBlock(r), body, r.children && r.children.length ? kidsBlock(r.children) : null, h('p', { class: 'fine', style: 'padding:0 24px 18px;margin:0' }, r.disclaimer || ''));
     const num = sec.querySelector('.num'); if (num && !reduce()) { const to = r.score, t0 = performance.now(), D = 700; const step = (t) => { const p = Math.min(1, (t - t0) / D); num.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
@@ -3787,7 +3903,7 @@ ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findin
     for (let i = 0; i < files.length; i++) {
       const f = files[i]; $('#progfile').textContent = (files.length > 1 ? '(' + (i + 1) + '/' + files.length + ') ' : '') + f.name; $('#proglabel').textContent = 'Okunuyor · ' + fmt(f.size); $('#live').textContent = 'Taranıyor: ' + f.name; bar.classList.add('ind');
       await new Promise((r) => setTimeout(r, batch ? 0 : 30));
-      let r; try { r = await StatScan.scanFile(f, { mode: m, timeLimitMs: lim || undefined, rulePack, cancel: () => cancelled, onProgress: (p) => onProgress(p, i, files.length) }); }
+      let r; try { await policyReady; r = await StatScan.scanFile(f, { mode: m, timeLimitMs: lim || undefined, rulePack, policy: curPolicy(), cancel: () => cancelled, onProgress: (p) => onProgress(p, i, files.length) }); }
       catch (e) { const M = StatScan.MODES[m]; r = { name: f.name, type: 'Hata', size: f.size, entropy: 0, score: 0, ownScore: 0, verdict: 'Taranamadı', mode: m, modeLabel: M.label, partial: true, limits: [{ kind: 'error', msg: 'Dosya okunamadı veya taranamadı.' }], findings: [{ id: 'err', sev: 'info', w: 0, title: 'Dosya taranamadı', why: String(e && e.message || e), act: 'Dosyayı yeniden seç veya daha küçük parçalarla dene.', ev: [] }], info: {}, children: [], profile: [] }; }
       if (batch && files.length > 100 && r.info && r.info.classView) { delete r.info.classView; delete r.info.classViewCapped; batchNote.noViewer = true; }
       if (r && r.name) fileOf.set(r, f);
@@ -3963,7 +4079,7 @@ ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findin
     const fa = $('#fa').files[0], fb = $('#fb').files[0]; if (!fa || !fb) { toast('Eski ve yeni sürüm dosyalarını seç'); return; }
     if (busy) { toast('Önceki tarama sürüyor'); return; }
     busy = true; cancelled = false; $('#prog').hidden = false; const m = mode; const lim = +$('#limit').value;
-    try { const out = []; for (const [i, f] of [fa, fb].entries()) { $('#progfile').textContent = (i ? 'Yeni: ' : 'Eski: ') + f.name; await new Promise((x) => setTimeout(x, 30)); out.push(await StatScan.scanFile(f, { mode: m, timeLimitMs: lim || undefined, rulePack, cancel: () => cancelled, onProgress: (p) => onProgress(p, i, 2) })); }
+    try { const out = []; for (const [i, f] of [fa, fb].entries()) { $('#progfile').textContent = (i ? 'Yeni: ' : 'Eski: ') + f.name; await new Promise((x) => setTimeout(x, 30)); out.push(await StatScan.scanFile(f, { mode: m, timeLimitMs: lim || undefined, rulePack, policy: curPolicy(), cancel: () => cancelled, onProgress: (p) => onProgress(p, i, 2) })); }
       $('#diffout').replaceChildren(diffView(StatScan.diffResults(out[0], out[1]))); $('#diffbox').open = true; }
     catch (e) { toast('Karşılaştırma yapılamadı: ' + (e && e.message || e)); }
     finally { $('#prog').hidden = true; busy = false; }

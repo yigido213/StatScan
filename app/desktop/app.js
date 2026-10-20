@@ -92,7 +92,7 @@ function start(ctx) {
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
-    host = createHost({ obfOutputRoot: path.join(app.getPath('documents'), 'StatScan-Cikti'), obfToolsDir: userFile('tools'), service: buildService(), confirm, openExternal: (u) => shell.openExternal(u), showItemInFolder: (p) => shell.showItemInFolder(p), configPath: configPath(), version: ctx.version });
+    host = createHost({ obfOutputRoot: path.join(app.getPath('documents'), 'StatScan-Cikti'), obfToolsDir: userFile('tools'), storePath: userFile('store.json'), downloadsDir: app.getPath('downloads'), modsDirs: (() => { const o = []; const ad = app.getPath('appData'); o.push({ label: 'Minecraft mods (.minecraft)', path: path.join(ad, '.minecraft', 'mods') }); return o; })(), chooseFolder: async () => { const r = await dialog.showOpenDialog({ title: 'İzlenecek klasörü seç', properties: ['openDirectory'] }); return r.canceled ? null : r.filePaths[0]; }, notify: (t, b) => { try { const { Notification } = require('electron'); if (Notification.isSupported()) new Notification({ title: t, body: b }).show(); } catch (e) { /* yoksay */ } }, service: buildService(), confirm, openExternal: (u) => shell.openExternal(u), showItemInFolder: (p) => shell.showItemInFolder(p), configPath: configPath(), version: ctx.version });
     host.register(ipcMain);
     setMenu(); createWindow();
     if (ctx.rolledBack) setTimeout(() => dialog.showMessageBox(win, { type: 'warning', title: 'Güncelleme geri alındı', message: 'Önceki güncelleme kullanılmadı; uygulamayla gelen sürüm açıldı.', detail: String(ctx.rolledBack) }), 1500);
