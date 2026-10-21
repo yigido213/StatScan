@@ -1,0 +1,24 @@
+'use strict';
+const fs = require('fs'), os = require('os'), path = require('path'); const { createObfHost } = require('../../app/desktop/host.js').obfModule;
+let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
+(async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sspyc-')); const bin = path.join(tmp, 'bin'); fs.mkdirSync(bin);
+  const fake = path.join(bin, 'pycdc'); fs.writeFileSync(fake, '#!/bin/sh\n# sahte pycdc: yalnizca okur, kaynak benzeri metin yazar\ncase "$1" in *bad*) echo "Unsupported opcode" >&2; exit 1;; *part*) echo "print(1) # eksik"; exit 1;; esac\necho "# decompiled $(basename $1)"; echo "print(\\"merhaba\\")"\n'); fs.chmodSync(fake, 0o755);
+  let confirmed = 0; const H = createObfHost({ outputRoot: path.join(tmp, 'out'), env: { path: bin }, confirm: async () => { confirmed++; return true; } });
+  ok(H.detectTools ? true : true, 'ana makine'); const tl = H.handlers['obf:tools'] ? await H.handlers['obf:tools']() : null; ok(tl && tl.tools.some((t) => t.id === 'pycdc' && t.kinds.includes('pyc')), 'pycdc kurulu araç olarak bulundu');
+  const wait = async (id) => { for (let i = 0; i < 100; i++) { const j = H.job ? H.job(id) : await H.handlers['obf:job'](null, id); if (j.state !== 'running') return j; await new Promise((r) => setTimeout(r, 100)); } return { state: 'timeout' }; };
+  const pyc = (n) => ({ name: n, bytes: new Uint8Array([0xa7, 0x0d, 0x0d, 0x0a, 0, 0, 0, 0, 1, 2, 3]) });
+  let r = await H.handlers['obf:startpyc'](null, { tool: 'cfr', files: [pyc('a.pyc')] }); ok(r.error === 'tool', 'pyc dışı araç reddedildi');
+  r = await H.handlers['obf:startpyc'](null, { tool: 'pycdc', files: [] }); ok(r.error === 'data', 'boş liste reddedildi');
+  r = await H.handlers['obf:start'](null, { tool: 'pycdc', kind: 'pyc', data: new Uint8Array(4), name: 'a.pyc' }); ok(r.error === 'kind', 'start() pyc aracını çalıştırmaz');
+  r = await H.handlers['obf:startpyc'](null, { tool: 'pycdc', name: 'app.exe', files: [pyc('main.pyc'), pyc('../../evil.pyc')] }); ok(r.state === 'running' && confirmed === 1, 'onay istendi, iş başladı');
+  let j = await wait(r.id); ok(j.state === 'done' && j.results.length === 2, 'iki dosya çevrildi: ' + j.state + ' ' + j.message.slice(0, 50));
+  ok(j.files.every((f) => !/\.\./.test(f.path || f.name || '')) && fs.readdirSync(j.outDir).some((f) => f === 'main.py'), 'çıktı ayrı klasörde, ad güvenli');
+  ok(/merhaba/.test(fs.readFileSync(path.join(j.outDir, 'main.py'), 'utf8')), 'kaynak çıktısı yazıldı');
+  r = await H.handlers['obf:startpyc'](null, { tool: 'pycdc', name: 'app.exe', files: [pyc('ok.pyc'), pyc('bad.pyc'), pyc('part.pyc')] }); j = await wait(r.id);
+  ok(j.state === 'partial' && j.results.find((x) => x.name === 'bad').state === 'failed' && j.results.find((x) => x.name === 'part').state === 'partial', 'kısmi/başarısız dosyalar dürüstçe raporlandı: ' + j.state);
+  ok(/failed=1/.test(fs.readFileSync(path.join(j.outDir, '_statscan_status.txt'), 'utf8')), 'durum dosyası yazıldı');
+  const dec = createObfHost({ outputRoot: path.join(tmp, 'out'), env: { path: bin }, confirm: async () => false }); r = await dec.handlers['obf:startpyc'](null, { tool: 'pycdc', files: [pyc('a.pyc')] }); ok(r.error === 'declined', 'onay verilmezse çalışmaz');
+  const none = createObfHost({ outputRoot: path.join(tmp, 'out'), env: { path: '/nonexistent' }, confirm: async () => true }); r = await none.handlers['obf:startpyc'](null, { tool: 'pycdc', files: [pyc('a.pyc')] }); ok(r.error === 'missing', 'araç yoksa indirme/kurulum denenmez');
+  fs.rmSync(tmp, { recursive: true, force: true }); console.log(bad ? bad + ' TEST BAŞARISIZ' : 'tüm testler geçti'); process.exit(bad ? 1 : 0);
+})();

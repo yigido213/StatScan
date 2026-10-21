@@ -21,6 +21,10 @@ const TOOLS = {
   cfr: { label: 'CFR', kinds: ['jar', 'java-class'], exe: ['cfr', 'cfr-decompiler'], jar: /^cfr[-_.\d\w]*\.jar$/i, args: (i, o) => [i, '--outputdir', o], inExt: ['.jar', '.class'] },
   procyon: { label: 'Procyon', kinds: ['jar', 'java-class'], exe: ['procyon-decompiler', 'procyon'], jar: /^procyon-decompiler[-_.\d\w]*\.jar$/i, args: (i, o) => ['-o', o, i], inExt: ['.jar', '.class'] },
   jadx: { label: 'jadx', kinds: ['apk', 'jar'], exe: ['jadx'], args: (i, o) => ['-d', o, i], inExt: ['.apk', '.jar', '.dex'] },
+  /* Python bytecode (.pyc) -> kaynak: yalnizca kullanicinin KENDI kurdugu araclar; startPyc ile calisir */
+  pycdc: { label: 'pycdc', kinds: ['pyc'], pyc: true, exe: ['pycdc'], mode: 'stdout', note: 'pycdc her .pyc dosyasını okuyup Python kaynağı üretir; desteklenmeyen bytecode için kısmi/eksik çıktı verebilir.' },
+  decompyle3: { label: 'decompyle3', kinds: ['pyc'], pyc: true, exe: ['decompyle3'], mode: 'outdir', note: 'Python 3.7–3.8 bytecode için.' },
+  uncompyle6: { label: 'uncompyle6', kinds: ['pyc'], pyc: true, exe: ['uncompyle6'], mode: 'outdir', note: 'Python 2.x–3.8 bytecode için; daha yeni sürümlerde çalışmaz.' },
   /* yerel kod: kullanicinin KENDI kurulu IDA / Ghidra'si. Betikleri StatScan sabit olarak uretir (girdiden gelmez). */
   ida: { label: 'IDA Pro (Hex-Rays)', kinds: ['pe', 'elf', 'macho'], exe: ['idat64', 'idat'], native: true, timeout: 3600000, maxTimeout: 14400000, inExt: ['.exe', '.dll', '.sys', '.so', '.elf', '.bin', '.dylib'], valid: /^idat(64)?(\.exe)?$/i,
     note: 'IDA dosyayı yalnızca yükleyip analiz eder (çalıştırmaz). IDA kendi ayarlarına göre PDB/sembol aramaya çalışabilir; ağ gerekmesin diye IDA ayarlarında sembol sunucusunu kapalı tut.',
@@ -123,6 +127,7 @@ function createObfHost(deps) {
   async function start(req) {
     req = req || {}; const t = TOOLS[req.tool]; if (!t) return { error: 'tool', message: 'Bilinmeyen araç.' };
     const found = tools().find((x) => x.id === req.tool); if (!found) return { error: 'missing', message: t.label + ' bu bilgisayarda bulunamadı. Araç sessizce indirilmez/kurulmaz; kurduktan sonra tekrar dene.' };
+    if (t.pyc) return { error: 'kind', message: t.label + ' yalnızca .pyc dosyaları içindir.' };
     if (!t.kinds.includes(req.kind)) return { error: 'kind', message: t.label + ' bu dosya türünü işleyemez.' };
     if (!req.data || req.data.byteLength === undefined) return { error: 'data', message: 'Dosya verisi alınamadı.' };
     if (req.data.byteLength > MAX_IN) return { error: 'size', message: 'Dosya çok büyük (' + Math.round(req.data.byteLength / 1048576) + ' MB); güvenli sınır ' + MAX_IN / 1048576 + ' MB.' };
@@ -153,10 +158,39 @@ function createObfHost(deps) {
     { const f1 = launch(false); if (f1) return f1; }
     return { id, state: 'running', dir, dirToken: token };
   }
+  /* .pyc dosyalarini kurulu pycdc/decompyle3/uncompyle6 ile cevir (onayli, dosya basina zaman asimi, sirali) */
+  async function startPyc(req) {
+    req = req || {}; const t = TOOLS[req.tool]; if (!t || !t.pyc) return { error: 'tool', message: 'Bilinmeyen araç.' };
+    const found = tools().find((x) => x.id === req.tool); if (!found) return { error: 'missing', message: t.label + ' bu bilgisayarda bulunamadı. Araç sessizce indirilmez/kurulmaz; kurduktan sonra tekrar dene.' };
+    const list = Array.isArray(req.files) ? req.files : []; if (!list.length) return { error: 'data', message: 'Çevrilecek .pyc dosyası yok.' }; if (list.length > 60) return { error: 'too-many', message: 'En fazla 60 .pyc dosyası çevrilir; kalanları elle çevir.' };
+    let total = 0; const files = []; const seen = new Set();
+    for (const f of list) { const bytes = f && f.bytes && f.bytes.byteLength !== undefined ? Buffer.from(f.bytes.buffer ? f.bytes.buffer : f.bytes, f.bytes.byteOffset || 0, f.bytes.byteLength) : null; if (!bytes || bytes.length > 8 * 1024 * 1024) continue; total += bytes.length; if (total > 100 * 1024 * 1024) break; let nm = safeName(f.name, 'modul').replace(/\.pyc$/i, '').replace(/[^\w.-]/g, '_') || 'modul'; let k = nm, i = 1; while (seen.has(k)) k = nm + '-' + (++i); seen.add(k); files.push({ nm: k, bytes }); }
+    if (!files.length) return { error: 'data', message: 'Geçerli .pyc verisi alınamadı (dosya başına en çok 8 MB).' };
+    if (deps.confirm) { const ok = await deps.confirm({ title: 'Python decompiler çalıştır', message: t.label + ' çalıştırılacak:\n\n' + found.path + '\n\n' + files.length + ' .pyc dosyası çevrilecek. Dosyalar ÇALIŞTIRILMAZ; araç bytecode’u yalnızca okur. ' + (t.note || '') + '\nÇıktı ayrı bir klasöre yazılır.\n\nDevam edilsin mi?' }); if (!ok) return { error: 'declined', message: 'İşlem onaylanmadı; araç çalıştırılmadı.' }; }
+    const id = crypto.randomBytes(6).toString('hex'); const { token, dir } = dirFor(req.dirToken, safeName(req.name, 'python')); const outDir = path.join(dir, 'decompiled-' + req.tool); fs.mkdirSync(outDir, { recursive: true });
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'statscan-pyc-')); const job = { id, state: 'running', tool: req.tool, label: t.label, startedAt: Date.now(), dir, dirToken: token, outDir, files: [], stdout: '', stderr: '', exitCode: null, message: '', cancelled: false, results: [] }; jobs.set(id, job);
+    const perMs = Math.max(1000, +deps.pycTimeoutMs || 120000); let cur = null; job.kill = () => { try { if (cur) { if (isWin()) cp.spawn('taskkill', ['/pid', String(cur.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); else process.kill(-cur.pid, 'SIGKILL'); } } catch (e) { try { cur.kill('SIGKILL'); } catch (e2) { /* yoksay */ } } };
+    (async () => {
+      for (const f of files) {
+        if (job.cancelled) break; const input = path.join(work, f.nm + '.pyc'); fs.writeFileSync(input, f.bytes, { flag: 'wx', mode: 0o600 }); const target = path.join(outDir, f.nm + '.py'); const args = t.mode === 'stdout' ? [input] : ['-o', outDir, input];
+        const r = await new Promise((resolve) => { let out = Buffer.alloc(0), err = '', timedOut = false, child; try { child = spawn(found.path, args, { shell: false, cwd: work, env: toolEnv(t, outDir), windowsHide: true, detached: !isWin(), stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return resolve({ code: -1, error: e.message, out, err, timedOut }); } cur = child; const tm = setTimeout(() => { timedOut = true; job.kill(); }, perMs);
+          if (child.stdout) child.stdout.on('data', (d) => { if (out.length < 20 * 1024 * 1024) out = Buffer.concat([out, d]); }); if (child.stderr) child.stderr.on('data', (d) => { err = (err + d.toString('utf8')).slice(-2000); });
+          child.on('error', (e) => { clearTimeout(tm); resolve({ code: -1, error: e.message, out, err, timedOut }); }); child.on('close', (code) => { clearTimeout(tm); resolve({ code, out, err, timedOut }); }); });
+        let produced = 0; if (t.mode === 'stdout') { if (r.out.length) { fs.writeFileSync(target, r.out); produced = r.out.length; } } else { try { produced = fs.statSync(target).size; } catch (e) { produced = 0; } }
+        const state = job.cancelled ? 'cancelled' : (r.code === 0 && produced > 0 && !r.timedOut ? 'ok' : (produced > 0 ? 'partial' : 'failed')); job.results.push({ name: f.nm, state, code: r.code, timedOut: r.timedOut, size: produced, error: (r.error || r.err || '').slice(0, 300) }); job.stderr = (job.stderr + '[' + f.nm + '] ' + (r.error || r.err || '') + '\n').slice(-8192);
+      }
+      const okN = job.results.filter((x) => x.state === 'ok').length, partN = job.results.filter((x) => x.state === 'partial').length, failN = job.results.filter((x) => x.state === 'failed').length;
+      try { fs.writeFileSync(path.join(outDir, '_statscan_status.txt'), 'tool=' + req.tool + '\nfiles=' + files.length + '\nok=' + okN + '\npartial=' + partN + '\nfailed=' + failN + '\n\n' + job.results.map((x) => x.name + ': ' + x.state + (x.error ? ' — ' + x.error.replace(/\s+/g, ' ') : '')).join('\n') + '\n'); fs.writeFileSync(path.join(outDir, '_statscan_arac-log.txt'), job.stderr); } catch (e) { /* yoksay */ }
+      const w = walk(outDir); job.files = w.files.slice(0, 5000); job.bytes = w.bytes; cleanup(work);
+      if (job.cancelled) { job.state = 'cancelled'; job.message = 'İptal edildi; çıktı eksik olabilir.'; } else if (okN === files.length) { job.state = 'done'; job.message = files.length + ' .pyc dosyası çevrildi. Çıktı insan okumasına yardımcıdır; orijinal kaynakla birebir değildir.'; } else if (okN + partN > 0) { job.state = 'partial'; job.message = okN + ' tam, ' + partN + ' kısmi, ' + failN + ' başarısız. Kısmi dosyalar eksik/yanlış olabilir, güvenme (ayrıntı: _statscan_status.txt).'; } else { job.state = 'failed'; job.message = 'Hiçbir dosya çevrilemedi (bytecode sürümü araç tarafından desteklenmiyor olabilir; ayrıntı: _statscan_status.txt).'; }
+    })().catch((e) => { job.state = 'failed'; job.message = 'Beklenmeyen hata: ' + e.message; cleanup(work); });
+    return { id, state: 'running', dir, dirToken: token };
+  }
   const cleanup = (w) => { try { fs.rmSync(w, { recursive: true, force: true }); } catch (e) {} };
   function job(id) { const j = jobs.get(String(id)); if (!j) return { error: 'nojob', message: 'İş bulunamadı.' }; const { kill, ...pub } = j; return pub; }
   function cancel(id) { const j = jobs.get(String(id)); if (!j) return { error: 'nojob', message: 'İş bulunamadı.' }; if (j.state === 'running') { j.cancelled = true; j.kill && j.kill(); } return { ok: true }; }
   const handlers = {
+    'obf:startpyc': async (_e, req) => { try { return await startPyc(req); } catch (e) { return { error: 'start', message: String(e.message || e) }; } },
     'obf:tools': async () => ({ tools: tools().map((x) => ({ id: x.id, label: x.label, kinds: x.kinds, path: x.path, via: x.via })), outputRoot: deps.outputRoot, toolsDir: deps.userToolsDir }),
     'obf:save': async (_e, req) => { try { const r = await save(req); if (r.ok && deps.showItemInFolder) deps.showItemInFolder(r.dir); return r; } catch (e) { return { error: 'save', message: 'Kaydedilemedi: ' + e.message }; } },
     'obf:start': async (_e, req) => { try { return await start(req); } catch (e) { return { error: 'start', message: String(e.message || e) }; } },

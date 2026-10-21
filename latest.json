@@ -1,6 +1,6 @@
 {
-  "version": "4.2.0",
-  "url": "StatScan-4.2.0.ssu",
-  "sha256": "43f3567e58514551af1cc4dcda50a5509d5b36fc83610c44927bbf290e1aa528",
-  "notes": "Kendi dosyalarım (güvenilir liste, yeni davranış uyarısı, java muafiyet modu), klasör izleme, ağ IOC dışa aktarımı, PyInstaller/asar açıcı"
+  "version": "4.5.0",
+  "url": "StatScan-4.5.0.ssu",
+  "sha256": "bb4a14c11bf6628963d77b219d07446f94f7eafde4369bbee1840f4cfc7880aa",
+  "notes": "Bilgi sekmesi, yöntem kataloğu, PDB/homoglif/bulanık hash yöntemleri, aile gruplama, .pyc decompile, yanlış-pozitif test seti"
 }

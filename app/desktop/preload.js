@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   obfTools: () => call('obf:tools'),
   obfSave: (req) => call('obf:save', req),
   obfStart: (req) => call('obf:start', req),
+  obfStartPyc: (req) => call('obf:startpyc', req),
   obfJob: (id) => call('obf:job', String(id)),
   obfCancel: (id) => call('obf:cancel', String(id)),
   watchSuggest: () => call('watch:suggest'),

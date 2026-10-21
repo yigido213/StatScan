@@ -60,3 +60,14 @@ EXE/DLL/ELF/Mach-O için obfuscation panelinde, makinede **zaten kurulu** IDA Pr
 - **Ağ IOC çıkarımı:** URL/IP/alan adı/webhook/Telegram/onion/davet bağlantıları tüm iç dosyalardan toplanır, tekilleştirilir, zararsız hostlar işaretlenir; txt/csv/json/engel listesi olarak dışa aktarılır (webhook/token maskeli, defang seçeneği).
 - **PyInstaller ve Electron asar açıcı:** PyInstaller CArchive/PYZ içindeki modül dizeleri ve `.pyc` dosyaları çıkarılıp taranır (AES şifreli PYZ/PyArmor "kısmi" bildirilir, `.pyc` decompile edilmez); `.asar` arşivleri açılıp taranır (`node_modules` atlanır, `.node` eklentileri işaretlenir; `.unpacked` dosyalar yoktur).
 - Testler: `node tools/test/{trust,ioc,pack,mc,smoke}.mjs`, `node tools/test/{watch,obf-host}.cjs`.
+
+
+## 4.5
+
+- **Bilgi sekmesi:** Tüm açıklama/uyarı yazıları (StatScan nedir, sonuçlar nasıl okunur, sınırlar, mod kapsamı, kaynaklar, özellik açıklamaları) tarama ekranından ayrı "Bilgi" sekmesine taşındı. Teknik korumalar ve gerçek durum bilgisi (kısmi tarama, atlanan girdiler, analiz defteri, tarama kapsamı, onay pencereleri) tarama ekranında kaldı. Dışa aktarılan raporlar (HTML/JSON) kendi uyarılarını taşımaya devam eder.
+- **Yöntem kataloğu:** `StatScan.methodMatrix()`; her analiz yöntemi için dosya türleri ve Hızlı/Normal/Derin kapsamı mod ayarlarından hesaplanır (elle yazılmış değil). Bilgi sekmesinde, JSON raporda (`methodCatalog`) ve HTML raporda (analiz defteri) görünür.
+- **Modlar:** `tools/test/modes.mjs`, Hızlı/Normal/Derin'in gerçekten farklı iş yaptığını sınar (Base64/XOR çözme, IOC seviyeleri, imphash yalnızca Derin; her örnekte adım sayısı Hızlı ≤ Normal ≤ Derin). Derin modun küçük dosyada hızlı bitmesi yapay bekleme yokluğundandır.
+- **Yeni yöntemler:** PE hata ayıklama bilgisi (CodeView/PDB yolu, `pdb_path`/`pdb_susp`), homoglif/görünmez karakterli ad (`name_confusable`/`name_invisible`), bulanık hash (CTPH; ssdeep ailesi, birebir ssdeep uyumu iddia edilmez) ve toplu taramada aile/varyant gruplama (bulanık hash + imphash + birebir kopya).
+- **.pyc → Python kaynağı:** PyInstaller çıktısındaki `.pyc` dosyaları, makinede zaten kurulu pycdc/decompyle3/uncompyle6 ile (masaüstü, her seferinde onayla, dosya başına zaman aşımı, kısmi/başarısız dosyalar işaretlenir) çevrilebilir. Araç indirilmez/kurulmaz.
+- **Yanlış-pozitif regresyon seti:** `tools/test/fp.mjs` + `tools/test/benign/`; temiz örnekler her modda düşük skor almalı, yüksek/kritik bulgu çıkmamalı. Yeni bir yanlış alarm görürsen dosyayı `benign/` klasörüne ekle.
+- Testler: `node tools/test/{methods,modes,fp,ui45}.mjs`, `node tools/test/pyc-host.cjs` (+ önceki testler).

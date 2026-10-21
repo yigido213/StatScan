@@ -232,6 +232,21 @@ button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visib
 @keyframes grow { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
 .body { padding: 6px 24px 22px; display: grid; gap: 4px; }
 .sechead { font: 500 12px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 16px 0 6px; display: flex; align-items: center; gap: 10px; }
+.tabs { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 6px 16px; border-radius: 999px; font: 600 13.5px var(--f-body); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.infoview { padding: 18px clamp(14px, 2vw, 28px) 64px; }
+.infowrap { max-width: 1100px; margin-inline: auto; display: grid; gap: 16px; }
+.infowrap h2 { margin: 0; font: 600 26px var(--f-display); }
+.infowrap h3 { margin: 0 0 8px; font: 600 17px var(--f-display); }
+.infowrap p, .infowrap li { max-width: 78ch; }
+.mtable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
+.mtable th, .mtable td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.mtable th { font: 500 11.5px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.mtable .st { font-weight: 600; white-space: nowrap; } .mtable .st.full { color: var(--s0); } .mtable .st.partial { color: var(--s2); } .mtable .st.off { color: var(--muted); }
+.mtable small { display: block; color: var(--muted); font-size: 12px; }
+.mtable .new { font: 600 10.5px var(--f-mono); color: var(--accent-ink); background: var(--accent); border-radius: 99px; padding: 1px 7px; margin-left: 6px; }
 .trustbox{margin:8px 0}.trow{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line,#ddd)}.tlist{max-height:260px;overflow:auto}
 .riskbox{margin-top:10px}.risklist{margin:6px 0 0;padding-left:20px}.risklist li{margin:6px 0}.risklist code{font:12px var(--f-mono);overflow-wrap:anywhere}
 .sechead label { margin-left: auto; text-transform: none; letter-spacing: 0; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font: 13px var(--f-body); }
@@ -507,15 +522,16 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 <body>
 <a class="skip" href="#main">İçeriğe geç</a>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>4.2</small></h1></div>
-  <p class="tagline">JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; istersen Windows Sandbox’ta davranış analizi yapar.</p>
+  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>4.5</small></h1></div>
+  <nav class="tabs" role="tablist" aria-label="Bölümler"><button type="button" role="tab" id="tab-scan" aria-selected="true" aria-controls="view-scan">Tarama</button><button type="button" role="tab" id="tab-info" aria-selected="false" aria-controls="view-info">Bilgi</button></nav>
+  <span class="tagline"></span>
   <div class="hright">
     <span class="lock" title="Dosyalar tarayıcı belleğinde işlenir, hiçbir yere gönderilmez."><i aria-hidden="true"></i><span class="t">Yerel · hiçbir şey yüklenmez</span></span>
     <button id="theme" type="button" aria-label="Açık/koyu temayı değiştir">Tema</button>
   </div>
 </header>
 
-<div class="shell">
+<div class="shell" id="view-scan" role="tabpanel" aria-labelledby="tab-scan">
 
   <!-- SOL: tarama ayarları ve gelişmiş araçlar -->
   <aside class="rail rail-l" aria-label="Tarama ayarları">
@@ -572,7 +588,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
         <span class="fc d h" style="--x:90%;--y:84%;--xn:90%;--yn:30%;--r:-8deg;--t:6.8s;--d:-.5s" aria-hidden="true"><i>.lnk</i></span>
         <span class="orb" aria-hidden="true"><span class="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></span></span>
         <b>Dosyaları buraya bırak ya da tıkla</b>
-        <span class="d">Birden fazla dosya seçebilir veya bir klasörü bırakabilirsin. Statik taramada dosyalar yalnızca bu sekmenin belleğinde okunur; çalıştırılmaz, yüklenmez, diske açılmaz. Dinamik analiz yalnızca sen onaylarsan ve yerel yardımcı çalışıyorsa yapılır.</span>
+        <span class="d">Birden fazla dosya seçebilir veya bir klasörü bırakabilirsin.</span>
         <span class="pick">Dosya seç ve tara</span>
         <span class="chips"><span class="chip">.jar</span><span class="chip">.exe .dll .sys</span><span class="chip">.ps1 .bat .vbs .js .py .sh</span><span class="chip">.zip .docx .apk</span><span class="chip">.lnk .pdf .hta</span></span>
         <input id="file" type="file" multiple hidden>
@@ -611,11 +627,24 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
     <section id="capstrip" class="capstrip" aria-label="Hangi analizler kullanılabilir"></section>
     <div class="railtitle">Bu oturum</div>
     <div class="panel sess" id="sess"></div>
-    <details class="cover" id="cover"><summary id="coversum">Bu modda ne kapsanır?</summary><div class="cols" id="coverbody"></div></details>
-    <details class="cover" id="srcbox"><summary>Kaynaklar ve tespit kapsamı</summary><div class="dsec" id="srcbody"></div></details>
-    <p class="fine">StatScan sezgisel statik analiz yapar; statik taramada dosyayı çalıştırmaz ve içeriğini hiçbir yere göndermez. İsteğe bağlı dinamik analiz (Windows 10/11 Pro + Windows Sandbox + yerel yardımcı) dosyayı yalnızca izole Sandbox’ta çalıştırır, ana sistemde asla. Her zararlıyı yakalamaz: paketlenmiş, şifreli, özel yazılmış veya çalışma anında açılan zararlılar kuralları atlatabilir; meşru yazılımlar ise yanlış alarm üretebilir. “Belirgin bulgu yok” sonucu dosyanın güvenli olduğunu göstermez, kısmi taramada ise hiçbir güvence vermez. Şüphede kalırsan dosyayı izole bir ortamda (sanal makine) incele ve başka araçlarla da karşılaştır. Hiçbir dosya silinmez, çalıştırılmaz veya değiştirilmez.</p>
   </aside>
 </div>
+<section class="infoview" id="view-info" role="tabpanel" aria-labelledby="tab-info" hidden>
+  <div class="infowrap">
+    <h2>Bilgi</h2>
+    <p class="fine" style="margin-top:0">Açıklamalar, sınırlar ve kapsam bilgisi burada toplanır; tarama ekranı yalnızca tarama içindir. Sonuç kartlarındaki “kısmi”, atlanan girdi ve analiz defteri satırları gerçek durumu gösterdiği için tarama ekranında kalır.</p>
+    <section class="panel" id="info-about"><h3>StatScan nedir, ne yapmaz?</h3><div id="info-about-body"></div></section>
+    <section class="panel" id="info-read"><h3>Sonuçları nasıl okumalı?</h3><div id="info-read-body"></div></section>
+    <section class="panel" id="info-modes"><h3>Tarama modları: hangi kontroller çalışır?</h3><div id="info-modes-body"></div>
+    <details class="cover" id="cover"><summary id="coversum">Bu modda ne kapsanır?</summary><div class="cols" id="coverbody"></div></details>
+    </section>
+    <section class="panel" id="info-methods"><h3>Yöntem kataloğu</h3><div id="info-methods-body"></div></section>
+    <section class="panel" id="info-features"><h3>Özellikler ve gizlilik</h3><div id="info-features-body"></div></section>
+    <section class="panel" id="info-sources"><h3>Kaynaklar ve tespit kapsamı</h3>
+    <details class="cover" id="srcbox"><summary>Kaynaklar ve tespit kapsamı</summary><div class="dsec" id="srcbody"></div></details>
+    </section>
+  </div>
+</section>
 <script>
 /* StatScan engine: saf JS, tarayicida calisir, dosyayi calistirmaz, ag kullanmaz. */
 (function (root) {
@@ -978,7 +1007,7 @@ const NEVER = [
   'Dijital imza GEÇERLİLİĞİ doğrulanmaz: sertifika zinciri, iptal durumu, zaman damgası ve imza matematiği kontrol edilmez; yalnızca imza içindeki özetin dosyayla tutarlılığı denetlenir (normal/derin mod). Çalıntı veya sahte sertifikayla atılmış imza bu denetimi geçer',
   'YARA kuralı, çoklu antivirüs motoru veya itibar sorgusu kullanılmaz (hash sorgusu yalnızca sen bağlantıya tıklarsan, harici sitede yapılır)',
   'Java bytecode’da gerçek veri akışı (taint) izlenmez: yalnızca aynı metotta veya birkaç çağrı adımı içinde birlikte bulunan API çağrıları ve metin sabitleri raporlanır; bir değerin gerçekten gönderildiği kanıtlanmaz. Sanal çağrılar, yansıma ve invokedynamic ile kurulan zincirler (lambda dışında) çözülmez',
-  'RAR, 7z, CAB, gzip/xz içerikleri açılmaz (yalnızca dış kabuk bildirilir)',
+  'RAR, 7z, CAB ve XZ içerikleri açılmaz (yalnızca başlık/dış kabuk bildirilir); ZIP/JAR, tar ve gzip açılıp içi taranır',
   'Şifreli, özel algoritmalı veya çalışma anında açılan (runtime) yükler statik olarak görülemez'
 ];
 for (const k of Object.keys(MODES)) MODES[k].never = NEVER;
@@ -1872,6 +1901,7 @@ async function scanBuffer(u8, name, st, depth) {
     if ((kind === 'pe' || kind === 'elf') && cfg.parse && depth < 6 && !st.stop) { try { const pr = await analyzePyInstaller(u8, name, st, depth); if (pr) { F = F.concat(pr.findings); res.children = res.children.concat(pr.children); Object.assign(res.info, pr.info); } } catch (e) { st.notes.add('PyInstaller içeriği ayrıştırılamadı: ' + String(e && e.message || e).slice(0, 60)); } }
     if (['pe', 'elf', 'macho', 'bin', 'text', 'zip'].includes(kind) && depth < 6) { const txt = (kind === 'text' || kind === 'bin' || kind === 'pe' || kind === 'elf' || kind === 'zip') ? (kind === 'text' ? decodeText(u8.subarray(0, Math.min(u8.length, 2e6))) : latin1(u8.subarray(0, Math.min(u8.length, 8e6)))) : ''; const sg = await sigScan(u8, kind, name, st, txt); F = F.concat(sg.findings); ANL = ANL.concat(sg.analyses); }
   } catch (e) { F.push(mk('scan_err', 'info', 0, 'Analiz hatası', String(e && e.message || e), 'Dosyayı başka bir araçla da kontrol et.', [])); st.unreadable++; }
+  try { const xm = extraMethods(u8, kind, name, st, depth, res.info); F = F.concat(xm.findings); ANL = ANL.concat(xm.analyses); } catch (e) { ANL.push(led('extra', 'Ek yöntemler (ad, PDB, bulanık hash)', 'failed', String(e && e.message || e).slice(0, 80))); }
   res.findings = sortF(applyCombos(F, st, { sha256: res.sha256, name }));
   res.analyses = depth === 0 ? baseLedger(kind, cfg, res, st).concat(ANL) : ANL;
   const own = score(res.findings); const kidMax = res.children.reduce((a, c) => Math.max(a, c.score), 0);
@@ -2977,7 +3007,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.2.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.5.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -3038,12 +3068,12 @@ async function obfRun(u8, name, opts) {
     if (k.id === 'pe' || k.id === 'elf') {
       let ex = null; try { ex = await pyiExtract(u8, { cap: OBF_LIM.outMax }); } catch (e) { obfStep(ctx, 'unpack', 'PyInstaller içeriği', 'failed', String(e && e.message || e).slice(0, 80)); }
       if (ex && ex.info && !ex.info.bad) {
-        res.tools.builtin.push('yerleşik PyInstaller açıcı (çalıştırma yok)'); let nOut = 0, bytes = 0, skipped = 0; const idx = ['# PyInstaller içeriği', '', ex.info.py + ' · giriş betikleri: ' + (ex.info.scripts.join(', ') || '—'), 'Not: .pyc dosyaları DECOMPILE edilmedi. Kaynak için güvenli bir ortamda pycdc/uncompyle6/decompyle3 kullan.', ''];
+        res.tools.builtin.push('yerleşik PyInstaller açıcı (çalıştırma yok)'); let nOut = 0, bytes = 0, skipped = 0; const idx = ['# PyInstaller içeriği', '', ex.info.py + ' · giriş betikleri: ' + (ex.info.scripts.join(', ') || '—'), 'Not: .pyc dosyaları StatScan içinde DECOMPILE edilmedi. Kaynak için masaüstü uygulamasındaki düğmeyi veya güvenli bir ortamda pycdc/uncompyle6/decompyle3 kullan.', ''];
         for (const f of ex.files) { if (f.lib || f.kind === 'binary') { continue; } if (nOut >= OBF_LIM.entries || bytes + f.bytes.length > OBF_LIM.outMax) { skipped++; continue; } nOut++; bytes += f.bytes.length; out('pyinstaller/' + f.path, 'application/octet-stream', f.bytes, f.kind === 'data' ? 'veri girdisi' : '.pyc (başlık eklendi; decompile edilmedi)', 'output'); idx.push('- ' + f.path + ' (' + f.bytes.length + ' bayt)'); }
         const strs = []; for (const f of ex.files) if ((f.kind === 'script' || (f.kind === 'module' && !f.lib)) && f.raw) strs.push('## ' + f.path, ...pyConstText(f.raw).slice(0, 400)); if (strs.length) out('pyinstaller/sabit-dizeler.txt', 'text/plain', strs.join('\n'), 'Betik/modüllerdeki dize sabitleri (marshal verisinden)', 'output');
         out('pyinstaller/ozet.md', 'text/markdown', idx.join('\n') + '\n', 'Çıkarılan dosyaların listesi', 'report');
         obfStep(ctx, 'unpack', 'PyInstaller içeriği çıkarıldı', ex.info.encrypted || skipped ? 'partial' : 'done', nOut + ' dosya · ' + ex.info.ownMods + ' özgün modül, ' + ex.info.libMods + ' kütüphane modülü (kütüphaneler çıkarılmadı)' + (ex.info.encrypted ? ' · ARŞİV ŞİFRELİ: içerik eksik' : '') + (skipped ? ' · ' + skipped + ' dosya sınır nedeniyle atlandı' : ''));
-        obfStep(ctx, 'pydecomp', 'Python bytecode decompile', 'unsupported', 'Yerleşik değil; .pyc dosyaları çıkarıldı, kaynak için kurulu pycdc/uncompyle6 kullan');
+        obfStep(ctx, 'pydecomp', 'Python bytecode decompile', 'unsupported', 'Yerleşik decompiler yok; .pyc dosyaları çıkarıldı. Masaüstü uygulamasında kurulu pycdc/decompyle3/uncompyle6 varsa aşağıdaki düğmeyle (onayla) çevrilir');
         if (ex.info.encrypted) ctx.notes.push('PYZ şifreli olduğu için modüllerin bir kısmı çıkarılamadı; çıktı eksiktir.'); if (skipped) ctx.limits.push({ kind: 'out', msg: skipped + ' dosya çıktı sınırı nedeniyle çıkarılmadı.' });
       }
     }
@@ -3275,7 +3305,159 @@ function javaAllowed(policy, ident) {
   return list.some((e) => e.javaExempt && ((ident && e.sha256 && e.sha256 === ident.sha256) || (key.length > 4 && e.key === key)));
 }
 /*#endregion trust*/
-const api = { trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.2.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+/*#region methods*/
+/* 4.5: ek analiz yontemleri (PDB yolu, homoglif/gorunmez karakterli adlar, bulanik hash) + yontem katalogu + aile gruplama.
+   Hepsi statik: dosya calistirilmaz, ag kullanilmaz. Yontem katalogu (METHODS) mod ayarlarindan (MODES) hesaplanir; elle yazilmis tablo degildir. */
+
+/* ---------- ad denetimi: karisik yazi sistemi (homoglif) ve gorunmez/yon kontrol karakterleri ---------- */
+const INVIS_CP = [[0x200b, 0x200f], [0x2028, 0x2029], [0x202a, 0x202d], [0x2060, 0x2064], [0x2066, 0x2069], [0xfeff, 0xfeff], [0xad, 0xad], [0x180e, 0x180e]];
+const INVIS_RE = new RegExp('[' + INVIS_CP.map(([a, b]) => String.fromCharCode(a) + (b > a ? '-' + String.fromCharCode(b) : '')).join('') + ']');
+function scriptOf(ch) {
+  const c = ch.codePointAt(0);
+  if ((c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) || (c >= 0xc0 && c <= 0x24f)) return 'Latin';
+  if (c >= 0x400 && c <= 0x52f) return 'Kiril'; if (c >= 0x370 && c <= 0x3ff) return 'Yunan'; if (c >= 0x530 && c <= 0x58f) return 'Ermeni';
+  if (c >= 0xff21 && c <= 0xff5a) return 'Tam genişlik'; return '';
+}
+function confusableName(name) {
+  const base = String(name || '').split(/[\\/]/).pop(); const out = { invisible: [], mixed: [] };
+  const m = base.match(new RegExp(INVIS_RE.source, 'g')); if (m) out.invisible = [...new Set(m.map((x) => 'U+' + x.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')))];
+  for (const tok of base.split(/[^\p{L}\p{N}]+/u)) {
+    if (tok.length < 2) continue; const sc = new Set(); for (const ch of tok) { const s = scriptOf(ch); if (s) sc.add(s); }
+    if (sc.has('Latin') && (sc.has('Kiril') || sc.has('Yunan') || sc.has('Ermeni') || sc.has('Tam genişlik'))) out.mixed.push(tok.slice(0, 40) + ' (' + [...sc].join('+') + ')');
+  }
+  return out;
+}
+
+/* ---------- PE hata ayiklama bilgisi: CodeView (RSDS) PDB yolu ---------- */
+const PDB_SUSP = /stealer|grabber|keylog|crypter|ransom|botnet|clipper|hvnc|\brat\b|\bfud\b|infostealer|cookie.?steal|token.?grab|\bdropper\b/i;
+function pdbPaths(u8) {
+  const out = []; const lim = Math.min(u8.length, 64e6);
+  for (let i = 0; i + 28 < lim && out.length < 4; i++) {
+    if (u8[i] !== 0x52 || u8[i + 1] !== 0x53 || u8[i + 2] !== 0x44 || u8[i + 3] !== 0x53) continue;
+    let j = i + 24, s = ''; while (j < lim && u8[j] && s.length < 260) { const b = u8[j]; if (b < 32 || b > 126) { s = ''; break; } s += String.fromCharCode(b); j++; }
+    if (s.length >= 5 && /\.pdb$/i.test(s) && u8[j] === 0) out.push({ off: i, path: s, guid: Array.from(u8.subarray(i + 4, i + 20)).map((x) => x.toString(16).padStart(2, '0')).join(''), age: u8[i + 20] | (u8[i + 21] << 8) });
+  }
+  return out;
+}
+
+/* ---------- bulanik hash (CTPH; ssdeep ailesi algoritma, birebir ssdeep uyumlulugu iddia edilmez) ---------- */
+const SS_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function ctphRun(u8, bs) {
+  let h1 = 0, h2 = 0, h3 = 0, n = 0; const win = new Uint8Array(7); let a = 0x28021967, b = 0x28021967; let s1 = '', s2 = ''; let any = false;
+  for (let i = 0; i < u8.length; i++) {
+    const c = u8[i]; h2 = (h2 - h1 + 7 * c) >>> 0; h1 = (h1 + c - win[n % 7]) >>> 0; win[n % 7] = c; n++; h3 = ((h3 << 5) ^ c) >>> 0; const r = (h1 + h2 + h3) >>> 0;
+    a = (Math.imul(a, 0x01000193) ^ c) >>> 0; b = (Math.imul(b, 0x01000193) ^ c) >>> 0; any = true;
+    if (r % bs === bs - 1) { if (s1.length < 63) { s1 += SS_B64[a & 63]; a = 0x28021967; } if (r % (bs * 2) === bs * 2 - 1) { if (s2.length < 31) { s2 += SS_B64[b & 63]; b = 0x28021967; } } }
+  }
+  if (any && (h1 + h2 + h3) >>> 0 !== 0) { s1 += SS_B64[a & 63]; s2 += SS_B64[b & 63]; }
+  return { s1, s2 };
+}
+function ctph(u8) {
+  if (!u8 || u8.length < 512) return null; let bs = 3; while (bs * 64 < u8.length) bs *= 2;
+  let r = ctphRun(u8, bs); while (bs > 3 && r.s1.length < 32) { bs = Math.floor(bs / 2); r = ctphRun(u8, bs); }
+  return bs + ':' + r.s1 + ':' + r.s2;
+}
+const ssNorm = (s) => s.replace(/(.)\1{3,}/g, '$1$1$1');
+function ssEdit(a, b) { const la = a.length, lb = b.length; let prev = new Array(lb + 1); for (let j = 0; j <= lb; j++) prev[j] = j; for (let i = 1; i <= la; i++) { const cur = [i]; for (let j = 1; j <= lb; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 2)); prev = cur; } return prev[lb]; }
+function ssScore(a, b, bs) {
+  a = ssNorm(a); b = ssNorm(b); if (a.length < 7 || b.length < 7) return 0; const g = new Set(); for (let i = 0; i + 7 <= a.length; i++) g.add(a.slice(i, i + 7)); let common = false; for (let i = 0; i + 7 <= b.length && !common; i++) if (g.has(b.slice(i, i + 7))) common = true; if (!common) return 0;
+  let sc = Math.floor((ssEdit(a, b) * 64) / (a.length + b.length)); sc = 100 - Math.floor((100 * sc) / 64); if (sc < 0) sc = 0; if (bs < 45) sc = Math.min(sc, Math.floor(bs / 3) * Math.min(a.length, b.length)); return Math.min(100, sc);
+}
+function fuzzyCompare(x, y) {
+  const p = (h) => { const m = /^(\d+):([^:]*):([^:]*)$/.exec(h || ''); return m ? { bs: +m[1], s1: m[2], s2: m[3] } : null; }; const A = p(x), B = p(y); if (!A || !B) return 0; if (x === y) return 100;
+  if (A.bs === B.bs) return Math.max(ssScore(A.s1, B.s1, A.bs), ssScore(A.s2, B.s2, A.bs * 2));
+  if (A.bs === B.bs * 2) return ssScore(A.s1, B.s2, A.bs); if (B.bs === A.bs * 2) return ssScore(A.s2, B.s1, B.bs); return 0;
+}
+/* arsiv (jar/zip) icin ham bayt bulanik hash'i anlamsizdir (sikistirilmis); bunun yerine girdi adi+boyut dokumu uzerinden hesaplanir */
+function zipStructText(u8) { try { const z = readZip(u8); const es = (z && (z.entries || z)) || []; const L = []; for (const e of es) { if (e && e.name && !/\/$/.test(e.name)) L.push(e.name + '|' + Math.round((e.size || 0) / 64)); } L.sort(); return L.length >= 4 ? L.join('\n') : ''; } catch (e) { return ''; } }
+
+/* ---------- evrensel ek yontemler: her scanBuffer'da, kapsam mod ayarindan gelir ---------- */
+function extraMethods(u8, kind, name, st, depth, info) {
+  const cfg = st.cfg; const F = []; const L = []; const base = baseName(name);
+  const cn = confusableName(base);
+  if (cn.mixed.length) F.push(mk('name_confusable', 'med', 10, 'Karışık yazı sistemli (homoglif) ad', 'Ad aynı sözcükte Latin harfleriyle Kiril/Yunan/Ermeni/tam genişlik harfleri karıştırıyor; görünüşte tanıdık bir adı taklit etmek için kullanılan bir sahtekarlık tekniğidir.', 'Adı elle yazarak orijinaliyle karşılaştır; kaynağından emin değilsen açma.', cn.mixed.slice(0, 4), 'arch'));
+  if (cn.invisible.length) F.push(mk('name_invisible', 'med', 12, 'Görünmez/yön kontrol karakterli ad', 'Ad görünmeyen karakterler (sıfır genişlik, yön kontrol vb.) içeriyor; uzantıyı veya adı gizlemek için kullanılabilir.', 'Gerçek adı bir hex görüntüleyiciyle incele.', cn.invisible.slice(0, 6), 'arch'));
+  L.push(led('confusable', 'Ad denetimi: homoglif (karışık yazı sistemi) ve görünmez karakter', 'done', cn.mixed.length || cn.invisible.length ? 'bulgu var' : ''));
+  if (kind === 'pe' && depth < 6) {
+    if (cfg.parse) {
+      const pd = pdbPaths(u8); if (pd.length) { info.pdb = pd.map((x) => x.path); const user = pd.map((x) => /[\\/](?:Users|home)[\\/]([^\\/]+)[\\/]/i.exec(x.path)).find(Boolean);
+        F.push(mk('pdb_path', 'info', 0, 'PDB (hata ayıklama) yolu: ' + pd[0].path.slice(0, 90), 'Derleyicinin gömdüğü PDB yolu, derleme ortamını ve proje adını ele verir' + (user ? ' (kullanıcı adı “' + user[1] + '” görünüyor)' : '') + '. Tek başına zararlılık kanıtı değildir; aynı ailenin diğer örnekleriyle eşleştirmede işe yarar.', 'Yolu proje adıyla karşılaştır; başka örneklerde aynı yol varsa aynı kaynaktan geliyor olabilir.', pd.map((x) => x.path.slice(0, 160) + ' · GUID ' + x.guid.slice(0, 8) + '… · yaş ' + x.age), 'pe'));
+        const sp = pd.find((x) => PDB_SUSP.test(x.path)); if (sp) F.push(mk('pdb_susp', 'low', 8, 'PDB yolunda zararlı yazılım proje adı kalıbı', 'Derleme yolunda stealer/keylogger/crypter/ransom/botnet gibi bir proje adı geçiyor; bazı zararlılar geliştirici yolunu kaldırmayı unutur. Güvenlik araştırması/eğitim projeleri de bu adları taşıyabilir.', 'Dosyanın kaynağını ve amacını doğrula.', [sp.path.slice(0, 160)], 'pe')); }
+      L.push(led('pdb', 'PE hata ayıklama bilgisi (CodeView/PDB yolu)', 'done', pd.length ? pd.length + ' yol bulundu' : 'PDB yolu bulunamadı (kaldırılmış olabilir)'));
+    } else L.push(led('pdb', 'PE hata ayıklama bilgisi (CodeView/PDB yolu)', 'skipped', 'Hızlı modda yapılmaz'));
+  }
+  if (depth === 0 && info) {
+    const cap = cfg.deepJar ? 128e6 : (cfg.parse ? 32e6 : 0);
+    if (!cap) L.push(led('fuzzy', 'Bulanık hash (CTPH) ve aile benzerliği', 'skipped', 'Hızlı modda yapılmaz'));
+    else {
+      let basis = 'bayt', data = u8; if (kind === 'zip') { const t = zipStructText(u8); if (t) { data = new TextEncoder().encode(t); basis = 'arşiv yapısı'; } else data = null; } else if (kind === 'text' || kind === 'script') basis = 'bayt';
+      if (!data) L.push(led('fuzzy', 'Bulanık hash (CTPH) ve aile benzerliği', 'na', 'Arşiv girdi listesi çok kısa'));
+      else if (u8.length > cap) L.push(led('fuzzy', 'Bulanık hash (CTPH) ve aile benzerliği', 'skipped', 'Dosya ' + fmtN(u8.length) + ' > ' + fmtN(cap) + ' (bu modun sınırı)'));
+      else { const hsh = ctph(data); if (hsh) { info.fuzzy = { hash: hsh, basis }; L.push(led('fuzzy', 'Bulanık hash (CTPH) ve aile benzerliği', 'done', hsh.length > 40 ? hsh.slice(0, 40) + '… (' + basis + ')' : hsh + ' (' + basis + ')')); } else L.push(led('fuzzy', 'Bulanık hash (CTPH) ve aile benzerliği', 'na', 'Girdi çok küçük (512 bayttan az)')); }
+    }
+  }
+  return { findings: F, analyses: L };
+}
+
+/* ---------- toplu tarama: aile / varyant gruplama ---------- */
+function familyGroups(results, minScore) {
+  minScore = minScore || 55; const items = []; for (const r of results || []) { if (!r || !r.sha256) continue; items.push({ r, fz: r.info && r.info.fuzzy ? r.info.fuzzy : null, imp: r.info && r.info.imphash ? r.info.imphash : null }); }
+  const par = items.map((_, i) => i); const find = (i) => { while (par[i] !== i) { par[i] = par[par[i]]; i = par[i]; } return i; }; const links = [];
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const a = items[i], b = items[j]; let why = null, sc = 0;
+    if (a.r.sha256 === b.r.sha256) { why = 'aynı SHA-256 (birebir kopya)'; sc = 100; }
+    else if (a.fz && b.fz && a.fz.basis === b.fz.basis) { sc = fuzzyCompare(a.fz.hash, b.fz.hash); if (sc >= minScore) why = 'bulanık hash benzerliği %' + sc + ' (' + a.fz.basis + ')'; }
+    if (!why && a.imp && b.imp && a.imp === b.imp) { why = 'aynı imphash (aynı import kümesi)'; sc = 60; }
+    if (why) { links.push({ a: a.r.name, b: b.r.name, why, score: sc }); par[find(i)] = find(j); }
+  }
+  const groups = new Map(); items.forEach((it, i) => { const k = find(i); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it.r); });
+  return [...groups.values()].filter((g) => g.length > 1).map((g) => { const names = new Set(g.map((x) => x.name)); return { members: g.map((x) => ({ name: x.name, score: x.score, verdict: x.verdict, sha256: x.sha256 })), links: links.filter((l) => names.has(l.a) && names.has(l.b)), maxScore: Math.max(...g.map((x) => x.score || 0)), minScore: Math.min(...g.map((x) => x.score || 0)) }; }).sort((x, y) => y.members.length - x.members.length);
+}
+
+/* ---------- yontem katalogu: hangi yontem hangi dosya turunde, hangi modda, ne kadar ---------- */
+const MS = { full: 'Tam', partial: 'Kısmi', off: 'Yok' };
+const mb = (n) => (n >= 1e6 ? Math.round(n / 1e6) + ' MB' : Math.round(n / 1e3) + ' KB');
+const METHODS = [
+  { id: 'type', since: 'önceki', label: 'Dosya türü tespiti (imza/magic, başlık doğrulama)', kinds: 'Tüm dosyalar', on: () => ['full', 'Uzantıya değil içeriğe bakılır; uzantı–içerik uyumsuzluğu ayrıca bulgudur'] },
+  { id: 'hash', since: 'önceki', label: 'SHA-256, SHA-1 özetleri (ve imphash için MD5)', kinds: 'Tüm dosyalar', on: () => ['full', 'Tarayıcı SHA-256’yı desteklemezse not düşülür'] },
+  { id: 'entropy', since: 'önceki', label: 'Entropi (dosya ve PE bölümü başına)', kinds: 'Tüm dosyalar; bölüm bazlı: PE', on: () => ['full', 'Yüksek entropi tek başına zararlılık kanıtı değildir'] },
+  { id: 'names', since: 'önceki', label: 'Ad sahtekarlığı: RTLO, çift uzantı, riskli uzantı, içerik–uzantı uyumsuzluğu', kinds: 'Tüm dosyalar ve arşiv girdileri', on: () => ['full', ''] },
+  { id: 'confusable', since: '4.5', label: 'Ad denetimi: homoglif (karışık yazı sistemi) ve görünmez karakter', kinds: 'Tüm dosyalar ve arşiv girdileri', on: () => ['full', 'Latin+Kiril/Yunan/Ermeni karışımı, sıfır genişlik/yön kontrol karakterleri'] },
+  { id: 'strings', since: 'önceki', label: 'Dize çıkarma (ASCII + UTF-16LE)', kinds: 'PE, ELF, Mach-O, bilinmeyen ikili, jar sınıfları', on: (c) => [c.strCap >= 3e7 ? 'full' : 'partial', 'Üst sınır: ' + mb(c.strCap) + ' dize metni; büyük dosyada sonrası taranmaz'] },
+  { id: 'rules', since: 'önceki', label: 'Dize/regex kural kataloğu (+ kullanıcı kural paketi)', kinds: 'Tüm türler (metin, betik, ikili, jar)', on: (c) => c.ids ? ['partial', 'Yalnızca yüksek riskli alt küme (' + c.ids.size + ' kural kimliği)'] : ['full', 'Tüm katalog'] },
+  { id: 'sigs', since: 'önceki', label: 'Bayt imzaları (YARA-lite: shellcode, Cobalt Strike, syscall, kripto sabitleri)', kinds: 'PE, ELF, ikili, arşiv, metin', on: (c) => c.parse ? ['full', 'İlk ' + (c.deepJar ? '160' : '48') + ' MB'] : ['partial', 'İlk 4 MB'] },
+  { id: 'pe_struct', since: 'önceki', label: 'PE yapısı: başlık, bölüm, import/export/TLS/overlay, paketleyici, API kombinasyonları, manifest', kinds: 'PE (exe, dll, sys)', on: () => ['full', 'Tüm modlarda çalışır'] },
+  { id: 'pe_sig', since: 'önceki', label: 'Authenticode: gömülü özet ↔ dosya özeti tutarlılığı', kinds: 'İmzalı PE', on: (c) => c.parse ? ['full', 'Sertifika zinciri/iptal/zaman damgası doğrulanmaz'] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'pe_deep', since: 'önceki', label: 'PE ileri: imphash, Rich header, rsrc blob, gömülü PE, bindirme (overlay) PE', kinds: 'PE', on: (c) => c.deepJar ? ['full', ''] : ['partial', 'Yalnızca overlay içi MZ aranır; imphash/Rich/rsrc yalnızca Derin'] },
+  { id: 'pdb', since: '4.5', label: 'PE hata ayıklama bilgisi: CodeView/PDB yolu, derleyici ortamı sızıntısı', kinds: 'PE', on: (c) => c.parse ? ['full', 'Yol bulgu olarak gösterilir; proje adı kalıbı hafif puanlanır'] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'dotnet', since: 'önceki', label: '.NET meta veri: P/Invoke, gömülü kaynak PE, gizleme adları, Costura', kinds: '.NET PE', on: () => ['full', 'Tüm modlarda çalışır'] },
+  { id: 'elf_macho', since: 'önceki', label: 'ELF / Mach-O yapı ve davranış göstergeleri', kinds: 'ELF, Mach-O, fat', on: () => ['full', ''] },
+  { id: 'jar_raw', since: 'önceki', label: 'Jar/class: ham bayt üzerinde yüksek riskli kalıplar', kinds: 'JAR, class', on: () => ['full', ''] },
+  { id: 'jar_const', since: 'önceki', label: 'Java class sabit havuzu, API çağrıları, manifest, mod/eklenti meta verisi, Minecraft mod kontrolleri', kinds: 'JAR, class', on: (c) => c.parse ? ['full', ''] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'jar_flow', since: 'önceki', label: 'Java bytecode: metot içi/çağrı zinciri birlikteliği', kinds: 'JAR, class', on: (c) => c.flowDepth ? ['full', 'Çağrı zinciri derinliği: ' + c.flowDepth + ' (gerçek taint izlenmez)'] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'jar_deep', since: 'önceki', label: 'Jar: gizli class, yüksek entropili blob, class sürümü anomalisi, mixin/oturum', kinds: 'JAR', on: (c) => c.deepJar ? ['full', ''] : ['off', 'Yalnızca Derin'] },
+  { id: 'archive', since: 'önceki', label: 'Arşiv: girdi listesi, zip-slip, zip bombası, şifreli girdi, gizli MZ, iç içe tarama', kinds: 'ZIP, jar, tar, gz, RAR/7z/CAB (kabuk), asar', on: (c) => ['full', 'İç içe derinlik: ' + c.depth + (c.parse ? '' : ' (yalnızca 1. seviye girdi listesi)')] },
+  { id: 'doc', since: 'önceki', label: 'Belge: Office (VBA/XLM/DDE/uzak şablon), OLE, RTF, PDF, OneNote, LNK, HTA', kinds: 'DOC/XLS/PPT, OOXML, RTF, PDF, OneNote, LNK', on: () => ['full', ''] },
+  { id: 'deobf', since: 'önceki', label: 'Katman çözme: Base64/hex/PowerShell -enc/gzip → yeniden tarama', kinds: 'Metin, betik, jar, ikili', on: (c) => c.deobf ? ['full', ''] : ['off', 'Yalnızca Derin'] },
+  { id: 'xor', since: 'önceki', label: 'Tek baytlık XOR ile gizlenmiş PE arama', kinds: 'Bilinmeyen ikili, jar girdileri, PE', on: (c) => c.xor ? ['full', ''] : ['off', 'Yalnızca Derin'] },
+  { id: 'ioc', since: 'önceki', label: 'IOC çıkarımı (URL/IP; Derin: e-posta, kayıt defteri, yol, cüzdan, webhook, Telegram, onion)', kinds: 'Tüm metin/dize içerikleri', on: (c) => c.ioc >= 2 ? ['full', ''] : c.ioc ? ['partial', 'Yalnızca URL/IP'] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'pack', since: 'önceki', label: 'PyInstaller (CArchive/PYZ) ve Electron asar açma', kinds: 'PE/ELF içinde PyInstaller, .asar', on: (c) => c.parse ? ['full', 'AES şifreli PYZ açılamaz (kısmi bildirilir)'] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'fuzzy', since: '4.5', label: 'Bulanık hash (CTPH) ve aile/varyant benzerliği (toplu taramada gruplama)', kinds: 'Üst düzey her dosya (arşivde: girdi listesi yapısı)', on: (c) => c.deepJar ? ['full', 'Dosya ≤ 128 MB'] : c.parse ? ['partial', 'Dosya ≤ 32 MB'] : ['off', 'Hızlı modda yapılmaz'] },
+  { id: 'trust', since: 'önceki', label: 'Kendi dosyalarım: SHA-256/ad ailesi eşleşmesi ve yeni davranış farkı', kinds: 'Tüm dosyalar', on: () => ['full', 'İşaretlediğin dosyalar varsa'] },
+  { id: 'decomp', since: 'önceki+4.5', label: 'İsteğe bağlı harici decompiler: ILSpy, CFR, Procyon, jadx, IDA, Ghidra, pycdc/decompyle3/uncompyle6', kinds: 'Masaüstü uygulaması; obfuscation panelinden, onayla', on: () => ['partial', 'Tarama akışının dışında, isteğe bağlı; araç kullanıcının kendi kurulumudur'] }
+];
+const METHOD_NEVER = [
+  'Dosya çalıştırma, emülasyon, sandbox (isteğe bağlı Windows Sandbox ayrı bir özelliktir)',
+  'Ağ üzerinden itibar/hash sorgusu, çoklu AV motoru (hiçbir içerik dışarı gönderilmez)',
+  'Dijital imza GEÇERLİLİĞİ (sertifika zinciri, iptal, zaman damgası, imza matematiği)',
+  'Gerçek veri akışı (taint) analizi ve sembolik yürütme',
+  'Şifreli/özel algoritmalı yükler, çok baytlı XOR, çalışma anında açılan katmanlar'
+];
+function methodMatrix() {
+  const ids = Object.keys(MODES); return { modes: ids.map((i) => ({ id: i, label: MODES[i].label })), rows: METHODS.map((m) => ({ id: m.id, label: m.label, kinds: m.kinds, since: m.since, modes: ids.reduce((o, i) => { const r = m.on(MODES[i]); o[i] = { state: r[0], label: MS[r[0]], note: r[1] || '' }; return o; }, {}) })), never: METHOD_NEVER };
+}
+/*#endregion methods*/
+const api = { methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.5.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -3435,9 +3617,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       h('span', { class: 'ofa' }, h('label', { class: 'fine', style: 'display:inline-flex;gap:4px;align-items:center' }, h('input', { type: 'checkbox', checked: e.javaExempt ? '' : null, onchange: async (ev) => { e.javaExempt = ev.target.checked; await PSTORE.set(); } }), 'java muafiyeti'), h('button', { type: 'button', onclick: async () => { policy.trusted = policy.trusted.filter((x) => x !== e); await PSTORE.set(); renderTrustSettings(); } }, 'Kaldır'))));
     const imp = h('input', { type: 'file', accept: '.json,application/json', hidden: '', onchange: async (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; if (f.size > 2e6) { toast('Dosya çok büyük'); return; } try { const j = JSON.parse(await f.text()); const before = policy.trusted.length; mergePolicy({ trusted: j.trusted }); await PSTORE.set(); renderTrustSettings(); toast((policy.trusted.length - before) + ' yeni kayıt içe aktarıldı'); } catch (e) { toast('Geçerli bir dışa aktarım dosyası değil'); } } });
     body.replaceChildren(
-      h('p', { class: 'fine', style: 'margin-top:0' }, 'Bir dosyayı sonuç kartından “Kendi dosyam olarak işaretle” ile ekleyebilirsin. İşaretlemek bulguları gizlemez; aynı dosya tekrar görülünce tanınır, adı benzeyen yeni sürümlerde ise önceki sürüme göre eklenen bulgular uyarı olarak gösterilir.'),
+      h('p', { class: 'fine', style: 'margin-top:0' }, 'Sonuç kartından işaretlediğin dosyalar burada listelenir. Ayrıntı: Bilgi sekmesi.'),
+
       h('label', { class: 'fine' }, 'java.exe / javaw.exe hedefli bellek erişimi (ReadProcessMemory/WriteProcessMemory) şu durumda puanlanmasın: ', sel),
-      h('p', { class: 'fine' }, 'Muafiyet yalnızca çalma/sızdırma belirtisi (tarayıcı verisi, token, Minecraft hesap dosyası, webhook, keylogger vb.) YOKSA uygulanır. Yeni sürümler ad benzerliğiyle eşleşir; adı taklit eden bir dosya yine de bu belirtilerden birini taşırsa muaf tutulmaz.'),
+      
       rows.length ? h('div', { class: 'tlist' }, rows) : h('p', { class: 'fine' }, 'Henüz işaretli dosya yok.'),
       h('div', { class: 'actions' }, h('button', { type: 'button', disabled: policy.trusted.length ? null : '', onclick: () => save('statscan-kendi-dosyalarim.json', JSON.stringify({ tool: 'StatScan', kind: 'trusted', trusted: policy.trusted }, null, 2), 'application/json') }, 'Dışa aktar (.json)'), h('button', { type: 'button', onclick: () => imp.click() }, 'İçe aktar…'), imp));
   }
@@ -3489,7 +3672,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const thr = h('select', { 'aria-label': 'Uyarı eşiği', onchange: async (e) => { W.threshold = +e.target.value; await persist(); } }, THR.map((v) => h('option', { value: String(v), selected: W.threshold === v ? '' : null }, v + ' ve üzeri')));
       const add = async (p) => { if (!p || W.folders.includes(p)) return; W.folders.push(p); await persist(); await apply(); render(); };
       body.replaceChildren(
-        h('p', { class: 'fine', style: 'margin-top:0' }, 'Seçtiğin klasörlere yeni gelen dosyalar, indirme bitince (boyut sabitlenince) okunur ve motorla taranır. Dosya ÇALIŞTIRILMAZ, değiştirilmez, silinmez; yalnızca okunur. StatScan çıktı klasörü izlenmez. Yalnızca uygulama açıkken çalışır; izleme başladıktan önceki dosyalar taranmaz. 64 MB üstü dosyalar taranmaz, günlüğe not düşer.'),
+        h('p', { class: 'fine', style: 'margin-top:0' }, 'Yeni gelen dosyalar indirme bitince okunup taranır; çalıştırılmaz. Ayrıntı ve sınırlar: Bilgi sekmesi.'),
+
         h('label', { class: 'fine', style: 'display:flex;gap:6px;align-items:center' }, en, 'İzlemeyi aç'),
         h('label', { class: 'fine' }, 'Bildirim eşiği (skor): ', thr, ' — kısmi/taranamayan sonuçlar ve işaretli dosyalardaki yeni davranışlar da bildirilir.'),
         W.folders.length ? h('div', { class: 'tlist' }, W.folders.map((f) => h('div', { class: 'trow' }, h('span', null, f), h('button', { type: 'button', onclick: async () => { W.folders = W.folders.filter((x) => x !== f); await persist(); await apply(); render(); } }, 'Kaldır')))) : h('p', { class: 'fine' }, 'İzlenen klasör yok. Aşağıdan ekle (otomatik eklenmez).'),
@@ -3500,6 +3684,56 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     $('#watchbox').addEventListener('toggle', () => { if ($('#watchbox').open) render(); });
     (async () => { try { const v = await H.storeGet('watch'); if (v) { const o = JSON.parse(v); W.folders = (Array.isArray(o.folders) ? o.folders : []).filter((x) => typeof x === 'string').slice(0, 12); W.enabled = !!o.enabled; if (THR.includes(+o.threshold)) W.threshold = +o.threshold; } await policyReady; await apply(); $('#watchsum').textContent = 'Klasör izleme (masaüstü)' + (W.enabled && W.folders.length ? ' · açık · ' + W.folders.length + ' klasör' : ''); } catch (e) { /* yoksay */ } })();
   })();
+
+  /* ---------- Bilgi sekmesi: tum aciklama/uyari yazilari taramadan ayri burada ---------- */
+  (function infoInit() {
+    const tabs = { scan: [$('#tab-scan'), $('#view-scan')], info: [$('#tab-info'), $('#view-info')] }; let rendered = false;
+    function show(id) { for (const [k, [b, v]] of Object.entries(tabs)) { const on = k === id; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; v.hidden = !on; } if (id === 'info' && !rendered) { rendered = true; renderInfo(); } try { if (history.replaceState) history.replaceState(null, '', id === 'info' ? '#bilgi' : location.pathname + location.search); } catch (e) { /* yoksay */ } if (id === 'info') window.scrollTo(0, 0); }
+    for (const [k, [b]] of Object.entries(tabs)) { b.addEventListener('click', () => show(k)); b.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const o = k === 'scan' ? 'info' : 'scan'; show(o); tabs[o][0].focus(); } }); }
+    const P = (t) => h('p', null, t); const UL = (a) => h('ul', null, a.map((x) => h('li', null, x)));
+    function renderInfo() {
+      $('#info-about-body').replaceChildren(
+        P('JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; istersen Windows Sandbox’ta davranış analizi yapar.'),
+        P('Statik taramada dosyalar yalnızca bu sekmenin belleğinde okunur; çalıştırılmaz, yüklenmez, diske açılmaz, hiçbir yere gönderilmez ve ağ kullanılmaz. Dinamik analiz yalnızca sen onaylarsan ve yerel yardımcı çalışıyorsa yapılır; o zaman da dosya yalnızca izole Windows Sandbox içinde çalışır, ana sistemde asla.'),
+        P('StatScan hiçbir dosyayı silmez, değiştirmez veya çalıştırmaz. Üretilen her çıktı (obfuscation açma, decompile, rapor) ayrı bir klasöre yazılır.'));
+      $('#info-read-body').replaceChildren(
+        P('StatScan sezgisel statik analiz yapar; statik taramada dosyayı çalıştırmaz ve içeriğini hiçbir yere göndermez. İsteğe bağlı dinamik analiz (Windows 10/11 Pro + Windows Sandbox + yerel yardımcı) dosyayı yalnızca izole Sandbox’ta çalıştırır, ana sistemde asla. Her zararlıyı yakalamaz: paketlenmiş, şifreli, özel yazılmış veya çalışma anında açılan zararlılar kuralları atlatabilir; meşru yazılımlar ise yanlış alarm üretebilir. “Belirgin bulgu yok” sonucu dosyanın güvenli olduğunu göstermez, kısmi taramada ise hiçbir güvence vermez. Şüphede kalırsan dosyayı izole bir ortamda (sanal makine) incele ve başka araçlarla da karşılaştır. Hiçbir dosya silinmez, çalıştırılmaz veya değiştirilmez.'),
+        UL(['Skor 0–100 arası sezgisel bir tehlike göstergesidir; kanıt değil, öncelik sırasıdır.', 'Her bulgunun dayanağı kartında gösterilir: “Gözlem” dosyada doğrudan görülen şeydir, “Çıkarım” ve “Sezgisel” yorum içerir.', '“Kısmi” sonuçta tarama sınıra takılmıştır (süre, boyut, derinlik, iptal); kısmi taramada hiçbir güvence yoktur.', 'Toplu özetlerde düşük skor güvence değildir; “kısmi” satırlarda hiçbir güvence yoktur.', 'Bilinen yanlış alarm kaynakları bulgunun yanında “Yanlış alarm olabilir mi?” bölümünde yazılıdır.', 'Şüphede kalırsan dosyayı izole bir ortamda (sanal makine) incele ve başka araçlarla da karşılaştır.']));
+      const M = StatScan.methodMatrix(); const modesBody = $('#info-modes-body');
+      const rowsDef = [['İç içe arşiv derinliği', (c) => String(c.depth)], ['Toplu veri sınırı', (c) => fmtB(c.maxTotal)], ['Tek girdi sınırı', (c) => fmtB(c.entryCap)], ['En çok girdi', (c) => String(c.maxEntries)], ['Dize metni sınırı', (c) => fmtB(c.strCap)], ['Bytecode çağrı zinciri', (c) => String(c.flowDepth)], ['Varsayılan süre sınırı', (c) => dur(c.limitMs)], ['Kural kataloğu', (c) => (c.ids ? c.ids.size + ' kuralla sınırlı' : 'Tamamı')]];
+      const limitRows = rowsDef.map(([k, f]) => h('tr', null, h('th', { scope: 'row' }, k), ...M.modes.map((m) => h('td', null, f(StatScan.MODES[m.id])))));
+      const limitTable = h('div', { class: 'cmpwrap' }, h('table', { class: 'mtable' }, h('thead', null, h('tr', null, h('th', null, 'Ayar'), ...M.modes.map((m) => h('th', null, m.label)))), h('tbody', null, ...limitRows)));
+      const modeDetails = M.modes.map((m) => { const mm = StatScan.MODES[m.id]; return h('details', { class: 'cover', style: 'margin-top:8px' }, h('summary', null, m.label + ' mod: çalışanlar ve atlananlar'), h('div', { class: 'cols' }, h('div', { class: 'ran' }, h('h3', null, 'Çalışan kontroller'), UL(mm.ran)), h('div', { class: 'skp' }, h('h3', null, 'Kapsam nedeniyle atlananlar'), UL(mm.skipped)))); });
+      modesBody.replaceChildren(P('Üç mod aynı motoru farklı ayarlarla çalıştırır; fark yalnızca süre değildir. Küçük dosyalarda Derin mod da hızlı bitebilir: ek adımlar ancak içerik varsa (gizlenmiş katman, gömülü PE, iç içe arşiv) iş yapar. Her sonuç kartındaki “Analiz defteri” o dosya için hangi adımın gerçekten çalıştığını gösterir.'), limitTable, ...modeDetails);
+      const note = (n) => (n ? h('small', null, n) : null);
+      const mRows = M.rows.map((r) => h('tr', null, h('td', null, r.label, r.since === '4.5' ? h('span', { class: 'new' }, '4.5') : null), h('td', null, r.kinds), ...M.modes.map((m) => { const x = r.modes[m.id]; return h('td', null, h('span', { class: 'st ' + x.state }, x.label), note(x.note)); })));
+      const mTable = h('div', { class: 'cmpwrap' }, h('table', { class: 'mtable' }, h('thead', null, h('tr', null, h('th', null, 'Yöntem'), h('th', null, 'Dosya türleri'), ...M.modes.map((m) => h('th', null, m.label)))), h('tbody', null, ...mRows)));
+      $('#info-methods-body').replaceChildren(P('Her satır, motorda gerçekten çalışan bir analiz yöntemidir. Durum sütunları yöntemin o modda ne kadarını yaptığını gösterir; “Yok” yöntemin o modda çalışmadığı anlamına gelir. Tablo mod ayarlarından hesaplanır, elle yazılmış değildir.'), mTable, h('h3', { style: 'margin-top:14px' }, 'Hiçbir modda yapılmayanlar'), UL(M.never));
+      $('#info-features-body').replaceChildren(
+        h('h4', null, 'Kendi dosyalarım'), P('Sonuç kartından işaretlediğin dosya SHA-256, ad ailesi (sürüm numaraları ayıklanır) ve bulgu kimlikleriyle saklanır. Aynı dosya tekrar görülünce tanınır; adı benzeyen yeni sürümde önceki sürümde olmayan bulgular “yeni davranış” uyarısı olarak gösterilir. İşaretlemek hiçbir bulguyu gizlemez ve skoru düşürmez. Masaüstünde userData/store.json, tarayıcıda localStorage içinde tutulur; dışa/içe aktarılabilir.'),
+        h('h4', null, 'java.exe / javaw.exe muafiyeti'), P('Dosyada java/javaw hedefli bellek erişimi (ReadProcessMemory/WriteProcessMemory) görülürse ve çalma/sızdırma belirtisi (tarayıcı verisi, token, Minecraft hesap dosyası, webhook, keylogger vb.) YOKSA bulgu puanlanmaz. Modlar: herkese (varsayılan), yalnızca işaretli dosyalara, kapalı. Muafiyet uygulanan bulgu raporda yine görünür (“muaf”).'),
+        h('h4', null, 'Klasör izleme (yalnızca masaüstü)'), P('Seçtiğin klasörlere yeni gelen dosyalar, indirme bitince (boyut sabitlenince) okunur ve motorla taranır; eşik üstünde bildirim gelir. Dosya çalıştırılmaz, değiştirilmez, silinmez. StatScan çıktı klasörü izlenmez. Yalnızca uygulama açıkken çalışır; izleme başlamadan önceki dosyalar taranmaz; 64 MB üstü dosyalar taranmaz, günlüğe not düşülür. Klasörler sen eklemeden izlenmez.'),
+        h('h4', null, 'Harici decompiler (isteğe bağlı)'), P('Makinede zaten kurulu ILSpy, CFR, Procyon, jadx, IDA Pro, Ghidra ve (.pyc için) pycdc/decompyle3/uncompyle6 bulunursa, obfuscation panelinden her seferinde onayınla çalıştırılır. Hiçbir araç indirilmez veya kurulmaz; incelenen dosya çalıştırılmaz, araç onu yalnızca okur. Araçlar ağ erişimini kendileri yönetir (işletim sistemi düzeyinde engellenmez). Çıktı birebir orijinal kaynak değildir; kısmi çıktı “kısmi” işaretlenir.'),
+        h('h4', null, 'Bulanık hash ve aile benzerliği'), P('Normal ve Derin modda üst düzey her dosya için CTPH (ssdeep ailesi) bulanık hash hesaplanır; toplu taramada benzer dosyalar “aile” olarak gruplanır (bulanık hash benzerliği, aynı imphash veya birebir kopya). Benzerlik aynı yazarı/aileyi kanıtlamaz; yalnızca incelemeyi hızlandırır. Arşivlerde hash, sıkıştırılmış baytlar yerine girdi listesi yapısı üzerinden hesaplanır.'),
+        h('h4', null, 'Dinamik analiz (Windows Sandbox)'), P('Yalnızca Windows 10/11 Pro/Enterprise’ta, yerel yardımcıyla ve her seferinde onayınla çalışır. Yalnızca çalıştırmada görülenleri anlatır; zararlı sanal ortamı algılayıp saklanabilir. “Davranış gözlenmedi” güvenli olduğunu kanıtlamaz.'));
+    }
+    window.addEventListener('hashchange', () => show(location.hash === '#bilgi' ? 'info' : 'scan'));
+    tabs.scan[0].tabIndex = 0; tabs.info[0].tabIndex = -1; if (location.hash === '#bilgi') show('info');
+  })();
+
+  /* ---------- aile / varyant gruplama (bulanik hash + imphash + birebir kopya) ---------- */
+  const FAM_CAP = 400;
+  function familyBlock() {
+    if (results.length < 2) return null; const body = h('div', { class: 'dbody' }, h('p', { class: 'fine' }, 'Açmak için tıkla; benzerlikler istendiğinde hesaplanır.')); const det = h('details', { class: 'cover dtl', style: 'margin:8px 0' }, h('summary', null, 'Aile / varyant benzerliği (bulanık hash)'), body); let done = false;
+    det.addEventListener('toggle', () => { if (!det.open || done) return; done = true; const list = results.filter((r) => r.info && (r.info.fuzzy || r.info.imphash) || r.sha256); const used = list.slice(0, FAM_CAP); const withFz = used.filter((r) => r.info && r.info.fuzzy).length;
+      let g; try { g = StatScan.familyGroups(used); } catch (e) { body.replaceChildren(h('p', { class: 'note warn' }, 'Gruplama başarısız: ' + (e && e.message || e))); return; }
+      const out = []; if (list.length > FAM_CAP) out.push(h('p', { class: 'note warn' }, 'Yalnızca ilk ' + FAM_CAP + ' dosya karşılaştırıldı (' + list.length + ' sonuç var).'));
+      if (!withFz) out.push(h('p', { class: 'note warn' }, 'Bu taramada bulanık hash yok (Hızlı mod veya çok büyük/küçük dosyalar). Yalnızca birebir kopya ve imphash eşleşmeleri gösterilebilir.'));
+      if (!g.length) out.push(h('p', { class: 'fine' }, 'Benzer dosya grubu bulunamadı (' + used.length + ' dosya, ' + withFz + ' bulanık hash). Bu, dosyaların ilgisiz olduğunu kanıtlamaz; benzerlik eşiği %55’tir.'));
+      for (const x of g) out.push(h('div', { class: 'ofile' }, h('div', { class: 'ofh' }, h('b', null, x.members.length + ' dosyalık grup'), h('span', { class: 'fine' }, 'skorlar ' + x.minScore + '–' + x.maxScore)), h('ul', { class: 'fine' }, x.members.map((m) => h('li', null, m.name + ' — ' + m.score + '/100 ' + m.verdict))), h('p', { class: 'fine', style: 'margin:4px 0 0' }, [...new Set(x.links.map((l) => l.why))].join(' · '))));
+      if (g.length) out.push(h('p', { class: 'fine' }, 'Benzerlik aynı yazarı veya aileyi kanıtlamaz; bir üyesi zararlı bulunduysa diğerlerini de öncelikle incele.')); body.replaceChildren(...out); });
+    return det;
+  }
   function iocTreeBlock(r) {
     if (!r.children || !r.children.length) return null; const tree = StatScan.iocTree(r); const own = r.info && r.info.iocs ? Object.values(r.info.iocs).reduce((n, a) => n + a.length, 0) : 0; if (tree.total === 0 || tree.total <= own) return null;
     const st = { defang: true, benign: false }; const box = h('div', { class: 'iocall' }); const sum = h('p', { class: 'fine' });
@@ -3572,6 +3806,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const OSTAT = { done: ['Tamamlandı', 'ok'], partial: ['Kısmi', 'part'], skipped: ['Atlandı', 'sk'], unsupported: ['Yapılmıyor', 'uns'], failed: ['Başarısız', 'uns'], na: ['Uygulanamaz', 'na'] };
   const RSTAT = { done: 'ok', partial: 'part', unsupported: 'part', refused: 'part', failed: 'part', cancelled: 'part' };
   const OBF_MAX = { src: 24e6, bin: 200e6 };
+
+  /* .pyc -> Python kaynagi (masaustu: kullanicinin kurdugu pycdc/decompyle3/uncompyle6, onayla) */
+  function pycBlock(res, ctl) {
+    const pycs = (res.outputs || []).filter((o) => /\.pyc$/i.test(o.name) && o.bytes && o.bytes.length).sort((a, b) => (a.name.split('/').length - b.name.split('/').length) || a.name.localeCompare(b.name)); if (!pycs.length) return null;
+    const host = window.statscanHost && window.statscanHost.obfStartPyc ? window.statscanHost : null; const box = h('div', { class: 'ext' }); box.append(h('div', { class: 'sechead' }, 'Python kaynağına çevir (.pyc · isteğe bağlı)'));
+    if (!host) { box.append(h('p', { class: 'fine' }, pycs.length + ' .pyc çıkarıldı. Kaynağa çevirmek için masaüstü uygulamasında kurulu pycdc, decompyle3 veya uncompyle6 gerekir; çıktıları zip olarak indirip güvenli bir ortamda elle çevirebilirsin.')); return box; }
+    const body = h('div'); box.append(body); (async () => {
+      const r = await host.obfTools(); const use = (r.tools || []).filter((t) => (t.kinds || []).includes('pyc'));
+      if (!use.length) { body.append(h('p', { class: 'fine' }, 'Kurulu Python decompiler bulunamadı (aranan: pycdc, decompyle3, uncompyle6). Araçlar sessizce indirilmez/kurulmaz; kendin kurarsan PATH’te bulunursa burada görünür.')); return; }
+      const files = pycs.slice(0, 60); if (pycs.length > 60) body.append(h('p', { class: 'note warn' }, 'Yalnızca ilk 60 .pyc çevrilir (' + pycs.length + ' var); kalanlarını elle çevir.'));
+      for (const t of use) { const st = h('div', { class: 'fine' }); const bar = h('div', { class: 'obar', hidden: '' }, h('i')); const cancel = h('button', { type: 'button', hidden: '' }, 'İptal'); let jid = null;
+        const run = h('button', { type: 'button', onclick: async () => { run.disabled = true; st.textContent = 'Onay bekleniyor…'; const s = await host.obfStartPyc({ tool: t.id, name: res.file.name, files: files.map((o) => ({ name: o.name.split('/').pop(), bytes: o.bytes })), dirToken: ctl.dirToken }); if (s.error) { st.textContent = s.message; run.disabled = false; return; } jid = s.id; ctl.dirToken = s.dirToken || ctl.dirToken; bar.hidden = false; cancel.hidden = false;
+          for (;;) { await new Promise((x) => setTimeout(x, 700)); const j = await host.obfJob(jid); if (j.error) { st.textContent = j.message; break; } if (j.state === 'running') { st.textContent = t.label + ' çalışıyor… (' + (j.results ? j.results.length : 0) + ' / ' + files.length + ')'; bar.firstChild.style.width = Math.round(100 * (j.results ? j.results.length : 0) / files.length) + '%'; continue; } bar.hidden = true; cancel.hidden = true; run.disabled = false;
+            st.replaceChildren(h('span', { class: 'lst ' + (j.state === 'done' ? 'ok' : j.state === 'partial' ? 'part' : 'uns') }, { done: 'Tamamlandı', partial: 'Kısmi', failed: 'Başarısız', cancelled: 'İptal' }[j.state] || j.state), ' ' + j.message + (j.outDir ? ' Klasör: ' + j.outDir : '')); break; } } }, 'Çevir (' + t.label + ')');
+        cancel.onclick = () => { if (jid) host.obfCancel(jid); };
+        body.append(h('div', { class: 'ofile' }, h('div', { class: 'ofh' }, h('b', null, t.label), h('span', { class: 'fine' }, t.path + ' · ' + t.via), h('span', { class: 'ofa' }, run, cancel)), bar, st)); }
+    })().catch((e) => body.append(h('p', { class: 'fine' }, 'Araçlar sorgulanamadı: ' + e.message)));
+    return box;
+  }
   function obfResultEl(res, ctl) {
     const els = []; const dk = res.obfuscation;
     els.push(h('div', { class: 'badges' }, h('span', { class: 'badge ' + (RSTAT[res.status] || 'part') }, (res.status === 'done' ? '✓ ' : '◐ ') + res.statusLabel), res.kind ? h('span', { class: 'badge mode' }, res.kind.label + ' · tür güveni %' + res.kind.conf) : null, h('span', { class: 'badge' }, 'statik · çalıştırılmadı')));
@@ -3584,11 +3837,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     if (!outs.length) els.push(h('p', { class: 'fine' }, 'Bu işlem sonucunda deobfuscation/yapı çıktısı üretilmedi. Rapor yine de kaydedilebilir.'));
     for (const o of outs.concat(reps)) { const size = o.text ? o.text.length : (o.bytes ? o.bytes.length : 0); const pre = h('pre', { class: 'ev', hidden: '' }, o.text ? (o.text.length > 8000 ? o.text.slice(0, 8000) + '\n… (' + (o.text.length - 8000) + ' karakter daha; dosyayı indir)' : o.text) : '(ikili veri: ' + size + ' bayt; önizleme yok)'); const bt = h('button', { type: 'button', onclick: () => { pre.hidden = !pre.hidden; bt.textContent = pre.hidden ? 'Önizle' : 'Gizle'; } }, 'Önizle');
       els.push(h('div', { class: 'ofile' }, h('div', { class: 'ofh' }, h('b', null, o.name), o.partial ? h('span', { class: 'lst uns' }, 'KISMİ — güvenme') : null, h('span', { class: 'fine' }, fmt(size) + ' · ' + o.note), h('span', { class: 'ofa' }, bt, h('button', { type: 'button', onclick: () => saveBlob(o.name, new Blob([outBytes(o)], { type: o.mime || 'application/octet-stream' })) }, 'İndir'))), pre)); }
+    { const pb = pycBlock(res, ctl); if (pb) els.push(pb); }
     const host = window.statscanHost && window.statscanHost.obfSave ? window.statscanHost : null; const msg = h('span', { class: 'fine' });
     els.push(h('div', { class: 'actions', style: 'padding:6px 0' }, h('button', { type: 'button', class: 'primary', onclick: async () => {
       if (host) { const r = await host.obfSave({ name: res.file.name, dirToken: ctl.dirToken, outputs: res.outputs.map((o) => ({ name: o.name, text: o.text, bytes: o.bytes, partial: o.partial })) }); if (r && r.ok) { ctl.dirToken = r.dirToken; msg.textContent = 'Kaydedildi: ' + r.dir + ' (orijinal dosya değişmedi)'; } else msg.textContent = (r && r.message) || 'Kaydedilemedi.'; }
       else { saveBlob(res.file.name.replace(/\.[^.]*$/, '') + '-obf-cikti.zip', makeZip(res.outputs.map((o) => ({ name: o.name, data: outBytes(o) })))); msg.textContent = 'Zip indirildi; orijinal dosya değişmedi.'; } } }, host ? 'Çıktıları klasöre kaydet' : 'Tüm çıktıları .zip indir'), msg));
-    els.push(h('p', { class: 'fine' }, res.disclaimer));
     return els;
   }
   function externalBlock(res, file, ctl) {
@@ -3650,7 +3903,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     st = st || defState(); const q = st.q.trim().toLowerCase(); const real = realFindings(r);
     const shown = real.filter((f) => st.sev.has(f.sev) && (!q || (f.title + ' ' + (f.why || '') + ' ' + (f.ev || []).join(' ')).toLowerCase().includes(q)));
     const out = [];
-    if (!shown.length) out.push(h('p', { class: 'empty' }, real.length ? 'Filtreye uyan bulgu yok (' + real.length + ' bulgu gizli).' : 'Bu dosyada, seçilen modun kapsamında, kural eşleşmesi bulunamadı. Bu, dosyanın güvenli olduğunu kanıtlamaz.'));
+    if (!shown.length) out.push(h('p', { class: 'empty' }, real.length ? 'Filtreye uyan bulgu yok (' + real.length + ' bulgu gizli).' : 'Bu dosyada, seçilen modun kapsamında, kural eşleşmesi bulunamadı.'));
     for (const s of ORDER) { const arr = shown.filter((f) => f.sev === s); if (arr.length) { out.push(h('div', { class: 'sechead' }, SEV[s] + ' · ' + arr.length)); arr.forEach((f) => out.push(findingEl(f, r))); } }
     return { nodes: out, shown: shown.length, total: real.length };
   }
@@ -3767,7 +4020,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const sk = (r.skipped || []).filter((x) => x.key !== 'media'); if (sk.length) lines.push(h('p', null, h('b', null, 'Taranmayanlar: '), sk.map((x) => x.count + ' × ' + x.label.toLowerCase()).join('; ') + '.'));
     const parts = ORDER.filter((x) => sevN[x]).map((x) => sevN[x] + ' ' + SEV[x].toLowerCase()); const top = r.findings.filter((f) => f.w > 0).sort((a, b) => b.w - a.w).slice(0, 3).map((f) => f.title);
     lines.push(h('p', null, h('b', null, 'Bulgular: '), parts.length ? parts.join(', ') + (top.length ? '. En çok puan katkısı: ' + top.join('; ') + '.' : '.') : 'Kural eşleşmesi yok.'));
-    lines.push(h('div', { class: 'assure' + (r.partial ? ' part' : '') }, assure(r, band(r.score)) + ' Bu sezgisel bir statik analizdir; her zararlıyı yakalayamaz.'));
+    lines.push(h('div', { class: 'assure' + (r.partial ? ' part' : '') }, assure(r, band(r.score))));
     return h('div', { class: 'summ' }, h('h3', null, 'Sonuç özeti'), ...lines);
   }
   function cardDirect(r, idx) {
@@ -3783,7 +4036,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       done ? h('div', { class: 'scorebox' }, gauge(r.score, b, false), h('div', { class: 'verdict', style: 'color:var(--s' + b + ')' }, r.verdict), h('div', { class: 'vsub' }, 'yalnızca dinamik gözleme dayanır'))
         : h('div', { style: 'text-align:right' }, h('div', { class: 'verdict' }, 'Skor dinamik analizden sonra'), h('div', { class: 'vsub' }, 'statik tarama atlandı'))));
     const body = h('div', { class: 'body' }, h('div', { class: 'summ' }, h('h3', null, 'Doğrudan dinamik analiz'), h('p', null, 'Bu dosya statik olarak taranmadı. Yalnızca geçici bir Windows Sandbox içinde çalıştırılıp gözlenecek; dosya ana sistemde çalıştırılmaz. Statik kuralların yakaladığı yapısal bulgular (paketleyici, imza, içe aktarım tablosu…) bu raporda yoktur.')), dynBlock(r), fbar, bodyHolder);
-    return h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, body, h('p', { class: 'fine', style: 'padding:0 24px 18px;margin:0' }, r.disclaimer || ''));
+    return h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, body, null);
   }
   function card(r, idx) {
     if (r.staticSkipped) return cardDirect(r, idx);
@@ -3810,7 +4063,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       statusNotes(r));
     const body = h('div', { class: 'body' }, summaryBox(r), trustBlock(r), factsOf(r), breakdown(r), cmpBtn ? h('div', { class: 'actions', style: 'padding:4px 0 8px' }, cmpBtn, h('span', { class: 'hint', style: 'flex-basis:auto' }, 'Aynı dosyayı diğer iki modla da tarar ve farkı gösterir.')) : null, cmpHolder, dynBlock(r), analysisBlock(r), structBlock(r), attackBlock(r), obfPanel(r), insp ? insp.el : null, viewer ? viewer.el : null, iocTreeBlock(r), iocBlock(r.info), fbar, bodyHolder,
       r.info && r.info.urls && r.info.urls.length ? [h('div', { class: 'sechead' }, 'Bulunan adresler · ' + r.info.urls.length), h('pre', { class: 'ev' }, r.info.urls.join('\n'))] : null);
-    const sec = h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, coverBlock(r), body, r.children && r.children.length ? kidsBlock(r.children) : null, h('p', { class: 'fine', style: 'padding:0 24px 18px;margin:0' }, r.disclaimer || ''));
+    const sec = h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, coverBlock(r), body, r.children && r.children.length ? kidsBlock(r.children) : null, null);
     const num = sec.querySelector('.num'); if (num && !reduce()) { const to = r.score, t0 = performance.now(), D = 700; const step = (t) => { const p = Math.min(1, (t - t0) / D); num.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
     return sec;
   }
@@ -3834,12 +4087,12 @@ ${!d && r.rulepack ? '<p style="margin:0 0 8px;color:#555;font:12px monospace">K
 ${!d && r.partial ? `<div style="background:#f7e3d1;border-left:3px solid #b85a0e;padding:8px 12px;margin:8px 0"><b>Tarama kısmi kaldı:</b><ul style="margin:4px 0 0">${(r.limits || []).map((l) => '<li>' + esc(l.msg) + '</li>').join('')}</ul></div>` : ''}
 ${!d && r.coverage ? `<details style="margin:8px 0"><summary><b>Tarama kapsamı (${esc(r.modeLabel)})</b></summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><b style="color:#2d7a55">Çalışan kontroller</b><ul>${r.coverage.ran.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul></div><div><b style="color:#b85a0e">Kapsam nedeniyle atlananlar</b><ul>${r.coverage.skipped.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul></div></div></details>` : ''}
 ${!d && r.skipped && r.skipped.length ? `<div style="background:#f2f2f2;padding:8px 12px;margin:8px 0"><b>Atlanan girdiler ve sebepleri</b><ul style="margin:4px 0 0">${r.skipped.map((x) => '<li>' + x.count + ' × ' + esc(x.label) + '</li>').join('')}</ul></div>` : ''}
-${!d && r.coverage && r.coverage.never ? `<details style="margin:8px 0"><summary><b>Hiçbir modda yapılmayanlar</b></summary><ul>${r.coverage.never.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul></details>` : ''}
+${!d && r.analyses && r.analyses.length ? `<details style="margin:8px 0"><summary><b>Analiz defteri (${r.analyses.filter((a) => a.status === 'done').length} çalıştı · ${r.analyses.filter((a) => a.status !== 'done').length} kısmi/atlandı/yapılmıyor)</b></summary><ul>${r.analyses.map((a) => '<li><b>' + esc({ done: 'Tamamlandı', partial: 'Kısmi', skipped: 'Atlandı', unsupported: 'Yapılmıyor', failed: 'Başarısız', na: 'Uygulanamaz' }[a.status] || a.status) + '</b> — ' + esc(a.label) + (a.note ? ' <small style="color:#555">(' + esc(a.note) + ')</small>' : '') + '</li>').join('')}</ul></details>` : ''}${!d && r.info && r.info.fuzzy ? `<p style="margin:0 0 8px;color:#555;font:12px monospace">Bulanık hash (CTPH, ${esc(r.info.fuzzy.basis)}): ${esc(r.info.fuzzy.hash)}</p>` : ''}${!d && r.coverage && r.coverage.never ? `<details style="margin:8px 0"><summary><b>Hiçbir modda yapılmayanlar</b></summary><ul>${r.coverage.never.map((x) => '<li>' + esc(x) + '</li>').join('')}</ul></details>` : ''}
 ${r.findings.filter((f) => f.sev !== 'info' || f.w > 0 || f.ev.length).map((f) => `<div style="border-top:1px solid #ddd;padding:8px 0"><b>[${SEV[f.sev]}] ${esc(f.title)}</b>${f.user ? ' <small>(kullanıcı kuralı: ' + esc(f.pack) + (f.usrc ? ', kaynak: ' + esc(f.usrc) : '') + ')</small>' : ''} <span style="color:#777;font:12px monospace">${f.w ? '+' + f.w : ''}</span><br><span style="color:#444"><b>Neden:</b> ${esc(f.why || '')}</span>${f.fp ? '<br><span style="color:#245"><b>Yanlış alarm olabilir mi?</b> ' + esc(f.fp) + '</span>' : ''}<br><i>Yapılacak:</i> ${esc(f.act || '-')}${f.src && f.src.length ? '<br><small style="color:#666">Kaynak: ' + esc(f.src.join(', ')) + (f.mitre && f.mitre.length ? ' · MITRE ATT&amp;CK: ' + esc(f.mitre.join(', ')) : '') + (f.conf ? ' · kural güveni: ' + esc(f.conf) : '') + '</small>' : ''}${f.ev && f.ev.length ? '<pre style="background:#f2f2f2;padding:6px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">' + esc(f.ev.join('\n')) + '</pre>' : ''}</div>`).join('') || '<p>Bu modun kapsamında kural eşleşmesi yok (güvenli olduğu anlamına gelmez).</p>'}
 ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findings.length > 1).sort((a, b) => b.score - a.score).slice(0, 30).map((c) => one(c, 1)).join('')}</section>`;
     return `<!doctype html><html lang="tr"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StatScan raporu</title><body style="font:15px/1.5 system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#111"><h1>StatScan raporu</h1><p style="color:#555">${esc(new Date().toLocaleString('tr-TR'))} · StatScan ${esc(StatScan.version)} · sezgisel analiz; hiçbir dosya ana sistemde çalıştırılmadı veya dışarı gönderilmedi (dinamik analiz yapılanlar yalnızca Windows Sandbox içinde çalıştırıldı).</p>${batchNote ? '<div style="background:#f2f2f2;padding:8px 12px;margin:8px 0;font-size:13px"><b>Toplu tarama kapsamı:</b> bulunan ' + batchNote.found + ', taranan ' + batchNote.selected + (batchNote.over ? ', sınır nedeniyle alınmayan ' + batchNote.over : '') + (batchNote.skipped && batchNote.skipped.size ? '; uzantı/içerik türü nedeniyle TARANMAYAN: ' + [...batchNote.skipped].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([e, c]) => esc(e) + ' ' + c).join(', ') + ' (bu dosyalar hakkında hiçbir değerlendirme yapılmadı)' : '') + (batchNote.cancelledLeft ? '; iptal nedeniyle taranmayan ' + batchNote.cancelledLeft : '') + (batchNote.truncated ? '; klasör gezintisi sınırda durdu' : '') + '.</div>' : ''}${list.length > 1 ? (() => { const tp = [...list].filter((r) => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 15); const td = 'padding:4px 8px;border-top:1px solid #ddd'; return '<h2 style="font-size:17px;margin:18px 0 6px">Önce bunlara bak</h2>' + (tp.length ? '<table style="border-collapse:collapse;width:100%;font-size:13px">' + tp.map((r) => '<tr><td style="' + td + '"><b style="color:' + col[band(r.score)] + '">' + r.score + '</b></td><td style="' + td + ';overflow-wrap:anywhere">' + esc(r.name) + '</td><td style="' + td + ';color:#444">' + esc(r.verdict) + (r.findings.some((f) => f.w > 0) ? ' — ' + esc(r.findings.filter((f) => f.w > 0).sort((a, b) => b.w - a.w).slice(0, 2).map((f) => f.title).join(' | ')) : '') + '</td></tr>').join('') + '</table><p style="color:#555;font-size:12px">Sıralama sezgiseldir; listede olmayan dosya “temiz” demek değildir.</p>' : '<p style="color:#555">Skoru 0’dan büyük dosya yok (bu, güvence değildir).</p>'); })() : ''}${(() => { if (list.length <= 30) return list.map((r) => one(r, 0)).join(''); const sorted = list.slice().sort((a, b) => b.score - a.score); const td = 'border-top:1px solid #ddd;padding:3px 6px'; return '<h2 style="font-size:18px">Toplu tarama özeti · ' + list.length + ' dosya</h2><table style="border-collapse:collapse;font:13px monospace;width:100%">' + sorted.map((r) => '<tr><td style="' + td + ';overflow-wrap:anywhere">' + esc(r.name) + '</td><td style="' + td + '">' + esc(r.type) + '</td><td style="' + td + '">' + r.score + '</td><td style="' + td + '">' + esc(r.verdict) + (r.partial ? ' (kısmi)' : '') + '</td></tr>').join('') + '</table><p style="color:#555">Ayrıntılı bölümler yalnızca en yüksek skorlu 50 dosya için verildi; tamamı JSON raporunda var.</p>' + sorted.slice(0, 50).map((r) => one(r, 0)).join(''); })()}<h2 style="font-size:18px">Kaynaklar</h2><ul style="font-size:13px;color:#444">${Object.entries(StatScan.SRC).map(([k, v]) => '<li><b>' + k + '</b> ' + esc(v.t) + ' — ' + esc(v.date) + ' — güven: ' + esc(v.conf) + ' — ' + esc(v.url) + '</li>').join('')}</ul><p style="color:#555;font-size:13px">Bu sonuç kesin bir “temiz/zararlı” hükmü değildir. Düşük skor güvenli olduğunu kanıtlamaz; yüksek skor ise yanlış alarm olabilir. Şüphede kalırsan izole ortamda (VM) doğrula.</p></body></html>`;
   }
-  function jsonOut(list) { return JSON.stringify({ tool: 'StatScan', version: StatScan.version, generated: new Date().toISOString(), note: 'Sezgisel statik analiz; statik taramada dosyalar çalıştırılmadı (dinamik bölümü olan sonuçlar yalnızca Windows Sandbox içinde çalıştırıldı). Düşük skor güvenli anlamına gelmez; araç her zararlıyı yakalayamaz.', sources: StatScan.SRC, batch: batchNote ? batchInfo(batchNote) : undefined, results: list }, (k, v) => (k === 'screenshot' ? undefined : v), 2); }
+  function jsonOut(list) { return JSON.stringify({ tool: 'StatScan', version: StatScan.version, generated: new Date().toISOString(), note: 'Sezgisel statik analiz; statik taramada dosyalar çalıştırılmadı (dinamik bölümü olan sonuçlar yalnızca Windows Sandbox içinde çalıştırıldı). Düşük skor güvenli anlamına gelmez; araç her zararlıyı yakalayamaz.', sources: StatScan.SRC, methodCatalog: StatScan.methodMatrix(), families: list.length > 1 ? (() => { try { return StatScan.familyGroups(list.slice(0, FAM_CAP)); } catch (e) { return undefined; } })() : undefined, batch: batchNote ? batchInfo(batchNote) : undefined, results: list }, (k, v) => (k === 'screenshot' ? undefined : v), 2); }
   function renderExports(list) {
     const box = $('#exports'); box.hidden = false; box.replaceChildren(
       h('div', { class: 'actions' },
@@ -3945,7 +4198,7 @@ ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findin
     if (n.deep) L.push(h('p', { class: 'note warn' }, n.deep + ' klasör, iç içe derinlik sınırı (12) nedeniyle gezilmedi.'));
     if (n.cancelledLeft) L.push(h('p', { class: 'note warn' }, 'Tarama iptal edildi: ' + n.cancelledLeft + ' dosya taranmadı. Sonuç eksiktir.'));
     if (n.noViewer) L.push(h('p', { class: 'fine', style: 'margin:0' }, '100’den fazla dosyada bellek için sınıf görüntüleyici verisi tutulmadı; bulgular ve kanıtlar korunur.'));
-    L.push(h('p', { class: 'fine', style: 'margin:0' }, 'Bu bir toplu özettir. Her dosyanın skoru sezgiseldir; düşük skor güvence değildir, “kısmi” satırlarda ise hiçbir güvence yoktur. Ayrıntı için satırdaki düğmeye bas.'));
+    L.push(familyBlock());
     L.push(batchObfBlock());
     return [h('h3', null, (n.folder ? 'Klasör taraması' : 'Toplu tarama') + ' · ' + results.length + (n.selected && results.length < n.selected ? ' / ' + n.selected : '') + ' dosya')].concat(L);
   }
@@ -4237,7 +4490,7 @@ ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findin
     if (tone === 'ok') btn = h('button', { type: 'button', onclick: () => $('#dyndirect').click(), title: 'Statik tarama yapmadan dosyayı doğrudan Windows Sandbox’a gönderir (onay sonrası)' }, 'Doğrudan dinamik analiz…');
     if (tone !== 'ok') btn = h('button', { type: 'button', onclick: () => { const b = $('#dynbox'); b.open = true; b.scrollIntoView({ behavior: reduce() ? 'auto' : 'smooth', block: 'start' }); } }, 'Hazırlık adımlarını göster');
     el.replaceChildren(
-      h('div', { class: 'cap ok' }, h('b', null, 'Statik analiz'), h('span', { class: 'cs' }, 'Çalışıyor'), h('p', null, 'Dosya bu pencerenin belleğinde okunur; çalıştırılmaz, hiçbir yere gönderilmez.')),
+      h('div', { class: 'cap ok' }, h('b', null, 'Statik analiz'), h('span', { class: 'cs' }, 'Çalışıyor'), h('p', null, 'Dosya bu pencerenin belleğinde okunur.')),
       h('div', { class: 'cap ' + tone }, h('b', null, 'Dinamik analiz (Windows Sandbox)'), h('span', { class: 'cs' }, tone === 'ok' ? 'Hazır' : tone === 'warn' ? 'Adım gerekiyor' : 'Kullanılamıyor'), h('p', null, line), btn));
   }
   function renderDynBox() {

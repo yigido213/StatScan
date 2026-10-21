@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"ornek","version":"1.0.0","name":"Ornek Mod","environment":"client","entrypoints":{"client":["ornek.OrnekClient"]},"mixins":["ornek.mixins.json"],"depends":{"fabricloader":">=0.15.0","minecraft":"1.21"}}
