@@ -136,13 +136,15 @@ const METHODS = [
   { id: 'pack', since: 'önceki', label: 'PyInstaller (CArchive/PYZ) ve Electron asar açma', kinds: 'PE/ELF içinde PyInstaller, .asar', on: (c) => c.parse ? ['full', 'AES şifreli PYZ açılamaz (kısmi bildirilir)'] : ['off', 'Hızlı modda yapılmaz'] },
   { id: 'fuzzy', since: '4.5', label: 'Bulanık hash (CTPH) ve aile/varyant benzerliği (toplu taramada gruplama)', kinds: 'Üst düzey her dosya (arşivde: girdi listesi yapısı)', on: (c) => c.deepJar ? ['full', 'Dosya ≤ 128 MB'] : c.parse ? ['partial', 'Dosya ≤ 32 MB'] : ['off', 'Hızlı modda yapılmaz'] },
   { id: 'trust', since: 'önceki', label: 'Kendi dosyalarım: SHA-256/ad ailesi eşleşmesi ve yeni davranış farkı', kinds: 'Tüm dosyalar', on: () => ['full', 'İşaretlediğin dosyalar varsa'] },
-  { id: 'decomp', since: 'önceki+4.5', label: 'İsteğe bağlı harici decompiler: ILSpy, CFR, Procyon, jadx, IDA, Ghidra, pycdc/decompyle3/uncompyle6', kinds: 'Masaüstü uygulaması; obfuscation panelinden, onayla', on: () => ['partial', 'Tarama akışının dışında, isteğe bağlı; araç kullanıcının kendi kurulumudur'] }
+  { id: 'decomp', since: 'önceki+4.5', label: 'İsteğe bağlı harici decompiler: ILSpy, CFR, Procyon, jadx, IDA, Ghidra, pycdc/decompyle3/uncompyle6', kinds: 'Masaüstü uygulaması; obfuscation panelinden, onayla', on: () => ['partial', 'Tarama akışının dışında, isteğe bağlı; araç kullanıcının kendi kurulumudur'] },
+  { id: 'native', since: '4.6', label: 'Yerel kod: x86/x64 disassembly, işlev keşfi, çağrı grafiği, import/dize adlandırma, ana kodu bulma', kinds: 'PE (x86/x64) ve ELF (x86/x86-64); .NET, Mach-O, ARM hariç', on: () => ['partial', 'Obfuscation panelinden (Kod çıkar) çalışır, tarama puanına girmez; ana kod ELF’te kesin, PE’de kalıp eşleştirmesiyle (sezgisel); VEX/AVX ve dolaylı atlamalar çözülemedi diye işaretlenir'] },
 ];
 const METHOD_NEVER = [
   'Dosya çalıştırma, emülasyon, sandbox (isteğe bağlı Windows Sandbox ayrı bir özelliktir)',
   'Ağ üzerinden itibar/hash sorgusu, çoklu AV motoru (hiçbir içerik dışarı gönderilmez)',
   'Dijital imza GEÇERLİLİĞİ (sertifika zinciri, iptal, zaman damgası, imza matematiği)',
   'Gerçek veri akışı (taint) analizi ve sembolik yürütme',
+  'Yerel kodu C’ye çevirme (decompile): yalnızca birebir disassembly verilir, tahmini kod üretilmez',
   'Şifreli/özel algoritmalı yükler, çok baytlı XOR, çalışma anında açılan katmanlar'
 ];
 function methodMatrix() {

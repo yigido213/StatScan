@@ -243,7 +243,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.5.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.6.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -300,7 +300,22 @@ async function obfRun(u8, name, opts) {
       }
     }
     else if (k.id === 'apk') { obfStep(ctx, 'decompile', 'APK/DEX decompile (jadx)', 'unsupported', 'Yerleşik değil; kurulu jadx varsa masaüstü uygulamasında onayla çalıştırılabilir'); }
-    else { obfStep(ctx, 'decompile', 'Yerel kod decompile', 'unsupported', 'Yerel (native) kod için yerleşik decompiler yok. Masaüstü uygulamasında makinede kurulu IDA Pro (Hex-Rays) veya Ghidra onayınla çalıştırılabilir.' + (res.obfuscation.detected ? ' DİKKAT: paketleme/obfuscation tespit edildi; paketli dosyada decompile çıktısı çoğunlukla anlamsızdır, önce açılması gerekir.' : '')); }
+    else {
+      if (k.id === 'pe' || k.id === 'elf') {
+        obfProg(ctx, 55, 'Yerel kod disassembly / işlev keşfi'); await obfTick(); let nr = null; try { nr = natAnalyze(u8, {}); } catch (e) { obfStep(ctx, 'native', 'Yerel kod disassembly', 'failed', String(e && e.message || e).slice(0, 100)); }
+        if (nr && !nr.ok) obfStep(ctx, 'native', 'Yerel kod disassembly', 'unsupported', nr.reason || 'Desteklenmiyor');
+        else if (nr) {
+          res.tools.builtin.push('yerleşik x86/x64 disassembler + işlev keşfi (çalıştırma yok)'); const mn = nr.main; const part = !!(nr.limits.length || nr.undecoded || mn.level === 'bulunamadı');
+          out(base + '.ana-kod.asm', 'text/plain', nr.mainText, 'Ana kod ' + (mn.addr !== null ? '[' + mn.level + ']' : '[bulunamadı]') + ' + doğrudan çağırdığı işlevler — birebir disassembly, tahmin/decompile DEĞİL', 'output', { partial: part });
+          out(base + '.tum-kod.asm', 'text/plain', nr.allText, nr.funcs.length + ' işlevin tamamı (keşfedilebilen kod) — birebir disassembly', 'output', { partial: part });
+          out(base + '.cagri-grafigi.txt', 'text/plain', nr.graphText, 'İşlev çağrı grafiği, import ve çözülemeyen dolaylı çağrılar', 'report');
+          obfStep(ctx, 'native', 'Yerel kod disassembly ve ana kod', part ? 'partial' : 'done', nr.funcs.length + ' işlev, ' + nr.total + ' komut · ana kod: ' + (mn.addr !== null ? '0x' + natHex(mn.addr) + ' [' + mn.level + ']' : 'bulunamadı') + ' — ' + mn.method + (nr.undecoded ? ' · ' + nr.undecoded + ' yerde komut çözülemedi' : ''));
+          for (const n of nr.notes) ctx.notes.push(n); for (const l of nr.limits) ctx.limits.push({ kind: 'native', msg: l }); if (mn.level === 'sezgisel' || mn.level === 'giriş-noktası') ctx.notes.push('Ana kod ' + (mn.level === 'sezgisel' ? 'kalıp eşleştirmesiyle' : 'CRT deseni bulunamadığı için giriş noktası olarak') + ' belirlendi; kanıtlar ana-kod.asm başlığında. Komut listesi birebirdir, ana işlev seçimi kesin değildir.');
+          if (res.obfuscation.detected) ctx.notes.push('Paketleme/obfuscation tespit edildi: disassembly paketleyici/açıcı kodunu gösteriyor olabilir; gerçek program için önce açılması gerekir.');
+        }
+      }
+      obfStep(ctx, 'decompile', 'Yerel kod → C (decompile)', 'unsupported', 'Yerleşik C benzeri decompiler YOK (tahmin üretmemek için bilerek). ' + (k.id === 'pe' || k.id === 'elf' ? 'Yerine birebir disassembly ve ana kod listesi üretildi. ' : '') + 'Masaüstü uygulamasında makinede kurulu IDA Pro (Hex-Rays) veya Ghidra onayınla çalıştırılabilir.' + (res.obfuscation.detected ? ' DİKKAT: paketleme/obfuscation tespit edildi; paketli dosyada çıktı çoğunlukla anlamsızdır, önce açılması gerekir.' : ''));
+    }
     if (k.id === 'pe' || k.id === 'elf') {
       let ex = null; try { ex = await pyiExtract(u8, { cap: OBF_LIM.outMax }); } catch (e) { obfStep(ctx, 'unpack', 'PyInstaller içeriği', 'failed', String(e && e.message || e).slice(0, 80)); }
       if (ex && ex.info && !ex.info.bad) {

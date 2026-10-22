@@ -71,3 +71,13 @@ EXE/DLL/ELF/Mach-O için obfuscation panelinde, makinede **zaten kurulu** IDA Pr
 - **.pyc → Python kaynağı:** PyInstaller çıktısındaki `.pyc` dosyaları, makinede zaten kurulu pycdc/decompyle3/uncompyle6 ile (masaüstü, her seferinde onayla, dosya başına zaman aşımı, kısmi/başarısız dosyalar işaretlenir) çevrilebilir. Araç indirilmez/kurulmaz.
 - **Yanlış-pozitif regresyon seti:** `tools/test/fp.mjs` + `tools/test/benign/`; temiz örnekler her modda düşük skor almalı, yüksek/kritik bulgu çıkmamalı. Yeni bir yanlış alarm görürsen dosyayı `benign/` klasörüne ekle.
 - Testler: `node tools/test/{methods,modes,fp,ui45}.mjs`, `node tools/test/pyc-host.cjs` (+ önceki testler).
+
+
+## 4.6
+
+- **Yerel kod: birebir disassembly ve ana kod (x86/x64):** Yerleşik x86/x86-64 disassembler (`src/engine/94-disasm.js`) + PE/ELF yükleyici, özyinelemeli işlev keşfi, çağrı grafiği ve ana kodu bulma (`95-native.js`). Küçük (~50 KB) EXE/ELF dosyalarında ana kod ve çağırdığı işlevler `*.ana-kod.asm`, tüm keşfedilen kod `*.tum-kod.asm`, işlev/çağrı/import özeti `*.cagri-grafigi.txt` olarak, obfuscation panelinden (Kod çıkar) üretilir. Dosya ÇALIŞTIRILMAZ.
+- **Tahmin yok:** Her satır dosyadaki gerçek bayttan çözülmüş komuttur; çözülemeyen komut "çözülemedi" diye işaretlenir (VEX/AVX, MMX, 0F38/0F3A, sistem komutları, 16-bit adresleme desteklenmez). Yorumlar yalnızca import (IAT/GOT/PLT), dize ve hedef adlarıdır.
+- **Ana kod bulma dürüstlüğü:** ELF'te `__libc_start_main` ilk argümanı veya sembol = *kesin*; PE'de MSVC/MinGW CRT çağrı kalıbı = *sezgisel* (kanıt başlıkta); kalıp yoksa giriş noktası = *giriş-noktası*; bulunamazsa *bulunamadı*. Dolaylı atlamalar (anahtar tablosu, IFUNC) ve keşif sınırları listede UYARI olarak görünür, sonuç "kısmi" işaretlenir.
+- **Decompile (C kodu) hâlâ yok:** bilerek; yerine birebir disassembly verilir. IDA/Ghidra köprüsü ayrıdır.
+- **Doğrulama:** `tools/test/disasm-objdump.mjs` — 50 ikilide 21.346 komut objdump ile birebir; büyük sistem kütüphaneleriyle (libc, libcrypto, libstdc++, clang) 2,49 milyon komutta 0 metin/uzunluk farkı (VEX hariç, "çözülemedi" sayılır). `tools/test/native.mjs` — gcc ELF (PIE/no-PIE/strip) ve clang+lld-link PE (x64/x86, CRT'li/CRT'siz) örnekleri; main adresi ve işlev sınırları `nm`/`objdump` ile karşılaştırılır; bozulmuş 300 dosyada istisna yok.
+- Bilinen sınırlar: PE'de ana kod seçimi kalıp eşleştirmesidir (farklı CRT'lerde yanılabilir); WinMain/DllMain ve C++/Rust/Go çalışma zamanı girişleri tanınmaz; paketli dosyada paketleyici kodu görünür; ARM/Mach-O desteklenmez.

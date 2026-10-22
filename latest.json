@@ -1,6 +1,6 @@
 {
-  "version": "4.5.0",
-  "url": "StatScan-4.5.0.ssu",
-  "sha256": "bb4a14c11bf6628963d77b219d07446f94f7eafde4369bbee1840f4cfc7880aa",
-  "notes": "Bilgi sekmesi, yöntem kataloğu, PDB/homoglif/bulanık hash yöntemleri, aile gruplama, .pyc decompile, yanlış-pozitif test seti"
+  "version": "4.6.0",
+  "url": "StatScan-4.6.0.ssu",
+  "sha256": "9d6e351a449b072f01f9b57c4fa61b5c9a5928bf256199357f5b1826b1137c83",
+  "notes": "4.6: yerel kod birebir disassembly, işlev keşfi, çağrı grafiği, ana kodu bulma (ELF kesin, PE sezgisel; decompile/tahmin yok)"
 }
