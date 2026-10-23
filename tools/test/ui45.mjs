@@ -5,7 +5,7 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', a
 const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
 await pg.addInitScript(() => { window.__pyc = []; window.statscanHost = { desktop: true, storeGet: async () => null, storeSet: async () => ({ ok: true }), obfTools: async () => ({ tools: [{ id: 'pycdc', label: 'pycdc', kinds: ['pyc'], path: '/usr/bin/pycdc', via: 'PATH' }] }), obfSave: async () => ({ ok: true, dirToken: 't', dir: '/x', files: [] }), obfStartPyc: async (r) => { window.__pyc.push(r); return { id: 'j1', state: 'running', dirToken: 't' }; }, obfJob: async () => ({ state: 'done', message: 'ok', results: [{}], outDir: '/x/decompiled-pycdc' }), obfCancel: async () => ({ ok: true }) }; });
 await pg.goto('file:///home/claude/statscan/app/StatScan.html#/statscan');
-ok((await pg.textContent('#app-statscan h1')).includes('4.6'), 'başlıkta sürüm 4.6');
+ok((await pg.textContent('#app-statscan h1')).includes('4.7'), 'başlıkta sürüm 4.7');
 // tarama ekraninda aciklama yazilari yok
 const scanText = await pg.evaluate(() => document.querySelector('#view-scan').innerText);
 ok(!/sezgisel statik analiz|çalıştırılmaz|kanıtlamaz|her zararlıyı|Yerel · hiçbir/i.test(scanText.replace(/Yerel · hiçbir şey yüklenmez/, '')), 'tarama sekmesinde genel açıklama/uyarı paragrafı yok');

@@ -1,6 +1,6 @@
 {
-  "version": "4.6.0",
-  "url": "StatScan-4.6.0.ssu",
-  "sha256": "9d6e351a449b072f01f9b57c4fa61b5c9a5928bf256199357f5b1826b1137c83",
-  "notes": "4.6: yerel kod birebir disassembly, işlev keşfi, çağrı grafiği, ana kodu bulma (ELF kesin, PE sezgisel; decompile/tahmin yok)"
+  "version": "4.7.0",
+  "url": "StatScan-4.7.0.ssu",
+  "sha256": "d3d3106dc5790cfaf7747ab925fb432d3304ef1d20ebd005a3ab9384dae27160",
+  "notes": "4.7: Kovan uygulama kabuğu (kenar çubuğu, Home, harf harf yazma animasyonu); StatScan ilk araç olarak korunur"
 }
