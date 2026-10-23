@@ -81,3 +81,15 @@ EXE/DLL/ELF/Mach-O için obfuscation panelinde, makinede **zaten kurulu** IDA Pr
 - **Decompile (C kodu) hâlâ yok:** bilerek; yerine birebir disassembly verilir. IDA/Ghidra köprüsü ayrıdır.
 - **Doğrulama:** `tools/test/disasm-objdump.mjs` — 50 ikilide 21.346 komut objdump ile birebir; büyük sistem kütüphaneleriyle (libc, libcrypto, libstdc++, clang) 2,49 milyon komutta 0 metin/uzunluk farkı (VEX hariç, "çözülemedi" sayılır). `tools/test/native.mjs` — gcc ELF (PIE/no-PIE/strip) ve clang+lld-link PE (x64/x86, CRT'li/CRT'siz) örnekleri; main adresi ve işlev sınırları `nm`/`objdump` ile karşılaştırılır; bozulmuş 300 dosyada istisna yok.
 - Bilinen sınırlar: PE'de ana kod seçimi kalıp eşleştirmesidir (farklı CRT'lerde yanılabilir); WinMain/DllMain ve C++/Rust/Go çalışma zamanı girişleri tanınmaz; paketli dosyada paketleyici kodu görünür; ARM/Mach-O desteklenmez.
+
+
+## Kovan (uygulama kabuğu)
+
+StatScan artık "Kovan" adlı daha büyük, modüler bir çalışma alanının ilk aracıdır. Kovan'ın adı: kovandaki her petek gözü ayrı bir araç; logo üç altıgen petek.
+
+- **Kabuk:** `app/StatScan.html` içinde (dosya adı bilerek aynı: güncelleyici yeni dosya kabul etmez). Sol dikey kenar çubuğu (Home + Araçlar), sağda sahne. ≥900 px: 220 px sütun; <900 px: alt gezinme çubuğu. StatScan'in kendi kırılma noktaları kenar çubuğu genişliği kadar kaydırıldı.
+- **Home:** sol üstte *kalın + eğik* "Welcome home, yigit717", harf harf yazılır (yalnızca açılışta bir kez, ~1,5 sn; bitince imleç kalkar). `prefers-reduced-motion: reduce` ise yazı doğrudan gösterilir. Altında araç kartları (yalnızca gerçek araç: StatScan; boş yer tutucu tıklanamaz) ve çalışma alanı bilgileri.
+- **Gezinme:** `#/home`, `#/statscan` (eski `#bilgi` bağlantısı StatScan'in Bilgi sekmesini açar). Geri/ileri tuşları çalışır. Açılış sayfası Home'dur.
+- **Araç eklemek:** (1) `<section id="app-ID" hidden>` kabını `.kstage` içine koy, (2) `kovanShell` içindeki `MODULES` listesine `{ id, name, icon, desc }` ekle. Kenar çubuğu girdisi, Home kartı ve rota listeden üretilir.
+- Kullanıcı adı `kovanShell` içindeki `USER` sabitindedir (şimdilik elle yazılı; ayar ekranı yok).
+- Test: `node tools/test/ui-shell.mjs` (Playwright; Home, animasyon, hareket azaltma, geçiş, 4 genişlik). Eski arayüz testleri `#/statscan` adresine gider.

@@ -60,7 +60,7 @@ function start(ctx) {
 
   function createWindow() {
     win = new BrowserWindow({
-      width: 1280, height: 900, minWidth: 900, minHeight: 640, show: false, backgroundColor: '#0b1118', title: 'StatScan', icon: ICON,
+      width: 1280, height: 900, minWidth: 900, minHeight: 640, show: false, backgroundColor: '#0b1118', title: 'Kovan', icon: ICON,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: !app.isPackaged }
     });
     win.once('ready-to-show', () => win.show());

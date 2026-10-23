@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const [file, out, w = '1280'] = process.argv.slice(2);
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] }); const pg = await b.newPage({ viewport: { width: +w, height: 900 } });
 const errs = []; pg.on('pageerror', (e) => errs.push('pageerror ' + e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push('console ' + m.text()); });
-await pg.goto('file:///home/claude/statscan/app/StatScan.html'); await pg.setInputFiles('#file', file); await pg.waitForSelector('.card', { timeout: 60000 }); await pg.waitForTimeout(1500);
+await pg.goto('file:///home/claude/statscan/app/StatScan.html#/statscan'); await pg.setInputFiles('#file', file); await pg.waitForSelector('.card', { timeout: 60000 }); await pg.waitForTimeout(1500);
 await pg.evaluate(() => document.querySelectorAll('details.dtl').forEach((d) => (d.open = true)));
 await pg.waitForTimeout(800);
 const hasHex = await pg.$('.hexv .hr'); const nLed = await pg.$$eval('.ledger li', (e) => e.length); const nAtt = await pg.$$eval('.chip.att', (e) => e.length); const nBasis = await pg.$$eval('.basis', (e) => e.length);

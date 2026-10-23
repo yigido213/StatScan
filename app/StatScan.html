@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="statscan-companion" content="">
 <meta name="color-scheme" content="dark light">
-<title>StatScan</title>
+<title>Home · Kovan</title>
 <style>
 /* StatScan 3.5 · koyu "komuta köprüsü" düzeni (%75) + canlı, yaylanan "atölye" dokunuşları (%25). Yazı tipleri yalnızca sistem fontlarıdır (dış kaynak yok). */
 :root {
@@ -56,7 +56,7 @@ h1 small { font: 600 12px var(--f-mono); color: var(--accent); border: 1px solid
 .rail { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .setup, .adv { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .center { display: grid; gap: 16px; min-width: 0; }
-@media (min-width: 1181px) { .rail { position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow-y: auto; padding: 2px 6px 2px 2px; margin: -2px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; } }
+@media (min-width: 1401px) { .rail { position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow-y: auto; padding: 2px 6px 2px 2px; margin: -2px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; } }
 .railtitle { font: 600 11.5px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); padding: 6px 4px 0; display: flex; align-items: center; gap: 10px; }
 .railtitle::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
@@ -457,13 +457,13 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 .toast { border-radius: 12px; animation: pop .35s var(--spring); }
 .badge { transition: transform .3s var(--spring); } .badge:hover { transform: translateY(-1px); }
 /* dar ekranlar */
-@media (max-width: 1180px) {
+@media (max-width: 1400px) {
   .shell { grid-template-columns: minmax(250px, 300px) minmax(0, 1fr); }
   .rail-r { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
   .rail-r .railtitle, .rail-r .fine { grid-column: 1 / -1; }
   .capstrip { grid-template-columns: 1fr; }
 }
-@media (max-width: 860px) {
+@media (max-width: 1080px) {
   .shell { grid-template-columns: 1fr; gap: 14px; padding-top: 12px; }
   .rail-l, .setup { display: contents; }
   fieldset.modes { order: 1; } .center { order: 2; } .setup > .panel { order: 3; } .rail-l .adv { order: 4; } .rail-r { order: 5; }
@@ -517,12 +517,91 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
   #prog .bar.ind i { width: 100%; margin: 0; }
 }
+/* ===== Kovan 1.0 · uygulama kabugu: kenar cubugu + Home + arac kaydi ===== */
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+.side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 6px; padding: 16px 12px 14px; background: color-mix(in srgb, var(--surface) 92%, var(--bg)); border-right: 1px solid var(--line); z-index: 25; min-width: 0; }
+.side-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; text-decoration: none; color: var(--ink); }
+.side-brand svg { width: 34px; height: 34px; flex: none; }
+.side-brand .wm { font: 800 21px/1 var(--f-display); letter-spacing: .02em; }
+.side-brand .sub { display: block; font: 500 10.5px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.side-nav { display: grid; gap: 4px; align-content: start; flex: 1; }
+.side-label { font: 600 10.5px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 4px; }
+.nav-item { position: relative; display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border-radius: 12px; color: var(--muted); text-decoration: none; font: 600 14.5px var(--f-body); transition: background-color .2s, color .2s; }
+.nav-item svg { width: 20px; height: 20px; flex: none; }
+.nav-item:hover { background: var(--surface2); color: var(--ink); }
+.nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.nav-item[aria-current="page"]::before { content: ''; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent); }
+.side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 6px 0; border-top: 1px solid var(--line); }
+.side-foot .ver { font: 500 11.5px var(--f-mono); color: var(--muted); }
+.side-foot button { padding: 6px 12px; font-size: 13px; }
+.kstage { min-width: 0; }
+.kstage > section[hidden] { display: none; }
+/* Home */
+.home { position: relative; padding: clamp(22px, 4vw, 44px) clamp(16px, 3vw, 44px) 72px; max-width: 1180px; }
+.home::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 300px; pointer-events: none; z-index: -1; opacity: .5; background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent) 35%, transparent) 1px, transparent 1.5px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); }
+.home h1 { display: block; font: 800 italic clamp(28px, 5vw, 52px)/1.12 var(--f-display); letter-spacing: -.005em; margin: 0 0 10px; overflow-wrap: anywhere; }
+.tw { display: inline-grid; }
+.tw > span { grid-area: 1 / 1; }
+.tw .ghost { visibility: hidden; }
+.tw .caret { display: inline-block; width: .075em; height: .9em; margin-left: .06em; vertical-align: -.1em; background: var(--accent); border-radius: 2px; animation: kcaret 1.05s steps(1) infinite; }
+.tw.done .caret { display: none; }
+@keyframes kcaret { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+.home .lead { margin: 0 0 26px; max-width: 60ch; color: var(--muted); font-size: 16px; }
+.home h2 { font: 600 11.5px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+.toolgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 14px; margin-bottom: 30px; }
+.toolcard { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); text-align: left; color: var(--ink); font: inherit; cursor: pointer; transition: transform .25s var(--spring), border-color .2s, box-shadow .25s; }
+.toolcard:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 16px 34px -22px var(--accent); }
+.toolcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.toolcard .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.toolcard .ic svg { width: 22px; height: 22px; }
+.toolcard h3 { font: 700 18px var(--f-display); }
+.toolcard p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; }
+.toolcard .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 600 13px var(--f-body); color: var(--accent); }
+.chip { font: 600 11px var(--f-mono); letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); }
+.toolcard.empty { cursor: default; border-style: dashed; background: transparent; justify-content: center; align-items: flex-start; }
+.toolcard.empty:hover { transform: none; border-color: var(--line); box-shadow: none; }
+.toolcard.empty .ic { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.facts li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.facts b { display: block; font: 600 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.facts span { font-size: 14.5px; }
+/* kabuk: dar ekranlar. StatScan'in kendi kirilim noktalari kenar cubugu genisligi (220px) kadar kaydirildi. */
+@media (max-width: 899px) {
+  .app { grid-template-columns: 1fr; }
+  .side { position: fixed; inset: auto 0 0 0; height: auto; flex-direction: row; align-items: stretch; gap: 0; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); border-right: 0; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 94%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .side-brand, .side-label, .side-foot .ver { display: none; }
+  .side-nav { display: flex; gap: 6px; flex: 1; }
+  .nav-item { flex: 1; flex-direction: column; justify-content: center; gap: 2px; min-height: 50px; padding: 4px 6px; font-size: 12px; }
+  .nav-item[aria-current="page"]::before { left: 18%; right: 18%; top: -7px; bottom: auto; width: auto; height: 3px; border-radius: 0 0 4px 4px; }
+  .side-foot { border: 0; padding: 0 0 0 6px; }
+  .kstage { padding-bottom: 72px; }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 380px) { .home h1 { font-size: 26px; } .nav-item span { font-size: 11px; } }
+@media (prefers-reduced-motion: reduce) { .tw .caret { animation: none; } }
 </style>
 </head>
 <body>
-<a class="skip" href="#main">İçeriğe geç</a>
+<a class="skip" id="skip" href="#content">İçeriğe geç</a>
+<div class="app" id="app">
+  <aside class="side" aria-label="Ana gezinme">
+    <a class="side-brand" href="#/home" aria-label="Kovan — Home"><svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><path d="M13.9 7 20 10.5v7L13.9 21 7.8 17.5v-7Z" fill="none" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round"/><path d="M26.1 7l6.1 3.5v7L26.1 21 20 17.5v-7Z" fill="none" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round" opacity=".55"/><path d="M20 17.5l6.1 3.5v7L20 31.5 13.9 28v-7Z" fill="url(#kg)" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round"/></svg><span><span class="wm">Kovan</span><span class="sub">çalışma alanı</span></span></a>
+    <nav class="side-nav" id="side-nav" aria-label="Bölümler"></nav>
+    <div class="side-foot"><span class="ver" id="side-ver"></span><button id="side-theme" type="button" aria-label="Açık/koyu temayı değiştir">Tema</button></div>
+  </aside>
+  <div class="kstage" id="content">
+<section class="home" id="app-home" aria-labelledby="home-title">
+  <h1 id="home-title" data-focus tabindex="-1"><span class="sr">Welcome home, yigit717</span><span class="tw" id="tw" aria-hidden="true"><span class="ghost">Welcome home, yigit717</span><span><span class="typed">Welcome home, yigit717</span><span class="caret"></span></span></span></h1>
+  <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an tek araç var: StatScan.</p>
+  <h2>Araçlar</h2>
+  <div class="toolgrid" id="toolgrid"></div>
+  <h2>Çalışma alanı</h2>
+  <ul class="facts" id="home-facts"></ul>
+</section>
+<section id="app-statscan" aria-label="StatScan" hidden>
 <header class="topbar">
-  <div class="brand"><span class="logo" aria-hidden="true"></span><h1>StatScan<small>4.6</small></h1></div>
+  <div class="brand"><h1>StatScan<small>4.6</small></h1></div>
   <nav class="tabs" role="tablist" aria-label="Bölümler"><button type="button" role="tab" id="tab-scan" aria-selected="true" aria-controls="view-scan">Tarama</button><button type="button" role="tab" id="tab-info" aria-selected="false" aria-controls="view-info">Bilgi</button></nav>
   <span class="tagline"></span>
   <div class="hright">
@@ -574,7 +653,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
   </aside>
 
   <!-- ORTA: sahne -->
-  <main id="main" class="center">
+  <main id="main" class="center" data-focus>
     <input id="dyndirect" type="file" hidden>
     <div class="stage">
       <label class="drop" id="drop" tabindex="0" for="file">
@@ -645,6 +724,9 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
     </section>
   </div>
 </section>
+</section>
+  </div>
+</div>
 <script>
 /* StatScan engine: saf JS, tarayicida calisir, dosyayi calistirmaz, ag kullanmaz. */
 (function (root) {
@@ -4144,7 +4226,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   /* ---------- Bilgi sekmesi: tum aciklama/uyari yazilari taramadan ayri burada ---------- */
   (function infoInit() {
     const tabs = { scan: [$('#tab-scan'), $('#view-scan')], info: [$('#tab-info'), $('#view-info')] }; let rendered = false;
-    function show(id) { for (const [k, [b, v]] of Object.entries(tabs)) { const on = k === id; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; v.hidden = !on; } if (id === 'info' && !rendered) { rendered = true; renderInfo(); } try { if (history.replaceState) history.replaceState(null, '', id === 'info' ? '#bilgi' : location.pathname + location.search); } catch (e) { /* yoksay */ } if (id === 'info') window.scrollTo(0, 0); }
+    function show(id) { for (const [k, [b, v]] of Object.entries(tabs)) { const on = k === id; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; v.hidden = !on; } if (id === 'info' && !rendered) { rendered = true; renderInfo(); } try { if (history.replaceState) history.replaceState(null, '', id === 'info' ? '#bilgi' : '#/statscan'); } catch (e) { /* yoksay */ } if (id === 'info') window.scrollTo(0, 0); }
     for (const [k, [b]] of Object.entries(tabs)) { b.addEventListener('click', () => show(k)); b.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const o = k === 'scan' ? 'info' : 'scan'; show(o); tabs[o][0].focus(); } }); }
     const P = (t) => h('p', null, t); const UL = (a) => h('ul', null, a.map((x) => h('li', null, x)));
     function renderInfo() {
@@ -4173,8 +4255,60 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('h4', null, 'Bulanık hash ve aile benzerliği'), P('Normal ve Derin modda üst düzey her dosya için CTPH (ssdeep ailesi) bulanık hash hesaplanır; toplu taramada benzer dosyalar “aile” olarak gruplanır (bulanık hash benzerliği, aynı imphash veya birebir kopya). Benzerlik aynı yazarı/aileyi kanıtlamaz; yalnızca incelemeyi hızlandırır. Arşivlerde hash, sıkıştırılmış baytlar yerine girdi listesi yapısı üzerinden hesaplanır.'),
         h('h4', null, 'Dinamik analiz (Windows Sandbox)'), P('Yalnızca Windows 10/11 Pro/Enterprise’ta, yerel yardımcıyla ve her seferinde onayınla çalışır. Yalnızca çalıştırmada görülenleri anlatır; zararlı sanal ortamı algılayıp saklanabilir. “Davranış gözlenmedi” güvenli olduğunu kanıtlamaz.'));
     }
-    window.addEventListener('hashchange', () => show(location.hash === '#bilgi' ? 'info' : 'scan'));
+    window.addEventListener('hashchange', () => { if (location.hash === '#bilgi') show('info'); else if (location.hash === '#/statscan') show('scan'); });
     tabs.scan[0].tabIndex = 0; tabs.info[0].tabIndex = -1; if (location.hash === '#bilgi') show('info');
+  })();
+
+  /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
+     Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
+     Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
+  (function kovanShell() {
+    const USER = 'yigit717', GREETING = 'Welcome home, ' + USER, APP = 'Kovan';
+    const ICONS = {
+      home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',
+      shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+      plus: '<path d="M12 5v14M5 12h14"/>'
+    };
+    const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
+    const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.' }];
+    const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
+    const mk = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+    const label = mk('div', { class: 'side-label', id: 'side-tools' }, 'Araçlar');
+    const homeLink = mk('a', { class: 'nav-item', href: '#/home', 'data-route': 'home' }, svg('home') + '<span>Home</span>'); linkOf.home = homeLink; nav.append(homeLink, label);
+    for (const m of MODULES) {
+      const a = mk('a', { class: 'nav-item', href: '#/' + m.id, 'data-route': m.id }, svg(m.icon) + '<span></span>'); a.querySelector('span').textContent = m.name; nav.append(a); linkOf[m.id] = a;
+      const c = mk('button', { type: 'button', class: 'toolcard', 'data-open': m.id }, '<span class="ic">' + svg(m.icon) + '</span><h3></h3><p></p><span class="row"><span class="chip">Hazır</span><span>Aç →</span></span>');
+      c.querySelector('h3').textContent = m.name; c.querySelector('p').textContent = m.desc; c.addEventListener('click', () => go(m.id)); grid.append(c);
+    }
+    grid.append(mk('div', { class: 'toolcard empty' }, '<span class="ic">' + svg('plus') + '</span><h3>Yeni araçlar için yer ayrıldı</h3><p>Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.</p>'));
+    const facts = $('#home-facts'); const desktop = !!(window.statscanHost && window.statscanHost.desktop);
+    for (const [k, v] of [['Sürüm', 'StatScan ' + (StatScan.version || '')], ['Çalışma biçimi', desktop ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası'], ['Gizlilik', 'Statik tarama yerelde yapılır; dosyalar gönderilmez']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; facts.append(li); }
+    $('#side-ver').textContent = 'v' + (StatScan.version || '').replace(/\.0$/, '');
+    $('#side-theme').addEventListener('click', () => $('#theme').click());
+    function parse() { const h = location.hash; if (h === '#bilgi') return 'statscan'; const m = /^#\/([a-z0-9-]+)/.exec(h); if (m) return ids.includes(m[1]) ? m[1] : 'home'; return null; }
+    function render(id) {
+      if (id === current) return; current = id;
+      for (const x of ids) { const v = $('#app-' + x); if (v) v.hidden = x !== id; const l = linkOf[x]; if (l) { if (x === id) l.setAttribute('aria-current', 'page'); else l.removeAttribute('aria-current'); } }
+      document.title = (id === 'home' ? 'Home' : MODULES.find((m) => m.id === id).name) + ' · ' + APP; if (id === 'home') startTyping();
+    }
+    function go(id) { if (id === current) return; if (location.hash !== '#/' + id) location.hash = '#/' + id; else render(id); }
+    window.addEventListener('hashchange', () => { const r = parse(); if (r) render(r); });
+    nav.addEventListener('click', (e) => { const a = e.target.closest('a[data-route]'); if (!a) return; e.preventDefault(); go(a.dataset.route); const v = $('#app-' + a.dataset.route); const f = v && v.querySelector('[data-focus]'); if (f) f.focus({ preventScroll: true }); });
+    $('#skip').addEventListener('click', (e) => { e.preventDefault(); const v = $('#app-' + current); const f = v && (v.querySelector('[data-focus]') || v.querySelector('main')); if (f) { f.tabIndex = -1; f.focus(); } });
+    /* harf harf yazma animasyonu: yalnizca ilk acilista bir kez; hareket azaltma tercihinde dogrudan gosterilir */
+    const tw = $('#tw'); const typed = tw.querySelector('.typed'); let played = false, raf = 0;
+    const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+    function finish() { cancelAnimationFrame(raf); typed.textContent = GREETING; tw.classList.add('done'); }
+    function startTyping() {
+      if (played) return; played = true;
+      if (reduceMQ.matches) { finish(); return; }
+      const STEP = 62, t = []; let acc = 380; for (const ch of GREETING) { t.push(acc); acc += STEP + (ch === ',' ? 260 : 0) + (ch === ' ' ? 24 : 0); }
+      const t0 = performance.now(); typed.textContent = '';
+      const tick = (now) => { const el = now - t0; let n = 0; while (n < t.length && t[n] <= el) n++; typed.textContent = GREETING.slice(0, n); if (n >= t.length) { tw.classList.add('done'); return; } raf = requestAnimationFrame(tick); };
+      raf = requestAnimationFrame(tick);
+    }
+    reduceMQ.addEventListener && reduceMQ.addEventListener('change', () => { if (reduceMQ.matches && played && !tw.classList.contains('done')) finish(); });
+    render(parse() || 'home');
   })();
 
   /* ---------- aile / varyant gruplama (bulanik hash + imphash + birebir kopya) ---------- */
