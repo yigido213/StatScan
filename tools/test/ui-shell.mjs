@@ -41,4 +41,29 @@ for (const [wd, name] of [[1280, 'masaüstü'], [980, 'orta'], [760, 'tablet'], 
   if (wd >= 900) ok(Math.abs(sb.w - 220) < 2 && sb.h >= sb.vh - 2, name + ': dikey sütun (' + Math.round(sb.w) + 'x' + Math.round(sb.h) + ')'); else ok(sb.w >= wd - 2 && sb.h < 100 && sb.top > sb.vh - 110, name + ': alt gezinme çubuğuna dönüştü (' + Math.round(sb.h) + 'px)');
   await pg.evaluate(() => { location.hash = '#/home'; }); await pg.waitForTimeout(80); await pg.click('#side-nav a[data-route="statscan"]'); await pg.waitForTimeout(80); ok(await pg.evaluate(() => !document.querySelector('#app-statscan').hidden), name + ': StatScan’e geçiş çalışıyor');
 }
+
+// 5) ana menu 2: daraltma, komut paleti, kullanici adi
+{
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message)); await p.goto(URL);
+  const sw = () => p.evaluate(() => Math.round(document.querySelector('.side').getBoundingClientRect().width));
+  ok(await sw() === 220, 'kenar çubuğu genişken 220px'); await p.click('#side-toggle'); await p.waitForTimeout(100); ok(await sw() === 68, 'daraltınca 68px (' + await sw() + ')');
+  ok(await p.evaluate(() => document.querySelector('#side-toggle').getAttribute('aria-expanded')) === 'false', 'aria-expanded=false'); ok(await p.evaluate(() => [...document.querySelectorAll('.nav-item')].every((a) => a.title && a.getBoundingClientRect().width > 40)), 'daraltılmış halde bağlantılar tooltip (title) taşıyor');
+  await p.reload(); ok(await sw() === 68, 'daraltma tercihi yeniden yüklemede korundu'); await p.click('#side-toggle'); ok(await sw() === 220, 'tekrar genişletildi');
+  // palet
+  await p.keyboard.press('Control+k'); ok(await p.evaluate(() => !document.querySelector('#pal').hidden && document.activeElement.id === 'pal-q'), 'Ctrl+K paleti açtı, odak arama kutusunda');
+  ok((await p.locator('#pal-list [role=option]').count()) >= 5, 'palet komutları listeliyor'); await p.keyboard.type('bilgi'); ok((await p.locator('#pal-list [role=option]').count()) === 1, '"bilgi" yazınca süzüldü (1 sonuç)');
+  await p.keyboard.press('Enter'); await p.waitForTimeout(150); ok(await p.evaluate(() => document.querySelector('#pal').hidden && !document.querySelector('#app-statscan').hidden && !document.querySelector('#view-info').hidden), 'Enter: StatScan Bilgi sekmesi açıldı, palet kapandı');
+  await p.keyboard.press('Control+k'); await p.keyboard.type('zzzzqq'); ok(await p.evaluate(() => /Eşleşen komut yok/.test(document.querySelector('#pal-list').textContent)), 'eşleşme yoksa açıkça söyleniyor'); await p.keyboard.press('Escape'); ok(await p.evaluate(() => document.querySelector('#pal').hidden), 'Esc paleti kapattı');
+  await p.keyboard.press('Control+k'); await p.keyboard.type('home'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('Enter'); await p.waitForTimeout(100); ok(await p.evaluate(() => !document.querySelector('#app-home').hidden), 'palet ile Home’a gidildi');
+  // kullanici adi
+  await p.click('#name-edit'); await p.fill('#name-in', 'Test Kullanıcı'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.querySelector('#tw .typed').textContent === 'Welcome home, Test Kullanıcı' && document.querySelector('#home-title .sr').textContent === 'Welcome home, Test Kullanıcı' && document.querySelector('#tw .ghost').textContent === 'Welcome home, Test Kullanıcı'), 'ad değişti: başlık, ekran okuyucu ve yer tutucu metni güncel');
+  await p.reload(); ok((await p.textContent('#tw .typed')) === 'Welcome home, Test Kullanıcı', 'ad yeniden yüklemede korundu');
+  await p.click('#name-edit'); await p.click('#name-reset'); ok((await p.textContent('#tw .typed')) === FULL, 'Varsayılan: yigit717’ye döndü'); await p.reload(); ok((await p.textContent('#tw .typed')) === FULL, 'varsayılan yeniden yüklemede korundu');
+  await p.click('#name-edit'); await p.fill('#name-in', '<img src=x onerror=alert(1)>'); await p.keyboard.press('Enter'); ok(await p.evaluate(() => !document.querySelector('#home-title img') && document.querySelector('#tw .typed').textContent.includes('<img')), 'ad HTML olarak yorumlanmıyor (güvenli metin)');
+  ok(errs.length === 0, 'ana menü 2: sayfa hatası yok ' + errs.slice(0, 2).join('|')); await ctx.close();
+  const c2 = await b.newContext({ viewport: { width: 390, height: 800 }, reducedMotion: 'reduce' }); const q = await c2.newPage(); await q.goto(URL);
+  ok(await q.evaluate(() => getComputedStyle(document.querySelector('#side-toggle')).display === 'none' && !document.querySelector('.app').classList.contains('collapsed')), 'telefonda daraltma düğmesi yok, alt çubuk tam'); await q.keyboard.press('Control+k'); ok(await q.evaluate(() => !document.querySelector('#pal').hidden), 'telefonda da klavye ile palet açılıyor'); await c2.close();
+}
+
 await b.close(); console.log(bad ? 'BAŞARISIZ ' + bad : 'TAMAM'); process.exit(bad ? 1 : 0);

@@ -93,3 +93,10 @@ StatScan artık "Kovan" adlı daha büyük, modüler bir çalışma alanının i
 - **Araç eklemek:** (1) `<section id="app-ID" hidden>` kabını `.kstage` içine koy, (2) `kovanShell` içindeki `MODULES` listesine `{ id, name, icon, desc }` ekle. Kenar çubuğu girdisi, Home kartı ve rota listeden üretilir.
 - Kullanıcı adı `kovanShell` içindeki `USER` sabitindedir (şimdilik elle yazılı; ayar ekranı yok).
 - Test: `node tools/test/ui-shell.mjs` (Playwright; Home, animasyon, hareket azaltma, geçiş, 4 genişlik). Eski arayüz testleri `#/statscan` adresine gider.
+
+### Kovan ana menü 2 (4.7.1)
+
+- **Kenar çubuğu daraltma:** alt köşedeki ok düğmesi; 68 px simge çubuğuna iner (tooltip'li), tercih tarayıcıda/uygulamada saklanır. 900 px altında alt çubuk kullanıldığı için düğme yoktur.
+- **Komut paleti:** `Ctrl+K` (macOS `Cmd+K`) veya Home'daki/kenar çubuğundaki "Ara" düğmesi. Araçlar ve komutlar (Home, araç aç, StatScan sekmeleri, tema, kenar çubuğu, kullanıcı adı) listeden üretilir; `MODULES` içindeki `actions` ile araç komutu eklenir. ↑↓/Enter/Esc.
+- **Kullanıcı adı:** Home'daki "Adı değiştir" veya paletten; 24 karaktere kadar, metin olarak gösterilir (HTML yorumlanmaz), "Varsayılan" yigit717'ye döner. Yalnızca bu cihazda saklanır.
+- Test: `node tools/test/ui-shell.mjs` (bu özellikleri de kapsar).

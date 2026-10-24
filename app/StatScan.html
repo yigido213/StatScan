@@ -580,6 +580,45 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 }
 @media (max-width: 380px) { .home h1 { font-size: 26px; } .nav-item span { font-size: 11px; } }
 @media (prefers-reduced-motion: reduce) { .tw .caret { animation: none; } }
+/* ===== Kovan ana menu 2: daraltilabilir kenar cubugu, komut paleti (Ctrl+K), kullanici adi ===== */
+.searchbtn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; margin: 0 0 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--muted); font: 500 13.5px var(--f-body); cursor: pointer; text-align: left; transition: border-color .2s, color .2s; }
+.searchbtn:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); color: var(--ink); transform: none; }
+.searchbtn svg { width: 18px; height: 18px; flex: none; }
+.searchbtn .lbl { flex: 1; }
+kbd { font: 600 11px var(--f-mono); padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: var(--surface2); color: var(--muted); }
+.side-foot .row { display: flex; align-items: center; gap: 6px; }
+.side-foot button { display: inline-flex; align-items: center; gap: 6px; }
+.side-foot button svg { width: 16px; height: 16px; flex: none; }
+#side-toggle svg { transition: transform .25s var(--ease); }
+.home .tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -10px 0 24px; }
+.home .tools-row button { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: 13.5px; }
+.home .tools-row button svg { width: 16px; height: 16px; }
+.nameform { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.nameform input { min-width: 0; width: 200px; max-width: 100%; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px var(--f-body); }
+.nameform input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pal { position: fixed; inset: 0; z-index: 60; display: grid; justify-items: center; align-content: start; padding: min(14vh, 120px) 14px 14px; background: rgba(4, 9, 14, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.pal-box { width: min(560px, 100%); max-height: min(70vh, 520px); display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .6); overflow: hidden; }
+.pal-box input { border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); padding: 16px 18px; font: 500 16px var(--f-body); outline: none; }
+.pal-box ul { list-style: none; margin: 0; padding: 6px; overflow-y: auto; }
+.pal-box li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14.5px; }
+.pal-box li small { color: var(--muted); font: 500 11.5px var(--f-mono); }
+.pal-box li[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+.pal-box .none { padding: 16px 18px; color: var(--muted); font-size: 14px; }
+.pal-hint { padding: 8px 14px; border-top: 1px solid var(--line); color: var(--muted); font: 500 11.5px var(--f-mono); }
+@media (min-width: 900px) {
+  .app.collapsed { grid-template-columns: 68px minmax(0, 1fr); }
+  .app.collapsed .side { padding-inline: 10px; align-items: center; }
+  .app.collapsed .side-brand { padding-inline: 0; }
+  .app.collapsed .side-brand > span, .app.collapsed .side-label, .app.collapsed .nav-item span, .app.collapsed .searchbtn .lbl, .app.collapsed .searchbtn kbd, .app.collapsed .side-foot .ver, .app.collapsed #side-theme span { display: none; }
+  .app.collapsed .side-nav, .app.collapsed .searchbtn { width: 100%; }
+  .app.collapsed .nav-item, .app.collapsed .searchbtn { justify-content: center; padding: 0; }
+  .app.collapsed .nav-item[aria-current="page"]::before { left: -10px; }
+  .app.collapsed .side-foot { flex-direction: column; border-top: 1px solid var(--line); width: 100%; }
+  .app.collapsed #side-toggle svg { transform: rotate(180deg); }
+  .app.collapsed .side-foot .row { flex-direction: column; width: 100%; }
+  .app.collapsed .side-foot button { width: 100%; justify-content: center; padding: 8px 0; }
+}
+@media (max-width: 899px) { .searchbtn, #side-toggle { display: none; } }
 </style>
 </head>
 <body>
@@ -587,13 +626,15 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 <div class="app" id="app">
   <aside class="side" aria-label="Ana gezinme">
     <a class="side-brand" href="#/home" aria-label="Kovan — Home"><svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><path d="M13.9 7 20 10.5v7L13.9 21 7.8 17.5v-7Z" fill="none" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round"/><path d="M26.1 7l6.1 3.5v7L26.1 21 20 17.5v-7Z" fill="none" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round" opacity=".55"/><path d="M20 17.5l6.1 3.5v7L20 31.5 13.9 28v-7Z" fill="url(#kg)" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round"/></svg><span><span class="wm">Kovan</span><span class="sub">çalışma alanı</span></span></a>
+    <button class="searchbtn" id="side-search" type="button" aria-label="Ara veya komut çalıştır (Ctrl K)" title="Ara veya komut çalıştır (Ctrl K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span class="lbl">Ara…</span><kbd>Ctrl K</kbd></button>
     <nav class="side-nav" id="side-nav" aria-label="Bölümler"></nav>
-    <div class="side-foot"><span class="ver" id="side-ver"></span><button id="side-theme" type="button" aria-label="Açık/koyu temayı değiştir">Tema</button></div>
+    <div class="side-foot"><span class="ver" id="side-ver"></span><span class="row"><button id="side-theme" type="button" aria-label="Açık/koyu temayı değiştir" title="Açık/koyu tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg><span>Tema</span></button><button id="side-toggle" type="button" aria-expanded="true" aria-label="Kenar çubuğunu daralt" title="Kenar çubuğunu daralt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button></span></div>
   </aside>
   <div class="kstage" id="content">
 <section class="home" id="app-home" aria-labelledby="home-title">
   <h1 id="home-title" data-focus tabindex="-1"><span class="sr">Welcome home, yigit717</span><span class="tw" id="tw" aria-hidden="true"><span class="ghost">Welcome home, yigit717</span><span><span class="typed">Welcome home, yigit717</span><span class="caret"></span></span></span></h1>
   <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an tek araç var: StatScan.</p>
+  <div class="tools-row" id="tools-row"><button type="button" id="home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>Ara veya komut çalıştır <kbd>Ctrl K</kbd></button><span id="name-slot"><button type="button" id="name-edit">Adı değiştir</button></span></div>
   <h2>Araçlar</h2>
   <div class="toolgrid" id="toolgrid"></div>
   <h2>Çalışma alanı</h2>
@@ -727,6 +768,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 </section>
   </div>
 </div>
+<div class="pal" id="pal" hidden><div class="pal-box" role="dialog" aria-modal="true" aria-label="Komut paleti"><input id="pal-q" type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" placeholder="Araç veya komut ara…" autocomplete="off" spellcheck="false"><ul id="pal-list" role="listbox" aria-label="Sonuçlar"></ul><div class="pal-hint">↑↓ seç · Enter çalıştır · Esc kapat</div></div></div>
 <script>
 /* StatScan engine: saf JS, tarayicida calisir, dosyayi calistirmaz, ag kullanmaz. */
 (function (root) {
@@ -3089,7 +3131,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.7.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.7.1', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -3995,7 +4037,7 @@ function natAnalyze(u8, opts) {
   R.ok = true; return R;
 }
 /*#endregion native*/
-const api = { x86Decode, nativeAnalyze: natAnalyze, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.7.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { x86Decode, nativeAnalyze: natAnalyze, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.7.1', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -4263,20 +4305,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
   (function kovanShell() {
-    const USER = 'yigit717', GREETING = 'Welcome home, ' + USER, APP = 'Kovan';
+    const DEFAULT_USER = 'yigit717', APP = 'Kovan'; const LS = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* depolama yok: yalnizca bu oturum */ } } };
+    let user = (LS.get('kovan.user') || '').trim().slice(0, 24) || DEFAULT_USER; let GREETING = 'Welcome home, ' + user;
     const ICONS = {
       home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',
       shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
-    const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.' }];
+    const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
     const mk = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
     const label = mk('div', { class: 'side-label', id: 'side-tools' }, 'Araçlar');
-    const homeLink = mk('a', { class: 'nav-item', href: '#/home', 'data-route': 'home' }, svg('home') + '<span>Home</span>'); linkOf.home = homeLink; nav.append(homeLink, label);
+    const homeLink = mk('a', { class: 'nav-item', href: '#/home', 'data-route': 'home', title: 'Home' }, svg('home') + '<span>Home</span>'); linkOf.home = homeLink; nav.append(homeLink, label);
     for (const m of MODULES) {
-      const a = mk('a', { class: 'nav-item', href: '#/' + m.id, 'data-route': m.id }, svg(m.icon) + '<span></span>'); a.querySelector('span').textContent = m.name; nav.append(a); linkOf[m.id] = a;
+      const a = mk('a', { class: 'nav-item', href: '#/' + m.id, 'data-route': m.id }, svg(m.icon) + '<span></span>'); a.querySelector('span').textContent = m.name; a.title = m.name; nav.append(a); linkOf[m.id] = a;
       const c = mk('button', { type: 'button', class: 'toolcard', 'data-open': m.id }, '<span class="ic">' + svg(m.icon) + '</span><h3></h3><p></p><span class="row"><span class="chip">Hazır</span><span>Aç →</span></span>');
       c.querySelector('h3').textContent = m.name; c.querySelector('p').textContent = m.desc; c.addEventListener('click', () => go(m.id)); grid.append(c);
     }
@@ -4308,6 +4351,48 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       raf = requestAnimationFrame(tick);
     }
     reduceMQ.addEventListener && reduceMQ.addEventListener('change', () => { if (reduceMQ.matches && played && !tw.classList.contains('done')) finish(); });
+
+    /* ---- ayarlar: kenar cubugu daraltma, kullanici adi ---- */
+    const app = $('#app'), toggle = $('#side-toggle');
+    function setCollapsed(on, save) { app.classList.toggle('collapsed', on); toggle.setAttribute('aria-expanded', on ? 'false' : 'true'); const t = on ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'; toggle.setAttribute('aria-label', t); toggle.title = t; if (save) LS.set('kovan.collapsed', on ? '1' : '0'); }
+    setCollapsed(LS.get('kovan.collapsed') === '1', false); toggle.addEventListener('click', () => setCollapsed(!app.classList.contains('collapsed'), true));
+    function applyName(n) { user = n; GREETING = 'Welcome home, ' + user; if (!tw.classList.contains('done')) { played = true; finish(); } $('#home-title .sr').textContent = GREETING; tw.querySelector('.ghost').textContent = GREETING; typed.textContent = GREETING; }
+    function editName() {
+      go('home'); const slot = $('#name-slot'); const f = mk('form', { class: 'nameform' }, '<label class="sr" for="name-in">Kullanıcı adı</label><input id="name-in" maxlength="24" autocomplete="off" spellcheck="false"><button type="submit" class="primary">Kaydet</button><button type="button" id="name-reset">Varsayılan</button><button type="button" id="name-cancel">Vazgeç</button>');
+      const old = slot.firstChild; slot.replaceChildren(f); const inp = $('#name-in'); inp.value = user; inp.focus(); inp.select();
+      const close = (focusBtn) => { slot.replaceChildren(old); if (focusBtn) old.focus(); };
+      f.addEventListener('submit', (e) => { e.preventDefault(); const v = inp.value.trim().replace(/\s+/g, ' ').slice(0, 24); if (v && v !== user) { applyName(v); LS.set('kovan.user', v === DEFAULT_USER ? null : v); } close(true); });
+      $('#name-reset').addEventListener('click', () => { applyName(DEFAULT_USER); LS.set('kovan.user', null); close(true); }); $('#name-cancel').addEventListener('click', () => close(true));
+      f.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+    }
+    $('#name-edit').addEventListener('click', editName);
+    /* ---- komut paleti (Ctrl/Cmd+K) ---- */
+    const pal = $('#pal'), palQ = $('#pal-q'), palL = $('#pal-list'); let palItems = [], palSel = 0, palPrev = null;
+    const trl = (x) => String(x).toLocaleLowerCase('tr');
+    function commands() {
+      const c = [{ label: 'Home’a git', hint: 'Sayfa', run: () => go('home') }];
+      for (const m of MODULES) { c.push({ label: m.name + ' aracını aç', hint: 'Araç', run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: a.label, hint: 'Komut', run: a.run }); }
+      c.push({ label: 'Temayı değiştir (açık/koyu)', hint: 'Komut', run: () => $('#theme').click() }, { label: app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt', hint: 'Komut', run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: 'Kullanıcı adını değiştir', hint: 'Komut', run: editName });
+      return c;
+    }
+    function palRender() {
+      const q = trl(palQ.value).trim(); palItems = commands().filter((x) => !q || q.split(/\s+/).every((w) => trl(x.label).includes(w))); palSel = Math.min(palSel, Math.max(0, palItems.length - 1)); palL.replaceChildren();
+      if (!palItems.length) { palL.append(mk('li', { class: 'none', role: 'presentation' }, 'Eşleşen komut yok')); palQ.removeAttribute('aria-activedescendant'); return; }
+      palItems.forEach((it, i) => { const li = mk('li', { role: 'option', id: 'pal-o' + i, 'aria-selected': i === palSel ? 'true' : 'false' }, '<span></span><small></small>'); li.firstChild.textContent = it.label; li.lastChild.textContent = it.hint; li.addEventListener('mousemove', () => { if (palSel !== i) { palSel = i; palMark(); } }); li.addEventListener('click', () => palRun(i)); palL.append(li); });
+      palQ.setAttribute('aria-activedescendant', 'pal-o' + palSel);
+    }
+    function palMark() { palL.querySelectorAll('[role=option]').forEach((li, i) => li.setAttribute('aria-selected', i === palSel ? 'true' : 'false')); palQ.setAttribute('aria-activedescendant', 'pal-o' + palSel); const el = $('#pal-o' + palSel); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
+    function palOpen() { if (!pal.hidden) return; palPrev = document.activeElement; pal.hidden = false; palQ.value = ''; palSel = 0; palRender(); palQ.focus(); }
+    function palClose(restore) { if (pal.hidden) return; pal.hidden = true; if (restore && palPrev && palPrev.focus && document.contains(palPrev)) palPrev.focus(); }
+    function palRun(i) { const it = palItems[i]; if (!it) return; palClose(false); it.run(); }
+    palQ.addEventListener('input', () => { palSel = 0; palRender(); });
+    pal.addEventListener('mousedown', (e) => { if (e.target === pal) palClose(true); });
+    pal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); palClose(true); } else if (e.key === 'ArrowDown') { e.preventDefault(); if (palItems.length) { palSel = (palSel + 1) % palItems.length; palMark(); } } else if (e.key === 'ArrowUp') { e.preventDefault(); if (palItems.length) { palSel = (palSel - 1 + palItems.length) % palItems.length; palMark(); } } else if (e.key === 'Enter') { e.preventDefault(); palRun(palSel); } else if (e.key === 'Tab') { e.preventDefault(); }
+    });
+    document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') { e.preventDefault(); if (pal.hidden) palOpen(); else palClose(true); } });
+    $('#side-search').addEventListener('click', palOpen); $('#home-search').addEventListener('click', palOpen);
+    $('#home-title .sr').textContent = GREETING; tw.querySelector('.ghost').textContent = GREETING;
     render(parse() || 'home');
   })();
 

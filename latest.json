@@ -1,6 +1,6 @@
 {
-  "version": "4.7.0",
-  "url": "StatScan-4.7.0.ssu",
-  "sha256": "d3d3106dc5790cfaf7747ab925fb432d3304ef1d20ebd005a3ab9384dae27160",
-  "notes": "4.7: Kovan uygulama kabuğu (kenar çubuğu, Home, harf harf yazma animasyonu); StatScan ilk araç olarak korunur"
+  "version": "4.7.1",
+  "url": "StatScan-4.7.1.ssu",
+  "sha256": "56a17c7c4bc7a2b9b8d9074b7c94c86f339c34c7a858223493254854c34784ea",
+  "notes": "4.7.1: Kovan ana menü: daraltılabilir kenar çubuğu, komut paleti (Ctrl+K), değiştirilebilir kullanıcı adı"
 }
