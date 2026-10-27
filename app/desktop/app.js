@@ -24,8 +24,18 @@ function start(ctx) {
     try { c = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { c = null; }
     if (!c) { c = { update: { feedUrl: '', auto: true } }; try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(c, null, 2)); } catch (e) { /* yazilamazsa varsayilan */ } }
     const u = c.update && typeof c.update === 'object' ? c.update : {};
-    return { file: f, feedUrl: typeof u.feedUrl === 'string' && u.feedUrl.trim() ? u.feedUrl.trim() : DEFAULT_FEED, auto: u.auto !== false };
+    const st = c.startup && typeof c.startup === 'object' ? c.startup : {};
+    return { file: f, feedUrl: typeof u.feedUrl === 'string' && u.feedUrl.trim() ? u.feedUrl.trim() : DEFAULT_FEED, auto: u.auto !== false, startMinimized: st.minimized === true };
   }
+  function saveAppConfig(patch) { /* okuma-degistirme-yazma; baska alanlar korunur */
+    const f = userFile('statscan-app.config.json'); let c = {}; try { c = JSON.parse(fs.readFileSync(f, 'utf8')) || {}; } catch (e) { c = {}; }
+    if (typeof c !== 'object') c = {}; c.update = c.update && typeof c.update === 'object' ? c.update : {}; c.startup = c.startup && typeof c.startup === 'object' ? c.startup : {};
+    if ('auto' in patch) c.update.auto = !!patch.auto; if ('startMinimized' in patch) c.startup.minimized = !!patch.startMinimized;
+    fs.mkdirSync(path.dirname(f), { recursive: true }); const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(c, null, 2)); fs.renameSync(t, f);
+  }
+  const LOGIN_ARGS = ['--autostart'];
+  const autostartSupport = () => (process.platform !== 'win32' && process.platform !== 'darwin' ? { supported: false, reason: 'Oturum açılışında başlatma yalnızca Windows ve macOS’ta desteklenir.' } : !app.isPackaged ? { supported: false, reason: 'Geliştirme modunda (paketlenmemiş) çalışıyor; yalnızca kurulu uygulamada ayarlanabilir.' } : { supported: true, reason: '' });
+  const settingsDeps = { autostartSupport, getLogin: () => app.getLoginItemSettings({ args: LOGIN_ARGS }).openAtLogin, setLogin: (on) => app.setLoginItemSettings({ openAtLogin: !!on, args: LOGIN_ARGS }), getApp: appConfig, setApp: saveAppConfig, checkUpdate: () => checkFeed(true) };
   function buildService() {
     const engine = D.loadEngine(HTML); let cfg;
     try { cfg = D.loadConfig(configPath()); } catch (e) { dialog.showErrorBox('StatScan yapılandırması okunamadı', String(e && e.message || e) + '\n\nVarsayılan (güvenli) ayarlarla devam ediliyor.'); cfg = D.loadConfig(null); }
@@ -63,7 +73,7 @@ function start(ctx) {
       width: 1280, height: 900, minWidth: 900, minHeight: 640, show: false, backgroundColor: '#0b1118', title: 'Kovan', icon: ICON,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: !app.isPackaged }
     });
-    win.once('ready-to-show', () => win.show());
+    win.once('ready-to-show', () => { if (process.argv.includes('--autostart') && appConfig().startMinimized) { win.showInactive(); win.minimize(); } else win.show(); });
     win.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
     win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file://')) e.preventDefault(); });
     win.webContents.once('did-finish-load', () => setTimeout(() => { try { U.markGood(app.getPath('userData')); U.cleanOld(app.getPath('userData'), ctx.source === 'update' ? ctx.version : ''); } catch (e) { /* yoksay */ } }, 4000));
@@ -92,7 +102,7 @@ function start(ctx) {
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
-    host = createHost({ obfOutputRoot: path.join(app.getPath('documents'), 'StatScan-Cikti'), obfToolsDir: userFile('tools'), storePath: userFile('store.json'), downloadsDir: app.getPath('downloads'), modsDirs: (() => { const o = []; const ad = app.getPath('appData'); o.push({ label: 'Minecraft mods (.minecraft)', path: path.join(ad, '.minecraft', 'mods') }); return o; })(), chooseFolder: async () => { const r = await dialog.showOpenDialog({ title: 'İzlenecek klasörü seç', properties: ['openDirectory'] }); return r.canceled ? null : r.filePaths[0]; }, notify: (t, b) => { try { const { Notification } = require('electron'); if (Notification.isSupported()) new Notification({ title: t, body: b }).show(); } catch (e) { /* yoksay */ } }, service: buildService(), confirm, openExternal: (u) => shell.openExternal(u), showItemInFolder: (p) => shell.showItemInFolder(p), configPath: configPath(), version: ctx.version });
+    host = createHost({ obfOutputRoot: path.join(app.getPath('documents'), 'StatScan-Cikti'), obfToolsDir: userFile('tools'), storePath: userFile('store.json'), downloadsDir: app.getPath('downloads'), modsDirs: (() => { const o = []; const ad = app.getPath('appData'); o.push({ label: 'Minecraft mods (.minecraft)', path: path.join(ad, '.minecraft', 'mods') }); return o; })(), chooseFolder: async () => { const r = await dialog.showOpenDialog({ title: 'İzlenecek klasörü seç', properties: ['openDirectory'] }); return r.canceled ? null : r.filePaths[0]; }, notify: (t, b) => { try { const { Notification } = require('electron'); if (Notification.isSupported()) new Notification({ title: t, body: b }).show(); } catch (e) { /* yoksay */ } }, service: buildService(), confirm, openExternal: (u) => shell.openExternal(u), showItemInFolder: (p) => shell.showItemInFolder(p), configPath: configPath(), version: ctx.version, settings: settingsDeps });
     host.register(ipcMain);
     setMenu(); createWindow();
     if (ctx.rolledBack) setTimeout(() => dialog.showMessageBox(win, { type: 'warning', title: 'Güncelleme geri alındı', message: 'Önceki güncelleme kullanılmadı; uygulamayla gelen sürüm açıldı.', detail: String(ctx.rolledBack) }), 1500);

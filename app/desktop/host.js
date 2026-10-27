@@ -291,6 +291,23 @@ function createHost(deps) {
     'app:showConfig': async () => { if (deps.configPath) deps.showItemInFolder(deps.configPath); return { ok: true, path: deps.configPath || null }; },
     'app:info': async () => ({ version: deps.version || '', platform: process.platform, configPath: deps.configPath || null })
   };
+  /* Kovan ayarlari (masaustu): yalnizca beyaz listedeki bool anahtarlar; asil islemler deps.settings ile (test icin degistirilebilir) */
+  if (deps.settings) {
+    const SK = new Set(['openAtLogin', 'startMinimized', 'autoUpdate']);
+    const snap = () => { const S = deps.settings; const au = S.autostartSupport(); return { desktop: true, platform: process.platform, version: deps.version || '', autostart: au, openAtLogin: au.supported ? !!S.getLogin() : false, startMinimized: !!S.getApp().startMinimized, autoUpdate: !!S.getApp().auto, feedUrl: S.getApp().feedUrl || '' }; };
+    handlers['settings:get'] = async () => { try { return snap(); } catch (e) { return errObj(e); } };
+    handlers['settings:set'] = async (_e, key, val) => {
+      try {
+        if (typeof key !== 'string' || !SK.has(key) || typeof val !== 'boolean') return { error: 'bad', message: 'Geçersiz ayar isteği.' };
+        const S = deps.settings;
+        if (key === 'openAtLogin') { const au = S.autostartSupport(); if (!au.supported) return { error: 'unsupported', message: au.reason }; S.setLogin(val); if (!!S.getLogin() !== val) return { error: 'failed', message: 'İşletim sistemi ayarı uygulamadı; değişiklik yapılmadı.' }; }
+        else if (key === 'startMinimized') S.setApp({ startMinimized: val });
+        else S.setApp({ auto: val });
+        return snap();
+      } catch (e) { return errObj(e); }
+    };
+    handlers['settings:checkUpdate'] = async () => { try { if (deps.settings.checkUpdate) await deps.settings.checkUpdate(); return { ok: true }; } catch (e) { return errObj(e); } };
+  }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);

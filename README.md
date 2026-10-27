@@ -109,3 +109,7 @@ Kovan'ın kendi sürümü **beta 0.0.1**'den yeniden başlar (kenar çubuğu ve 
 - **Mod sürüm ayarlayıcı** (`#/modconv`): fabric.mod.json, quilt.mod.json, mods.toml, neoforge.mods.toml, mcmod.info, plugin.yml içindeki hedef Minecraft aralığını günceller; imza dosyalarını çıkarır; Java sürümü, Mixin, access widener için risk raporu üretir. **Derlenmiş kodu çevirmez; çalışacağını garanti etmez.**
 - Doğrulanmayanlar: 1.21.9+ `min_format/max_format` biçimi ve 26.3 oyunda denenmedi; GUI sprite bölünmesi (1.20.2), 26.2 yatak/tabela, spawn egg değişiklikleri otomatik çevrilmez; eski sürüme dönüşüm kayıplıdır; 26.x için gereken Java sürümü doğrulanmış tabloda yok.
 - Testler: `mczip.mjs`, `mcconv.mjs` (manifest dizini argüman olabilir), `modconv.mjs`, `ui-conv.mjs`.
+
+### Kovan Ayarlar menüsü
+
+Sol altta **Ayarlar** (veya `Ctrl+,`, komut paletinde "Ayarlar"): tema, kenar çubuğu daraltma, karşılama animasyonu, kullanıcı adı, tercihleri sıfırlama. Masaüstü uygulamasında ayrıca **Windows ile başlat** (`--autostart` ile oturum açılışında), **simge durumunda başlat** ve **açılışta güncelleme denetimi** (`statscan-app.config.json`: `update.auto`, `startup.minimized`) ile "Şimdi denetle". Tarayıcıda bu bölümler kapalıdır ve nedeni yazar. Paketlenmemiş (geliştirme) çalıştırmada ve Windows/macOS dışında oturum açılışı ayarı reddedilir; işletim sistemi ayarı uygulamazsa anahtar geri döner. Gerçek bir Windows girişiyle denenmedi (Linux'ta test edildi: `settings-host.cjs`, `ui-settings.mjs`).

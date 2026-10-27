@@ -619,6 +619,32 @@ kbd { font: 600 11px var(--f-mono); padding: 1px 6px; border: 1px solid var(--li
   .app.collapsed .side-foot button { width: 100%; justify-content: center; padding: 8px 0; }
 }
 @media (max-width: 899px) { .searchbtn, #side-toggle { display: none; } }
+/* Kovan ayarlar penceresi */
+button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; text-align: left; margin: 0; }
+.side-settings { flex: none; margin-top: 4px; }
+.settings { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); padding: 0; width: min(640px, calc(100vw - 24px)); max-height: min(86vh, 760px); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .65); }
+.settings::backdrop { background: rgba(4, 9, 14, .6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.settings:not([open]) { display: none; }
+.settings[open]:not(dialog) { position: fixed; inset: 8vh auto auto 50%; transform: translateX(-50%); z-index: 70; }
+.settings-box { display: flex; flex-direction: column; max-height: inherit; }
+.settings-box > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.settings-box h2 { margin: 0; font: 700 20px var(--f-display); }
+#settings-body { overflow-y: auto; padding: 6px 20px 20px; display: grid; gap: 4px; }
+.ssec { display: grid; gap: 2px; padding-top: 14px; }
+.ssec h3 { margin: 0 0 4px; font: 600 11px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.snote { margin: 0 0 6px; font-size: 13px; color: var(--muted); } .snote.warn { color: var(--s1); }
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.srow .stxt { min-width: 0; } .srow label { font-weight: 600; font-size: 14.5px; } .srow p { margin: 2px 0 0; font-size: 13px; color: var(--muted); text-wrap: pretty; }
+.srow select, .srow input[type=text], .sinline input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: 14px var(--f-body); }
+.sinline { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; } .sinline input { width: 150px; max-width: 100%; }
+.srow button, .settings-box > header button { padding: 7px 12px; font-size: 13px; white-space: nowrap; }
+.sw { appearance: none; -webkit-appearance: none; flex: none; width: 44px; height: 26px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); position: relative; cursor: pointer; transition: background-color .2s, border-color .2s; }
+.sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .2s var(--ease), background-color .2s; }
+.sw:checked { background: var(--accent-soft); border-color: var(--accent); } .sw:checked::after { transform: translateX(18px); background: var(--accent); }
+.sw:disabled { opacity: .45; cursor: not-allowed; } .sw:focus-visible, .srow select:focus-visible, .sinline input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sabout { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .sabout li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; } .sabout b { color: var(--muted); font-weight: 600; }
+@media (max-width: 899px) { .side-settings { flex: 1; margin-top: 0; width: auto; } .srow { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .sw, .sw::after { transition: none; } }
 /* Kovan araclari: surum donusturuculeri */
 .kv { max-width: 860px; margin: 0 auto; padding: clamp(18px, 4vw, 40px) 16px 60px; display: grid; gap: 16px; }
 .kv[hidden] { display: none; }
@@ -654,6 +680,7 @@ kbd { font: 600 11px var(--f-mono); padding: 1px 6px; border: 1px solid var(--li
     <a class="side-brand" href="#/home" aria-label="Kovan — Home"><svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs><path d="M13.9 7 20 10.5v7L13.9 21 7.8 17.5v-7Z" fill="none" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round"/><path d="M26.1 7l6.1 3.5v7L26.1 21 20 17.5v-7Z" fill="none" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round" opacity=".55"/><path d="M20 17.5l6.1 3.5v7L20 31.5 13.9 28v-7Z" fill="url(#kg)" stroke="url(#kg)" stroke-width="2" stroke-linejoin="round"/></svg><span><span class="wm">Kovan</span><span class="sub">çalışma alanı</span></span></a>
     <button class="searchbtn" id="side-search" type="button" aria-label="Ara veya komut çalıştır (Ctrl K)" title="Ara veya komut çalıştır (Ctrl K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span class="lbl">Ara…</span><kbd>Ctrl K</kbd></button>
     <nav class="side-nav" id="side-nav" aria-label="Bölümler"></nav>
+    <button class="nav-item side-settings" id="side-settings" type="button" aria-haspopup="dialog" title="Ayarlar (Ctrl+,)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.7-1.3-1.8-3.1-2 .8a7.6 7.6 0 0 0-2.6-1.5L14.4 3h-3.6l-.3 2.4A7.6 7.6 0 0 0 7.9 6.9l-2-.8-1.8 3.1 1.7 1.3a7.6 7.6 0 0 0 0 3l-1.7 1.3 1.8 3.1 2-.8a7.6 7.6 0 0 0 2.6 1.5l.3 2.4h3.6l.3-2.4a7.6 7.6 0 0 0 2.6-1.5l2 .8 1.8-3.1-1.7-1.3Z"/></svg><span>Ayarlar</span></button>
     <div class="side-foot"><span class="ver" id="side-ver"></span><span class="row"><button id="side-theme" type="button" aria-label="Açık/koyu temayı değiştir" title="Açık/koyu tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg><span>Tema</span></button><button id="side-toggle" type="button" aria-expanded="true" aria-label="Kenar çubuğunu daralt" title="Kenar çubuğunu daralt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button></span></div>
   </aside>
   <div class="kstage" id="content">
@@ -796,6 +823,7 @@ kbd { font: 600 11px var(--f-mono); padding: 1px 6px; border: 1px solid var(--li
 </section>
   </div>
 </div>
+<dialog class="settings" id="settings" aria-labelledby="settings-title"><div class="settings-box"><header><h2 id="settings-title">Ayarlar</h2><button type="button" id="settings-close" aria-label="Ayarlar penceresini kapat">Kapat</button></header><div id="settings-body"></div></div></dialog>
 <div class="pal" id="pal" hidden><div class="pal-box" role="dialog" aria-modal="true" aria-label="Komut paleti"><input id="pal-q" type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" placeholder="Araç veya komut ara…" autocomplete="off" spellcheck="false"><ul id="pal-list" role="listbox" aria-label="Sonuçlar"></ul><div class="pal-hint">↑↓ seç · Enter çalıştır · Esc kapat</div></div></div>
 <script>
 /* StatScan engine: saf JS, tarayicida calisir, dosyayi calistirmaz, ag kullanmaz. */
@@ -4741,6 +4769,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     function finish() { cancelAnimationFrame(raf); typed.textContent = GREETING; tw.classList.add('done'); }
     function startTyping() {
       if (played) return; played = true;
+      if (LS.get('kovan.typing') === '0') { finish(); return; }
       if (reduceMQ.matches) { finish(); return; }
       const STEP = 62, t = []; let acc = 380; for (const ch of GREETING) { t.push(acc); acc += STEP + (ch === ',' ? 260 : 0) + (ch === ' ' ? 24 : 0); }
       const t0 = performance.now(); typed.textContent = '';
@@ -4763,13 +4792,52 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       f.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
     }
     $('#name-edit').addEventListener('click', editName);
+    /* ---- Ayarlar penceresi (sol alt dugme, Ctrl+,) ---- */
+    const dlg = $('#settings'), sBtn = $('#side-settings'); const host = window.statscanHost && window.statscanHost.settingsGet ? window.statscanHost : null; let sBuilt = false, sPrev = null; const S = {};
+    const hasDlg = typeof dlg.showModal === 'function';
+    function sRow(id, title, desc, ctl) { const r = mk('div', { class: 'srow' }, '<div class="stxt"><label></label><p></p></div>'); const l = r.querySelector('label'); l.textContent = title; if (ctl.id) l.setAttribute('for', ctl.id); r.querySelector('p').textContent = desc; r.append(ctl); S[id] = ctl; return r; }
+    const sSwitch = (id, on, fn) => { const c = mk('input', { type: 'checkbox', id: 'st-' + id, class: 'sw', role: 'switch' }); c.checked = !!on; c.addEventListener('change', () => fn(c)); return c; };
+    const sSec = (t, note) => { const s = mk('section', { class: 'ssec' }, '<h3></h3>'); s.querySelector('h3').textContent = t; if (note) { const p = mk('p', { class: 'snote' }); p.textContent = note; s.append(p); } return s; };
+    function applyTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('statscan-theme', t); } catch (e) { /* depolama yok */ } }
+    function buildSettings() {
+      if (sBuilt) return; sBuilt = true; const body = $('#settings-body');
+      const g1 = sSec('Görünüm'); const theme = mk('select', { id: 'st-theme' }, '<option value="dark">Koyu</option><option value="light">Açık</option>'); theme.addEventListener('change', () => applyTheme(theme.value));
+      g1.append(sRow('theme', 'Tema', 'Tüm Kovan araçlarında geçerlidir.', theme));
+      g1.append(sRow('collapsed', 'Kenar çubuğunu daralt', 'Yalnızca geniş ekranlarda; dar ekranda alt çubuk kullanılır.', sSwitch('collapsed', app.classList.contains('collapsed'), (c) => setCollapsed(c.checked, true))));
+      g1.append(sRow('typing', 'Karşılama yazısı animasyonu', 'Kapalıyken Home başlığı doğrudan gösterilir. Sistem "hareketi azalt" ayarı her durumda önceliklidir.', sSwitch('typing', LS.get('kovan.typing') !== '0', (c) => LS.set('kovan.typing', c.checked ? null : '0'))));
+      const nm = mk('input', { id: 'st-name', maxlength: '24', autocomplete: 'off', spellcheck: 'false' }); nm.value = user; const nmWrap = mk('span', { class: 'sinline' }); const nmSave = mk('button', { type: 'button' }, 'Kaydet'); const nmReset = mk('button', { type: 'button' }, 'Varsayılan'); nmWrap.append(nm, nmSave, nmReset);
+      const saveName = (v) => { v = v.trim().replace(/\s+/g, ' ').slice(0, 24); if (!v) { nm.value = user; return; } applyName(v); nm.value = v; LS.set('kovan.user', v === DEFAULT_USER ? null : v); };
+      nmSave.addEventListener('click', () => saveName(nm.value)); nmReset.addEventListener('click', () => saveName(DEFAULT_USER)); nm.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(nm.value); } });
+      const nmRow = sRow('name', 'Kullanıcı adı', 'Home karşılamasında görünür (24 karaktere kadar). Yalnızca bu cihazda saklanır.', nmWrap); nmRow.querySelector('label').setAttribute('for', 'st-name'); g1.append(nmRow);
+      body.append(g1);
+      const g2 = sSec('Başlangıç', host ? '' : 'Bu bölüm yalnızca masaüstü uygulamasında çalışır; tarayıcı sayfasında ayarlanamaz.'); const stNote = mk('p', { class: 'snote warn', hidden: true }); stNote.setAttribute('role', 'status');
+      const swLogin = sSwitch('login', false, (c) => hostSet('openAtLogin', c)); const swMin = sSwitch('min', false, (c) => hostSet('startMinimized', c));
+      g2.append(sRow('login', 'Windows ile başlat', 'Bilgisayara giriş yaptığında Kovan otomatik açılır. İstediğin zaman buradan kapatabilirsin.', swLogin), sRow('min', 'Simge durumunda başlat', 'Yalnızca Windows ile otomatik başlayınca uygulanır; pencere görev çubuğunda küçültülmüş açılır.', swMin), stNote); body.append(g2);
+      const g3 = sSec('Güncellemeler', host ? '' : 'Bu bölüm yalnızca masaüstü uygulamasında çalışır.'); const swAuto = sSwitch('auto', false, (c) => hostSet('autoUpdate', c)); const chk = mk('button', { type: 'button', id: 'st-check' }, 'Şimdi denetle');
+      chk.addEventListener('click', async () => { chk.disabled = true; try { await host.settingsCheckUpdate(); } catch (e) { stNote.hidden = false; stNote.textContent = 'Denetim başarısız.'; } chk.disabled = !host; });
+      g3.append(sRow('auto', 'Açılışta güncellemeyi denetle', 'Uygulama açıldıktan kısa süre sonra imzalı güncelleme var mı bakar. Paket imzası her durumda doğrulanır.', swAuto), sRow('check', 'Güncellemeleri denetle', 'Sonucu ayrı bir pencerede gösterir.', chk)); body.append(g3);
+      for (const c of [swLogin, swMin, swAuto, chk]) c.disabled = true;
+      const g4 = sSec('Veri'); const rst = mk('button', { type: 'button', id: 'st-reset' }, 'Kovan tercihlerini sıfırla'); let rT = 0;
+      rst.addEventListener('click', () => { if (!rst.dataset.arm) { rst.dataset.arm = '1'; rst.textContent = 'Emin misin? Tekrar tıkla'; rT = setTimeout(() => { delete rst.dataset.arm; rst.textContent = 'Kovan tercihlerini sıfırla'; }, 4000); return; } clearTimeout(rT); try { for (const k of ['kovan.user', 'kovan.collapsed', 'kovan.typing', 'statscan-theme']) localStorage.removeItem(k); } catch (e) { /* yoksay */ } location.reload(); });
+      g4.append(sRow('reset', 'Tercihleri sıfırla', 'Tema, kenar çubuğu, kullanıcı adı ve animasyon tercihlerini siler. Tarama sonuçlarına ve dosyalarına dokunmaz.', rst)); body.append(g4);
+      const g5 = sSec('Hakkında'); const ab = mk('ul', { class: 'sabout' }); for (const [k, v] of [['Kovan', KOVAN_VER], ['StatScan', StatScan.version || ''], ['Çalışma biçimi', host ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; ab.append(li); } g5.append(ab); body.append(g5);
+      async function hostSet(k, c) { c.disabled = true; stNote.hidden = true; try { const r = await host.settingsSet(k, c.checked); if (r && r.error) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = r.message || 'Ayar uygulanamadı.'; } else hostFill(r); } catch (e) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = 'Ayar uygulanamadı: ' + (e && e.message ? e.message : e); } syncMin(); }
+      function syncMin() { swMin.disabled = !host || !swLogin.checked; }
+      function hostFill(r) { if (!r || r.error) return; swLogin.checked = !!r.openAtLogin; swMin.checked = !!r.startMinimized; swAuto.checked = !!r.autoUpdate; swLogin.disabled = !r.autostart || !r.autostart.supported; swAuto.disabled = false; chk.disabled = false; stNote.hidden = !(r.autostart && !r.autostart.supported); if (!stNote.hidden) stNote.textContent = r.autostart.reason; syncMin(); }
+      S.refresh = async () => { theme.value = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'; S.collapsed.checked = app.classList.contains('collapsed'); S.typing.checked = LS.get('kovan.typing') !== '0'; nm.value = user; if (host) { try { hostFill(await host.settingsGet()); } catch (e) { stNote.hidden = false; stNote.textContent = 'Masaüstü ayarları okunamadı.'; } } };
+    }
+    function openSettings() { buildSettings(); if (!pal.hidden) palClose(false); S.refresh(); sPrev = document.activeElement; if (hasDlg) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', ''); const f = dlg.querySelector('#st-theme'); if (f) f.focus(); }
+    function closeSettings() { if (hasDlg) dlg.close(); else dlg.removeAttribute('open'); if (sPrev && sPrev.focus) sPrev.focus(); }
+    sBtn.addEventListener('click', openSettings); $('#settings-close').addEventListener('click', closeSettings);
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) closeSettings(); }); dlg.addEventListener('cancel', () => { sPrev && sPrev.focus && sPrev.focus(); });
+    document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); if (dlg.open || dlg.hasAttribute('open')) closeSettings(); else openSettings(); } });
     /* ---- komut paleti (Ctrl/Cmd+K) ---- */
     const pal = $('#pal'), palQ = $('#pal-q'), palL = $('#pal-list'); let palItems = [], palSel = 0, palPrev = null;
     const trl = (x) => String(x).toLocaleLowerCase('tr');
     function commands() {
       const c = [{ label: 'Home’a git', hint: 'Sayfa', run: () => go('home') }];
       for (const m of MODULES) { c.push({ label: m.name + ' aracını aç', hint: 'Araç', run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: a.label, hint: 'Komut', run: a.run }); }
-      c.push({ label: 'Temayı değiştir (açık/koyu)', hint: 'Komut', run: () => $('#theme').click() }, { label: app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt', hint: 'Komut', run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: 'Kullanıcı adını değiştir', hint: 'Komut', run: editName });
+      c.push({ label: 'Temayı değiştir (açık/koyu)', hint: 'Komut', run: () => $('#theme').click() }, { label: app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt', hint: 'Komut', run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: 'Kullanıcı adını değiştir', hint: 'Komut', run: editName }, { label: 'Ayarlar', hint: 'Ctrl ,', run: openSettings });
       return c;
     }
     function palRender() {
@@ -4787,7 +4855,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     pal.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { e.preventDefault(); palClose(true); } else if (e.key === 'ArrowDown') { e.preventDefault(); if (palItems.length) { palSel = (palSel + 1) % palItems.length; palMark(); } } else if (e.key === 'ArrowUp') { e.preventDefault(); if (palItems.length) { palSel = (palSel - 1 + palItems.length) % palItems.length; palMark(); } } else if (e.key === 'Enter') { e.preventDefault(); palRun(palSel); } else if (e.key === 'Tab') { e.preventDefault(); }
     });
-    document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') { e.preventDefault(); if (pal.hidden) palOpen(); else palClose(true); } });
+    document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k' && !dlg.open) { e.preventDefault(); if (pal.hidden) palOpen(); else palClose(true); } });
     $('#side-search').addEventListener('click', palOpen); $('#home-search').addEventListener('click', palOpen);
     $('#home-title .sr').textContent = GREETING; tw.querySelector('.ghost').textContent = GREETING;
     render(parse() || 'home');
