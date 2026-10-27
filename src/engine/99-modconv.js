@@ -1,0 +1,59 @@
+/* Beta 0.0.1: Minecraft mod surum "donusturucusu" — DURUST SINIR: derlenmis kod (.class) bir MC surumunden digerine cevrilemez.
+   Yapilan: mod bildiriminde (fabric/quilt/forge/neoforge/plugin.yml/mcmod.info) hedef MC surumu araligini guncellemek + kanita dayali risk raporu.
+   Yapilmayan: kod, mixin, erisim genisletici, API degisikliklerinin uyarlanmasi. Imzali jar'da imza dosyalari cikarilir (imza gecersiz olurdu). */
+const MCM_SIG = /^META-INF\/[^/]+\.(SF|RSA|DSA|EC)$/i;
+function mmRange(v) { const p = v.label.split(' – '); return [p[0], p[p.length - 1]]; }
+function mmJava(v) { const i = MC_VERS.findIndex((x) => x.key === v.key); const k = (key) => MC_VERS.findIndex((x) => x.key === key); if (i >= k('1.20.5')) return i >= k('26.1') ? null : 21; if (i >= k('1.18')) return 17; if (i >= k('1.17')) return 16; return 8; }
+function mmMajor(u8) { return u8.length > 8 && u8[0] === 0xca && u8[1] === 0xfe && u8[2] === 0xba && u8[3] === 0xbe ? (u8[6] << 8) | u8[7] : 0; }
+function mmDetect(names) {
+  const t = []; for (const n of names) { if (n === 'fabric.mod.json') t.push('fabric'); else if (n === 'quilt.mod.json') t.push('quilt'); else if (n === 'META-INF/neoforge.mods.toml') t.push('neoforge'); else if (n === 'META-INF/mods.toml') t.push('forge'); else if (n === 'mcmod.info') t.push('forge-eski'); else if (n === 'plugin.yml' || n === 'paper-plugin.yml') t.push('bukkit'); }
+  return [...new Set(t)];
+}
+async function mmAnalyze(u8) {
+  const zip = mzRead(u8); const names = zip.entries.filter((e) => !e.isDir).map((e) => e.name); const loaders = mmDetect(names); const get = async (n) => { const e = zip.entries.find((x) => x.name === n); return e ? new TextDecoder().decode(await mzData(zip, e, 2e6)).replace(/^﻿/, '') : null; };
+  const info = { zip, names, loaders, files: {}, constraints: [], classes: 0, maxMajor: 0, mixins: [], wideners: [], sigs: names.filter((n) => MCM_SIG.test(n)), nested: names.filter((n) => /^META-INF\/jars\/.+\.jar$/.test(n)), id: null, version: null };
+  for (const e of zip.entries) if (/\.class$/.test(e.name) && !e.isDir) { info.classes++; if (info.classes <= 400) { const m = mmMajor(await mzData(zip, e, 4e6).catch(() => new Uint8Array(0))); if (m > info.maxMajor) info.maxMajor = m; } }
+  for (const l of loaders) {
+    const f = { fabric: 'fabric.mod.json', quilt: 'quilt.mod.json', neoforge: 'META-INF/neoforge.mods.toml', forge: 'META-INF/mods.toml', 'forge-eski': 'mcmod.info' }[l] || (names.includes('paper-plugin.yml') && !names.includes('plugin.yml') ? 'paper-plugin.yml' : 'plugin.yml'); const txt = await get(f); if (txt == null) continue; info.files[l] = { file: f, text: txt };
+    if (l === 'fabric') { try { const j = JSON.parse(txt); info.id = info.id || j.id; info.version = info.version || j.version; const d = j.depends && j.depends.minecraft; if (d != null) info.constraints.push({ l, file: f, v: Array.isArray(d) ? d.join(' | ') : String(d) }); else info.constraints.push({ l, file: f, v: null }); for (const m of [].concat(j.mixins || [])) info.mixins.push(typeof m === 'string' ? m : m && m.config); if (j.accessWidener) info.wideners.push(j.accessWidener); } catch (er) { info.files[l].err = 'JSON geçersiz'; } }
+    else if (l === 'quilt') { try { const j = JSON.parse(txt); const q = j.quilt_loader || {}; info.id = info.id || q.id; info.version = info.version || q.version; const d = (q.depends || []).find((x) => x && x.id === 'minecraft'); info.constraints.push({ l, file: f, v: d ? JSON.stringify(d.versions != null ? d.versions : '*') : null }); if (j.mixin) info.mixins.push(...[].concat(j.mixin)); if (j.access_widener) info.wideners.push(j.access_widener); } catch (er) { info.files[l].err = 'JSON geçersiz'; } }
+    else if (l === 'forge' || l === 'neoforge') { const m = /modId\s*=\s*["']minecraft["'][\s\S]{0,300}?versionRange\s*=\s*["']([^"']+)["']/.exec(txt) || /versionRange\s*=\s*["']([^"']+)["'][\s\S]{0,300}?modId\s*=\s*["']minecraft["']/.exec(txt); info.constraints.push({ l, file: f, v: m ? m[1] : null }); const id = /modId\s*=\s*["']([^"']+)["']/.exec(txt); if (id && id[1] !== 'minecraft') info.id = info.id || id[1]; }
+    else if (l === 'forge-eski') { const m = /"mcversion"\s*:\s*"([^"]*)"/.exec(txt); info.constraints.push({ l, file: f, v: m ? m[1] : null }); }
+    else { const m = /^api-version\s*:\s*['"]?([^'"\n]+?)['"]?\s*$/m.exec(txt); info.constraints.push({ l, file: f, v: m ? m[1] : null }); const n = /^name\s*:\s*['"]?([^'"\n]+?)['"]?\s*$/m.exec(txt); if (n) info.id = info.id || n[1]; }
+  }
+  for (const n of names) if (/\.mixins?\.json$/.test(n) || /mixins\.[^/]*\.json$/.test(n)) if (!info.mixins.includes(n)) info.mixins.push(n);
+  for (const n of names) if (/\.accesswidener$/.test(n) && !info.wideners.includes(n)) info.wideners.push(n);
+  info.mixins = [...new Set(info.mixins.filter(Boolean))]; return info;
+}
+function mmRetarget(l, text, dst) {
+  const [a, b] = mmRange(dst); const pair = a === b ? a : null;
+  if (l === 'fabric') { const j = JSON.parse(text); j.depends = j.depends || {}; j.depends.minecraft = '>=' + a + ' <=' + b; return JSON.stringify(j, null, 2); }
+  if (l === 'quilt') { const j = JSON.parse(text); const q = j.quilt_loader = j.quilt_loader || {}; q.depends = (q.depends || []).filter(Boolean); const d = q.depends.find((x) => x.id === 'minecraft'); const rng = '>=' + a + ' <=' + b; if (d) d.versions = rng; else q.depends.push({ id: 'minecraft', versions: rng }); return JSON.stringify(j, null, 2); }
+  if (l === 'forge' || l === 'neoforge') { const rng = '[' + a + ',' + b + ']'; let done = false; const out = text.replace(/(modId\s*=\s*["']minecraft["'][\s\S]{0,300}?versionRange\s*=\s*["'])([^"']+)(["'])/, (m, p, v, s) => { done = true; return p + rng + s; }); if (done) return out; const out2 = text.replace(/(versionRange\s*=\s*["'])([^"']+)(["'])([\s\S]{0,300}?modId\s*=\s*["']minecraft["'])/, (m, p, v, s, rest) => { done = true; return p + rng + s + rest; }); return done ? out2 : null; }
+  if (l === 'forge-eski') { return text.replace(/("mcversion"\s*:\s*")[^"]*(")/, '$1' + a + '$2'); }
+  const av = dst.key.split('.').slice(0, 2).join('.'); if (/^api-version\s*:/m.test(text)) return text.replace(/^api-version\s*:.*$/m, "api-version: '" + av + "'"); return text.replace(/\s*$/, '\n') + "api-version: '" + av + "'\n";
+}
+/* opts: { dst, name } */
+async function mmConvert(u8, opts) {
+  const dst = mcVer(opts.dst); if (!dst) return { ok: false, reason: 'Hedef sürüm geçersiz.' }; let info; try { info = await mmAnalyze(u8); } catch (e) { return { ok: false, reason: e && e.message || String(e) }; }
+  const rep = { dst: dst.key, dstLabel: dst.label, loaders: info.loaders, id: info.id, version: info.version, classes: info.classes, maxMajor: info.maxMajor, constraints: info.constraints, changed: [], skipped: [], warnings: [], risks: [], removedSigs: info.sigs, mixins: info.mixins, wideners: info.wideners, nested: info.nested.length };
+  if (!info.loaders.length) return { ok: false, reason: 'Tanınan bir mod bildirimi yok (fabric.mod.json, quilt.mod.json, META-INF/mods.toml, neoforge.mods.toml, mcmod.info, plugin.yml). Bu bir Minecraft modu/eklentisi değil ya da desteklenmeyen bir biçim.', report: rep };
+  const repl = new Map(); const [a, b] = mmRange(dst);
+  for (const l of info.loaders) { const f = info.files[l]; if (!f) continue; if (f.err) { rep.skipped.push(f.file + ': ' + f.err); continue; } let nt; try { nt = mmRetarget(l, f.text, dst); } catch (e) { rep.skipped.push(f.file + ': güncellenemedi (' + (e.message || e) + ')'); continue; } if (nt == null) { rep.skipped.push(f.file + ': minecraft bağımlılık satırı bulunamadı; elle ekleyin'); continue; } if (nt === f.text || ((l === 'fabric' || l === 'quilt') && JSON.stringify(JSON.parse(nt)) === JSON.stringify(JSON.parse(f.text)))) { rep.skipped.push(f.file + ': zaten hedefle uyumlu'); continue; } repl.set(f.file, new TextEncoder().encode(nt)); rep.changed.push(f.file + ' → minecraft ' + (l === 'bukkit' ? 'api-version' : '') + ' ' + (a === b ? a : a + ' – ' + b)); }
+  if (info.sigs.length) rep.warnings.push('İmza dosyaları (' + info.sigs.join(', ') + ') çıkarıldı: bildirim değiştiği için imza zaten geçersiz olurdu.');
+  const jv = mmJava(dst); if (jv != null) { const need = { 8: 52, 16: 60, 17: 61, 21: 65 }[jv]; if (info.maxMajor > need) rep.risks.push('Sınıflar Java ' + (info.maxMajor - 44) + ' ile derlenmiş; ' + dst.label + ' için beklenen Java ' + jv + ' veya altı. Mod yüklenmeyebilir.'); else if (info.maxMajor && info.maxMajor < need) rep.risks.push('Sınıflar Java ' + (info.maxMajor - 44) + ' ile derlenmiş (hedef Java ' + jv + '): çalışabilir; ancak API farkı olasıdır.'); } else rep.risks.push('Hedef sürüm için gereken Java sürümü doğrulanmış tabloda yok; resmi duyurudan kontrol edin.');
+  const cvs = info.constraints.map((c) => c.v).filter(Boolean); if (info.constraints.some((c) => !c.v)) rep.risks.push('Bazı bildirimlerde minecraft sürüm kısıtı yoktu; eklendi ya da elle eklenmeli.');
+  if (info.mixins.length) rep.risks.push('Mixin kullanıyor (' + info.mixins.length + ' yapılandırma): hedef sınıf/metot adları sürümler arası değişir; en sık kırılma nedenidir.');
+  if (info.wideners.length) rep.risks.push('Access widener/transformer var (' + info.wideners.join(', ') + '): hedef sürümde alan/metot adları değişmişse yükleme hatası verir.');
+  if (info.nested.length) rep.warnings.push(info.nested.length + ' gömülü jar (META-INF/jars) var; bunların bildirimleri değiştirilmedi.');
+  if (info.loaders.some((l) => l === 'forge' || l === 'neoforge')) rep.warnings.push('Forge/NeoForge: loaderVersion ve forge/neoforge bağımlılık aralığı da hedef sürüme göre değişir; yalnızca minecraft aralığı güncellendi.');
+  if (info.loaders.includes('fabric') || info.loaders.includes('quilt')) rep.warnings.push('Fabric/Quilt: fabric-api ve fabricloader sürüm aralıkları değiştirilmedi.');
+  if (info.classes && info.loaders.some((l) => l !== 'bukkit')) rep.risks.push('Derlenmiş kod (' + info.classes + ' sınıf) hedef sürümün Minecraft/Loader API\'siyle derlenmedi. Bu araç yalnızca bildirimi günceller; modun hedef sürümde ÇALIŞACAĞINI GARANTİ ETMEZ. Gerçek taşıma için kaynak kodun yeniden derlenmesi gerekir.');
+  if (!repl.size) { rep.warnings.push('Değiştirilecek bir bildirim yok; çıktı üretilmedi.'); return { ok: true, noChange: true, report: rep }; }
+  const items = []; for (const e of info.zip.entries) { if (e.isDir) continue; if (MCM_SIG.test(e.name)) continue; if (repl.has(e.name)) items.push({ name: e.name, data: repl.get(e.name), time: e.time, date: e.date }); else items.push({ name: e.name, nameBytes: e.nameBytes, utf8: e.utf8, copy: { zip: info.zip, entry: e }, time: e.time, date: e.date }); }
+  const out = await mzWrite(items); return { ok: true, out, report: rep, name: (opts.name || 'mod.jar').replace(/\.jar$/i, '') + '-' + dst.key + '.jar' };
+}
+function mmReportText(r, srcName) {
+  const L = ['# Mod sürüm dönüştürme raporu', '', 'Dosya: ' + srcName, 'Hedef: ' + r.dstLabel, 'Yükleyici: ' + (r.loaders.join(', ') || '—') + (r.id ? ' · kimlik: ' + r.id : '') + (r.version ? ' · sürüm: ' + r.version : ''), 'Sınıf: ' + r.classes + (r.maxMajor ? ' (en yüksek class major ' + r.maxMajor + ' = Java ' + (r.maxMajor - 44) + ')' : ''), '', '## Mevcut minecraft kısıtları', ...(r.constraints.length ? r.constraints.map((c) => '- ' + c.file + ': ' + (c.v || '(yok)')) : ['- —']), '', '## Yapılan değişiklikler', ...(r.changed.length ? r.changed.map((x) => '- ' + x) : ['- Yok']), ...(r.skipped.length ? ['', '## Atlananlar', ...r.skipped.map((x) => '- ' + x)] : []), ...(r.warnings.length ? ['', '## Uyarılar', ...r.warnings.map((x) => '- ' + x)] : []), ...(r.risks.length ? ['', '## Riskler', ...r.risks.map((x) => '- ' + x)] : []), '', '## Sınır', '- Derlenmiş kod dönüştürülmez; yalnızca bildirim güncellenir. Orijinal dosya değiştirilmedi.'];
+  return L.join('\n');
+}

@@ -1,0 +1,17 @@
+import { loadEngine } from './engine.mjs';
+const E = loadEngine(); let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
+const enc = (s) => new TextEncoder().encode(s); const dec = (u) => new TextDecoder().decode(u);
+const cls = (major) => new Uint8Array([0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, major, 0, 0]);
+const mk = (o) => E.mzWrite(Object.entries(o).map(([n, d]) => ({ name: n, data: typeof d === 'string' ? enc(d) : d })));
+const rd = async (u8) => { const z = E.mzRead(u8); const m = {}; for (const e of z.entries) if (!e.isDir) m[e.name] = dec(await E.mzData(z, e)); return m; };
+let r = await E.mmConvert(await mk({ 'fabric.mod.json': JSON.stringify({ id: 'foo', version: '1', depends: { minecraft: '~1.20', fabricloader: '*' }, mixins: ['foo.mixins.json'] }), 'foo.mixins.json': '{}', 'a/B.class': cls(61), 'META-INF/X.SF': 'sig', 'META-INF/X.RSA': 'sig' }), { dst: '1.21.4', name: 'foo.jar' });
+let f = await rd(r.out); ok(r.ok && JSON.parse(f['fabric.mod.json']).depends.minecraft === '>=1.21.4 <=1.21.4' && JSON.parse(f['fabric.mod.json']).depends.fabricloader === '*', 'fabric: minecraft aralığı güncellendi, diğer bağımlılıklar korundu');
+ok(!f['META-INF/X.SF'] && !f['META-INF/X.RSA'] && r.report.removedSigs.length === 2, 'imza dosyaları çıkarıldı ve raporlandı');
+ok(r.report.risks.some((x) => /Java 17/.test(x)) && r.report.risks.some((x) => /Mixin/.test(x)) && r.report.risks.some((x) => /GARANTİ ETMEZ/.test(x)), 'riskler: Java 17<21 notu, Mixin, çalışma garantisi yok');
+r = await E.mmConvert(await mk({ 'META-INF/mods.toml': 'modLoader="javafml"\n[[mods]]\nmodId="foo"\n[[dependencies.foo]]\nmodId="minecraft"\nmandatory=true\nversionRange="[1.19,1.20)"\nside="BOTH"\n', 'a/B.class': cls(61) }), { dst: '1.20.3' }); f = await rd(r.out); ok(/versionRange="\[1\.20\.3,1\.20\.4\]"/.test(f['META-INF/mods.toml']) && /side="BOTH"/.test(f['META-INF/mods.toml']), 'forge: versionRange yalnız minecraft bloğunda değişti');
+r = await E.mmConvert(await mk({ 'plugin.yml': "name: P\nmain: a.B\napi-version: '1.19'\n" }), { dst: '1.21.4' }); f = await rd(r.out); ok(/api-version: '1\.21'/.test(f['plugin.yml']) && /main: a\.B/.test(f['plugin.yml']), 'plugin.yml: api-version 1.21');
+r = await E.mmConvert(await mk({ 'quilt.mod.json': JSON.stringify({ quilt_loader: { id: 'q', version: '1', depends: [{ id: 'minecraft', versions: '1.20' }] } }) }), { dst: '1.21' }); f = await rd(r.out); ok(JSON.parse(f['quilt.mod.json']).quilt_loader.depends[0].versions === '>=1.21 <=1.21.1', 'quilt: aralık "1.21 – 1.21.1"');
+r = await E.mmConvert(await mk({ 'readme.txt': 'x' }), { dst: '1.21' }); ok(!r.ok && /mod bildirimi|bildirimi/.test(r.reason), 'mod olmayan dosya açık hata');
+r = await E.mmConvert(await mk({ 'fabric.mod.json': '{bad' }), { dst: '1.21' }); ok(r.ok && r.noChange && r.report.skipped.some((s) => /geçersiz/.test(s)), 'bozuk bildirim: dokunulmadı, raporlandı');
+r = await E.mmConvert(await mk({ 'fabric.mod.json': JSON.stringify({ id: 'x', depends: { minecraft: '>=1.21.4 <=1.21.4' } }) }), { dst: '1.21.4' }); ok(r.ok && r.noChange, 'zaten uyumlu: çıktı üretilmedi');
+console.log(bad ? bad + ' HATA' : 'TAMAM'); process.exit(bad ? 1 : 0);

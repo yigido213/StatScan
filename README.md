@@ -100,3 +100,12 @@ StatScan artık "Kovan" adlı daha büyük, modüler bir çalışma alanının i
 - **Komut paleti:** `Ctrl+K` (macOS `Cmd+K`) veya Home'daki/kenar çubuğundaki "Ara" düğmesi. Araçlar ve komutlar (Home, araç aç, StatScan sekmeleri, tema, kenar çubuğu, kullanıcı adı) listeden üretilir; `MODULES` içindeki `actions` ile araç komutu eklenir. ↑↓/Enter/Esc.
 - **Kullanıcı adı:** Home'daki "Adı değiştir" veya paletten; 24 karaktere kadar, metin olarak gösterilir (HTML yorumlanmaz), "Varsayılan" yigit717'ye döner. Yalnızca bu cihazda saklanır.
 - Test: `node tools/test/ui-shell.mjs` (bu özellikleri de kapsar).
+
+### Kovan beta 0.0.1: Minecraft dönüştürücüler (paket 4.8.0)
+
+Kovan'ın kendi sürümü **beta 0.0.1**'den yeniden başlar (kenar çubuğu ve Home'da görünür). Güncelleme paketi numarası (4.8.0) yükleyicinin sürüm karşılaştırması için yükselmeye devam eder; StatScan'in kendi etiketi 4.8'dir.
+
+- **Doku paketi dönüştürücü** (`#/texpack`): kaynak paketi (.zip) → seçilen Minecraft Java sürümü (1.6.1 … 26.3). `pack.mcmeta` (pack_format; 1.21.9+ için min/max_format; eski sürümde supported_formats kaldırılır), vanilla doku yeniden adlandırmaları (gerçek vanilla dosyalarının içerik/ad karşılaştırmasından üretildi: `src/engine/96-mcdata.js`, üretici `tools/gen-mc-renames.mjs`), model/font içindeki doku başvuruları, 1.21.4+ için yalnızca güvenli `custom_model_data` override'larından `items/` tanımı. Çakışmada mevcut dosya ezilmez; hedefte karşılığı olmayan dosyalar silinmez, raporlanır. Değişmeyen girdiler sıkıştırılmış haliyle kopyalanır; çıktı yeni bir zip'tir.
+- **Mod sürüm ayarlayıcı** (`#/modconv`): fabric.mod.json, quilt.mod.json, mods.toml, neoforge.mods.toml, mcmod.info, plugin.yml içindeki hedef Minecraft aralığını günceller; imza dosyalarını çıkarır; Java sürümü, Mixin, access widener için risk raporu üretir. **Derlenmiş kodu çevirmez; çalışacağını garanti etmez.**
+- Doğrulanmayanlar: 1.21.9+ `min_format/max_format` biçimi ve 26.3 oyunda denenmedi; GUI sprite bölünmesi (1.20.2), 26.2 yatak/tabela, spawn egg değişiklikleri otomatik çevrilmez; eski sürüme dönüşüm kayıplıdır; 26.x için gereken Java sürümü doğrulanmış tabloda yok.
+- Testler: `mczip.mjs`, `mcconv.mjs` (manifest dizini argüman olabilir), `modconv.mjs`, `ui-conv.mjs`.

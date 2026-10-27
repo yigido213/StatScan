@@ -1,6 +1,6 @@
 {
-  "version": "4.7.1",
-  "url": "StatScan-4.7.1.ssu",
-  "sha256": "56a17c7c4bc7a2b9b8d9074b7c94c86f339c34c7a858223493254854c34784ea",
-  "notes": "4.7.1: Kovan ana menü: daraltılabilir kenar çubuğu, komut paleti (Ctrl+K), değiştirilebilir kullanıcı adı"
+  "version": "4.8.0",
+  "url": "StatScan-4.8.0.ssu",
+  "sha256": "6f6679ef51306c86439edc6c2ac7df27b0479f264be45fe744403e47f28aca4a",
+  "notes": "4.8.0: Kovan beta 0.0.1 — doku paketi dönüştürücü ve mod sürüm ayarlayıcı"
 }

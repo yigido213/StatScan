@@ -10,14 +10,14 @@ let pg = await page({ reducedMotion: 'no-preference' }); await pg.goto(URL);
 ok((await pg.title()) === 'Home · Kovan', 'başlık: Home · Kovan');
 ok(await pg.evaluate(() => !document.querySelector('#app-home').hidden && document.querySelector('#app-statscan').hidden), 'açılışta Home görünür, StatScan gizli');
 ok(await pg.evaluate(() => document.querySelector('#side-nav a[aria-current="page"]').dataset.route) === 'home', 'kenar çubuğunda Home seçili');
-const navTxt = await pg.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item')].map((a) => a.textContent.trim())); ok(JSON.stringify(navTxt) === JSON.stringify(['Home', 'StatScan']), 'kenar çubuğu: Home + StatScan (' + navTxt.join(', ') + ')');
+const navTxt = await pg.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item')].map((a) => a.textContent.trim())); ok(JSON.stringify(navTxt) === JSON.stringify(['Home', 'StatScan', 'Doku paketi dönüştürücü', 'Mod sürüm ayarlayıcı']), 'kenar çubuğu: Home + StatScan (' + navTxt.join(', ') + ')');
 const seen = []; for (let i = 0; i < 14; i++) { seen.push((await typed(pg)).length); await pg.waitForTimeout(120); }
 ok(seen[0] < FULL.length && seen.some((n) => n > 0 && n < FULL.length), 'metin harf harf beliriyor (' + seen.slice(0, 8).join(',') + '…)'); ok(seen.every((n, i) => i === 0 || n >= seen[i - 1]), 'uzunluk yalnızca artıyor (geri gitmiyor)');
 await pg.waitForTimeout(2600); ok((await typed(pg)) === FULL, 'tamamlanınca tam metin: "' + (await typed(pg)) + '"'); ok(await pg.evaluate(() => document.querySelector('#tw').classList.contains('done')), 'bitince imleç kalktı, metin sabit');
 const st = await pg.evaluate(() => { const c = getComputedStyle(document.querySelector('#home-title')); return [c.fontWeight, c.fontStyle]; }); ok(+st[0] >= 700 && st[1] === 'italic', 'başlık kalın + eğik (' + st.join(' ') + ')');
 const w = await pg.evaluate(() => { const r = document.querySelector('#home-title').getBoundingClientRect(); return [r.left, r.top]; }); ok(w[0] < 400 && w[1] < 200, 'başlık sol üstte (' + w.map(Math.round).join(',') + ')');
 ok(await pg.evaluate(() => document.querySelector('#toolgrid .toolcard[data-open="statscan"]') && document.querySelectorAll('#toolgrid .toolcard.empty').length === 1), 'Home: StatScan kartı + boş yer tutucu (sahte araç yok)');
-ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid button.toolcard').length) === 1, 'tıklanabilir yalnızca 1 araç kartı');
+ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid button.toolcard').length) === 3, 'tıklanabilir 3 araç kartı');
 // 2) StatScan'e gecis
 await pg.click('#side-nav a[data-route="statscan"]'); await pg.waitForTimeout(200);
 ok(await pg.evaluate(() => document.querySelector('#app-home').hidden && !document.querySelector('#app-statscan').hidden && location.hash === '#/statscan'), 'StatScan seçilince StatScan açıldı (#/statscan)');
