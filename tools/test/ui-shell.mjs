@@ -19,6 +19,7 @@ const w = await pg.evaluate(() => { const r = document.querySelector('#home-titl
 ok(await pg.evaluate(() => document.querySelector('#toolgrid .toolcard[data-open="statscan"]') && document.querySelectorAll('#toolgrid .toolcard.empty').length === 1), 'Home: StatScan kartı + boş yer tutucu (sahte araç yok)');
 ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid button.toolcard').length) === 3, 'tıklanabilir 3 araç kartı');
 ok(await pg.evaluate(() => { const t = document.querySelector('#tw .typed'); const c = getComputedStyle(t); return document.documentElement.dataset.fx === 'off' || parseFloat(c.paddingRight) > 0 || c.webkitTextFillColor !== 'rgba(0, 0, 0, 0)'; }), 'italik başlığın sağ ucu kesilmez (parlama açıkken sağ dolgu var)');
+{ const wp = await page({}, { width: 1900, height: 800 }); await wp.goto(URL); await wp.waitForTimeout(300); ok(await wp.evaluate(() => { const h = document.querySelector('#app-home').getBoundingClientRect(); return Math.abs(h.right - innerWidth) < 1 && document.documentElement.scrollWidth <= innerWidth; }), 'geniş ekranda Home arka planı tüm genişliğe yayılır (sağda sert kenar yok)'); }
 // 2) StatScan'e gecis
 await pg.click('#side-nav a[data-route="statscan"]'); await pg.waitForTimeout(200);
 ok(await pg.evaluate(() => document.querySelector('#app-home').hidden && !document.querySelector('#app-statscan').hidden && location.hash === '#/statscan'), 'StatScan seçilince StatScan açıldı (#/statscan)');

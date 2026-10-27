@@ -1,6 +1,6 @@
 {
-  "version": "4.9.2",
-  "url": "StatScan-4.9.2.ssu",
-  "sha256": "048854a6bd68c123343450eff5e3a146ddede52b3ed9dbb53a8e68dec09cd5ea",
-  "notes": "4.9.2 hotfix: Home başlığının son harfi kesiliyordu (italik taşma)"
+  "version": "4.9.3",
+  "url": "StatScan-4.9.3.ssu",
+  "sha256": "eb73940f1f7316463d75426045504f520c1107a94142d88ac198ececeea37519",
+  "notes": "4.9.3 hotfix: geniş pencerede Home arka planı sağda sert kenarla bitiyordu"
 }
