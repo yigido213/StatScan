@@ -21,7 +21,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- (başladı) Kovan arayüz animasyonları: yalnızca CSS bloğu + küçük "kovanFx" JS; `claude-animasyon` dalı; sürüm paketlemesi YAPILMAYACAK
+- Kovan arayüz animasyonları + Ayarlar'a "Arayüz animasyonları" anahtarı (kovan.fx) — claude-animasyon: bitti (branch claude-animasyon; main'e BİRLEŞTİRİLMEDİ, sürüm paketlenmedi, latest.json/.ssu değişmedi). Test: `node tools/test/ui-fx.mjs`
 - 4.9.0 — YAYINLANDI (kullanıcı istedi, claude-a paketledi): Kovan beta 0.0.2 + Ayarlar menüsü. latest.json = 4.9.0. Sonraki paketi yapacak hesap önce git pull yapsın; sürüm 4.9.0 üstünden artsın.
 - Ayarlar menüsü (sol alt; Windows ile başlat, simge durumunda başlat, otomatik güncelleme, tema, kenar çubuğu, ad, sıfırlama) — claude-a: bitti (branch claude-a; sürüm paketlenmedi, latest.json/.ssu değişmedi)
 - 4.8.0 — Kovan beta 0.0.1: doku paketi dönüştürücü + mod sürüm ayarlayıcı (bir Claude hesabı ekledi)
