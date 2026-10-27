@@ -1,6 +1,6 @@
 {
-  "version": "4.8.0",
-  "url": "StatScan-4.8.0.ssu",
-  "sha256": "6f6679ef51306c86439edc6c2ac7df27b0479f264be45fe744403e47f28aca4a",
-  "notes": "4.8.0: Kovan beta 0.0.1 — doku paketi dönüştürücü ve mod sürüm ayarlayıcı"
+  "version": "4.9.0",
+  "url": "StatScan-4.9.0.ssu",
+  "sha256": "fe320b38ee5fa7b15e6419167274676246c3ffdaa6cf5b7d31aad6d36afd7408",
+  "notes": "4.9.0: Kovan beta 0.0.2 — Ayarlar menüsü (Windows ile başlat, simge durumunda başlat, güncelleme ayarı, tema, ad)"
 }

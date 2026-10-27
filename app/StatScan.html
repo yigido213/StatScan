@@ -697,7 +697,7 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 <section id="app-modconv" class="kv" aria-label="Mod sürüm ayarlayıcı" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
 <header class="topbar">
-  <div class="brand"><h1>StatScan<small>4.8</small></h1></div>
+  <div class="brand"><h1>StatScan<small>4.9</small></h1></div>
   <nav class="tabs" role="tablist" aria-label="Bölümler"><button type="button" role="tab" id="tab-scan" aria-selected="true" aria-controls="view-scan">Tarama</button><button type="button" role="tab" id="tab-info" aria-selected="false" aria-controls="view-info">Bilgi</button></nav>
   <span class="tagline"></span>
   <div class="hright">
@@ -3187,7 +3187,7 @@ const OBF_UNRES = { js_hexids: 'anlamsız tanımlayıcı adları geri getirileme
 /* ----- ana giris ----- */
 async function obfRun(u8, name, opts) {
   opts = opts || {}; const ctx = { signal: opts.signal, onProgress: opts.onProgress, scan: opts.scan || null, steps: [], limits: [], notes: [] };
-  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.8.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
+  const res = { tool: 'StatScan', feature: 'obfuscation', version: '4.9.0', file: { name, size: u8.length, sha256: null }, status: 'failed', statusLabel: 'Başarısız', reason: '', kind: null, supported: false, obfuscation: { detected: null, confidence: 0, level: '', methods: [], summary: '' }, steps: ctx.steps, outputs: [], tools: { builtin: [], external: [], used: [] }, externalPlan: [], limits: ctx.limits, notes: ctx.notes, disclaimer: OBF_DISCLAIMER };
   const base = baseName(name).replace(/\.[^.]*$/, '') || 'cikti'; const out = (n, mime, text, note, kind, extra) => { const o = Object.assign({ name: n, mime, note, kind: kind || 'output' }, extra || {}); if (typeof text === 'string') o.text = text; else o.bytes = text; res.outputs.push(o); return o; };
   const finish = (status, reason) => { res.status = status; res.statusLabel = { done: 'Tamamlandı', partial: 'Kısmi', unsupported: 'Desteklenmiyor', refused: 'Durduruldu', failed: 'Başarısız', cancelled: 'İptal edildi' }[status]; res.reason = reason || res.reason; if (status !== 'done' && status !== 'partial') for (const o of res.outputs) if (o.kind !== 'report') o.partial = true; out('rapor.md', 'text/markdown', obfReportMd(res), 'İnsan okunur rapor', 'report'); out('rapor.json', 'application/json', JSON.stringify(Object.assign({}, res, { outputs: res.outputs.filter((o) => o.kind !== 'report').map((o) => ({ name: o.name, note: o.note, partial: !!o.partial, size: o.text ? o.text.length : (o.bytes ? o.bytes.length : 0) })) }), null, 2), 'Makine okunur rapor', 'report'); return res; };
   try {
@@ -4385,7 +4385,7 @@ function mmReportText(r, srcName) {
   return L.join('\n');
 }
 /*#endregion modconv*/
-const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.8.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.9.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -4650,7 +4650,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   })();
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.0.1';
+  const KOVAN_VER = 'beta 0.0.2';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
