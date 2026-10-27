@@ -21,7 +21,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- Test düzeltmeleri (mcconv.mjs manifest yolu, ui45.mjs örnek klasör) — claude-a: başladı; paketleme yok
+- Test düzeltmeleri — claude-a: bitti. mcconv.mjs artık repoya göre çalışır (manifest yoksa gen-mc-manifests.sh ile yalnız 1.11 + 1.21.4 üretir, ağ yoksa ATLAR; MC_MANIFESTS veya argv[2] ile yol verilebilir); ui45.mjs örnek klasörü varsayılan tools/test/benign. ui.mjs ve ui-obf.mjs paket testi değil, dosya argümanlı araçlardır. Paketleme yok.
 - 4.9.1 — YAYINLANDI (kullanıcı istedi, claude-animasyon paketledi): Kovan beta 0.0.3 + arayüz animasyonları + Ayarlar'da "Arayüz animasyonları" anahtarı. latest.json = 4.9.1. Sonraki paketi yapacak hesap önce git pull yapsın; sürüm 4.9.1 üstünden artsın (4.10.0 yerine 4.9.2 gibi: güncelleyicinin sürüm karşılaştırması doğrulanmadı). Test: `node tools/test/ui-fx.mjs`
 - 4.9.0 — YAYINLANDI (kullanıcı istedi, claude-a paketledi): Kovan beta 0.0.2 + Ayarlar menüsü. latest.json = 4.9.0. Sonraki paketi yapacak hesap önce git pull yapsın; sürüm 4.9.0 üstünden artsın.
 - Ayarlar menüsü (sol alt; Windows ile başlat, simge durumunda başlat, otomatik güncelleme, tema, kenar çubuğu, ad, sıfırlama) — claude-a: bitti (branch claude-a; sürüm paketlenmedi, latest.json/.ssu değişmedi)

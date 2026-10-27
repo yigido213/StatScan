@@ -2,7 +2,11 @@
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { spawnSync } from 'node:child_process'; import { loadEngine } from './engine.mjs';
 const E = loadEngine(); let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
 const enc = (s) => new TextEncoder().encode(s); const dec = (u) => new TextDecoder().decode(u);
-const MF = process.argv[2] || '/tmp/claude-0/-home-claude/524379be-6697-54a3-bccb-d78e73a409ac/scratchpad/manifests';
+import { fileURLToPath } from 'node:url'; import { spawnSync as sp } from 'node:child_process';
+/* Vanilla manifestleri: argv[2] > MC_MANIFESTS > tools/data/mc-manifests (yoksa yalnizca gereken 2 surum gelistirme aracindan uretilir; ag gerekir, olmazsa ATLANIR) */
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'); const MF = process.argv[2] || process.env.MC_MANIFESTS || path.join(root, 'tools/data/mc-manifests');
+const need = ['1.11', '1.21.4'].filter((v) => !fs.existsSync(MF + '/' + v + '.json'));
+if (need.length) { console.log('manifest üretiliyor: ' + need.join(', ')); const r = sp('bash', [path.join(root, 'tools/gen-mc-manifests.sh'), MF, ...need], { stdio: 'inherit' }); if (r.status !== 0 || need.some((v) => !fs.existsSync(MF + '/' + v + '.json'))) { console.log('SKIP: vanilla manifestleri üretilemedi (ağ/git gerekir). Elle: bash tools/gen-mc-manifests.sh ' + MF + ' 1.11 1.21.4'); process.exit(0); } }
 const man = (v) => { const j = JSON.parse(fs.readFileSync(MF + '/' + v + '.json', 'utf8')); return new Set(Object.keys(j.files).map((k) => 'assets/minecraft/' + k)); };
 async function mk(files) { return E.mzWrite(Object.entries(files).map(([n, d]) => ({ name: n, data: typeof d === 'string' ? enc(d) : d }))); }
 const png = (s) => enc('\x89PNG' + s); const rd = async (u8) => { const z = E.mzRead(u8); const m = {}; for (const e of z.entries) if (!e.isDir) m[e.name] = await E.mzData(z, e); return m; };
