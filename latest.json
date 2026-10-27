@@ -1,6 +1,6 @@
 {
-  "version": "4.9.1",
-  "url": "StatScan-4.9.1.ssu",
-  "sha256": "9294260c4087571997b30040cdf6671e9503d7ad1a445b8cd1c00fdd3afc49cf",
-  "notes": "4.9.1: Kovan beta 0.0.3 — arayüz animasyonları (geçişler, kart efektleri, dalga, palet, logo, arka plan) ve Ayarlar'da animasyon anahtarı"
+  "version": "4.9.2",
+  "url": "StatScan-4.9.2.ssu",
+  "sha256": "048854a6bd68c123343450eff5e3a146ddede52b3ed9dbb53a8e68dec09cd5ea",
+  "notes": "4.9.2 hotfix: Home başlığının son harfi kesiliyordu (italik taşma)"
 }

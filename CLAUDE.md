@@ -17,10 +17,14 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Paket imzası için özel anahtar (private.pem) kullanıcıdadır; yoksa imzalı paket üretme.
 - Yeni sürüm numarası, `latest.json` ve `src`'deki `version` birbiriyle tutarlı olmalı.
 
+## Hotfix kuralı (kullanıcı kararı)
+- Hata düzeltmeleri (hotfix) Kovan sürüm etiketini ARTIRMAZ (ör. "beta 0.0.3" kalır); yalnızca paket numarasının son hanesi yükselir (4.9.1 → 4.9.2) ki güncelleyici yeni paketi görsün. Yeni özellik/araç eklenirse Kovan etiketi artar. Günlükte "HOTFIX" yazın.
+
 ## Bitirince
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- 4.9.2 — HOTFIX YAYINLANDI (kullanıcı istedi, claude-a paketledi): Home başlığındaki italik yazının son harfi ("yigit717" 7'si) parlama efektinde kesiliyordu → `.tw.done .typed` sağ dolgu eklendi. Kovan etiketi beta 0.0.3 kaldı. latest.json = 4.9.2. Sonraki paketi yapacak hesap önce git pull yapsın.
 - Test düzeltmeleri — claude-a: bitti. mcconv.mjs artık repoya göre çalışır (manifest yoksa gen-mc-manifests.sh ile yalnız 1.11 + 1.21.4 üretir, ağ yoksa ATLAR; MC_MANIFESTS veya argv[2] ile yol verilebilir); ui45.mjs örnek klasörü varsayılan tools/test/benign. ui.mjs ve ui-obf.mjs paket testi değil, dosya argümanlı araçlardır. Paketleme yok.
 - 4.9.1 — YAYINLANDI (kullanıcı istedi, claude-animasyon paketledi): Kovan beta 0.0.3 + arayüz animasyonları + Ayarlar'da "Arayüz animasyonları" anahtarı. latest.json = 4.9.1. Sonraki paketi yapacak hesap önce git pull yapsın; sürüm 4.9.1 üstünden artsın (4.10.0 yerine 4.9.2 gibi: güncelleyicinin sürüm karşılaştırması doğrulanmadı). Test: `node tools/test/ui-fx.mjs`
 - 4.9.0 — YAYINLANDI (kullanıcı istedi, claude-a paketledi): Kovan beta 0.0.2 + Ayarlar menüsü. latest.json = 4.9.0. Sonraki paketi yapacak hesap önce git pull yapsın; sürüm 4.9.0 üstünden artsın.

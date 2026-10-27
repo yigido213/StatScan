@@ -18,6 +18,7 @@ const st = await pg.evaluate(() => { const c = getComputedStyle(document.querySe
 const w = await pg.evaluate(() => { const r = document.querySelector('#home-title').getBoundingClientRect(); return [r.left, r.top]; }); ok(w[0] < 400 && w[1] < 200, 'başlık sol üstte (' + w.map(Math.round).join(',') + ')');
 ok(await pg.evaluate(() => document.querySelector('#toolgrid .toolcard[data-open="statscan"]') && document.querySelectorAll('#toolgrid .toolcard.empty').length === 1), 'Home: StatScan kartı + boş yer tutucu (sahte araç yok)');
 ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid button.toolcard').length) === 3, 'tıklanabilir 3 araç kartı');
+ok(await pg.evaluate(() => { const t = document.querySelector('#tw .typed'); const c = getComputedStyle(t); return document.documentElement.dataset.fx === 'off' || parseFloat(c.paddingRight) > 0 || c.webkitTextFillColor !== 'rgba(0, 0, 0, 0)'; }), 'italik başlığın sağ ucu kesilmez (parlama açıkken sağ dolgu var)');
 // 2) StatScan'e gecis
 await pg.click('#side-nav a[data-route="statscan"]'); await pg.waitForTimeout(200);
 ok(await pg.evaluate(() => document.querySelector('#app-home').hidden && !document.querySelector('#app-statscan').hidden && location.hash === '#/statscan'), 'StatScan seçilince StatScan açıldı (#/statscan)');
