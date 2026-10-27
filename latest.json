@@ -1,6 +1,6 @@
 {
-  "version": "4.9.0",
-  "url": "StatScan-4.9.0.ssu",
-  "sha256": "fe320b38ee5fa7b15e6419167274676246c3ffdaa6cf5b7d31aad6d36afd7408",
-  "notes": "4.9.0: Kovan beta 0.0.2 — Ayarlar menüsü (Windows ile başlat, simge durumunda başlat, güncelleme ayarı, tema, ad)"
+  "version": "4.9.1",
+  "url": "StatScan-4.9.1.ssu",
+  "sha256": "9294260c4087571997b30040cdf6671e9503d7ad1a445b8cd1c00fdd3afc49cf",
+  "notes": "4.9.1: Kovan beta 0.0.3 — arayüz animasyonları (geçişler, kart efektleri, dalga, palet, logo, arka plan) ve Ayarlar'da animasyon anahtarı"
 }
