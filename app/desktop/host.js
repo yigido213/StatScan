@@ -207,6 +207,119 @@ const RISKY = ['clipboard', 'networking', 'printer', 'audioInput', 'videoInput',
 const VT_RE = /^https:\/\/www\.virustotal\.com\/gui\/file\/[0-9a-f]{64}$/;
 const RISK_TEXT = { networking: 'Ağ erişimi', clipboard: 'Pano paylaşımı', printer: 'Yazıcı paylaşımı', audioInput: 'Mikrofon', videoInput: 'Kamera', vGPU: 'Sanal GPU (vGPU)' };
 
+/* --- Java derleyici (Kovan "Derleyici"): .java -> javac -> jar -> jdeps -> jpackage (app-image). Yalnizca kullanicinin KENDI JDK'si;
+ * hicbir sey indirilmez/kurulmaz. Derlenen program ASLA calistirilmaz (javac -proc:none: aciklama islemcileri de calismaz).
+ * Arayuz yalnizca dosya adi + bayt + ana sinif + uygulama adi gonderebilir; komut/yol gonderemez. Cikti: <Indirilenler>/Kovan-Derleme/<ad>/ */
+const COMPMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const os = require('os'); const cp = require('child_process');
+  const isWin = () => process.platform === 'win32';
+  const LIM = { files: 50, one: 2 * 1024 * 1024, total: 10 * 1024 * 1024 }; const TAIL = 12000; const MIN_MAJOR = 17;
+  const NAME_RE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/; const CLASS_RE = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/; const FILE_RE = /^[A-Za-z_$][\w$]{0,99}\.java$/;
+  const bin = (home, n) => path.join(home, 'bin', n + (isWin() ? '.exe' : ''));
+  const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
+  const ls = (d) => { try { return fs.readdirSync(d); } catch (e) { return []; } };
+  function homeOf(p) { /* ...\bin\javac(.exe) -> JDK kok dizini; sembolik baglantilari cozer */ try { const r = fs.realpathSync(p); return path.dirname(path.dirname(r)); } catch (e) { return null; } }
+  function candidates(env, extra) {
+    const out = []; const add = (d) => { if (d && !out.includes(d)) out.push(d); };
+    if (env.JAVA_HOME) add(env.JAVA_HOME);
+    for (const dir of String(env.PATH || env.Path || '').split(path.delimiter)) { if (dir && isFile(path.join(dir, 'javac' + (isWin() ? '.exe' : '')))) add(homeOf(path.join(dir, 'javac' + (isWin() ? '.exe' : '')))); }
+    const roots = [];
+    if (isWin()) { for (const pf of [env.ProgramFiles, env['ProgramFiles(x86)'], env.ProgramW6432].filter(Boolean)) for (const v of ['Java', 'Eclipse Adoptium', 'Microsoft', 'Amazon Corretto', 'Zulu', 'BellSoft', 'Semeru', 'Eclipse Foundation', 'AdoptOpenJDK', 'OpenJDK']) roots.push(path.join(pf, v)); }
+    else if (process.platform === 'darwin') { roots.push('/Library/Java/JavaVirtualMachines'); }
+    else roots.push('/usr/lib/jvm');
+    const home = env.USERPROFILE || env.HOME; if (home) roots.push(path.join(home, '.jdks'), path.join(home, '.sdkman', 'candidates', 'java'));
+    for (const r of roots) for (const n of ls(r)) { const d = path.join(r, n); add(process.platform === 'darwin' && isFile(path.join(d, 'Contents', 'Home', 'bin', 'javac')) ? path.join(d, 'Contents', 'Home') : d); }
+    for (const e of extra || []) add(e);
+    return out;
+  }
+  function parseMajor(txt) { const m = /javac\s+(\d+)(?:\.(\d+))?/.exec(String(txt)); if (!m) return 0; return m[1] === '1' ? +m[2] || 0 : +m[1]; }
+  function runSync(file, args, env, ms) { const r = cp.spawnSync(file, args, { env, encoding: 'utf8', timeout: ms || 15000, windowsHide: true, shell: false }); return { code: r.status, out: String(r.stdout || '') + String(r.stderr || ''), err: r.error }; }
+  function cleanEnv(base) { const e = Object.assign({}, base || process.env); for (const k of ['JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS', 'CLASSPATH']) delete e[k]; return e; }
+  function findJdks(o) {
+    o = o || {}; const env = cleanEnv(o.env); const list = []; const seen = new Set();
+    for (const h of (o.only ? o.only : candidates(env, o.extra))) {
+      const real = (() => { try { return fs.realpathSync(h); } catch (e) { return h; } })(); if (seen.has(real)) continue; seen.add(real);
+      const need = ['javac', 'jar', 'jpackage', 'jdeps']; const missing = need.filter((n) => !isFile(bin(h, n)));
+      if (missing.includes('javac')) continue; const v = runSync(bin(h, 'javac'), ['-version'], env); const major = parseMajor(v.out);
+      list.push({ home: h, major, version: (/javac\s+(\S+)/.exec(v.out) || [])[1] || '?', missing, ok: !missing.length && major >= MIN_MAJOR, why: missing.length ? 'Eksik araç: ' + missing.join(', ') + ' (JRE değil, tam JDK gerekir)' : major < MIN_MAJOR ? 'JDK ' + MIN_MAJOR + ' veya üstü gerekir (bulunan: ' + (major || '?') + ')' : '' });
+    }
+    list.sort((a, b) => (b.ok - a.ok) || (b.major - a.major));
+    return { found: !!(list[0] && list[0].ok), best: list[0] && list[0].ok ? list[0] : null, all: list, minMajor: MIN_MAJOR };
+  }
+  const safeOutName = (n) => String(n || '').trim();
+  function validate(req) {
+    if (!req || typeof req !== 'object') return 'Geçersiz istek.';
+    const f = req.files; if (!Array.isArray(f) || !f.length) return 'Hiç .java dosyası verilmedi.'; if (f.length > LIM.files) return 'En fazla ' + LIM.files + ' dosya.';
+    let total = 0; const seen = new Set();
+    for (const x of f) { if (!x || typeof x.name !== 'string' || !FILE_RE.test(x.name)) return 'Geçersiz dosya adı (yalnızca düz "Ad.java"): ' + String(x && x.name).slice(0, 60); if (seen.has(x.name)) return 'Aynı adlı iki dosya: ' + x.name; seen.add(x.name); const b = x.bytes; const len = b && (b.byteLength !== undefined ? b.byteLength : b.length); if (!len) return 'Boş dosya: ' + x.name; if (len > LIM.one) return 'Dosya çok büyük (en çok 2 MB): ' + x.name; total += len; }
+    if (total > LIM.total) return 'Toplam boyut çok büyük (en çok 10 MB).';
+    if (typeof req.mainClass !== 'string' || !CLASS_RE.test(req.mainClass.replace(/\$/g, '.'))) return 'Ana sınıf adı geçersiz.';
+    if (typeof req.name !== 'string' || !NAME_RE.test(req.name)) return 'Uygulama adı geçersiz (harfle başlamalı; harf, rakam, - ve _; en çok 40).';
+    if (!['auto', 'yes', 'no'].includes(req.console || 'auto')) return 'Konsol seçimi geçersiz.';
+    return null;
+  }
+  const STEPS = [['jdk', 'JDK bulundu'], ['javac', 'Derleniyor (javac)'], ['jar', 'JAR oluşturuluyor'], ['deps', 'Gerekli modüller çözümleniyor (jdeps)'], ['pack', 'Uygulama paketleniyor (jpackage)'], ['save', 'İndirilenler klasörüne kaydediliyor']];
+  function uniqueDir(root, name) { let d = path.join(root, name), i = 2; while (fs.existsSync(d)) d = path.join(root, name + '-' + i++); return d; }
+  function createCompileHost(deps) {
+    deps = deps || {}; const jobs = new Map(); let seq = 0; let active = null; const errE = (message, extra) => Object.assign({ error: 'compile', message }, extra || {});
+    const root = () => path.join(deps.outputBase || deps.downloadsDir || os.homedir(), 'Kovan-Derleme');
+    const handlers = {
+      'compile:jdk': async () => { try { return findJdks({ env: deps.env, extra: deps.jdkDirs, only: deps.onlyJdkDirs }); } catch (e) { return errE(String(e && e.message || e)); } },
+      'compile:start': async (_e, req) => {
+        const bad = validate(req); if (bad) return errE(bad); if (active) return errE('Başka bir derleme sürüyor.');
+        const jdks = findJdks({ env: deps.env, extra: deps.jdkDirs, only: deps.onlyJdkDirs }); if (!jdks.found) return errE('Uygun JDK bulunamadı. JDK ' + MIN_MAJOR + '+ (javac, jar, jdeps, jpackage içeren tam JDK) kurun.', { needJdk: true, jdks: jdks.all });
+        const id = String(++seq); const job = { id, state: 'running', steps: STEPS.map(([k, l]) => ({ id: k, label: l, status: 'wait', detail: '' })), log: '', result: null, error: null, started: Date.now() }; jobs.set(id, job); active = job; if (jobs.size > 8) jobs.delete(jobs.keys().next().value);
+        run(job, req, jdks.best).catch((e) => { job.state = 'failed'; job.error = String(e && e.message || e); }).finally(() => { active = null; });
+        return { id };
+      },
+      'compile:job': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); return { id: j.id, state: j.state, steps: j.steps, log: j.log.slice(-TAIL), result: j.result, error: j.error }; },
+      'compile:cancel': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); j.canceled = true; try { j.child && j.child.kill(); } catch (e) { /* bitmis */ } return { ok: true }; },
+      'compile:open': async (_e, id) => { const j = jobs.get(String(id)); if (!j || !j.result || !j.result.launcher) return errE('Açılacak çıktı yok.'); if (deps.showItemInFolder) deps.showItemInFolder(j.result.launcher); return { ok: true }; }
+    };
+    function exec(job, file, args, cwd, ms) {
+      return new Promise((resolve) => {
+        const env = cleanEnv(deps.env); let out = ''; let done = false; let timer;
+        const fin = (r) => { if (done) return; done = true; clearTimeout(timer); job.child = null; resolve(r); };
+        let c; try { c = cp.spawn(file, args, { cwd, env, windowsHide: true, shell: false, stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return fin({ code: -1, out: String(e && e.message || e) }); }
+        job.child = c; const add = (d) => { out += d; if (out.length > 200000) out = out.slice(-100000); }; c.stdout.on('data', add); c.stderr.on('data', add);
+        timer = setTimeout(() => { try { c.kill(); } catch (e) { /* bitmis */ } fin({ code: -2, out: out + '\n[zaman aşımı]' }); }, ms || 120000);
+        c.on('error', (e) => fin({ code: -1, out: out + String(e && e.message || e) })); c.on('close', (code) => fin({ code, out }));
+      });
+    }
+    async function run(job, req, jdk) {
+      const S = (k) => job.steps.find((s) => s.id === k); const step = (k, st, d) => { const s = S(k); s.status = st; if (d !== undefined) s.detail = d; };
+      const logp = (t) => { job.log += t + '\n'; }; const work = fs.mkdtempSync(path.join(os.tmpdir(), 'kovan-java-'));
+      const fail = (k, msg, extra) => { step(k, 'fail', msg); job.state = 'failed'; job.error = msg; if (extra) job.result = extra; };
+      try {
+        step('jdk', 'ok', 'JDK ' + jdk.version + ' — ' + jdk.home);
+        const src = path.join(work, 'src'), cls = path.join(work, 'classes'), inp = path.join(work, 'input'), dst = path.join(work, 'dest'); for (const d of [src, cls, inp, dst]) fs.mkdirSync(d, { recursive: true });
+        const files = []; for (const f of req.files) { const p = path.join(src, f.name); fs.writeFileSync(p, Buffer.from(f.bytes)); files.push(p); }
+        step('javac', 'run'); let r = await exec(job, bin(jdk.home, 'javac'), ['-proc:none', '-encoding', 'UTF-8', '-Xlint:none', '-d', cls, ...files], work, 120000); logp('$ javac ...\n' + r.out);
+        if (job.canceled) { job.state = 'canceled'; step('javac', 'fail', 'İptal edildi'); return; }
+        if (r.code !== 0) return fail('javac', 'Derleme hatası (javac). Ayrıntı için günlüğe bak.', { javacOutput: r.out.slice(-TAIL).replace(new RegExp(work.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&'), 'g'), '.') });
+        step('javac', 'ok');
+        const mainPath = path.join(cls, ...req.mainClass.split('.')) + '.class'; if (!fs.existsSync(mainPath)) return fail('jar', 'Ana sınıf derlenmiş çıktıda yok: ' + req.mainClass);
+        step('jar', 'run'); const jar = path.join(inp, 'app.jar'); r = await exec(job, bin(jdk.home, 'jar'), ['--create', '--file', jar, '--main-class', req.mainClass, '-C', cls, '.'], work, 60000); logp('$ jar ...\n' + r.out);
+        if (r.code !== 0) return fail('jar', 'JAR oluşturulamadı.'); step('jar', 'ok');
+        step('deps', 'run'); let mods = 'java.base'; r = await exec(job, bin(jdk.home, 'jdeps'), ['--print-module-deps', '--ignore-missing-deps', '--multi-release', 'base', jar], work, 60000); logp('$ jdeps ...\n' + r.out);
+        const last = r.out.trim().split(/\r?\n/).pop(); if (r.code === 0 && /^[a-z][\w.]*(,[a-z][\w.]*)*$/.test(last)) { mods = last; step('deps', 'ok', mods); } else step('deps', 'ok', 'jdeps çözemedi; varsayılan: java.base' + (/awt|swing/.test(req.mainClass) ? '' : ''));
+        if (!/(^|,)java\.base(,|$)/.test(mods)) mods = 'java.base,' + mods; const gui = req.console === 'no' ? true : req.console === 'yes' ? false : /java\.desktop|javafx/.test(mods); const consoleOn = !gui;
+        step('pack', 'run'); const args = ['--type', 'app-image', '--name', req.name, '--input', inp, '--main-jar', 'app.jar', '--main-class', req.mainClass, '--dest', dst, '--add-modules', mods, '--jlink-options', '--strip-debug --no-header-files --no-man-pages']; if (isWin() && consoleOn) args.push('--win-console');
+        r = await exec(job, bin(jdk.home, 'jpackage'), args, work, 600000); logp('$ jpackage ...\n' + r.out); if (job.canceled) { job.state = 'canceled'; step('pack', 'fail', 'İptal edildi'); return; }
+        if (r.code !== 0) return fail('pack', 'Paketleme başarısız (jpackage). Ayrıntı için günlüğe bak.', { jpackageOutput: r.out.slice(-TAIL) });
+        const made = ls(dst); if (made.length !== 1) return fail('pack', 'jpackage beklenen çıktıyı üretmedi.'); step('pack', 'ok');
+        step('save', 'run'); fs.mkdirSync(root(), { recursive: true }); const outDir = uniqueDir(root(), req.name); fs.cpSync(path.join(dst, made[0]), outDir, { recursive: true }); fs.copyFileSync(jar, path.join(outDir, req.name + '.jar'));
+        const launcher = isWin() ? path.join(outDir, req.name + '.exe') : process.platform === 'darwin' ? outDir : path.join(outDir, 'bin', req.name); if (!fs.existsSync(launcher)) return fail('save', 'Çalıştırıcı dosya bulunamadı: ' + path.basename(launcher));
+        let size = 0; const walk = (d) => { for (const n of ls(d)) { const p = path.join(d, n); try { const s = fs.lstatSync(p); if (s.isDirectory()) walk(p); else size += s.size; } catch (e) { /* atla */ } } }; walk(outDir);
+        step('save', 'ok', outDir); job.result = { outDir, launcher, launcherName: path.basename(launcher), jar: path.join(outDir, req.name + '.jar'), size, modules: mods, gui, console: consoleOn, jdk: { version: jdk.version, home: jdk.home }, windows: isWin() };
+        job.state = 'done'; if (deps.notify) { try { deps.notify('Kovan Derleyici', 'Hazır: ' + path.basename(launcher) + ' (İndirilenler\\Kovan-Derleme)'); } catch (e) { /* bildirim yok */ } }
+      } finally { try { fs.rmSync(work, { recursive: true, force: true }); } catch (e) { /* gecici klasor */ } if (job.state === 'running') job.state = 'failed'; }
+    }
+    return { handlers };
+  }
+  return { createCompileHost, findJdks, validate, LIM, MIN_MAJOR };
+})();
+
 function riskyList(ui) {
   const out = []; ui = ui || {};
   for (const k of RISKY) if (ui[k] && ui[k] !== 'Disable') out.push(RISK_TEXT[k]);
@@ -308,6 +421,8 @@ function createHost(deps) {
     };
     handlers['settings:checkUpdate'] = async () => { try { if (deps.settings.checkUpdate) await deps.settings.checkUpdate(); return { ok: true }; } catch (e) { return errObj(e); } };
   }
+  /* Java derleyici (yalnizca kullanicinin kendi JDK'si; bkz. COMPMOD) */
+  if (deps.compile !== false) { const ch = COMPMOD.createCompileHost({ downloadsDir: deps.downloadsDir, outputBase: deps.compileOutputBase, env: deps.compileEnv, jdkDirs: deps.compileJdkDirs, onlyJdkDirs: deps.compileOnlyJdkDirs, notify: deps.notify, showItemInFolder: deps.showItemInFolder }); Object.assign(handlers, ch.handlers); }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
@@ -330,4 +445,4 @@ function createHost(deps) {
   return { handlers, obf, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD };

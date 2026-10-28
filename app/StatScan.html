@@ -645,6 +645,18 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .sabout { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .sabout li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; } .sabout b { color: var(--muted); font-weight: 600; }
 @media (max-width: 899px) { .side-settings { flex: 1; margin-top: 0; width: auto; } .srow { flex-wrap: wrap; } }
 @media (prefers-reduced-motion: reduce) { .sw, .sw::after { transition: none; } }
+.cp-jdk { margin: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.cp-jdk.ok { border-color: color-mix(in srgb, var(--s0) 55%, var(--line)); color: var(--ink); } .cp-jdk.warn { border-color: color-mix(in srgb, var(--s1) 55%, var(--line)); color: var(--ink); }
+.cp-jdkrow { display: flex; gap: 10px; } .cp-probs { margin: 0; padding: 10px 14px 10px 30px; border: 1px solid color-mix(in srgb, var(--s1) 45%, var(--line)); border-radius: var(--r); background: color-mix(in srgb, var(--s1) 8%, var(--surface)); display: grid; gap: 4px; font-size: 13.5px; }
+.cp-steps { list-style: none; margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); display: grid; gap: 6px; }
+.cp-s { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 14.5px; color: var(--muted); } .cp-s small { color: var(--muted); font: 12px var(--f-mono); overflow-wrap: anywhere; flex-basis: 100%; padding-left: 26px; }
+.cp-i { display: inline-grid; place-items: center; width: 18px; font-weight: 700; } .cp-s.ok { color: var(--ink); } .cp-s.ok .cp-i { color: var(--s0); } .cp-s.run { color: var(--ink); } .cp-s.run .cp-i { color: var(--accent); animation: kcaret 1s steps(1) infinite; } .cp-s.fail { color: var(--ink); } .cp-s.fail .cp-i { color: var(--s3); }
+.cp-log { margin: 8px 0 2px; max-height: 280px; overflow: auto; font: 12px/1.45 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.cp-ready { position: fixed; left: calc(220px + 16px); right: 16px; bottom: 16px; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 18px; border: 1px solid var(--accent); border-radius: 16px; background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface)); box-shadow: 0 20px 50px -18px rgba(0, 0, 0, .65), 0 0 0 4px var(--glow); }
+.cp-ready[hidden] { display: none; } .cp-rt { display: grid; gap: 2px; min-width: 0; } .cp-rt b { color: var(--accent); } .cp-rt span { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; } .cp-ra { display: flex; gap: 8px; }
+.app.collapsed ~ .cp-ready { left: calc(68px + 16px); }
+@media (max-width: 899px) { .cp-ready { left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .cp-s.run .cp-i { animation: none; } }
 /* Kovan araclari: surum donusturuculeri */
 .kv { max-width: 860px; margin: 0 auto; padding: clamp(18px, 4vw, 40px) 16px 60px; display: grid; gap: 16px; }
 .kv[hidden] { display: none; }
@@ -784,7 +796,7 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
   <div class="kstage" id="content">
 <section class="home" id="app-home" aria-labelledby="home-title">
   <h1 id="home-title" data-focus tabindex="-1"><span class="sr">Welcome home, yigit717</span><span class="tw" id="tw" aria-hidden="true"><span class="ghost">Welcome home, yigit717</span><span><span class="typed">Welcome home, yigit717</span><span class="caret"></span></span></span></h1>
-  <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an üç araç var: StatScan, doku paketi dönüştürücü ve mod sürüm ayarlayıcı (ikisi beta).</p>
+  <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an dört araç var: StatScan, doku paketi dönüştürücü, mod sürüm ayarlayıcı ve derleyici (üçü beta).</p>
   <div class="tools-row" id="tools-row"><button type="button" id="home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>Ara veya komut çalıştır <kbd>Ctrl K</kbd></button><span id="name-slot"><button type="button" id="name-edit">Adı değiştir</button></span></div>
   <h2>Araçlar</h2>
   <div class="toolgrid" id="toolgrid"></div>
@@ -793,6 +805,7 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 </section>
 <section id="app-texpack" class="kv" aria-label="Doku paketi dönüştürücü" hidden></section>
 <section id="app-modconv" class="kv" aria-label="Mod sürüm ayarlayıcı" hidden></section>
+<section id="app-compiler" class="kv" aria-label="Derleyici" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
 <header class="topbar">
   <div class="brand"><h1>StatScan<small>4.9</small></h1></div>
@@ -2513,6 +2526,62 @@ async function peExtra(u8, p, info, F, children, st, depth, name, apis, text) {
 }
 function cnt0(list, has) { return list.filter(has); }
 /*#endregion pe-ext*/
+/*#region javasrc*/
+/* Kovan Derleyici: .java kaynak cozumleyici (yalnizca METIN okur; hicbir sey calistirmaz/derlemez).
+   Cikarir: package, ust duzey siniflar, public static void main bulunan sinif (ic ice siniflar dahil), GUI/konsol, olasi sorunlar. Regex tabanlidir: kesin derleme sonucu degil, on algilamadir. */
+function jvStrip(src) { /* yorumlari, dizeleri, metin bloklarini ve karakter sabitlerini bosluga cevirir; konumlar korunur */
+  const o = src.split(''); const n = src.length; let i = 0;
+  const blank = (a, b) => { for (let k = a; k < b; k++) if (o[k] !== '\n') o[k] = ' '; };
+  while (i < n) {
+    const c = src[i], d = src[i + 1];
+    if (c === '/' && d === '/') { let j = i; while (j < n && src[j] !== '\n') j++; blank(i, j); i = j; }
+    else if (c === '/' && d === '*') { let j = src.indexOf('*/', i + 2); j = j < 0 ? n : j + 2; blank(i, j); i = j; }
+    else if (c === '"' && src.startsWith('"""', i)) { let j = i + 3; while (j < n && !(src.startsWith('"""', j) && src[j - 1] !== '\\')) j++; j = Math.min(n, j + 3); blank(i, j); i = j; }
+    else if (c === '"') { let j = i + 1; while (j < n && src[j] !== '"' && src[j] !== '\n') { if (src[j] === '\\') j++; j++; } j = Math.min(n, j + 1); blank(i, j); i = j; }
+    else if (c === "'") { let j = i + 1; while (j < n && src[j] !== "'" && src[j] !== '\n') { if (src[j] === '\\') j++; j++; } j = Math.min(n, j + 1); blank(i, j); i = j; }
+    else i++;
+  }
+  return o.join('');
+}
+function javaScan(text, fileName) {
+  const base = String(fileName || '').replace(/^.*[\\/]/, ''); const stem = base.replace(/\.java$/i, ''); const t = jvStrip(String(text).replace(/\r\n?/g, '\n'));
+  const res = { file: base, stem, package: '', classes: [], publicTypes: [], mains: [], gui: false, javafx: false, problems: [], notes: [] };
+  const pk = /(?:^|\n)\s*package\s+([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*;/.exec(t); if (pk) res.package = pk[1].replace(/\s+/g, '');
+  const re = /(?<![.\w$@])(class|interface|enum|record)\s+([A-Za-z_$][\w$]*)|([{}])|\bvoid\s+main\s*\(\s*(?:final\s+)?String\s*(?:\[\s*\]\s*[A-Za-z_$][\w$]*|\.\.\.\s*[A-Za-z_$][\w$]*|[A-Za-z_$][\w$]*\s*\[\s*\])\s*\)/g;
+  const stack = []; let depth = 0, pending = null, m; const tops = new Set();
+  while ((m = re.exec(t))) {
+    if (m[1]) { pending = { name: m[2], kind: m[1], idx: m.index }; }
+    else if (m[3] === '{') { depth++; if (pending) { stack.push({ name: pending.name, depth, top: stack.length === 0 }); if (stack.length === 1) { tops.add(pending.name); const head = t.slice(Math.max(0, t.lastIndexOf('\n', pending.idx - 1) + 1), pending.idx); if (/\bpublic\b/.test(head) || /\bpublic\b[^;{}]*$/.test(t.slice(Math.max(0, pending.idx - 120), pending.idx))) res.publicTypes.push(pending.name); } pending = null; } }
+    else if (m[3] === '}') { if (stack.length && stack[stack.length - 1].depth === depth) stack.pop(); depth--; }
+    else { /* main */
+      const encl = stack.length ? stack[stack.length - 1] : null; if (!encl) continue;
+      const segStart = Math.max(t.lastIndexOf(';', m.index), t.lastIndexOf('{', m.index), t.lastIndexOf('}', m.index)) + 1; const head = t.slice(segStart, m.index);
+      const isStatic = /\bstatic\b/.test(head), isPublic = /\bpublic\b/.test(head);
+      const chain = stack.map((x) => x.name); const binary = (res.package ? res.package + '.' : '') + chain.join('$');
+      res.mains.push({ cls: chain[chain.length - 1], binary, top: chain[0], nested: chain.length > 1, ok: isStatic && isPublic, why: !isStatic ? 'main static değil' : !isPublic ? 'main public değil' : '' });
+    }
+  }
+  res.classes = [...tops];
+  for (const p of res.publicTypes) if (p !== stem) res.problems.push({ code: 'public-name', cls: p, msg: 'public tür "' + p + '" dosya adıyla ("' + stem + '.java") aynı olmalı; javac bu dosyayı reddeder.' });
+  if (/\bimport\s+javafx\.|\bjavafx\.(application|scene|stage)\b/.test(t)) { res.javafx = true; res.problems.push({ code: 'javafx', msg: 'JavaFX algılandı: JDK içinde JavaFX yoktur; derleme başarısız olabilir ya da JavaFX SDK gerekir.' }); }
+  if (/\b(javax\.swing|java\.awt|org\.eclipse\.swt)\b/.test(t) || res.javafx) res.gui = true;
+  if (/\bvoid\s+main\s*\(\s*\)/.test(t) && !res.mains.some((x) => x.ok)) res.notes.push('Parametresiz main() (Java 21+ önizleme özelliği) desteklenmez; "public static void main(String[] args)" kullanın.');
+  if (!res.mains.length && !/\bvoid\s+main\s*\(\s*\)/.test(t)) res.notes.push('Bu dosyada "public static void main(String[] args)" yok.');
+  for (const x of res.mains) if (!x.ok) res.problems.push({ code: 'main', cls: x.cls, msg: x.cls + ': ' + x.why + ' (klasik başlatıcı public static void main ister).' });
+  return res;
+}
+/* Birden cok dosya: ortak ozet. files: [{name, text}] */
+function javaPlan(files) {
+  const scans = files.map((f) => javaScan(f.text, f.name)); const out = { scans, candidates: [], problems: [], gui: false, mainDefault: null, multiPackage: false };
+  for (const s of scans) { if (s.gui) out.gui = true; for (const p of s.problems) out.problems.push(Object.assign({ file: s.file }, p)); for (const x of s.mains) if (x.ok) out.candidates.push({ binary: x.binary, file: s.file, cls: x.cls, nested: x.nested }); }
+  const seen = new Set(); for (const s of scans) for (const c of s.classes) { const k = (s.package ? s.package + '.' : '') + c; if (seen.has(k)) out.problems.push({ file: s.file, code: 'dup-class', msg: 'Aynı sınıf iki dosyada: ' + k }); seen.add(k); }
+  out.candidates.sort((a, b) => (/^(.*\.)?Main$/.test(b.binary) - /^(.*\.)?Main$/.test(a.binary)) || (a.nested - b.nested));
+  out.mainDefault = out.candidates[0] ? out.candidates[0].binary : null;
+  if (!out.candidates.length) out.problems.push({ code: 'no-main', msg: 'Hiçbir dosyada çalıştırılabilir "public static void main(String[] args)" bulunamadı.' });
+  const base = out.candidates[0] ? out.candidates[0].cls : (scans[0] ? scans[0].stem : 'app'); out.suggestName = (base.replace(/[^A-Za-z0-9_-]/g, '') || 'app').replace(/^[^A-Za-z]+/, '') || 'app';
+  return out;
+}
+/*#endregion javasrc*/
 /*#region dotnet*/
 /* ---------- v3.6: .NET meta veri (ECMA-335) ayristirma ----------
    Gercek tablo ayristirmasi: TypeRef/MemberRef/P-Invoke (ImplMap)/AssemblyRef/ManifestResource.
@@ -4483,7 +4552,7 @@ function mmReportText(r, srcName) {
   return L.join('\n');
 }
 /*#endregion modconv*/
-const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.9.3', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.9.3', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -4747,6 +4816,97 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     tabs.scan[0].tabIndex = 0; tabs.info[0].tabIndex = -1; if (location.hash === '#bilgi') show('info');
   })();
 
+  /* ---------- Kovan dil destegi (Turkce varsayilan, English) ----------
+     Kaynak metinler Turkce kalir; Ingilizce modda tam eslesen metinler asagidaki sozlukle degistirilir (DOM gecisi + KT()).
+     Sozlukte olmayan metin Turkce gorunur (cokmez). Kapsam: Kovan kabugu, Ayarlar, Home, dönüştürücüler, Derleyici.
+     KAPSAM DISI: StatScan'in analiz ekranlari ve olusturulan raporlar (.md) / motorun uyari ayrintilari — Turkce kalir. */
+  const KL = (function () {
+    const EN = {
+      'çalışma alanı': 'workspace', 'Ara…': 'Search…', 'Araçlar': 'Tools', 'Derleyici': 'Compiler', 'Doku paketi dönüştürücü': 'Texture pack converter', 'Mod sürüm ayarlayıcı': 'Mod version adjuster', 'Ayarlar': 'Settings', 'Tema': 'Theme',
+      'Ana gezinme': 'Main navigation', 'Kovan — Home': 'Kovan — Home', 'Ara veya komut çalıştır (Ctrl K)': 'Search or run a command (Ctrl K)', 'Bölümler': 'Sections', 'Ayarlar (Ctrl+,)': 'Settings (Ctrl+,)', 'Açık/koyu tema': 'Light/dark theme', 'Açık/koyu temayı değiştir': 'Switch light/dark theme', 'Kenar çubuğunu daralt': 'Collapse sidebar', 'Kenar çubuğunu genişlet': 'Expand sidebar', 'İçeriğe geç': 'Skip to content',
+      'Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an dört araç var: StatScan, doku paketi dönüştürücü, mod sürüm ayarlayıcı ve derleyici (üçü beta).': 'Kovan is your workspace that gathers your tools in one place. There are four tools right now: StatScan, the texture pack converter, the mod version adjuster and the compiler (three are beta).',
+      'Ara veya komut çalıştır': 'Search or run a command', 'Adı değiştir': 'Change name', 'Hazır': 'Ready', 'Beta': 'Beta', 'Aç →': 'Open →', 'Çalışma alanı': 'Workspace', 'Sürüm': 'Version', 'Çalışma biçimi': 'Mode', 'Tarayıcı sayfası': 'Browser page', 'Masaüstü uygulaması': 'Desktop app', 'Gizlilik': 'Privacy',
+      'Statik tarama yerelde yapılır; dosyalar gönderilmez': 'Static scanning runs locally; files are never uploaded',
+      'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.': 'Inspects JAR, EXE/DLL, scripts and archives without running them; produces a score, evidence and a report. Includes optional Windows Sandbox analysis and a desktop tool bridge.',
+      'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.': 'Updates a Minecraft Java resource pack’s pack.mcmeta format and vanilla texture names for the version you pick. Does not convert redrawn textures; the report lists them explicitly.',
+      'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.': 'Updates the target Minecraft version in a mod/plugin manifest and reports the risk of breakage. Does not convert compiled code; does not guarantee it will work.',
+      'Java (.java) dosyalarını otomatik algılar, derler ve kendi çalışma zamanıyla çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder. JDK 17+ gerekir; yalnızca masaüstü uygulamasında çalışır.': 'Automatically detects Java (.java) files, compiles them and saves a runnable app with its own runtime to your Downloads folder. Requires JDK 17+; works only in the desktop app.',
+      'Yeni araçlar için yer ayrıldı': 'Room for new tools', 'Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.': 'No other tools added yet. When added, they appear here and in the sidebar.',
+      'Kapat': 'Close', 'Ayarlar penceresini kapat': 'Close settings', '↑↓ seç · Enter çalıştır · Esc kapat': '↑↓ select · Enter run · Esc close', 'Komut paleti': 'Command palette', 'Araç veya komut ara…': 'Search tools or commands…', 'Sonuçlar': 'Results',
+      /* Home / palet */
+      'Home’a git': 'Go to Home', 'Sayfa': 'Page', 'Araç': 'Tool', 'Komut': 'Command', 'Eşleşen komut yok': 'No matching command', 'Temayı değiştir (açık/koyu)': 'Switch theme (light/dark)', 'Kullanıcı adını değiştir': 'Change username', 'StatScan: Bilgi sekmesini aç': 'StatScan: open the Info tab', 'StatScan: Tarama sekmesini aç': 'StatScan: open the Scan tab', '{0} aracını aç': 'Open {0}',
+      'Kullanıcı adı': 'Username', 'Kaydet': 'Save', 'Varsayılan': 'Default', 'Vazgeç': 'Cancel',
+      /* Ayarlar */
+      'Görünüm': 'Appearance', 'Tüm Kovan araçlarında geçerlidir.': 'Applies to all Kovan tools.', 'Koyu': 'Dark', 'Açık': 'Light', 'Yalnızca geniş ekranlarda; dar ekranda alt çubuk kullanılır.': 'Wide screens only; narrow screens use the bottom bar.',
+      'Karşılama yazısı animasyonu': 'Greeting typing animation', 'Kapalıyken Home başlığı doğrudan gösterilir. Sistem "hareketi azalt" ayarı her durumda önceliklidir.': 'When off, the Home heading is shown instantly. The system “reduce motion” setting always takes priority.',
+      'Arayüz animasyonları': 'Interface animations', 'Sayfa geçişleri, kart efektleri, dalga ve arka plan hareketleri. Kapalıyken arayüz sabit kalır. Sistem "hareketi azalt" ayarı her durumda önceliklidir.': 'Page transitions, card effects, wave and background motion. When off, the interface stays still. The system “reduce motion” setting always takes priority.',
+      'Home karşılamasında görünür (24 karaktere kadar). Yalnızca bu cihazda saklanır.': 'Shown in the Home greeting (up to 24 characters). Stored only on this device.',
+      'Dil / Language': 'Dil / Language', 'Kovan arayüzünün dili. StatScan’in analiz ekranları, dönüştürücü raporları ve motor uyarılarının ayrıntıları şimdilik Türkçe kalır. Değişince sayfa yenilenir.': 'Language of the Kovan interface. StatScan’s analysis screens, converter reports and the details of engine warnings stay in Turkish for now. The page reloads when you change it.',
+      'Başlangıç': 'Startup', 'Bu bölüm yalnızca masaüstü uygulamasında çalışır; tarayıcı sayfasında ayarlanamaz.': 'This section works only in the desktop app; it cannot be set in a browser page.', 'Bu bölüm yalnızca masaüstü uygulamasında çalışır.': 'This section works only in the desktop app.',
+      'Windows ile başlat': 'Start with Windows', 'Bilgisayara giriş yaptığında Kovan otomatik açılır. İstediğin zaman buradan kapatabilirsin.': 'Kovan opens automatically when you sign in to your computer. You can turn it off here at any time.',
+      'Simge durumunda başlat': 'Start minimized', 'Yalnızca Windows ile otomatik başlayınca uygulanır; pencere görev çubuğunda küçültülmüş açılır.': 'Applies only when it starts automatically with Windows; the window opens minimized in the taskbar.',
+      'Güncellemeler': 'Updates', 'Açılışta güncellemeyi denetle': 'Check for updates on launch', 'Uygulama açıldıktan kısa süre sonra imzalı güncelleme var mı bakar. Paket imzası her durumda doğrulanır.': 'Shortly after the app opens it looks for a signed update. The package signature is always verified.',
+      'Güncellemeleri denetle': 'Check for updates', 'Sonucu ayrı bir pencerede gösterir.': 'Shows the result in a separate window.', 'Şimdi denetle': 'Check now', 'Denetim başarısız.': 'The check failed.', 'Masaüstü ayarları okunamadı.': 'Could not read desktop settings.', 'Ayar uygulanamadı.': 'The setting could not be applied.', 'Ayar uygulanamadı: {0}': 'The setting could not be applied: {0}',
+      'Veri': 'Data', 'Tercihleri sıfırla': 'Reset preferences', 'Tema, kenar çubuğu, kullanıcı adı ve animasyon tercihlerini siler. Tarama sonuçlarına ve dosyalarına dokunmaz.': 'Deletes theme, sidebar, username, language and animation preferences. Does not touch scan results or your files.', 'Kovan tercihlerini sıfırla': 'Reset Kovan preferences', 'Emin misin? Tekrar tıkla': 'Are you sure? Click again', 'Hakkında': 'About',
+      /* dönüştürücüler (ortak) */
+      'Önce bilmen gerekenler': 'Read this first', 'Dosya seçilmedi': 'No file selected', 'Kaynak sürüm (otomatik algılanır)': 'Source version (auto-detected)', 'Hedef sürüm': 'Target version', 'Eşleştirme': 'Matching', 'Kanıtlı + ad kuralları (önerilen)': 'Evidence-based + name rules (recommended)', 'Yalnızca kanıtlı (içerik eşleşmesi)': 'Evidence-based only (content match)', 'Dönüştür': 'Convert',
+      'Bir Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Çıktı yeni bir .zip’tir; orijinal dosyan değişmez.': 'Updates a Minecraft Java resource pack’s pack.mcmeta format and vanilla texture names for the version you pick. The output is a new .zip; your original file is not changed.',
+      'Yalnızca dosya adı/yolu değişen dokular taşınır. Yeniden çizilmiş veya parçalara bölünmüş dokular (ör. 1.20.2 GUI sprite’ları) otomatik dönüştürülemez; rapor bunları listeler.': 'Only textures whose file name/path changed are moved. Redrawn or split textures (e.g. the 1.20.2 GUI sprites) cannot be converted automatically; the report lists them.',
+      'Eski sürüme dönüştürme kayıpsız değildir.': 'Converting to an older version is not lossless.', 'Yeniden adlandırma tablosu gerçek vanilla dosyalarının sürümler arası karşılaştırmasından üretildi. pack.mcmeta’nın 1.21.9+ biçimi oyunda denenmedi.': 'The rename table was generated by comparing real vanilla files across versions. The 1.21.9+ pack.mcmeta format has not been tried in the game.', 'OptiFine/shader/overlay içeriği dönüştürülmez, olduğu gibi kopyalanır.': 'OptiFine/shader/overlay content is not converted; it is copied as is.',
+      'Kaynak paketini (.zip) buraya bırak': 'Drop the resource pack (.zip) here', 'Minecraft Java resource pack · dosya yalnızca bu cihazda işlenir': 'Minecraft Java resource pack · the file is processed only on this device', 'Doku paketi (.zip) seç': 'Choose texture pack (.zip)',
+      'Modun bildirimindeki hedef Minecraft sürümü aralığını günceller ve kodun hedef sürümde kırılma riskini kanıta dayalı raporlar. Çıktı yeni bir .jar’dır.': 'Updates the target Minecraft version range in the mod’s manifest and reports, based on evidence, how likely the code is to break on the target version. The output is a new .jar.',
+      'Derlenmiş kod bir Minecraft sürümünden diğerine çevrilemez. Bu araç yalnızca sürüm kısıtını değiştirir; modun hedef sürümde ÇALIŞACAĞINI GARANTİ ETMEZ.': 'Compiled code cannot be translated from one Minecraft version to another. This tool only changes the version constraint; it does NOT GUARANTEE the mod will WORK on the target version.',
+      'Gerçek bir taşıma kaynak kodun yeniden derlenmesini gerektirir (Mixin, access widener ve API değişiklikleri en sık kırılma nedenleridir).': 'A real port requires recompiling the source code (Mixin, access wideners and API changes are the most common causes of breakage).', 'İmzalı jar’lardaki imza dosyaları çıkarılır (bildirim değiştiği için zaten geçersiz olurdu).': 'Signature files in signed jars are removed (they would be invalid anyway because the manifest changes).', 'Forge/NeoForge loader ve Fabric API sürüm aralıkları değiştirilmez.': 'Forge/NeoForge loader and Fabric API version ranges are not changed.',
+      'Mod dosyasını (.jar) buraya bırak': 'Drop the mod file (.jar) here', 'Fabric · Quilt · Forge · NeoForge · Bukkit/Paper · dosya yalnızca bu cihazda işlenir': 'Fabric · Quilt · Forge · NeoForge · Bukkit/Paper · the file is processed only on this device', 'Mod (.jar) seç': 'Choose mod (.jar)',
+      'Okunuyor…': 'Reading…', 'Dosya okunamadı.': 'Could not read the file.', 'Dosya okunamadı: {0}': 'Could not read the file: {0}', 'Dosya çok büyük ({0}); sınır {1}.': 'File too large ({0}); limit {1}.', 'Hazır. Hedef sürümü seçip "Dönüştür"e bas.': 'Ready. Pick the target version and press “Convert”.', 'Dönüştürülüyor…': 'Converting…', 'Dönüştürülüyor… %{0}': 'Converting… {0}%', 'Dönüştürme başarısız: {0} Orijinal dosya değiştirilmedi.': 'Conversion failed: {0} The original file was not changed.', 'Dönüştürülemedi.': 'Could not convert.',
+      'Bitti. Orijinal dosya değiştirilmedi; çıktı yeni bir dosyadır.': 'Done. The original file was not changed; the output is a new file.', 'Değiştirilecek bir şey bulunamadı.': 'Nothing to change was found.', 'Dönüştürme tamamlandı': 'Conversion complete', 'Çıktı üretilmedi': 'No output produced', 'Dönüştürülmüş dosyayı indir ({0})': 'Download converted file ({0})', 'Raporu indir (.md)': 'Download report (.md)', '… ve {0} tane daha (raporda tamamı var)': '… and {0} more (the full list is in the report)',
+      'pack_format tabloda yok: kaynak sürümü elle kontrol et.': 'pack_format is not in the table: check the source version manually.', 'Tahmini sürüm': 'Estimated version', ' — tabloda yok, yakın sürüm varsayıldı': ' — not in the table, nearest version assumed', 'Girdi sayısı': 'Entry count', 'Açıklama': 'Description',
+      'Yön: {0} → {1}': 'Direction: {0} → {1}', 'Yeniden adlandırılan doku: {0} (kanıtlı {1}, ad kuralı {2}, ad eşleşmesi {3})': 'Renamed textures: {0} (evidence {1}, name rule {2}, name match {3})', 'Model/font içinde güncellenen başvuru: {0}': 'References updated in model/font: {0}', 'Değişmeden kopyalanan dosya: {0}': 'Files copied unchanged: {0}',
+      'Uyarılar': 'Warnings', 'pack.mcmeta değişiklikleri': 'pack.mcmeta changes', 'Çakışmalar (atlandı)': 'Conflicts (skipped)', 'Hedefte karşılığı olmayan dokular (silinmedi)': 'Textures with no counterpart in the target (not deleted)', 'Öğe tanımları (1.21.4+)': 'Item definitions (1.21.4+)', 'Yeniden adlandırmalar': 'Renames', 'dönüştürüldü: {0}': 'converted: {0}', 'atlandı: {0} — {1}': 'skipped: {0} — {1}',
+      'Tanınan bir mod bildirimi yok: bu bir Minecraft modu/eklentisi değil ya da desteklenmeyen biçim.': 'No recognized mod manifest: this is not a Minecraft mod/plugin, or the format is unsupported.', 'Yükleyici': 'Loader', 'Mod': 'Mod', 'Mevcut kısıt': 'Current constraint', 'Sınıf sayısı': 'Class count', 'Hedef: {0}': 'Target: {0}', 'Yükleyici: {0}': 'Loader: {0}', 'Değişen bildirim: {0}': 'Manifests changed: {0}', 'Yapılan değişiklikler': 'Changes made', 'Atlananlar': 'Skipped', 'Riskler': 'Risks',
+      /* Derleyici */
+      'Java kaynak dosyanı (.java) bırak; araç ana sınıfı otomatik bulur, derler ve çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder.': 'Drop your Java source file (.java); the tool finds the main class automatically, compiles it and saves a runnable app to your Downloads folder.',
+      'Bilgisayarında JDK 17 veya üstü (javac, jar, jdeps, jpackage içeren tam JDK) kurulu olmalı. Araç hiçbir şey indirmez veya kurmaz.': 'JDK 17 or newer (a full JDK with javac, jar, jdeps and jpackage) must be installed on your computer. The tool never downloads or installs anything.',
+      'Çıktı, kendi Java çalışma zamanıyla gelen bir klasördür (Windows’ta Ad.exe + runtime). Tek dosyalık exe değildir; klasörün tamamını taşı.': 'The output is a folder that comes with its own Java runtime (on Windows: Name.exe + runtime). It is not a single-file exe; move the whole folder.', 'Derlenen program çalıştırılmaz. Şimdilik yalnızca Java (.java) desteklenir.': 'The compiled program is never run. Only Java (.java) is supported for now.',
+      'JDK’yı yeniden ara': 'Search for JDK again', '.java dosyanı buraya bırak': 'Drop your .java file here', 'Birden çok dosya olabilir · dosyalar yalnızca bu cihazda işlenir': 'You can add several files · files are processed only on this device', '.java dosyası seç': 'Choose .java file',
+      'Ana sınıf (otomatik bulundu)': 'Main class (found automatically)', 'Uygulama adı': 'App name', 'Uygulama türü': 'App type', 'Otomatik': 'Automatic', 'Konsol uygulaması': 'Console app', 'Pencere (GUI) uygulaması': 'Window (GUI) app', 'Derle ve paketle': 'Compile and package', 'İptal': 'Cancel', 'Derleyici çıktısı': 'Compiler output', 'Derleme adımları': 'Build steps',
+      'Derleyici yalnızca masaüstü uygulamasında çalışır; tarayıcıda yalnızca dosya incelenebilir.': 'The compiler works only in the desktop app; in a browser you can only inspect a file.', 'JDK aranıyor…': 'Searching for JDK…', 'JDK hazır: {0} — {1}': 'JDK ready: {0} — {1}', 'Uygun JDK bulunamadı.': 'No suitable JDK found.', 'JDK 17+ kurun (ör. Eclipse Temurin), kurulumdan sonra “JDK’yı yeniden ara”ya basın.': 'Install JDK 17+ (e.g. Eclipse Temurin), then press “Search for JDK again”.', 'JDK aranamadı: {0}': 'Could not search for JDK: {0}',
+      '{0}: yalnızca .java dosyaları desteklenir.': '{0}: only .java files are supported.', '(Diğer diller ve hazır jar/class dosyaları bu sürümde yok.)': '(Other languages and ready-made jar/class files are not supported in this version.)', 'En fazla 50 dosya.': 'At most 50 files.', 'Dosya çok büyük (en çok 2 MB): {0}': 'File too large (max 2 MB): {0}', 'Toplam boyut en çok 10 MB olabilir.': 'The total size can be at most 10 MB.',
+      'Dosyalar': 'Files', 'Paket': 'Package', '(varsayılan)': '(default)', 'Tür': 'Type', 'Pencere (GUI) uygulaması algılandı': 'Window (GUI) app detected', 'Konsol uygulaması algılandı': 'Console app detected', '— bulunamadı —': '— not found —', 'Atlandı (.java değil): {0}': 'Skipped (not .java): {0}',
+      'Hazır. Ad ve türü kontrol edip "Derle ve paketle"ye bas.': 'Ready. Check the name and type, then press “Compile and package”.', 'Çalıştırılabilir bir ana sınıf bulunamadı.': 'No runnable main class was found.', 'Derleniyor… (ilk paketleme bir dakika sürebilir)': 'Compiling… (the first packaging can take a minute)', 'Bitti.': 'Done.', 'İptal edildi.': 'Canceled.', 'Derleme başarısız: {0}': 'Build failed: {0}', 'Başlatılamadı.': 'Could not start.',
+      'Uygulama adı geçersiz: harfle başlamalı; yalnızca harf, rakam, - ve _ (en çok 40).': 'Invalid app name: must start with a letter; letters, digits, - and _ only (max 40).', '✓ İndirilmeye hazır: {0}': '✓ Ready to download: {0}', 'İndirilenler klasörüne kaydedildi: {0}': 'Saved to your Downloads folder: {0}', 'konsol uygulaması': 'console app', 'pencere uygulaması': 'window app', '(bu işletim sisteminde .exe değil)': '(not an .exe on this operating system)', 'Klasörü göster': 'Show folder',
+      'JDK bulundu': 'JDK found', 'Derleniyor (javac)': 'Compiling (javac)', 'JAR oluşturuluyor': 'Creating JAR', 'Gerekli modüller çözümleniyor (jdeps)': 'Resolving required modules (jdeps)', 'Uygulama paketleniyor (jpackage)': 'Packaging app (jpackage)', 'İndirilenler klasörüne kaydediliyor': 'Saving to Downloads folder',
+      'Başka bir derleme sürüyor.': 'Another build is in progress.', 'Derleme hatası (javac). Ayrıntı için günlüğe bak.': 'Compile error (javac). See the log for details.', 'JAR oluşturulamadı.': 'Could not create the JAR.', 'Paketleme başarısız (jpackage). Ayrıntı için günlüğe bak.': 'Packaging failed (jpackage). See the log for details.', 'jpackage beklenen çıktıyı üretmedi.': 'jpackage did not produce the expected output.', 'Uygun JDK bulunamadı. JDK 17+ (javac, jar, jdeps, jpackage içeren tam JDK) kurun.': 'No suitable JDK found. Install JDK 17+ (a full JDK with javac, jar, jdeps and jpackage).', 'JDK 17 veya üstü gerekir (bulunan: {0})': 'JDK 17 or newer is required (found: {0})',
+      'public tür "{0}" dosya adıyla ("{1}.java") aynı olmalı; javac bu dosyayı reddeder.': 'public type “{0}” must match the file name (“{1}.java”); javac rejects this file.', 'JavaFX algılandı: JDK içinde JavaFX yoktur; derleme başarısız olabilir ya da JavaFX SDK gerekir.': 'JavaFX detected: the JDK does not include JavaFX; the build may fail or a JavaFX SDK may be needed.', '{0}: {1} (klasik başlatıcı public static void main ister).': '{0}: {1} (the classic launcher requires public static void main).', 'main static değil': 'main is not static', 'main public değil': 'main is not public', 'Aynı sınıf iki dosyada: {0}': 'The same class is in two files: {0}',
+      'Hiçbir dosyada çalıştırılabilir "public static void main(String[] args)" bulunamadı.': 'No runnable “public static void main(String[] args)” was found in any file.', 'Parametresiz main() (Java 21+ önizleme özelliği) desteklenmez; "public static void main(String[] args)" kullanın.': 'A parameterless main() (a Java 21+ preview feature) is not supported; use “public static void main(String[] args)”.', 'Bu dosyada "public static void main(String[] args)" yok.': 'This file has no “public static void main(String[] args)”.'
+    };
+    let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
+    function lookup(k) { return Object.prototype.hasOwnProperty.call(EN, k) ? EN[k] : undefined; }
+    function fill(s, a) { return s.replace(/\{(\d+)\}/g, (m, i) => (a[+i] !== undefined ? a[+i] : m)); }
+    function KLt(key, ...a) { return fill(lang === 'en' && lookup(key) !== undefined ? lookup(key) : key, a); }
+    /* degiskenli motor iletileri: sablon eslemesi */
+    const PAT = [[/^public tür "(.+)" dosya adıyla \("(.+)\.java"\) aynı olmalı; javac bu dosyayı reddeder\.$/, 'public tür "{0}" dosya adıyla ("{1}.java") aynı olmalı; javac bu dosyayı reddeder.'], [/^(.+): (main static değil|main public değil) \(klasik başlatıcı public static void main ister\)\.$/, '{0}: {1} (klasik başlatıcı public static void main ister).', (m) => [m[1], KLt(m[2])]], [/^Aynı sınıf iki dosyada: (.+)$/, 'Aynı sınıf iki dosyada: {0}'], [/^JDK 17 veya üstü gerekir \(bulunan: (.+)\)$/, 'JDK 17 veya üstü gerekir (bulunan: {0})']];
+    function tr(s) {
+      if (lang !== 'en') return s; const k = s.trim(); if (!k) return s; let v = lookup(k);
+      if (v === undefined) for (const [re, tpl, args] of PAT) { if (!tpl) continue; const m = re.exec(k); if (m) { v = fill(lookup(tpl) !== undefined ? lookup(tpl) : tpl, args ? args(m) : m.slice(1)); break; } }
+      if (v === undefined) return s; return s.replace(k, () => v);
+    }
+    const t = (key, ...a) => fill(tr(String(key)), a);
+    const ATTR = ['title', 'aria-label', 'placeholder']; const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'PRE', 'CODE']);
+    function fixAttrs(e) { for (const a of ATTR) { const v = e.getAttribute(a); if (v) { const nv = tr(v); if (nv !== v) e.setAttribute(a, nv); } } }
+    function walk(n) { if (n.nodeType === 3) { const v = n.nodeValue; const nv = tr(v); if (nv !== v) n.nodeValue = nv; return; } if (n.nodeType !== 1 || SKIP.has(n.tagName)) return; fixAttrs(n); for (const c of n.childNodes) walk(c); }
+    let obs = null;
+    function attach() {
+      document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #skip, #cp-ready')];
+      obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
+      for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
+    }
+    function set(l) { try { localStorage.setItem('kovan.lang', l === 'en' ? 'en' : 'tr'); sessionStorage.setItem('kovan.reopen', '1'); } catch (e) { /* depolama yok */ } location.reload(); }
+    return { t, tr, attach, set, get lang() { return lang; } };
+  })();
+  const KT = KL.t;
+
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
   const KOVAN_VER = 'beta 0.0.3';
   (function kovanConv() {
@@ -4772,15 +4932,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       async function load(f) {
         st.file = null; st.det = null; res.hidden = true; res.textContent = ''; info.hidden = true; go.disabled = true; st.out = null;
         if (!f) return; name.textContent = f.name + ' (' + fmt(f.size) + ')';
-        if (f.size > MAXB) { setLive('Dosya çok büyük (' + fmt(f.size) + '); sınır ' + fmt(MAXB) + '.'); return; }
+        if (f.size > MAXB) { setLive(KT('Dosya çok büyük ({0}); sınır {1}.', fmt(f.size), fmt(MAXB))); return; }
         setLive('Okunuyor…'); let u8; try { u8 = new Uint8Array(await f.arrayBuffer()); } catch (e) { setLive('Dosya okunamadı.'); return; }
         try { const d = await cfg.detect(u8); st.file = { f, u8 }; st.det = d; if (!d.ok) { setLive(d.reason); info.hidden = true; return; } info.hidden = false; info.textContent = ''; info.append(...d.lines.map((l) => h('div', {}, h('span', {}, l[0]), h('b', {}, l[1])))); if (sSrc && d.guess) sSrc.value = d.guess; setLive(d.note || 'Hazır. Hedef sürümü seçip "Dönüştür"e bas.'); go.disabled = false; }
-        catch (e) { setLive('Dosya okunamadı: ' + (e && e.message ? e.message : e)); }
+        catch (e) { setLive(KT('Dosya okunamadı: {0}', e && e.message ? e.message : e)); }
       }
       async function run() {
         if (st.busy || !st.file) return; st.busy = true; go.disabled = true; res.hidden = true; res.textContent = ''; setLive('Dönüştürülüyor…');
-        try { const r = await cfg.convert(st.file.u8, { name: st.file.f.name, src: sSrc && sSrc.value, dst: sDst.value, level: sLvl && sLvl.value, onProgress: (p) => setLive('Dönüştürülüyor… %' + Math.round(p * 100)) }); show(r); }
-        catch (e) { setLive('Dönüştürme başarısız: ' + (e && e.message ? e.message : e) + ' Orijinal dosya değiştirilmedi.'); }
+        try { const r = await cfg.convert(st.file.u8, { name: st.file.f.name, src: sSrc && sSrc.value, dst: sDst.value, level: sLvl && sLvl.value, onProgress: (p) => setLive(KT('Dönüştürülüyor… %{0}', Math.round(p * 100))) }); show(r); }
+        catch (e) { setLive(KT('Dönüştürme başarısız: {0} Orijinal dosya değiştirilmedi.', e && e.message ? e.message : e)); }
         st.busy = false; go.disabled = !st.file;
       }
       function show(r) {
@@ -4788,10 +4948,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         if (!r.ok) { setLive(r.reason || 'Dönüştürülemedi.'); res.hidden = true; return; }
         const rep = cfg.report(r.report, st.file.f.name); const sum = cfg.summary(r.report);
         const btns = h('div', { class: 'cv-actions' });
-        if (r.out) { const b = h('button', { type: 'button', class: 'cv-btn cv-primary' }, 'Dönüştürülmüş dosyayı indir (' + r.name + ')'); b.addEventListener('click', () => saveBlob(r.name, new Blob([r.out], { type: cfg.mime }))); btns.append(b); }
+        if (r.out) { const b = h('button', { type: 'button', class: 'cv-btn cv-primary' }, KT('Dönüştürülmüş dosyayı indir ({0})', r.name)); b.addEventListener('click', () => saveBlob(r.name, new Blob([r.out], { type: cfg.mime }))); btns.append(b); }
         const rb = h('button', { type: 'button', class: 'cv-btn' }, 'Raporu indir (.md)'); rb.addEventListener('click', () => saveBlob(st.file.f.name.replace(/\.[^.]+$/, '') + '-' + sDst.value + '-rapor.md', new Blob([rep], { type: 'text/markdown' }))); btns.append(rb);
         res.append(h('h2', {}, r.out ? 'Dönüştürme tamamlandı' : 'Çıktı üretilmedi'), h('ul', { class: 'cv-sum' }, sum.map((t) => h('li', {}, t))), btns);
-        for (const [t, list, cls] of cfg.sections(r.report)) if (list.length) res.append(h('details', { class: 'cv-sec ' + (cls || '') }, h('summary', {}, t + ' (' + list.length + ')'), h('ul', {}, list.slice(0, 200).map((x) => h('li', {}, x)), list.length > 200 ? h('li', {}, '… ve ' + (list.length - 200) + ' tane daha (raporda tamamı var)') : null)));
+        for (const [t, list, cls] of cfg.sections(r.report)) if (list.length) res.append(h('details', { class: 'cv-sec ' + (cls || '') }, h('summary', {}, KT(t) + ' (' + list.length + ')'), h('ul', {}, list.slice(0, 200).map((x) => h('li', {}, x)), list.length > 200 ? h('li', {}, KT('… ve {0} tane daha (raporda tamamı var)', list.length - 200)) : null)));
         setLive(r.out ? 'Bitti. Orijinal dosya değiştirilmedi; çıktı yeni bir dosyadır.' : 'Değiştirilecek bir şey bulunamadı.');
       }
       pick.addEventListener('click', (e) => { e.stopPropagation(); input.click(); }); zone.addEventListener('click', () => input.click()); zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
@@ -4804,10 +4964,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       id: 'tp', title: 'Doku paketi dönüştürücü', accept: '.zip,application/zip', pickLabel: 'Doku paketi (.zip) seç', dropTitle: 'Kaynak paketini (.zip) buraya bırak', dropSub: 'Minecraft Java resource pack · dosya yalnızca bu cihazda işlenir', src: true, level: true, mime: 'application/zip',
       title2: '', lead: 'Bir Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Çıktı yeni bir .zip’tir; orijinal dosyan değişmez.',
       limits: ['Yalnızca dosya adı/yolu değişen dokular taşınır. Yeniden çizilmiş veya parçalara bölünmüş dokular (ör. 1.20.2 GUI sprite’ları) otomatik dönüştürülemez; rapor bunları listeler.', 'Eski sürüme dönüştürme kayıpsız değildir.', 'Yeniden adlandırma tablosu gerçek vanilla dosyalarının sürümler arası karşılaştırmasından üretildi. pack.mcmeta’nın 1.21.9+ biçimi oyunda denenmedi.', 'OptiFine/shader/overlay içeriği dönüştürülmez, olduğu gibi kopyalanır.'],
-      detect: async (u8) => { const d = await mcDetectPack(u8); if (!d.ok) return { ok: false, reason: d.reason }; const v = mcVer(d.guess); return { ok: true, guess: d.guess, lines: [['pack_format', d.fmt + ' (' + d.how + ')'], ['Tahmini sürüm', (v ? v.label : '?') + (d.exact ? '' : ' — tabloda yok, yakın sürüm varsayıldı')], ['Girdi sayısı', String(d.entries)], ['Açıklama', d.description || '—']], note: d.exact ? null : 'pack_format tabloda yok: kaynak sürümü elle kontrol et.' }; },
+      detect: async (u8) => { const d = await mcDetectPack(u8); if (!d.ok) return { ok: false, reason: d.reason }; const v = mcVer(d.guess); return { ok: true, guess: d.guess, lines: [['pack_format', d.fmt + ' (' + d.how + ')'], [KT('Tahmini sürüm'), (v ? v.label : '?') + (d.exact ? '' : KT(' — tabloda yok, yakın sürüm varsayıldı'))], ['Girdi sayısı', String(d.entries)], ['Açıklama', d.description || '—']], note: d.exact ? null : 'pack_format tabloda yok: kaynak sürümü elle kontrol et.' }; },
       convert: (u8, o) => mcConvertPack(u8, o), report: (r, n) => mcReportText(r, n),
-      summary: (r) => ['Yön: ' + r.srcLabel + ' → ' + r.dstLabel, 'Yeniden adlandırılan doku: ' + r.renamed.filter((x) => !/\.mcmeta$/.test(x.to)).length + ' (kanıtlı ' + r.renameCount.s + ', ad kuralı ' + r.renameCount.n + ', ad eşleşmesi ' + r.renameCount.m + ')', 'Model/font içinde güncellenen başvuru: ' + r.refCount, 'Değişmeden kopyalanan dosya: ' + r.counts.copied],
-      sections: (r) => [['Uyarılar', r.warnings, 'warn'], ['pack.mcmeta değişiklikleri', r.meta], ['Çakışmalar (atlandı)', r.conflicts.map((c) => c.from + ' → ' + c.to), 'warn'], ['Hedefte karşılığı olmayan dokular (silinmedi)', r.gone.map((g) => g.path.replace(MC_TEX_PREFIX, '')), 'warn'], ['Öğe tanımları (1.21.4+)', r.items.converted.map((x) => 'dönüştürüldü: ' + x).concat(r.items.skipped.map((s) => 'atlandı: ' + s.item + ' — ' + s.why))], ['Yeniden adlandırmalar', r.renamed.map((x) => x.from.replace(MC_TEX_PREFIX, '') + ' → ' + x.to.replace(MC_TEX_PREFIX, ''))]]
+      summary: (r) => [KT('Yön: {0} → {1}', r.srcLabel, r.dstLabel), KT('Yeniden adlandırılan doku: {0} (kanıtlı {1}, ad kuralı {2}, ad eşleşmesi {3})', r.renamed.filter((x) => !/\.mcmeta$/.test(x.to)).length, r.renameCount.s, r.renameCount.n, r.renameCount.m), KT('Model/font içinde güncellenen başvuru: {0}', r.refCount), KT('Değişmeden kopyalanan dosya: {0}', r.counts.copied)],
+      sections: (r) => [['Uyarılar', r.warnings, 'warn'], ['pack.mcmeta değişiklikleri', r.meta], ['Çakışmalar (atlandı)', r.conflicts.map((c) => c.from + ' → ' + c.to), 'warn'], ['Hedefte karşılığı olmayan dokular (silinmedi)', r.gone.map((g) => g.path.replace(MC_TEX_PREFIX, '')), 'warn'], ['Öğe tanımları (1.21.4+)', r.items.converted.map((x) => KT('dönüştürüldü: {0}', x)).concat(r.items.skipped.map((s) => KT('atlandı: {0} — {1}', s.item, s.why)))], ['Yeniden adlandırmalar', r.renamed.map((x) => x.from.replace(MC_TEX_PREFIX, '') + ' → ' + x.to.replace(MC_TEX_PREFIX, ''))]]
     });
     build($('#app-modconv'), {
       id: 'mc', title: 'Mod sürüm ayarlayıcı', accept: '.jar,.zip,application/java-archive', pickLabel: 'Mod (.jar) seç', dropTitle: 'Mod dosyasını (.jar) buraya bırak', dropSub: 'Fabric · Quilt · Forge · NeoForge · Bukkit/Paper · dosya yalnızca bu cihazda işlenir', mime: 'application/java-archive',
@@ -4815,9 +4975,67 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       limits: ['Derlenmiş kod bir Minecraft sürümünden diğerine çevrilemez. Bu araç yalnızca sürüm kısıtını değiştirir; modun hedef sürümde ÇALIŞACAĞINI GARANTİ ETMEZ.', 'Gerçek bir taşıma kaynak kodun yeniden derlenmesini gerektirir (Mixin, access widener ve API değişiklikleri en sık kırılma nedenleridir).', 'İmzalı jar’lardaki imza dosyaları çıkarılır (bildirim değiştiği için zaten geçersiz olurdu).', 'Forge/NeoForge loader ve Fabric API sürüm aralıkları değiştirilmez.'],
       detect: async (u8) => { const a = await mmAnalyze(u8); if (!a.loaders.length) return { ok: false, reason: 'Tanınan bir mod bildirimi yok: bu bir Minecraft modu/eklentisi değil ya da desteklenmeyen biçim.' }; return { ok: true, lines: [['Yükleyici', a.loaders.join(', ')], ['Mod', (a.id || '—') + (a.version ? ' ' + a.version : '')], ['Mevcut kısıt', a.constraints.map((c) => c.v || '(yok)').join(' · ') || '—'], ['Sınıf sayısı', String(a.classes)]] }; },
       convert: (u8, o) => mmConvert(u8, o), report: (r, n) => mmReportText(r, n),
-      summary: (r) => ['Hedef: ' + r.dstLabel, 'Yükleyici: ' + r.loaders.join(', '), 'Değişen bildirim: ' + r.changed.length],
+      summary: (r) => [KT('Hedef: {0}', r.dstLabel), KT('Yükleyici: {0}', r.loaders.join(', ')), KT('Değişen bildirim: {0}', r.changed.length)],
       sections: (r) => [['Yapılan değişiklikler', r.changed], ['Atlananlar', r.skipped, 'warn'], ['Uyarılar', r.warnings, 'warn'], ['Riskler', r.risks, 'warn']]
     });
+    /* ---- Derleyici (Java .java -> uygulama; yalnizca masaustu + kullanicinin kendi JDK'si) ---- */
+    (function compilerUI() {
+      const root = $('#app-compiler'); const H = window.statscanHost && window.statscanHost.compileStart ? window.statscanHost : null; const { javaPlan } = StatScan;
+      const NAME_OK = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/; const st = { files: [], plan: null, busy: false, jdk: null, id: null };
+      const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' }); const setLive = (x) => { live.textContent = x; };
+      const jdkLine = h('p', { class: 'cp-jdk', role: 'status' }); const jdkBtn = h('button', { type: 'button', class: 'cv-btn' }, 'JDK’yı yeniden ara');
+      const input = h('input', { type: 'file', accept: '.java,text/x-java-source', multiple: true, hidden: true, id: 'cp-file' });
+      const pick = h('button', { type: 'button', class: 'cv-btn' }, '.java dosyası seç');
+      const zone = h('div', { class: 'cv-drop', tabindex: '0', role: 'button', 'aria-label': '.java dosyası seç' }, h('div', {}, h('strong', {}, '.java dosyanı buraya bırak'), h('span', {}, 'Birden çok dosya olabilir · dosyalar yalnızca bu cihazda işlenir')), pick);
+      const info = h('div', { class: 'cv-info', hidden: true }); const probs = h('ul', { class: 'cp-probs', hidden: true });
+      const mainSel = h('select', { id: 'cp-main' }); const nameIn = h('input', { type: 'text', id: 'cp-name', maxlength: '40', autocomplete: 'off', spellcheck: 'false' }); const modeSel = h('select', { id: 'cp-mode' }, h('option', { value: 'auto' }, 'Otomatik'), h('option', { value: 'yes' }, 'Konsol uygulaması'), h('option', { value: 'no' }, 'Pencere (GUI) uygulaması'));
+      const fld = (id, label, ctl) => h('label', { class: 'cv-f', for: id }, h('span', {}, label), ctl);
+      const go = h('button', { type: 'button', class: 'cv-btn cv-primary', id: 'cp-go', disabled: true }, 'Derle ve paketle'); const cancel = h('button', { type: 'button', class: 'cv-btn', id: 'cp-cancel', hidden: true }, 'İptal');
+      const opts = h('div', { class: 'cv-opts', id: 'cp-opts', hidden: true }, fld('cp-main', 'Ana sınıf (otomatik bulundu)', mainSel), fld('cp-name', 'Uygulama adı', nameIn), fld('cp-mode', 'Uygulama türü', modeSel), go, cancel);
+      const steps = h('ol', { class: 'cp-steps', hidden: true, 'aria-label': 'Derleme adımları' }); const logBox = h('details', { class: 'cv-sec warn', hidden: true }, h('summary', {}, 'Derleyici çıktısı'), h('pre', { class: 'cp-log' }));
+      const ready = h('div', { class: 'cp-ready', id: 'cp-ready', role: 'status', hidden: true }); document.body.append(ready);
+      root.append(h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Derleyici'), h('p', { class: 'cv-lead' }, 'Java kaynak dosyanı (.java) bırak; araç ana sınıfı otomatik bulur, derler ve çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder.')),
+        h('div', { class: 'cv-note' }, h('b', {}, 'Önce bilmen gerekenler'), h('ul', {}, ['Bilgisayarında JDK 17 veya üstü (javac, jar, jdeps, jpackage içeren tam JDK) kurulu olmalı. Araç hiçbir şey indirmez veya kurmaz.', 'Çıktı, kendi Java çalışma zamanıyla gelen bir klasördür (Windows’ta Ad.exe + runtime). Tek dosyalık exe değildir; klasörün tamamını taşı.', 'Derlenen program çalıştırılmaz. Şimdilik yalnızca Java (.java) desteklenir.'].map((x) => h('li', {}, x)))),
+        jdkLine, h('div', { class: 'cp-jdkrow' }, jdkBtn), zone, input, info, probs, opts, live, steps, logBox);
+      const spec = (n) => /[çğıöşüÇĞİÖŞÜ]/.test(n);
+      async function jdkCheck() { if (!H) { jdkLine.textContent = 'Derleyici yalnızca masaüstü uygulamasında çalışır; tarayıcıda yalnızca dosya incelenebilir.'; jdkLine.className = 'cp-jdk warn'; jdkBtn.disabled = true; return; } jdkBtn.disabled = true; jdkLine.className = 'cp-jdk'; jdkLine.textContent = 'JDK aranıyor…'; try { const r = await H.compileJdk(); st.jdk = r; if (r && r.found) { jdkLine.className = 'cp-jdk ok'; jdkLine.textContent = KT('JDK hazır: {0} — {1}', r.best.version, r.best.home); } else { jdkLine.className = 'cp-jdk warn'; const bad = (r && r.all || []).find((x) => !x.ok); jdkLine.textContent = KT('Uygun JDK bulunamadı.') + ' ' + (bad ? KT(bad.why) + '. ' : '') + KT('JDK 17+ kurun (ör. Eclipse Temurin), kurulumdan sonra “JDK’yı yeniden ara”ya basın.'); } } catch (e) { jdkLine.className = 'cp-jdk warn'; jdkLine.textContent = KT('JDK aranamadı: {0}', e && e.message ? e.message : e); } jdkBtn.disabled = false; refresh(); }
+      function refresh() { const p = st.plan; const okPlan = !!(p && p.mainDefault && NAME_OK.test(nameIn.value)); go.disabled = st.busy || !H || !(st.jdk && st.jdk.found) || !okPlan; }
+      async function load(list) {
+        const fl = [...list]; if (!fl.length) return; const rej = fl.filter((f) => !/\.java$/i.test(f.name)); const good = fl.filter((f) => /\.java$/i.test(f.name));
+        ready.hidden = true; steps.hidden = true; logBox.hidden = true; st.files = []; st.plan = null; info.hidden = true; probs.hidden = true; opts.hidden = true; go.disabled = true;
+        if (!good.length) { setLive(KT('{0}: yalnızca .java dosyaları desteklenir.', rej.map((f) => f.name).join(', ')) + (rej.some((f) => /\.(py|c|cpp|cs|js|jar|class|exe)$/i.test(f.name)) ? ' ' + KT('(Diğer diller ve hazır jar/class dosyaları bu sürümde yok.)') : '')); return; }
+        if (good.length > 50) { setLive('En fazla 50 dosya.'); return; } let tot = 0; for (const f of good) { if (f.size > 2 * 1048576) { setLive(KT('Dosya çok büyük (en çok 2 MB): {0}', f.name)); return; } tot += f.size; } if (tot > 10 * 1048576) { setLive('Toplam boyut en çok 10 MB olabilir.'); return; }
+        try { const dec = new TextDecoder('utf-8'); for (const f of good) { const u8 = new Uint8Array(await f.arrayBuffer()); st.files.push({ name: f.name, bytes: u8, text: dec.decode(u8) }); } } catch (e) { setLive('Dosya okunamadı.'); return; }
+        const p = javaPlan(st.files.map((f) => ({ name: f.name, text: f.text }))); st.plan = p;
+        info.hidden = false; info.textContent = ''; const rows = [[KT('Dosyalar'), st.files.map((f) => f.name + ' (' + fmt(f.bytes.length) + ')').join(', ')], [KT('Paket'), [...new Set(p.scans.map((s) => s.package || KT('(varsayılan)')))].join(', ')], [KT('Tür'), p.gui ? KT('Pencere (GUI) uygulaması algılandı') : KT('Konsol uygulaması algılandı')]]; for (const [k, v] of rows) info.append(h('div', {}, h('span', {}, k), h('b', {}, v)));
+        mainSel.textContent = ''; for (const c of p.candidates) mainSel.append(h('option', { value: c.binary }, c.binary + '  (' + c.file + ')')); if (!p.candidates.length) mainSel.append(h('option', { value: '' }, KT('— bulunamadı —'))); if (p.mainDefault) mainSel.value = p.mainDefault; nameIn.value = p.suggestName; modeSel.value = 'auto';
+        probs.textContent = ''; const all = p.problems.map((x) => (x.file ? x.file + ': ' : '') + KT(x.msg)).concat(p.scans.flatMap((s) => s.notes.map((n) => s.file + ': ' + KT(n)))); if (rej.length) all.push(KT('Atlandı (.java değil): {0}', rej.map((f) => f.name).join(', '))); for (const x of all) probs.append(h('li', {}, x)); probs.hidden = !all.length;
+        opts.hidden = false; setLive(KT(p.mainDefault ? 'Hazır. Ad ve türü kontrol edip "Derle ve paketle"ye bas.' : 'Çalıştırılabilir bir ana sınıf bulunamadı.')); refresh();
+      }
+      const ICON = { wait: '○', run: '…', ok: '✓', fail: '✗', skip: '–' };
+      function drawSteps(j) { steps.hidden = false; steps.textContent = ''; for (const s of j.steps) { const li = h('li', { class: 'cp-s ' + s.status }, h('span', { class: 'cp-i', 'aria-hidden': 'true' }, ICON[s.status] || '○'), h('span', {}, s.label), s.detail ? h('small', {}, s.detail) : null); steps.append(li); } }
+      async function run() {
+        if (go.disabled || st.busy) return; if (!NAME_OK.test(nameIn.value)) { setLive(KT('Uygulama adı geçersiz: harfle başlamalı; yalnızca harf, rakam, - ve _ (en çok 40).')); return; }
+        st.busy = true; go.disabled = true; cancel.hidden = false; ready.hidden = true; logBox.hidden = true; setLive(KT('Derleniyor… (ilk paketleme bir dakika sürebilir)'));
+        const req = { files: st.files.map((f) => ({ name: f.name, bytes: f.bytes })), mainClass: mainSel.value, name: nameIn.value, console: modeSel.value };
+        let r; try { r = await H.compileStart(req); } catch (e) { r = { error: 'x', message: String(e && e.message || e) }; }
+        if (r.error) { setLive(KT(r.message || 'Başlatılamadı.')); st.busy = false; cancel.hidden = true; if (r.needJdk) jdkCheck(); refresh(); return; }
+        st.id = r.id; let j; for (;;) { try { j = await H.compileJob(r.id); } catch (e) { j = { state: 'failed', steps: [], error: String(e && e.message || e), log: '' }; } if (j.steps) drawSteps(j); if (j.state !== 'running') break; await new Promise((x) => setTimeout(x, 400)); }
+        st.busy = false; cancel.hidden = true; refresh();
+        if (j.state === 'done') { const R = j.result; setLive('Bitti.'); showReady(R); }
+        else { setLive(j.state === 'canceled' ? KT('İptal edildi.') : KT('Derleme başarısız: {0}', KT(j.error || ''))); const out = (j.result && (j.result.javacOutput || j.result.jpackageOutput)) || j.log; if (out) { logBox.hidden = false; logBox.open = true; logBox.querySelector('pre').textContent = out; } }
+      }
+      function showReady(R) {
+        ready.textContent = ''; const t = h('div', { class: 'cp-rt' }, h('b', {}, KT('✓ İndirilmeye hazır: {0}', R.launcherName)), h('span', {}, KT('İndirilenler klasörüne kaydedildi: {0}', R.outDir) + ' · ' + fmt(R.size) + ' · ' + KT(R.console ? 'konsol uygulaması' : 'pencere uygulaması') + (R.windows ? '' : ' ' + KT('(bu işletim sisteminde .exe değil)'))));
+        const open = h('button', { type: 'button', class: 'cv-btn cv-primary' }, 'Klasörü göster'); open.addEventListener('click', () => H.compileOpen(st.id)); const x = h('button', { type: 'button', class: 'cv-btn', 'aria-label': 'Kapat' }, 'Kapat'); x.addEventListener('click', () => { ready.hidden = true; });
+        ready.append(t, h('div', { class: 'cp-ra' }, open, x)); ready.hidden = false;
+      }
+      pick.addEventListener('click', (e) => { e.stopPropagation(); input.click(); }); zone.addEventListener('click', () => input.click()); zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+      input.addEventListener('change', () => { load(input.files); input.value = ''; }); go.addEventListener('click', run); cancel.addEventListener('click', () => { if (st.id && H) H.compileCancel(st.id); }); jdkBtn.addEventListener('click', jdkCheck); nameIn.addEventListener('input', refresh);
+      for (const ev of ['dragenter', 'dragover']) zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('over'); }); for (const ev of ['dragleave', 'drop']) zone.addEventListener(ev, () => zone.classList.remove('over'));
+      zone.addEventListener('drop', (e) => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (fs && fs.length) load(fs); });
+      new MutationObserver(() => { if (!root.hidden && st.jdk === null) jdkCheck(); }).observe(root, { attributes: true, attributeFilter: ['hidden'] }); if (!root.hidden) jdkCheck();
+    })();
   })();
 
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
@@ -4831,12 +5049,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
       cube: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
       puzzle: '<path d="M9 4h6v3a2 2 0 1 1 0 4v3h-3a2 2 0 1 0-4 0H5V8h4V4Z"/><path d="M5 14v6h14v-4"/>',
+      hammer: '<path d="m14 4 6 6-3 3-6-6 3-3Z"/><path d="m11 7-7 7v4h4l7-7"/><path d="M4 21h8"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
     const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
       { id: 'texpack', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
-      { id: 'modconv', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] }];
+      { id: 'modconv', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
+      { id: 'compiler', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java (.java) dosyalarını otomatik algılar, derler ve kendi çalışma zamanıyla çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder. JDK 17+ gerekir; yalnızca masaüstü uygulamasında çalışır.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
     const mk = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
     const label = mk('div', { class: 'side-label', id: 'side-tools' }, 'Araçlar');
@@ -4855,7 +5075,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     function render(id) {
       if (id === current) return; current = id;
       for (const x of ids) { const v = $('#app-' + x); if (v) v.hidden = x !== id; const l = linkOf[x]; if (l) { if (x === id) l.setAttribute('aria-current', 'page'); else l.removeAttribute('aria-current'); } }
-      document.title = (id === 'home' ? 'Home' : MODULES.find((m) => m.id === id).name) + ' · ' + APP; if (id === 'home') startTyping();
+      document.title = (id === 'home' ? 'Home' : KT(MODULES.find((m) => m.id === id).name)) + ' · ' + APP; if (id === 'home') startTyping();
     }
     function go(id) { if (id === current) return; if (location.hash !== '#/' + id) location.hash = '#/' + id; else render(id); }
     window.addEventListener('hashchange', () => { const r = parse(); if (r) render(r); });
@@ -4908,6 +5128,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const saveName = (v) => { v = v.trim().replace(/\s+/g, ' ').slice(0, 24); if (!v) { nm.value = user; return; } applyName(v); nm.value = v; LS.set('kovan.user', v === DEFAULT_USER ? null : v); };
       nmSave.addEventListener('click', () => saveName(nm.value)); nmReset.addEventListener('click', () => saveName(DEFAULT_USER)); nm.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(nm.value); } });
       const nmRow = sRow('name', 'Kullanıcı adı', 'Home karşılamasında görünür (24 karaktere kadar). Yalnızca bu cihazda saklanır.', nmWrap); nmRow.querySelector('label').setAttribute('for', 'st-name'); g1.append(nmRow);
+      const lg = mk('select', { id: 'st-lang' }, '<option value="tr">Türkçe</option><option value="en">English</option>'); lg.value = KL.lang; lg.addEventListener('change', () => KL.set(lg.value));
+      g1.append(sRow('lang', 'Dil / Language', 'Kovan arayüzünün dili. StatScan’in analiz ekranları, dönüştürücü raporları ve motor uyarılarının ayrıntıları şimdilik Türkçe kalır. Değişince sayfa yenilenir.', lg));
       body.append(g1);
       const g2 = sSec('Başlangıç', host ? '' : 'Bu bölüm yalnızca masaüstü uygulamasında çalışır; tarayıcı sayfasında ayarlanamaz.'); const stNote = mk('p', { class: 'snote warn', hidden: true }); stNote.setAttribute('role', 'status');
       const swLogin = sSwitch('login', false, (c) => hostSet('openAtLogin', c)); const swMin = sSwitch('min', false, (c) => hostSet('startMinimized', c));
@@ -4917,7 +5139,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       g3.append(sRow('auto', 'Açılışta güncellemeyi denetle', 'Uygulama açıldıktan kısa süre sonra imzalı güncelleme var mı bakar. Paket imzası her durumda doğrulanır.', swAuto), sRow('check', 'Güncellemeleri denetle', 'Sonucu ayrı bir pencerede gösterir.', chk)); body.append(g3);
       for (const c of [swLogin, swMin, swAuto, chk]) c.disabled = true;
       const g4 = sSec('Veri'); const rst = mk('button', { type: 'button', id: 'st-reset' }, 'Kovan tercihlerini sıfırla'); let rT = 0;
-      rst.addEventListener('click', () => { if (!rst.dataset.arm) { rst.dataset.arm = '1'; rst.textContent = 'Emin misin? Tekrar tıkla'; rT = setTimeout(() => { delete rst.dataset.arm; rst.textContent = 'Kovan tercihlerini sıfırla'; }, 4000); return; } clearTimeout(rT); try { for (const k of ['kovan.user', 'kovan.collapsed', 'kovan.typing', 'kovan.fx', 'statscan-theme']) localStorage.removeItem(k); } catch (e) { /* yoksay */ } location.reload(); });
+      rst.addEventListener('click', () => { if (!rst.dataset.arm) { rst.dataset.arm = '1'; rst.textContent = 'Emin misin? Tekrar tıkla'; rT = setTimeout(() => { delete rst.dataset.arm; rst.textContent = 'Kovan tercihlerini sıfırla'; }, 4000); return; } clearTimeout(rT); try { for (const k of ['kovan.user', 'kovan.collapsed', 'kovan.typing', 'kovan.fx', 'kovan.lang', 'statscan-theme']) localStorage.removeItem(k); } catch (e) { /* yoksay */ } location.reload(); });
       g4.append(sRow('reset', 'Tercihleri sıfırla', 'Tema, kenar çubuğu, kullanıcı adı ve animasyon tercihlerini siler. Tarama sonuçlarına ve dosyalarına dokunmaz.', rst)); body.append(g4);
       const g5 = sSec('Hakkında'); const ab = mk('ul', { class: 'sabout' }); for (const [k, v] of [['Kovan', KOVAN_VER], ['StatScan', StatScan.version || ''], ['Çalışma biçimi', host ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; ab.append(li); } g5.append(ab); body.append(g5);
       async function hostSet(k, c) { c.disabled = true; stNote.hidden = true; try { const r = await host.settingsSet(k, c.checked); if (r && r.error) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = r.message || 'Ayar uygulanamadı.'; } else hostFill(r); } catch (e) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = 'Ayar uygulanamadı: ' + (e && e.message ? e.message : e); } syncMin(); }
@@ -4934,14 +5156,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const pal = $('#pal'), palQ = $('#pal-q'), palL = $('#pal-list'); let palItems = [], palSel = 0, palPrev = null;
     const trl = (x) => String(x).toLocaleLowerCase('tr');
     function commands() {
-      const c = [{ label: 'Home’a git', hint: 'Sayfa', run: () => go('home') }];
-      for (const m of MODULES) { c.push({ label: m.name + ' aracını aç', hint: 'Araç', run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: a.label, hint: 'Komut', run: a.run }); }
-      c.push({ label: 'Temayı değiştir (açık/koyu)', hint: 'Komut', run: () => $('#theme').click() }, { label: app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt', hint: 'Komut', run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: 'Kullanıcı adını değiştir', hint: 'Komut', run: editName }, { label: 'Ayarlar', hint: 'Ctrl ,', run: openSettings });
+      const c = [{ label: KT('Home’a git'), hint: KT('Sayfa'), run: () => go('home') }];
+      for (const m of MODULES) { c.push({ label: KT('{0} aracını aç', KT(m.name)), hint: KT('Araç'), run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: KT(a.label), hint: KT('Komut'), run: a.run }); }
+      c.push({ label: KT('Temayı değiştir (açık/koyu)'), hint: KT('Komut'), run: () => $('#theme').click() }, { label: KT(app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'), hint: KT('Komut'), run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: KT('Kullanıcı adını değiştir'), hint: KT('Komut'), run: editName }, { label: KT('Ayarlar'), hint: 'Ctrl ,', run: openSettings });
       return c;
     }
     function palRender() {
       const q = trl(palQ.value).trim(); palItems = commands().filter((x) => !q || q.split(/\s+/).every((w) => trl(x.label).includes(w))); palSel = Math.min(palSel, Math.max(0, palItems.length - 1)); palL.replaceChildren();
-      if (!palItems.length) { palL.append(mk('li', { class: 'none', role: 'presentation' }, 'Eşleşen komut yok')); palQ.removeAttribute('aria-activedescendant'); return; }
+      if (!palItems.length) { palL.append(mk('li', { class: 'none', role: 'presentation' }, KT('Eşleşen komut yok'))); palQ.removeAttribute('aria-activedescendant'); return; }
       palItems.forEach((it, i) => { const li = mk('li', { role: 'option', id: 'pal-o' + i, 'aria-selected': i === palSel ? 'true' : 'false' }, '<span></span><small></small>'); li.firstChild.textContent = it.label; li.lastChild.textContent = it.hint; li.addEventListener('mousemove', () => { if (palSel !== i) { palSel = i; palMark(); } }); li.addEventListener('click', () => palRun(i)); palL.append(li); });
       palQ.setAttribute('aria-activedescendant', 'pal-o' + palSel);
     }
@@ -4958,6 +5180,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     $('#side-search').addEventListener('click', palOpen); $('#home-search').addEventListener('click', palOpen);
     $('#home-title .sr').textContent = GREETING; tw.querySelector('.ghost').textContent = GREETING;
     render(parse() || 'home');
+    KL.attach();
+    try { if (sessionStorage.getItem('kovan.reopen')) { sessionStorage.removeItem('kovan.reopen'); openSettings(); } } catch (e) { /* yoksay */ }
   })();
 
   /* ---------- Kovan animasyon yardimcilari (claude-animasyon): dalga, kart egilmesi, tema gecisi, palet acilisi ----------
