@@ -24,6 +24,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Derleyici aracı (Java .java → paketlenmiş uygulama, JDK gerekir, yalnız masaüstü) + Ayarlar'a İngilizce dil seçeneği — claude-a: başladı; paketleme yok (yeni araç olduğu için Kovan etiketi yayın sırasında artacak). Yeni dosya EKLENMEZ: güncelleyici app/ altına yeni dosyayı reddedebiliyor, kod host.js + StatScan.html içine yazılır.
 - 4.9.3 — HOTFIX YAYINLANDI (kullanıcı istedi, claude-a paketledi): geniş pencerede Home arka planı (nokta/ışık) `max-width: 1180px` yüzünden sağda sert kenarla bitiyordu → `.home` tam genişlik, içerik aynı yerde (sağ dolgu `max(..., 100% - 1136px)`). Kovan etiketi beta 0.0.3 kaldı. latest.json = 4.9.3. Sonraki paketi yapacak hesap önce git pull yapsın.
 - 4.9.2 — HOTFIX YAYINLANDI (kullanıcı istedi, claude-a paketledi): Home başlığındaki italik yazının son harfi ("yigit717" 7'si) parlama efektinde kesiliyordu → `.tw.done .typed` sağ dolgu eklendi. Kovan etiketi beta 0.0.3 kaldı. latest.json = 4.9.2. Sonraki paketi yapacak hesap önce git pull yapsın.
 - Test düzeltmeleri — claude-a: bitti. mcconv.mjs artık repoya göre çalışır (manifest yoksa gen-mc-manifests.sh ile yalnız 1.11 + 1.21.4 üretir, ağ yoksa ATLAR; MC_MANIFESTS veya argv[2] ile yol verilebilir); ui45.mjs örnek klasörü varsayılan tools/test/benign. ui.mjs ve ui-obf.mjs paket testi değil, dosya argümanlı araçlardır. Paketleme yok.
