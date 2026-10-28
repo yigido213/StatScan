@@ -1,6 +1,6 @@
 {
-  "version": "4.9.3",
-  "url": "StatScan-4.9.3.ssu",
-  "sha256": "eb73940f1f7316463d75426045504f520c1107a94142d88ac198ececeea37519",
-  "notes": "4.9.3 hotfix: geniş pencerede Home arka planı sağda sert kenarla bitiyordu"
+  "version": "4.9.4",
+  "url": "StatScan-4.9.4.ssu",
+  "sha256": "3c7c06caa4ef1bb0c4e771baa1c1ac50895e0675012ac91e891e4c69b41e9731",
+  "notes": "4.9.4 — Kovan beta 0.0.4: Derleyici (Java → paketlenmiş uygulama) + Ayarlar'da English dil seçeneği"
 }
