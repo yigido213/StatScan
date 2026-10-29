@@ -1,6 +1,6 @@
 {
-  "version": "4.9.5",
-  "url": "StatScan-4.9.5.ssu",
-  "sha256": "f0b9023d2fca92c0c2337a299f9a7e50e9b757b95b1be791d09b9d93dc67375c",
-  "notes": "4.9.5 — Kovan beta 0.0.5: Derleyici artık C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D de derliyor (Java'ya ek)"
+  "version": "4.9.6",
+  "url": "StatScan-4.9.6.ssu",
+  "sha256": "3724da7400a94ad3b5bdd1979297681c792c6325ae4f1c30b0ed97c399919d4f",
+  "notes": "4.9.6 — Kovan beta 0.0.6: yalnızca sahibe özel Notlarım (otomatik kayıt), Yönetim ve imzalı engelli listesi"
 }
