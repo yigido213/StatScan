@@ -1,0 +1,45 @@
+'use strict';
+/* Engelli liste (masaustu ana sureci): kurulum kimligi, imzali liste dogrulama, onbellek, geri alma korumasi, gelistirici modu */
+const fs = require('fs'); const os = require('os'); const path = require('path'); const crypto = require('crypto');
+const { createHost, blockModule: B } = require('../../app/desktop/host.js');
+let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
+(async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'blk-')); const ud = path.join(tmp, 'ud'), dl = path.join(tmp, 'dl'); fs.mkdirSync(dl);
+  const kp = crypto.generateKeyPairSync('ed25519'); const other = crypto.generateKeyPairSync('ed25519'); const pubPem = kp.publicKey.export({ type: 'spki', format: 'pem' });
+  const keyF = path.join(tmp, 'private.pem'); fs.writeFileSync(keyF, kp.privateKey.export({ type: 'pkcs8', format: 'pem' })); const wrongF = path.join(tmp, 'wrong.pem'); fs.writeFileSync(wrongF, other.privateKey.export({ type: 'pkcs8', format: 'pem' }));
+  const net = { status: 404, text: '', fail: false, calls: [] }; let keyPath = keyF;
+  const mk = () => createHost({ service: { closeAll() {} }, version: '1', userDataDir: ud, blockPublicKey: pubPem, getFeedUrl: () => 'https://example.test/x/latest.json', downloadsDir: dl, showItemInFolder() {}, chooseKey: async () => keyPath, blockFetch: async (u) => { net.calls.push(u); if (net.fail) throw new Error('ağ yok'); return { status: net.status, text: net.text }; }, store: undefined, storePath: path.join(tmp, 'store.json') });
+  let host = mk(); let H = host.handlers;
+  let s = await H['block:state'](); ok(B.ID_RE.test(s.id) && !s.blocked && s.enabled, 'kurulum kimliği biçimi: ' + s.id);
+  host = mk(); ok((await host.handlers['block:state']()).id === s.id, 'kimlik yeniden başlatmada aynı'); H = host.handlers;
+  s = await H['block:check'](); ok(!s.blocked && net.calls[0] === 'https://example.test/x/blocklist.json' && !s.error, '404: liste yok → engelli değil, adres latest.json yanında');
+  const sign = (seq, ids, msg, priv) => B.signList(priv || kp.privateKey, kp.publicKey, seq, ids.map((id) => ({ id, note: 'arkadaş' })), msg);
+  net.status = 200; net.text = JSON.stringify(sign(1, ['KV-AAAA-BBBB-CCCC-DDDD'], 'x')); s = await H['block:check'](); ok(!s.blocked && s.seq === 1 && s.count === 1, 'başkasının kimliği: engelli değil');
+  net.text = JSON.stringify(sign(2, [s.id], 'Erişimin kapatıldı.')); s = await H['block:check'](); ok(s.blocked && s.message === 'Erişimin kapatıldı.' && s.source === 'net', 'kimlik listede: ENGELLİ + mesaj');
+  let r = await H['store:get']({}, 'policy'); ok(r && r.error === 'blocked' && r.status === 403, 'engelliyken köprü uçları kapalı');
+  ok((await H['app:info']()).version === '1' , 'app:info açık');
+  r = await H['block:state'](); ok(r.blocked, 'block:state engelliyken de çalışır');
+  const t = JSON.parse(net.text); t.manifest = t.manifest.replace('"seq":2', '"seq":3'); net.text = JSON.stringify(t); s = await H['block:check'](); ok(s.error && /imza/i.test(s.error) && s.seq === 2 && s.blocked, 'kurcalanmış liste reddedildi, eskisi korunur');
+  { const manifest = JSON.stringify({ format: 1, seq: 9, created: '', blocked: [], message: '' }); net.text = JSON.stringify({ manifest, sig: crypto.sign(null, Buffer.from(manifest), other.privateKey).toString('base64') }); } s = await H['block:check'](); ok(/imza/i.test(s.error) && s.seq === 2, 'başka anahtarla imzalı liste reddedildi');
+  net.text = JSON.stringify(sign(1, [], '')); s = await H['block:check'](); ok(/Eski liste/.test(s.error) && s.blocked && s.seq === 2, 'geri alma (düşük seq) yok sayıldı');
+  net.fail = true; host.block.stop(); host = mk(); H = host.handlers; s = await H['block:check'](); ok(s.blocked && s.source === 'cache' && !!s.error, 'ağ yokken önbellekten ENGELLİ kalır');
+  net.fail = false; net.status = 404; s = await H['block:check'](); ok(s.blocked, '404 (liste silindi) engeli kaldırmaz; kaldırmak için yeni liste gerekir');
+  net.status = 500; s = await H['block:check'](); ok(s.blocked && /500/.test(s.error), 'sunucu hatası: engel korunur');
+  net.status = 200; net.text = JSON.stringify(sign(3, [], 'açıldı')); s = await H['block:check'](); ok(!s.blocked && s.seq === 3, 'yeni liste (daha yüksek seq, kimlik yok) → engel kalktı');
+  r = await H['store:get']({}, 'policy'); ok(!(r && r.error), 'engel kalkınca köprü yeniden açık');
+  // gelistirici modu
+  r = await H['block:devSave']({}, [], ''); ok(r.error === 'dev', 'geliştirici modu kapalıyken imzalama yok');
+  keyPath = wrongF; r = await H['block:devOpen'](); ok(r.error === 'key' && /eşleşmiyor/.test(r.message), 'yanlış anahtar reddedildi');
+  fs.writeFileSync(path.join(tmp, 'junk.pem'), 'bu bir anahtar değil'); keyPath = path.join(tmp, 'junk.pem'); r = await H['block:devOpen'](); ok(r.error === 'key', 'bozuk anahtar reddedildi');
+  keyPath = null; r = await H['block:devOpen'](); ok(r.canceled, 'seçim iptali');
+  keyPath = keyF; r = await H['block:devOpen'](); ok(r.ok && r.seq === 3 && (await H['block:state']()).dev, 'doğru anahtar: geliştirici modu açıldı');
+  r = await H['block:devSave']({}, [{ id: ' kv-aaaa-bbbb-cccc-dddd ', note: 'Ali' }, { id: 'KV-AAAA-BBBB-CCCC-DDDD' }], 'Sürümünü güncelle');
+  ok(r.ok && r.seq === 4 && r.count === 1 && fs.existsSync(r.path) && r.path.includes('Kovan-Engelli'), 'imzala+kaydet: seq 4, yinelenen kimlik tekilleşti, dosya İndirilenler\\Kovan-Engelli');
+  const w = JSON.parse(fs.readFileSync(r.path, 'utf8')); const pl = B.parseList(w, pubPem); ok(pl.seq === 4 && pl.blocked[0].id === 'KV-AAAA-BBBB-CCCC-DDDD' && pl.blocked[0].note === 'Ali' && pl.message === 'Sürümünü güncelle', 'çıktı uygulama anahtarıyla doğrulanır');
+  r = await H['block:devSave']({}, [{ id: 'KV-1234' }], ''); ok(r.error === 'id', 'geçersiz kimlik reddedildi');
+  r = await H['block:devClose'](); ok(r.ok && (await H['block:devSave']({}, [], '')).error === 'dev', 'geliştirici modu kapatılınca imzalama yok');
+  ok(B.listUrl('http://a/b/latest.json') === null && B.listUrl('https://a/b/c/latest.json?x=1') === 'https://a/b/c/blocklist.json' && B.listUrl('x') === null, 'adres: yalnızca https, latest.json yanında');
+  const h2 = createHost({ service: { closeAll() {} } }); ok(!h2.handlers['block:state'] && !h2.block, 'userDataDir yoksa (tarayıcı/test) uç yok');
+  const h3 = createHost({ service: { closeAll() {} }, userDataDir: path.join(tmp, 'u3') }); ok((await h3.handlers['block:check']()).error && !(await h3.handlers['block:state']()).blocked, 'genel anahtar yoksa liste kapalı, engel yok');
+  fs.rmSync(tmp, { recursive: true, force: true }); console.log(bad ? bad + ' HATA' : 'tüm testler geçti'); process.exit(bad ? 1 : 0);
+})().catch((e) => { console.log('FAIL ' + e.stack); process.exit(1); });
