@@ -502,6 +502,129 @@ const COMPMOD = (() => {
   return { createCompileHost, findJdks, findTools, planNative, validate, validateNative, LANGS, LIM, MIN_MAJOR, _setPlatform: (p) => { platOverride = p; } };
 })();
 
+/* --- Kurulum kimligi + imzali engelli listesi + sahip modu + Notlarim (Kovan) ---
+ * Tasarim (durust sinirlar README'de de var):
+ *  - Kurulum kimligi: makine GUID'inin tuzlu SHA-256 ozetinden turetilen 16 karakterlik rastgele gorunumlu kimlik (geri cevrilemez; GUID yoksa rastgele uretilip saklanir).
+ *    Hicbir yere OTOMATIK GONDERILMEZ (telemetri yok). Sahibi, kimligi ancak kullanici ona kendisi iletirse bilir.
+ *  - Engelli listesi: herkese acik blocklist.json = { manifest, sig }. Ed25519 imzasi uygulamanin guven anahtariyla (guncelleme anahtari) dogrulanir; imzasiz/bozuk/eski (seq geri sarma) liste yok sayilir.
+ *    Liste yalnizca kimlik listeler; istek kimlik/kullanici bilgisi GONDERMEZ (yalnizca GitHub raw adresine dogrudan GET). Ag hatasinda engel UYGULANMAZ (fail-open), ama daha once dogrulanmis onbellek uygulanir.
+ *  - Sahip modu: private.pem dosyasini (yalnizca bellekte) sec -> uygulamanin guven anahtariyla eslesirse acilir. Anahtar diske yazilmaz/kopyalanmaz/gunluklenmez, arayuze gecmez.
+ *    Kalici olan yalnizca "sahip" bayragi (Notlarim/Yonetim araclarinin gorunmesi; saf arayuz kolayligi). Liste IMZALAMAK icin anahtarin o oturumda yeniden secilmesi gerekir.
+ *  - Notlarim: yalnizca bu cihazda (userData/notes.json), atomik yazim + .bak, aga hicbir sey gonderilmez. */
+const ACCESSMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const crypto = require('crypto'); const cp = require('child_process'); const https = require('https');
+  const EMBEDDED_PUBKEY = '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAzd4sQ75S5pVxMGRgjONDV6fWeWB7qKwp7T2mYYXn2Wk=\n-----END PUBLIC KEY-----\n';
+  const DEFAULT_URL = 'https://raw.githubusercontent.com/yigido213/StatScan/main/blocklist.json';
+  const ID_RE = /^[A-Z2-7]{16}$/; const LIM = { entries: 5000, text: 512 * 1024, note: 200, notice: 300, notes: 5000, noteText: 200000, notesTotal: 20 * 1024 * 1024, keyFile: 8192 };
+  const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  function b32(buf) { let bits = 0, val = 0, out = ''; for (const b of buf) { val = (val << 8) | b; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } } if (bits > 0) out += B32[(val << (5 - bits)) & 31]; return out; }
+  const fmtId = (n) => n.match(/.{4}/g).join('-'); const normId = (s) => String(s || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+  const sha256 = (x) => crypto.createHash('sha256').update(x).digest();
+  const readJson = (f) => { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); return o && typeof o === 'object' ? o : null; } catch (e) { return null; } };
+  function writeAtomic(f, text, bak) { fs.mkdirSync(path.dirname(f), { recursive: true }); if (bak) { try { if (fs.existsSync(f)) fs.copyFileSync(f, f + '.bak'); } catch (e) { /* yedek alinamadi */ } } const tmp = f + '.tmp'; fs.writeFileSync(tmp, text, { mode: 0o600 }); fs.renameSync(tmp, f); }
+  function machineGuid(platform) {
+    const run = (cmd, args) => { const r = cp.spawnSync(cmd, args, { encoding: 'utf8', timeout: 5000, windowsHide: true, shell: false }); return r.status === 0 ? String(r.stdout || '') : ''; };
+    if (platform === 'win32') { const m = /MachineGuid\s+REG_SZ\s+([0-9A-Fa-f-]{16,})/.exec(run('reg', ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'])); return m ? m[1] : null; }
+    if (platform === 'darwin') { const m = /"IOPlatformUUID"\s*=\s*"([0-9A-Fa-f-]{16,})"/.exec(run('ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'])); return m ? m[1] : null; }
+    for (const f of ['/etc/machine-id', '/var/lib/dbus/machine-id']) { try { const t = fs.readFileSync(f, 'utf8').trim(); if (/^[0-9a-f]{16,}$/i.test(t)) return t; } catch (e) { /* yok */ } } return null;
+  }
+  function trustedKey(pk) { for (const k of [pk, EMBEDDED_PUBKEY]) { if (!k) continue; try { const key = crypto.createPublicKey(k); if (key.asymmetricKeyType === 'ed25519') return key; } catch (e) { /* bu bicim degil */ } } return null; }
+  const spkiOf = (k) => k.export({ type: 'spki', format: 'der' });
+  /* ---- imzali liste: bicim { manifest: "<JSON>", sig: base64(Ed25519(manifest)) } ---- */
+  function verifyBlocklist(text, pub) {
+    if (typeof text !== 'string' || !text.length || text.length > LIM.text) return { ok: false, why: 'boyut' }; if (!pub) return { ok: false, why: 'anahtar yok' };
+    let o; try { o = JSON.parse(text); } catch (e) { return { ok: false, why: 'JSON değil' }; } if (!o || typeof o.manifest !== 'string' || typeof o.sig !== 'string') return { ok: false, why: 'biçim' };
+    const sig = Buffer.from(o.sig, 'base64'); if (sig.length !== 64) return { ok: false, why: 'imza biçimi' }; let good = false; try { good = crypto.verify(null, Buffer.from(o.manifest, 'utf8'), pub, sig); } catch (e) { good = false; } if (!good) return { ok: false, why: 'imza geçersiz' };
+    let m; try { m = JSON.parse(o.manifest); } catch (e) { return { ok: false, why: 'manifest' }; }
+    if (!m || m.format !== 1 || !Number.isInteger(m.seq) || m.seq < 1 || m.seq > 1e9 || !Array.isArray(m.entries) || m.entries.length > LIM.entries) return { ok: false, why: 'manifest alanları' };
+    const entries = []; const seen = new Set(); for (const e of m.entries) { const id = normId(e && e.id); if (!ID_RE.test(id)) return { ok: false, why: 'kimlik biçimi' }; if (seen.has(id)) continue; seen.add(id); entries.push({ id, note: typeof e.note === 'string' ? e.note.slice(0, LIM.note) : '', added: typeof e.added === 'string' ? e.added.slice(0, 40) : '' }); }
+    return { ok: true, seq: m.seq, created: typeof m.created === 'string' ? m.created : '', notice: typeof m.notice === 'string' ? m.notice.slice(0, LIM.notice) : '', entries };
+  }
+  function signBlocklist(priv, data) {
+    const entries = (data.entries || []).map((e) => ({ id: normId(e.id), note: String(e.note || '').slice(0, LIM.note), added: String(e.added || '').slice(0, 40) })); if (entries.some((e) => !ID_RE.test(e.id))) throw new Error('Geçersiz kimlik.');
+    if (!Number.isInteger(data.seq) || data.seq < 1) throw new Error('Geçersiz seq.'); const manifest = JSON.stringify({ format: 1, seq: data.seq, created: new Date().toISOString(), notice: String(data.notice || '').slice(0, LIM.notice), entries });
+    const sig = crypto.sign(null, Buffer.from(manifest, 'utf8'), priv); return JSON.stringify({ manifest, sig: sig.toString('base64') }, null, 1) + '\n';
+  }
+  function fetchHttps(url, ms, hops) {
+    return new Promise((resolve, reject) => {
+      let u; try { u = new URL(url); } catch (e) { return reject(new Error('adres')); } if (u.protocol !== 'https:') return reject(new Error('yalnızca https'));
+      const req = https.get(u, { headers: { 'User-Agent': 'Kovan', Accept: 'application/json' }, timeout: ms || 8000 }, (res) => {
+        if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location) { res.resume(); if ((hops || 0) >= 3) return reject(new Error('çok yönlendirme')); let nu; try { nu = new URL(res.headers.location, u); } catch (e) { return reject(new Error('yönlendirme')); } if (!/(^|\.)(githubusercontent\.com|github\.com)$/.test(nu.hostname)) return reject(new Error('yönlendirme reddedildi')); return resolve(fetchHttps(nu.toString(), ms, (hops || 0) + 1)); }
+        if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); } let n = 0; const chunks = []; res.on('data', (c) => { n += c.length; if (n > LIM.text) { req.destroy(new Error('çok büyük')); return; } chunks.push(c); }); res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8'))); res.on('error', reject);
+      }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject);
+    });
+  }
+  function createAccessHost(deps) {
+    deps = deps || {}; const dir = deps.dataDir; if (!dir) throw new Error('dataDir gerekli'); const F = (n) => path.join(dir, n); const now = deps.now || (() => Date.now());
+    const pub = trustedKey(deps.publicKey); const pubFp = pub ? sha256(spkiOf(pub)).toString('hex').slice(0, 16) : '';
+    const errE = (message, extra) => Object.assign({ error: 'access', message }, extra || {});
+    /* kimlik */
+    let id = null; { let guid = null; try { guid = deps.machineId ? deps.machineId() : machineGuid(deps.platform || process.platform); } catch (e) { guid = null; }
+      if (guid && String(guid).trim()) id = b32(sha256('kovan-install-v1:' + String(guid).trim().toLowerCase()).subarray(0, 10));
+      else { const o = readJson(F('install-id.json')); if (o && ID_RE.test(String(o.id || ''))) id = o.id; else { id = b32(crypto.randomBytes(10)); try { writeAtomic(F('install-id.json'), JSON.stringify({ v: 1, id })); } catch (e) { /* yazilamadi: bu oturumluk */ } } } }
+    /* liste durumu */
+    const st = { checked: 0, source: 'none', seq: 0, blocked: false, notice: '', error: '', count: 0 }; let seenSeq = (readJson(F('access-state.json')) || {}).seq | 0; let applied = null; let timer = null;
+    const apply = (v, source) => { applied = v; st.blocked = v.entries.some((e) => e.id === id); st.notice = st.blocked ? v.notice : ''; st.seq = v.seq; st.source = source; st.count = v.entries.length; };
+    { let text = null; try { text = fs.readFileSync(F('blocklist-cache.json'), 'utf8'); } catch (e) { /* yok */ } if (text) { const v = verifyBlocklist(text, pub); if (v.ok && v.seq >= seenSeq) apply(v, 'cache'); } }
+    async function refresh() {
+      st.error = ''; try { const text = await (deps.fetchText || fetchHttps)(deps.blocklistUrl || DEFAULT_URL); const v = verifyBlocklist(text, pub); if (!v.ok) st.error = 'Liste doğrulanamadı (' + v.why + '); yok sayıldı.'; else if (v.seq < seenSeq) st.error = 'Liste eski (seq ' + v.seq + ' < ' + seenSeq + '); yok sayıldı.'; else { try { writeAtomic(F('blocklist-cache.json'), text); seenSeq = v.seq; writeAtomic(F('access-state.json'), JSON.stringify({ seq: seenSeq })); } catch (e) { /* onbellek yazilamadi */ } apply(v, 'remote'); } }
+      catch (e) { st.error = 'Liste alınamadı: ' + String(e && e.message || e); } st.checked = now(); return snapshot();
+    }
+    const ownerFlag = () => { const o = readJson(F('owner.json')); return !!(o && pubFp && o.fp === pubFp); }; let priv = null;
+    const snapshot = () => ({ id: fmtId(id), blocked: st.blocked, notice: st.notice, source: st.source, seq: st.seq, count: st.count, checked: st.checked, error: st.error, owner: ownerFlag(), unlocked: !!priv, trusted: !!pub });
+    const needOwner = () => (ownerFlag() ? null : errE('Bu işlem yalnızca uygulamanın sahibi içindir.'));
+    const needKey = () => (priv ? null : errE('Önce sahip anahtarını (private.pem) seç.', { needKey: true }));
+    /* taslak */
+    const draftRead = () => { const o = readJson(F('blocklist-draft.json')); if (o && Array.isArray(o.entries)) return { base: o.base | 0, notice: typeof o.notice === 'string' ? o.notice : '', entries: o.entries.filter((e) => e && ID_RE.test(String(e.id || ''))) }; return { base: applied ? applied.seq : 0, notice: applied ? applied.notice : '', entries: applied ? applied.entries.map((e) => ({ id: e.id, note: e.note, added: e.added })) : [] }; };
+    const draftWrite = (d) => writeAtomic(F('blocklist-draft.json'), JSON.stringify(d));
+    const draftView = (d) => ({ base: d.base, notice: d.notice, entries: d.entries.map((e) => ({ id: fmtId(e.id), note: e.note || '', added: e.added || '' })), self: fmtId(id) });
+    async function unlockFromPath(file) {
+      try { const sz = fs.statSync(file).size; if (sz > LIM.keyFile) return errE('Dosya çok büyük; bu bir özel anahtar dosyası değil.'); let key; try { key = crypto.createPrivateKey(fs.readFileSync(file)); } catch (e) { return errE('Anahtar okunamadı (şifreli PEM desteklenmez; make-ssu ile kullandığın private.pem’i seç).'); }
+        if (key.asymmetricKeyType !== 'ed25519') return errE('Bu bir Ed25519 anahtarı değil.'); if (!pub) return errE('Uygulamada güvenilen anahtar yok.'); if (!spkiOf(crypto.createPublicKey(key)).equals(spkiOf(pub))) return errE('Bu anahtar, uygulamanın imza anahtarıyla eşleşmiyor.');
+        priv = key; try { writeAtomic(F('owner.json'), JSON.stringify({ v: 1, fp: pubFp, at: new Date(now()).toISOString() })); } catch (e) { /* bayrak yazilamadi */ } return { ok: true, owner: true, unlocked: true };
+      } catch (e) { return errE('Anahtar işlenemedi: ' + String(e && e.message || e)); }
+    }
+    const handlers = {
+      'access:status': async () => snapshot(),
+      'access:refresh': async () => refresh(),
+      'owner:status': async () => ({ owner: ownerFlag(), unlocked: !!priv, trusted: !!pub }),
+      'owner:unlock': async (_e, file) => { if (typeof file === 'string' && deps.allowPathUnlock) return unlockFromPath(file); if (!deps.chooseFile) return errE('Dosya seçimi yok.'); const f = await deps.chooseFile(); if (!f) return { canceled: true }; return unlockFromPath(f); },
+      'owner:lock': async () => { priv = null; return { ok: true, owner: ownerFlag(), unlocked: false }; },
+      'owner:off': async () => { priv = null; try { fs.rmSync(F('owner.json'), { force: true }); } catch (e) { /* yok */ } return { ok: true, owner: false, unlocked: false }; },
+      'owner:bl:get': async () => needOwner() || { ok: true, draft: draftView(draftRead()), live: { seq: st.seq, count: st.count, source: st.source } },
+      'owner:bl:add': async (_e, rawId, note) => { const bad = needOwner(); if (bad) return bad; const nid = normId(rawId); if (!ID_RE.test(nid)) return errE('Kimlik 16 karakter olmalı (A–Z ve 2–7), ör. ABCD-EFGH-IJKL-MNOP.'); if (nid === id) return errE('Kendi kimliğini engelleyemezsin.'); const d = draftRead(); if (d.entries.length >= LIM.entries) return errE('Liste dolu.'); if (d.entries.some((e) => e.id === nid)) return errE('Bu kimlik zaten listede.'); d.entries.push({ id: nid, note: String(note || '').slice(0, LIM.note), added: new Date(now()).toISOString().slice(0, 10) }); draftWrite(d); return { ok: true, draft: draftView(d) }; },
+      'owner:bl:remove': async (_e, rawId) => { const bad = needOwner(); if (bad) return bad; const nid = normId(rawId); const d = draftRead(); const n = d.entries.length; d.entries = d.entries.filter((e) => e.id !== nid); if (d.entries.length === n) return errE('Bu kimlik listede yok.'); draftWrite(d); return { ok: true, draft: draftView(d) }; },
+      'owner:bl:notice': async (_e, text) => { const bad = needOwner(); if (bad) return bad; const d = draftRead(); d.notice = String(text || '').slice(0, LIM.notice); draftWrite(d); return { ok: true, draft: draftView(d) }; },
+      'owner:bl:publish': async () => {
+        const bad = needOwner() || needKey(); if (bad) return bad; const d = draftRead(); const seq = Math.max(seenSeq, d.base | 0, st.seq) + 1; let text; try { text = signBlocklist(priv, { seq, entries: d.entries, notice: d.notice }); } catch (e) { return errE(String(e && e.message || e)); }
+        const check = verifyBlocklist(text, pub); if (!check.ok) return errE('Üretilen liste kendi doğrulamasından geçmedi: ' + check.why);
+        const out = path.join(deps.downloadsDir || dir, 'Kovan-Engel'); fs.mkdirSync(out, { recursive: true }); const file = path.join(out, 'blocklist.json'); fs.writeFileSync(file, text, { mode: 0o644 }); d.base = seq; draftWrite(d); if (deps.showItemInFolder) { try { deps.showItemInFolder(file); } catch (e) { /* yok */ } }
+        return { ok: true, file, seq, count: d.entries.length, bytes: text.length };
+      }
+    };
+    /* ---- Notlarim (yalnizca sahip; yalnizca yerel) ---- */
+    const NF = F('notes.json'); let q = Promise.resolve(); const nid = () => 'n' + now().toString(36) + crypto.randomBytes(3).toString('hex');
+    const readNotes = () => { const o = readJson(NF); const list = o && Array.isArray(o.notes) ? o.notes : []; return list.filter((n) => n && /^[a-z0-9]{4,32}$/.test(String(n.id || '')) && typeof n.text === 'string').map((n) => ({ id: n.id, text: n.text, pinned: !!n.pinned, created: +n.created || 0, updated: +n.updated || 0 })); };
+    const writeNotes = (list) => { const text = JSON.stringify({ v: 1, notes: list }); if (text.length > LIM.notesTotal) throw new Error('Notlar çok büyük (en çok 20 MB).'); writeAtomic(NF, text, true); };
+    const serial = (fn) => { const p = q.then(fn, fn); q = p.catch(() => {}); return p; };
+    Object.assign(handlers, {
+      'notes:list': async () => needOwner() || { ok: true, notes: readNotes() },
+      'notes:save': async (_e, n) => needOwner() || serial(async () => {
+        if (!n || typeof n !== 'object' || typeof n.text !== 'string' || n.text.length > LIM.noteText) return errE('Not geçersiz veya çok uzun (en çok 200.000 karakter).'); const list = readNotes(); let cur = n.id ? list.find((x) => x.id === n.id) : null;
+        if (n.id && !/^[a-z0-9]{4,32}$/.test(String(n.id))) return errE('Not kimliği geçersiz.'); if (!cur) { if (list.length >= LIM.notes) return errE('En fazla ' + LIM.notes + ' not.'); cur = { id: n.id || nid(), text: '', pinned: false, created: now(), updated: now() }; list.unshift(cur); }
+        cur.text = n.text; if (typeof n.pinned === 'boolean') cur.pinned = n.pinned; cur.updated = now(); try { writeNotes(list); } catch (e) { return errE('Not kaydedilemedi: ' + String(e && e.message || e)); } return { ok: true, note: Object.assign({}, cur) };
+      }),
+      'notes:delete': async (_e, noteId) => needOwner() || serial(async () => { const list = readNotes(); const i = list.findIndex((x) => x.id === String(noteId)); if (i < 0) return errE('Not bulunamadı.'); const [gone] = list.splice(i, 1); try { writeNotes(list); } catch (e) { return errE(String(e && e.message || e)); } return { ok: true, note: gone }; }),
+      'notes:restore': async (_e, n) => needOwner() || serial(async () => { if (!n || typeof n.text !== 'string' || n.text.length > LIM.noteText || !/^[a-z0-9]{4,32}$/.test(String(n.id || ''))) return errE('Not geçersiz.'); const list = readNotes(); if (list.some((x) => x.id === n.id)) return { ok: true, note: list.find((x) => x.id === n.id) }; const note = { id: n.id, text: n.text, pinned: !!n.pinned, created: +n.created || now(), updated: +n.updated || now() }; list.push(note); try { writeNotes(list); } catch (e) { return errE(String(e && e.message || e)); } return { ok: true, note }; }),
+      'notes:export': async () => { const bad = needOwner(); if (bad) return bad; const list = readNotes().sort((a, b) => (b.pinned - a.pinned) || (b.updated - a.updated)); const stamp = new Date(now()).toISOString().replace(/[-:T]/g, '').slice(0, 14); const out = path.join(deps.downloadsDir || dir, 'Kovan-Notlar'); fs.mkdirSync(out, { recursive: true }); const md = list.map((n) => '## ' + (n.text.split('\n')[0] || '(boş)').slice(0, 80) + '\n_' + new Date(n.updated).toISOString().slice(0, 16).replace('T', ' ') + (n.pinned ? ' · sabit' : '') + '_\n\n' + n.text + '\n').join('\n---\n\n'); const mdFile = path.join(out, 'notlar-' + stamp + '.md'); fs.writeFileSync(mdFile, md || '(not yok)\n'); fs.writeFileSync(path.join(out, 'notlar-' + stamp + '.json'), JSON.stringify(list, null, 1)); if (deps.showItemInFolder) { try { deps.showItemInFolder(mdFile); } catch (e) { /* yok */ } } return { ok: true, file: mdFile, count: list.length }; }
+    });
+    function start() { refresh(); if (!timer) { timer = setInterval(refresh, 6 * 3600 * 1000); if (timer.unref) timer.unref(); } }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    return { handlers, start, stop, refresh, isBlocked: () => st.blocked, snapshot, id: () => id, fmtId };
+  }
+  return { createAccessHost, verifyBlocklist, signBlocklist, trustedKey, normId, fmtId, b32, machineGuid, EMBEDDED_PUBKEY, DEFAULT_URL, ID_RE, LIM };
+})();
+
 function riskyList(ui) {
   const out = []; ui = ui || {};
   for (const k of RISKY) if (ui[k] && ui[k] !== 'Disable') out.push(RISK_TEXT[k]);
@@ -624,7 +747,13 @@ function createHost(deps) {
     handlers['store:get'] = async (_e, key) => (KEYS.has(key) && typeof readStore()[key] === 'string' ? readStore()[key] : null);
     handlers['store:set'] = async (_e, key, val) => { try { if (!KEYS.has(key) || typeof val !== 'string' || val.length > 4e6) return { error: 'bad', message: 'Geçersiz depo isteği.' }; const o = readStore(); o[key] = val; fs.mkdirSync(path.dirname(deps.storePath), { recursive: true }); const tmp = deps.storePath + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(o), { mode: 0o600 }); fs.renameSync(tmp, deps.storePath); return { ok: true }; } catch (e) { return { error: 'write', message: String(e.message || e) }; } };
   }
-  return { handlers, obf, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
+  /* kurulum kimligi + engelli liste + sahip modu + Notlarim (bkz. ACCESSMOD). Engelliyse ayricalikli islemler reddedilir; ayarlar/guncelleme/erisim islemleri acik kalir. */
+  let access = null;
+  if (deps.access && deps.access.dataDir) {
+    access = ACCESSMOD.createAccessHost(Object.assign({ downloadsDir: deps.downloadsDir, showItemInFolder: deps.showItemInFolder }, deps.access)); Object.assign(handlers, access.handlers);
+    for (const [k, fn] of Object.entries(handlers)) { if (/^(access|owner|notes|settings):|^app:/.test(k)) continue; handlers[k] = async (...a) => (access.isBlocked() ? { error: 'blocked', message: 'Bu kurulumun erişimi geliştirici tarafından kapatıldı.' } : fn(...a)); }
+  }
+  return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD };
