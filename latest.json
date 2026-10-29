@@ -1,6 +1,6 @@
 {
-  "version": "4.9.6",
-  "url": "StatScan-4.9.6.ssu",
-  "sha256": "3724da7400a94ad3b5bdd1979297681c792c6325ae4f1c30b0ed97c399919d4f",
-  "notes": "4.9.6 — Kovan beta 0.0.6: yalnızca sahibe özel Notlarım (otomatik kayıt), Yönetim ve imzalı engelli listesi"
+  "version": "4.9.7",
+  "url": "StatScan-4.9.7.ssu",
+  "sha256": "d3ff3fe4ee569057e62eeaf5c644f5b169238acd53f4046988634dbb5763eeef",
+  "notes": "4.9.7 HOTFIX — Kovan beta 0.0.6: sahip modu açılınca Notlarım ve Yönetim hemen görünür; kenar çubuğunda Ayarlar'ın üstüne alındı"
 }
