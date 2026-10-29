@@ -570,7 +570,8 @@ const ACCESSMOD = (() => {
       st.error = ''; try { const text = await (deps.fetchText || fetchHttps)(deps.blocklistUrl || DEFAULT_URL); const v = verifyBlocklist(text, pub); if (!v.ok) st.error = 'Liste doğrulanamadı (' + v.why + '); yok sayıldı.'; else if (v.seq < seenSeq) st.error = 'Liste eski (seq ' + v.seq + ' < ' + seenSeq + '); yok sayıldı.'; else { try { writeAtomic(F('blocklist-cache.json'), text); seenSeq = v.seq; writeAtomic(F('access-state.json'), JSON.stringify({ seq: seenSeq })); } catch (e) { /* onbellek yazilamadi */ } apply(v, 'remote'); } }
       catch (e) { st.error = 'Liste alınamadı: ' + String(e && e.message || e); } st.checked = now(); return snapshot();
     }
-    const ownerFlag = () => { const o = readJson(F('owner.json')); return !!(o && pubFp && o.fp === pubFp); }; let priv = null;
+    let priv = null; let persistErr = ''; /* anahtar bellekte dogrulandiysa sahip say (owner.json yazilamasa bile); yeniden aciliste dosya bayragi gecerli */
+    const ownerFlag = () => { if (priv) return true; const o = readJson(F('owner.json')); return !!(o && pubFp && o.fp === pubFp); };
     const snapshot = () => ({ id: fmtId(id), blocked: st.blocked, notice: st.notice, source: st.source, seq: st.seq, count: st.count, checked: st.checked, error: st.error, owner: ownerFlag(), unlocked: !!priv, trusted: !!pub });
     const needOwner = () => (ownerFlag() ? null : errE('Bu işlem yalnızca uygulamanın sahibi içindir.'));
     const needKey = () => (priv ? null : errE('Önce sahip anahtarını (private.pem) seç.', { needKey: true }));
@@ -581,7 +582,7 @@ const ACCESSMOD = (() => {
     async function unlockFromPath(file) {
       try { const sz = fs.statSync(file).size; if (sz > LIM.keyFile) return errE('Dosya çok büyük; bu bir özel anahtar dosyası değil.'); let key; try { key = crypto.createPrivateKey(fs.readFileSync(file)); } catch (e) { return errE('Anahtar okunamadı (şifreli PEM desteklenmez; make-ssu ile kullandığın private.pem’i seç).'); }
         if (key.asymmetricKeyType !== 'ed25519') return errE('Bu bir Ed25519 anahtarı değil.'); if (!pub) return errE('Uygulamada güvenilen anahtar yok.'); if (!spkiOf(crypto.createPublicKey(key)).equals(spkiOf(pub))) return errE('Bu anahtar, uygulamanın imza anahtarıyla eşleşmiyor.');
-        priv = key; try { writeAtomic(F('owner.json'), JSON.stringify({ v: 1, fp: pubFp, at: new Date(now()).toISOString() })); } catch (e) { /* bayrak yazilamadi */ } return { ok: true, owner: true, unlocked: true };
+        priv = key; persistErr = ''; try { writeAtomic(F('owner.json'), JSON.stringify({ v: 1, fp: pubFp, at: new Date(now()).toISOString() })); } catch (e) { persistErr = String(e && e.message || e); /* bayrak yazilamadi: bu oturumda sahip, yeniden acilista anahtar gerekir */ } return { ok: true, owner: true, unlocked: true, persisted: !persistErr, persistError: persistErr };
       } catch (e) { return errE('Anahtar işlenemedi: ' + String(e && e.message || e)); }
     }
     const handlers = {
