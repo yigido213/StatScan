@@ -212,7 +212,7 @@ const RISK_TEXT = { networking: 'Ağ erişimi', clipboard: 'Pano paylaşımı', 
  * Arayuz yalnizca dosya adi + bayt + ana sinif + uygulama adi gonderebilir; komut/yol gonderemez. Cikti: <Indirilenler>/Kovan-Derleme/<ad>/ */
 const COMPMOD = (() => {
   const fs = require('fs'); const path = require('path'); const os = require('os'); const cp = require('child_process');
-  const isWin = () => process.platform === 'win32';
+  let platOverride = null; const isWin = () => (platOverride || process.platform) === 'win32';
   const LIM = { files: 50, one: 2 * 1024 * 1024, total: 10 * 1024 * 1024 }; const TAIL = 12000; const MIN_MAJOR = 17;
   const NAME_RE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/; const CLASS_RE = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/; const FILE_RE = /^[A-Za-z_$][\w$]{0,99}\.java$/;
   const bin = (home, n) => path.join(home, 'bin', n + (isWin() ? '.exe' : ''));
@@ -235,6 +235,7 @@ const COMPMOD = (() => {
   function parseMajor(txt) { const m = /javac\s+(\d+)(?:\.(\d+))?/.exec(String(txt)); if (!m) return 0; return m[1] === '1' ? +m[2] || 0 : +m[1]; }
   function runSync(file, args, env, ms) { const r = cp.spawnSync(file, args, { env, encoding: 'utf8', timeout: ms || 15000, windowsHide: true, shell: false }); return { code: r.status, out: String(r.stdout || '') + String(r.stderr || ''), err: r.error }; }
   function cleanEnv(base) { const e = Object.assign({}, base || process.env); for (const k of ['JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS', 'CLASSPATH']) delete e[k]; return e; }
+  function nativeEnv(base) { const e = cleanEnv(base); for (const k of ['CFLAGS', 'CXXFLAGS', 'CPPFLAGS', 'LDFLAGS', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'OBJC_INCLUDE_PATH', 'LIBRARY_PATH', 'GCC_EXEC_PREFIX', 'COMPILER_PATH', 'DEPENDENCIES_OUTPUT', 'SUNPRO_DEPENDENCIES', 'RUSTFLAGS', 'RUSTC_WRAPPER', 'CARGO_ENCODED_RUSTFLAGS', 'RUSTC_BOOTSTRAP', 'GOFLAGS', 'GOEXPERIMENT', 'GOROOT_FINAL', 'FPCOPT', 'DFLAGS', 'DMD_FLAGS', 'LDC_FLAGS', 'DOTNET_STARTUP_HOOKS', 'MSBUILDLOGASYNC', 'DOTNET_CLI_UI_LANGUAGE']) delete e[k]; return e; }
   function findJdks(o) {
     o = o || {}; const env = cleanEnv(o.env); const list = []; const seen = new Set();
     for (const h of (o.only ? o.only : candidates(env, o.extra))) {
@@ -249,6 +250,7 @@ const COMPMOD = (() => {
   const safeOutName = (n) => String(n || '').trim();
   function validate(req) {
     if (!req || typeof req !== 'object') return 'Geçersiz istek.';
+    if (req.lang !== undefined && req.lang !== 'java') return validateNative(req);
     const f = req.files; if (!Array.isArray(f) || !f.length) return 'Hiç .java dosyası verilmedi.'; if (f.length > LIM.files) return 'En fazla ' + LIM.files + ' dosya.';
     let total = 0; const seen = new Set();
     for (const x of f) { if (!x || typeof x.name !== 'string' || !FILE_RE.test(x.name)) return 'Geçersiz dosya adı (yalnızca düz "Ad.java"): ' + String(x && x.name).slice(0, 60); if (seen.has(x.name)) return 'Aynı adlı iki dosya: ' + x.name; seen.add(x.name); const b = x.bytes; const len = b && (b.byteLength !== undefined ? b.byteLength : b.length); if (!len) return 'Boş dosya: ' + x.name; if (len > LIM.one) return 'Dosya çok büyük (en çok 2 MB): ' + x.name; total += len; }
@@ -260,13 +262,157 @@ const COMPMOD = (() => {
   }
   const STEPS = [['jdk', 'JDK bulundu'], ['javac', 'Derleniyor (javac)'], ['jar', 'JAR oluşturuluyor'], ['deps', 'Gerekli modüller çözümleniyor (jdeps)'], ['pack', 'Uygulama paketleniyor (jpackage)'], ['save', 'İndirilenler klasörüne kaydediliyor']];
   function uniqueDir(root, name) { let d = path.join(root, name), i = 2; while (fs.existsSync(d)) d = path.join(root, name + '-' + i++); return d; }
+  /* ---------- Cok dilli (yerel arac zinciri): C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D ----------
+   * Arayuz yalniz dil kimligi + dosya adi/bayt + secenek (sabit liste) gonderebilir. Komut satiri BURADA, sabit kalipla kurulur.
+   * Hicbir sey indirilmez/kurulmaz (crate, modul, NuGet, ... yok); derlenen program ASLA calistirilmaz. */
+  const LANGS = {
+    c: { name: 'C', src: ['c'], aux: ['h'] },
+    cpp: { name: 'C++', src: ['cpp', 'cc', 'cxx', 'c++', 'cp', 'c'], aux: ['hpp', 'hh', 'hxx', 'h++', 'inl', 'ipp', 'tpp', 'h'] },
+    rust: { name: 'Rust', src: ['rs'], aux: [] }, csharp: { name: 'C#', src: ['cs'], aux: [] }, go: { name: 'Go', src: ['go'], aux: [] }, zig: { name: 'Zig', src: ['zig'], aux: [] },
+    kotlin: { name: 'Kotlin', src: ['kt'], aux: [] }, pascal: { name: 'Pascal', src: ['pas', 'pp', 'lpr', 'dpr'], aux: ['inc'] },
+    fortran: { name: 'Fortran', src: ['f90', 'f95', 'f03', 'f08', 'f18', 'f', 'for', 'f77', 'ftn'], aux: ['inc'] }, d: { name: 'D', src: ['d'], aux: [] }
+  };
+  const NATIVE_NAME_RE = /^[A-Za-z0-9_][A-Za-z0-9_.+-]{0,99}$/; const WIN_RESERVED = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+  const extOf = (n) => { const m = /\.([A-Za-z0-9+]+)$/.exec(n); return m ? m[1].toLowerCase() : ''; };
+  const ENUMS = {
+    opt: ['default', 'debug', 'speed', 'size'],
+    cstd: ['auto', 'c99', 'c11', 'c17', 'c23', 'gnu11', 'gnu17', 'gnu23'], cppstd: ['auto', 'c++14', 'c++17', 'c++20', 'c++23', 'gnu++17', 'gnu++20', 'gnu++23'],
+    edition: ['2018', '2021', '2024'], fstd: ['gnu', 'legacy', 'f95', 'f2003', 'f2008', 'f2018'], pmode: ['default', 'fpc', 'objfpc', 'delphi'],
+    gotarget: ['host', 'windows/amd64', 'windows/arm64', 'linux/amd64', 'linux/arm64', 'darwin/amd64', 'darwin/arm64'],
+    zigtarget: ['host', 'x86_64-windows', 'aarch64-windows', 'x86_64-linux', 'aarch64-linux', 'x86_64-macos', 'aarch64-macos']
+  };
+  const WINLIBS = ['ws2_32', 'mswsock', 'comctl32', 'shell32', 'winmm', 'iphlpapi', 'bcrypt', 'crypt32', 'dwmapi', 'uxtheme', 'psapi', 'ole32', 'wininet', 'gdi32', 'user32', 'comdlg32'];
+  const OPT_KEYS = { c: ['opt', 'std', 'static', 'winlibs'], cpp: ['opt', 'std', 'static', 'winlibs'], rust: ['opt', 'edition'], csharp: ['opt', 'implicitUsings', 'winforms'], go: ['opt', 'target'], zig: ['opt', 'target', 'libc'], kotlin: [], pascal: ['opt', 'mode'], fortran: ['opt', 'std', 'static'], d: ['opt'] };
+  const bool = (v) => v === undefined || typeof v === 'boolean';
+  function validateOptions(lang, o) {
+    if (o === undefined || o === null) return null; if (typeof o !== 'object' || Array.isArray(o)) return 'Seçenekler geçersiz.';
+    for (const k of Object.keys(o)) if (!OPT_KEYS[lang].includes(k)) return 'Bilinmeyen seçenek: ' + String(k).slice(0, 30);
+    if (o.opt !== undefined && !ENUMS.opt.includes(o.opt)) return 'Optimizasyon seçimi geçersiz.';
+    if (o.std !== undefined && !(lang === 'c' ? ENUMS.cstd : lang === 'cpp' ? ENUMS.cppstd : ENUMS.fstd).includes(o.std)) return 'Standart seçimi geçersiz.';
+    if (o.edition !== undefined && !ENUMS.edition.includes(o.edition)) return 'Rust sürümü (edition) geçersiz.';
+    if (o.mode !== undefined && !ENUMS.pmode.includes(o.mode)) return 'Pascal modu geçersiz.';
+    if (o.target !== undefined && !(lang === 'go' ? ENUMS.gotarget : ENUMS.zigtarget).includes(o.target)) return 'Hedef platform geçersiz.';
+    for (const k of ['static', 'libc', 'implicitUsings', 'winforms']) if (!bool(o[k])) return 'Seçenek (' + k + ') true/false olmalı.';
+    if (o.winlibs !== undefined && (!Array.isArray(o.winlibs) || o.winlibs.length > 20 || o.winlibs.some((x) => !WINLIBS.includes(x)))) return 'Windows kitaplık listesi geçersiz.';
+    return null;
+  }
+  function validateNative(req) {
+    const L = LANGS[req.lang]; if (!L) return 'Desteklenmeyen dil.'; const f = req.files; if (!Array.isArray(f) || !f.length) return 'Hiç kaynak dosyası verilmedi.'; if (f.length > LIM.files) return 'En fazla ' + LIM.files + ' dosya.';
+    let total = 0; const seen = new Set(); const okExt = new Set([...L.src, ...L.aux]); let anySrc = false;
+    for (const x of f) {
+      if (!x || typeof x.name !== 'string' || !NATIVE_NAME_RE.test(x.name) || /[.]$/.test(x.name) || WIN_RESERVED.test(x.name.replace(/\..*$/, ''))) return 'Geçersiz dosya adı: ' + String(x && x.name).slice(0, 60);
+      if (!okExt.has(extOf(x.name))) return 'Bu dil için uygun olmayan dosya türü: ' + x.name; if (L.src.includes(extOf(x.name))) anySrc = true;
+      const k = x.name.toLowerCase(); if (seen.has(k)) return 'Aynı adlı iki dosya: ' + x.name; seen.add(k);
+      const b = x.bytes; const len = b && (b.byteLength !== undefined ? b.byteLength : b.length); if (!len) return 'Boş dosya: ' + x.name; if (len > LIM.one) return 'Dosya çok büyük (en çok 2 MB): ' + x.name; total += len;
+    }
+    if (!anySrc) return 'Derlenecek kaynak dosyası yok.'; if (total > LIM.total) return 'Toplam boyut çok büyük (en çok 10 MB).';
+    if (typeof req.name !== 'string' || !NAME_RE.test(req.name)) return 'Uygulama adı geçersiz (harfle başlamalı; harf, rakam, - ve _; en çok 40).';
+    if (!['auto', 'yes', 'no'].includes(req.console || 'auto')) return 'Konsol seçimi geçersiz.';
+    const names = new Set(f.map((x) => x.name)); const m = req.main;
+    if (['rust', 'zig', 'pascal'].includes(req.lang)) { if (typeof m !== 'string' || !names.has(m)) return 'Ana dosya geçersiz.'; }
+    else if (req.lang === 'kotlin') { if (typeof m !== 'string' || !CLASS_RE.test(m)) return 'Ana sınıf adı geçersiz.'; }
+    else if (req.lang === 'csharp') { if (m !== undefined && m !== '' && (typeof m !== 'string' || !CLASS_RE.test(m))) return 'Başlangıç sınıfı geçersiz.'; }
+    if (req.order !== undefined) { if (!Array.isArray(req.order) || req.order.length > LIM.files || req.order.some((n) => !names.has(n))) return 'Derleme sırası geçersiz.'; }
+    return validateOptions(req.lang, req.options);
+  }
+  /* --- arac bulma --- */
+  const exeNames = (b) => (isWin() ? [b + '.exe'] : [b]);
+  function toolDirs(env, extra) {
+    const out = []; const add = (d) => { if (d && !out.includes(d)) out.push(d); }; for (const d of String(env.PATH || env.Path || '').split(path.delimiter)) if (d && path.isAbsolute(d)) add(d);
+    const home = env.USERPROFILE || env.HOME || ''; if (home) { add(path.join(home, '.cargo', 'bin')); add(path.join(home, '.dotnet')); add(path.join(home, '.local', 'bin')); add(path.join(home, 'go', 'bin')); }
+    if (isWin()) {
+      const pf = [env.ProgramFiles, env['ProgramFiles(x86)'], env.ProgramW6432].filter(Boolean); const sd = env.SystemDrive || 'C:';
+      for (const b of ['msys64\\ucrt64\\bin', 'msys64\\mingw64\\bin', 'msys64\\clang64\\bin', 'mingw64\\bin', 'mingw32\\bin', 'FPC', 'D', 'zig']) { const p = sd + '\\' + b; if (b === 'FPC' || b === 'D') { for (const v of ls(p)) { add(path.join(p, v, 'bin')); for (const t of ls(path.join(p, v, 'bin'))) add(path.join(p, v, 'bin', t)); } } else add(p); }
+      for (const p of pf) { add(path.join(p, 'LLVM', 'bin')); add(path.join(p, 'Go', 'bin')); add(path.join(p, 'dotnet')); for (const v of ls(path.join(p, 'LDC'))) add(path.join(p, 'LDC', v, 'bin')); }
+    } else { for (const d of ['/usr/local/bin', '/usr/bin', '/opt/homebrew/bin', '/usr/local/go/bin', '/usr/lib/dotnet', '/usr/share/dotnet']) add(d); }
+    for (const e of extra || []) add(e); return out;
+  }
+  function whichIn(dirs, names) { for (const d of dirs) for (const n of names) { const p = path.join(d, n); if (isFile(p)) return p; } return null; }
+  const lastVer = (txt) => { const line = String(txt).split(/\r?\n/).find((l) => /\d+\.\d+/.test(l)) || ''; const all = [...line.matchAll(/(\d+)\.(\d+)(?:\.(\d+))?/g)]; const m = all[all.length - 1]; return m ? { text: m[0], major: +m[1], minor: +m[2] } : { text: '?', major: 0, minor: 0 }; };
+  const familyOf = (txt) => (/clang/i.test(txt) ? 'clang' : /gcc|g\+\+|GNU/i.test(txt) ? 'gcc' : 'other');
+  const TOOL_SPEC = { c: { names: ['gcc', 'clang', 'cc'], ver: ['--version'] }, cpp: { names: ['g++', 'clang++', 'c++'], ver: ['--version'] }, rust: { names: ['rustc'], ver: ['--version'] }, go: { names: ['go'], ver: ['version'] }, zig: { names: ['zig'], ver: ['version'] }, pascal: { names: ['fpc'], ver: ['-iV'] }, fortran: { names: ['gfortran'], ver: ['--version'] }, d: { names: ['ldc2', 'dmd'], ver: ['--version'] } };
+  function findTools(o) {
+    o = o || {}; const env = cleanEnv(o.env); const dirs = o.only ? o.only : toolDirs(env, o.extra); const list = []; const byId = {};
+    const push = (e) => { list.push(e); byId[e.id] = e; };
+    for (const id of ['c', 'cpp', 'rust', 'go', 'zig', 'pascal', 'fortran', 'd']) {
+      const sp = TOOL_SPEC[id]; let hit = null;
+      for (const nm of sp.names) { const p = whichIn(dirs, exeNames(nm)); if (!p) continue; const r = runSync(p, sp.ver, env, 15000); if (r.code === 0) { const v = lastVer(r.out); hit = { tool: nm, path: p, version: v.text, major: v.major, minor: v.minor, family: familyOf(r.out) }; break; } }
+      push(Object.assign({ id, name: LANGS[id].name, ok: !!hit, why: hit ? '' : sp.names.join(' / ') + ' bulunamadı' }, hit || {}));
+    }
+    { /* C#: SDK (yalnız çalışma zamanı yetmez) */
+      const p = whichIn(dirs, exeNames('dotnet')); let hit = null; if (p) { const r = runSync(p, ['--list-sdks'], Object.assign({}, env, { DOTNET_NOLOGO: '1', DOTNET_CLI_TELEMETRY_OPTOUT: '1' }), 20000); let best = 0; if (r.code === 0) for (const l of r.out.split(/\r?\n/)) { const m = /^(\d+)\.(\d+)\.(\d+)/.exec(l.trim()); if (m && +m[1] > best) best = +m[1]; } if (best >= 6) hit = { tool: 'dotnet', path: p, version: String(best), major: best, minor: 0, family: 'dotnet' }; }
+      push(Object.assign({ id: 'csharp', name: 'C#', ok: !!hit, why: hit ? '' : p ? '.NET SDK 6+ bulunamadı (yalnızca çalışma zamanı yetmez)' : 'dotnet bulunamadı' }, hit || {}));
+    }
+    const jdk = findJdks({ env: o.env, extra: o.jdkExtra, only: o.jdkOnly });
+    { /* Kotlin: kotlinc betiği yerine derleyici JAR'ı doğrudan JDK ile çalıştırılır (Windows'ta .bat çalıştırmamak için) */
+      const p = whichIn(dirs, ['kotlinc', 'kotlinc.bat']); let hit = null, why = 'kotlinc bulunamadı'; if (p) { let home = null; try { home = path.dirname(path.dirname(fs.realpathSync(p))); } catch (e) { /* yok */ } const pre = home && path.join(home, 'lib', 'kotlin-preloader.jar'), comp = home && path.join(home, 'lib', 'kotlin-compiler.jar'); if (home && isFile(pre) && isFile(comp)) { let ver = '?'; try { const m = /(\d+\.\d+(?:\.\d+)?)/.exec(fs.readFileSync(path.join(home, 'build.txt'), 'utf8')); if (m) ver = m[1]; } catch (e) { /* build.txt yok */ } if (ver === '?' && jdk.best) { const r = runSync(bin(jdk.best.home, 'java'), ['-cp', pre, 'org.jetbrains.kotlin.preloading.Preloader', '-cp', comp, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-version'], env, 20000); const m = /kotlinc-jvm\s+(\d+\.\d+(?:\.\d+)?)/.exec(r.out); if (m) ver = m[1]; } if (ver === '?') { const m = /kotlin-compiler-(\d+\.\d+(?:\.\d+)?)/.exec(ls(path.join(home, 'lib')).join(' ')); if (m) ver = m[1]; } hit = { tool: 'kotlinc', path: p, version: ver, home, preloader: pre, compiler: comp, major: parseInt(ver, 10) || 0, minor: 0, family: 'kotlin' }; why = ''; } else why = 'Kotlin derleyici kitaplıkları (lib/kotlin-compiler.jar) bulunamadı'; }
+      const ok = !!hit && jdk.found; push(Object.assign({ id: 'kotlin', name: 'Kotlin', ok, why: ok ? '' : hit ? 'Kotlin için JDK ' + MIN_MAJOR + '+ (jpackage dahil) da gerekir' : why }, hit || {}));
+    }
+    push({ id: 'java', name: 'Java', ok: jdk.found, tool: 'javac', version: jdk.best ? jdk.best.version : '', path: jdk.best ? jdk.best.home : '', why: jdk.found ? '' : 'JDK ' + MIN_MAJOR + '+ bulunamadı' });
+    return { list, byId, jdk, platform: process.platform, windows: isWin() };
+  }
+  /* --- komut kurucu (saf fonksiyon: test edilebilir) --- */
+  const OPTARGS = { c: { default: ['-O2'], debug: ['-O0', '-g'], speed: ['-O3'], size: ['-Os'] }, rust: { default: '2', debug: '0', speed: '3', size: 's' }, zig: { default: 'ReleaseSafe', debug: 'Debug', speed: 'ReleaseFast', size: 'ReleaseSmall' }, pas: { default: ['-O2'], debug: ['-g', '-O-'], speed: ['-O3'], size: ['-Os'] }, ldc: { default: ['-O2'], debug: ['-O0', '-g'], speed: ['-O3'], size: ['-Os'] }, dmd: { default: ['-O'], debug: ['-g'], speed: ['-O', '-inline'], size: ['-O'] } };
+  function cStd(std, tl, cpp) { if (!std || std === 'auto') return []; let s = std; const t = tl; if (!cpp && /23$/.test(s)) { const need = t.family === 'clang' ? 18 : 14; if (t.major < need) s = s.replace('23', '2x'); } return ['-std=' + s]; }
+  function planNative(req, tl, d) {
+    const L = req.lang, o = req.options || {}, W = isWin(), names = req.files.map((f) => f.name), opt = o.opt || 'default', conGui = req.console === 'no'; const T = tl.byId; const cmds = []; const gen = {}; const notes = []; let winOut = W, output, outName, env = {}, exe = req.name + (W ? '.exe' : '');
+    const mk = (tool, args, cwd, label, ms, e) => cmds.push({ exe: tool.path, args, cwd, label, ms: ms || 300000, env: Object.assign({}, env, e || {}) });
+    const isSrc = (n, lang) => LANGS[lang].src.includes(extOf(n));
+    if (L === 'c' || L === 'cpp') {
+      const cc = T.c, cxx = T.cpp; const cSrc = names.filter((n) => extOf(n) === 'c'); const xSrc = L === 'cpp' ? names.filter((n) => isSrc(n, 'cpp') && extOf(n) !== 'c') : []; const mixed = cSrc.length && xSrc.length; const link = []; if (W) { for (const l of o.winlibs || []) link.push('-l' + l); if (conGui) link.push('-mwindows'); } else link.push('-lm', '-pthread');
+      const stat = o.static && process.platform !== 'darwin' ? ['-static'] : []; const strip = opt !== 'debug' && process.platform !== 'darwin' ? ['-s'] : []; const optA = OPTARGS.c[opt]; output = path.join(d.out, exe); outName = exe;
+      if (!mixed) { const tool = xSrc.length ? cxx : cc; mk(tool, [...cStd(o.std, tool, !!xSrc.length), ...optA, '-o', output, ...(xSrc.length ? xSrc : cSrc), ...stat, ...strip, ...link], d.src, tool.tool + ' ' + (xSrc.length ? 'C++' : 'C')); }
+      else { const objs = []; for (const n of names.filter((x) => isSrc(x, 'cpp'))) { const isC = extOf(n) === 'c'; const tool = isC ? cc : cxx; const obj = path.join(d.obj, n + '.o'); objs.push(obj); mk(tool, [...(isC ? cStd('c17', tool, false) : cStd(o.std, tool, true)), ...optA, '-c', n, '-o', obj], d.src, tool.tool + ' -c ' + n); } mk(cxx, [...objs, '-o', output, ...stat, ...strip, ...link], d.src, cxx.tool + ' (bağlama)'); }
+    } else if (L === 'rust') {
+      const t = T.rust; const crate = req.name.replace(/[^A-Za-z0-9_]/g, '_'); output = path.join(d.out, exe); outName = exe; env = { RUSTFLAGS: '', CARGO_ENCODED_RUSTFLAGS: '', RUSTC_WRAPPER: '', RUSTC_WORKSPACE_WRAPPER: '' };
+      mk(t, ['--edition', o.edition || '2021', '-C', 'opt-level=' + OPTARGS.rust[opt], ...(opt === 'debug' ? ['-g'] : ['-C', 'strip=symbols']), '--crate-name', crate, '-o', output, req.main], d.src, 'rustc ' + req.main);
+    } else if (L === 'go') {
+      const t = T.go; const tg = o.target && o.target !== 'host' ? o.target.split('/') : null; winOut = tg ? tg[0] === 'windows' : W; exe = req.name + (winOut ? '.exe' : ''); output = path.join(d.out, exe); outName = exe;
+      gen['go.mod'] = 'module kovanapp\n\ngo ' + (t.major + '.' + t.minor) + '\n';
+      env = { GO111MODULE: 'on', GOFLAGS: '-mod=readonly', GOPROXY: 'off', GOSUMDB: 'off', GOTOOLCHAIN: 'local', GOWORK: 'off', GOENV: 'off', CGO_ENABLED: '0', GOCACHE: path.join(d.cache, 'go-build'), GOPATH: path.join(d.cache, 'gopath') }; if (tg) { env.GOOS = tg[0]; env.GOARCH = tg[1]; }
+      const ld = (opt === 'debug' ? '' : '-s -w') + (winOut && conGui ? ' -H=windowsgui' : ''); mk(t, ['build', '-trimpath', ...(ld.trim() ? ['-ldflags', ld.trim()] : []), '-o', output, '.'], d.src, 'go build');
+    } else if (L === 'zig') {
+      const t = T.zig; const tg = o.target && o.target !== 'host' ? o.target : ''; winOut = tg ? /windows/.test(tg) : W; exe = req.name + (winOut ? '.exe' : ''); output = path.join(d.out, exe); outName = exe;
+      mk(t, ['build-exe', req.main, '-O', OPTARGS.zig[opt], '-femit-bin=' + output, '--name', req.name, ...(tg ? ['-target', tg] : []), ...(o.libc ? ['-lc'] : []), ...(winOut && conGui ? ['--subsystem', 'windows'] : []), '--cache-dir', path.join(d.work, 'zig-local'), '--global-cache-dir', path.join(d.cache, 'zig-global')], d.src, 'zig build-exe ' + req.main, 600000);
+    } else if (L === 'csharp') {
+      const t = T.csharp; const tfm = 'net' + t.major + '.0' + (o.winforms ? '-windows' : ''); const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const cs = names.filter((n) => extOf(n) === 'cs'); const proj = path.join(d.src, 'kovanapp.csproj');
+      gen['kovanapp.csproj'] = '<Project Sdk="Microsoft.NET.Sdk">\n  <PropertyGroup>\n    <OutputType>' + (conGui && (W || o.winforms) ? 'WinExe' : 'Exe') + '</OutputType>\n    <TargetFramework>' + tfm + '</TargetFramework>\n' + (o.winforms ? '    <UseWindowsForms>true</UseWindowsForms>\n' : '') + '    <AssemblyName>' + esc(req.name) + '</AssemblyName>\n    <RootNamespace>' + esc(req.name.replace(/[^A-Za-z0-9_]/g, '_')) + '</RootNamespace>\n    <ImplicitUsings>' + (o.implicitUsings === false ? 'disable' : 'enable') + '</ImplicitUsings>\n    <Nullable>disable</Nullable>\n    <LangVersion>latest</LangVersion>\n    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>\n    <GenerateDocumentationFile>false</GenerateDocumentationFile>\n    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>\n    <NuGetAudit>false</NuGetAudit>\n    <DebugType>' + (opt === 'debug' ? 'portable' : 'none') + '</DebugType>\n    <Optimize>' + (opt === 'debug' ? 'false' : 'true') + '</Optimize>\n' + (req.main ? '    <StartupObject>' + esc(req.main) + '</StartupObject>\n' : '') + '  </PropertyGroup>\n  <ItemGroup>\n' + cs.map((n) => '    <Compile Include="' + esc(n) + '" />\n').join('') + '  </ItemGroup>\n</Project>\n';
+      output = d.out; outName = req.name + (W ? '.exe' : ''); notes.push('framework');
+      env = { DOTNET_CLI_HOME: path.join(d.work, 'dotnet-home'), NUGET_PACKAGES: path.join(d.work, 'nuget'), DOTNET_NOLOGO: '1', DOTNET_CLI_TELEMETRY_OPTOUT: '1', DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1', MSBUILDDISABLENODEREUSE: '1', DOTNET_STARTUP_HOOKS: '', DOTNET_ADD_GLOBAL_TOOLS_TO_PATH: '0' };
+      mk(t, ['build', proj, '-c', 'Release', '-o', d.out, '--nologo', '-v', 'q', '-nodeReuse:false', '-p:UseSharedCompilation=false', '-p:TreatWarningsAsErrors=false'], d.src, 'dotnet build', 600000);
+    } else if (L === 'kotlin') {
+      const t = T.kotlin; const jdk = tl.jdk.best; output = path.join(d.work, 'kt', 'app.jar'); const kt = names.filter((n) => extOf(n) === 'kt');
+      mk({ path: bin(jdk.home, 'java') }, ['-Xmx1g', '-cp', t.preloader, 'org.jetbrains.kotlin.preloading.Preloader', '-cp', t.compiler, 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-nowarn', '-include-runtime', '-d', output, ...kt], d.src, 'kotlinc', 600000);
+    } else if (L === 'pascal') {
+      const t = T.pascal; output = path.join(d.out, exe); outName = exe; const mode = o.mode && o.mode !== 'default' ? ['-M' + o.mode] : [];
+      mk(t, ['-vewn', ...OPTARGS.pas[opt], ...(opt === 'debug' || process.platform === 'darwin' ? [] : ['-Xs']), ...mode, '-FU' + d.obj, '-FE' + d.out, '-o' + exe, req.main], d.src, 'fpc ' + req.main);
+    } else if (L === 'fortran') {
+      const t = T.fortran; output = path.join(d.out, exe); outName = exe; const order = (req.order || []).filter((n) => names.includes(n)); const src = names.filter((n) => LANGS.fortran.src.includes(extOf(n))); const files = [...order.filter((n) => src.includes(n)), ...src.filter((n) => !order.includes(n))];
+      const stdA = !o.std || o.std === 'gnu' ? [] : [o.std === 'legacy' ? '-std=legacy' : '-std=' + o.std]; const stat = o.static ? (W ? ['-static'] : process.platform === 'darwin' ? [] : ['-static-libgfortran', '-static-libgcc']) : [];
+      mk(t, [...stdA, ...OPTARGS.c[opt], '-ffree-line-length-none', '-J', d.obj, '-o', output, ...files, ...stat, ...(opt === 'debug' ? [] : ['-s'])], d.src, 'gfortran');
+    } else if (L === 'd') {
+      const t = T.d; output = path.join(d.out, exe); outName = exe; const ldc = t.tool === 'ldc2'; const files = names.filter((n) => extOf(n) === 'd');
+      mk(t, [...(ldc ? OPTARGS.ldc[opt] : OPTARGS.dmd[opt]), '-of=' + output, '-od=' + d.obj, ...files], d.src, t.tool);
+    }
+    return { cmds, gen, output, outName, winOut, notes, tool: (T[L] || {}).tool, toolVersion: (T[L] || {}).version };
+  }
   function createCompileHost(deps) {
     deps = deps || {}; const jobs = new Map(); let seq = 0; let active = null; const errE = (message, extra) => Object.assign({ error: 'compile', message }, extra || {});
     const root = () => path.join(deps.outputBase || deps.downloadsDir || os.homedir(), 'Kovan-Derleme');
     const handlers = {
       'compile:jdk': async () => { try { return findJdks({ env: deps.env, extra: deps.jdkDirs, only: deps.onlyJdkDirs }); } catch (e) { return errE(String(e && e.message || e)); } },
+      'compile:tools': async () => { try { const t = findTools({ env: deps.env, extra: deps.toolDirs, only: deps.onlyToolDirs, jdkExtra: deps.jdkDirs, jdkOnly: deps.onlyJdkDirs }); return { list: t.list.map((x) => ({ id: x.id, name: x.name, ok: x.ok, tool: x.tool || '', version: x.version || '', path: x.path || '', why: x.why || '' })), windows: t.windows, platform: t.platform }; } catch (e) { return errE(String(e && e.message || e)); } },
       'compile:start': async (_e, req) => {
         const bad = validate(req); if (bad) return errE(bad); if (active) return errE('Başka bir derleme sürüyor.');
+        if (req.lang && req.lang !== 'java') {
+          const tl = findTools({ env: deps.env, extra: deps.toolDirs, only: deps.onlyToolDirs, jdkExtra: deps.jdkDirs, jdkOnly: deps.onlyJdkDirs }); const t = tl.byId[req.lang]; if (!t || !t.ok) return errE(LANGS[req.lang].name + ' derleyicisi bulunamadı: ' + (t ? t.why : ''), { needTool: true, lang: req.lang });
+          if (req.lang === 'cpp' && req.files.some((f) => extOf(f.name) === 'c') && !tl.byId.c.ok) return errE('C dosyaları için C derleyicisi (gcc/clang) bulunamadı.', { needTool: true, lang: 'c' });
+          if (req.lang === 'csharp' && req.options && req.options.winforms && !isWin()) return errE('Windows Forms yalnızca Windows’ta derlenir.');
+          const id = String(++seq); const keys = req.lang === 'kotlin' ? ['tool', 'compile', 'deps', 'pack', 'save'] : ['tool', 'compile', 'save']; const job = { id, state: 'running', steps: keys.map((k) => ({ id: NSTEPS[k][0], label: NSTEPS[k][1], status: 'wait', detail: '' })), log: '', result: null, error: null, started: Date.now() }; jobs.set(id, job); active = job; if (jobs.size > 8) jobs.delete(jobs.keys().next().value);
+          runNative(job, req, tl).catch((e) => { job.state = 'failed'; job.error = String(e && e.message || e); }).finally(() => { active = null; });
+          return { id };
+        }
         const jdks = findJdks({ env: deps.env, extra: deps.jdkDirs, only: deps.onlyJdkDirs }); if (!jdks.found) return errE('Uygun JDK bulunamadı. JDK ' + MIN_MAJOR + '+ (javac, jar, jdeps, jpackage içeren tam JDK) kurun.', { needJdk: true, jdks: jdks.all });
         const id = String(++seq); const job = { id, state: 'running', steps: STEPS.map(([k, l]) => ({ id: k, label: l, status: 'wait', detail: '' })), log: '', result: null, error: null, started: Date.now() }; jobs.set(id, job); active = job; if (jobs.size > 8) jobs.delete(jobs.keys().next().value);
         run(job, req, jdks.best).catch((e) => { job.state = 'failed'; job.error = String(e && e.message || e); }).finally(() => { active = null; });
@@ -276,15 +422,62 @@ const COMPMOD = (() => {
       'compile:cancel': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); j.canceled = true; try { j.child && j.child.kill(); } catch (e) { /* bitmis */ } return { ok: true }; },
       'compile:open': async (_e, id) => { const j = jobs.get(String(id)); if (!j || !j.result || !j.result.launcher) return errE('Açılacak çıktı yok.'); if (deps.showItemInFolder) deps.showItemInFolder(j.result.launcher); return { ok: true }; }
     };
-    function exec(job, file, args, cwd, ms) {
+    function exec(job, file, args, cwd, ms, envx) {
       return new Promise((resolve) => {
-        const env = cleanEnv(deps.env); let out = ''; let done = false; let timer;
+        const env = Object.assign(nativeEnv(deps.env), envx || {}); let out = ''; let done = false; let timer;
         const fin = (r) => { if (done) return; done = true; clearTimeout(timer); job.child = null; resolve(r); };
         let c; try { c = cp.spawn(file, args, { cwd, env, windowsHide: true, shell: false, stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return fin({ code: -1, out: String(e && e.message || e) }); }
         job.child = c; const add = (d) => { out += d; if (out.length > 200000) out = out.slice(-100000); }; c.stdout.on('data', add); c.stderr.on('data', add);
         timer = setTimeout(() => { try { c.kill(); } catch (e) { /* bitmis */ } fin({ code: -2, out: out + '\n[zaman aşımı]' }); }, ms || 120000);
         c.on('error', (e) => fin({ code: -1, out: out + String(e && e.message || e) })); c.on('close', (code) => fin({ code, out }));
       });
+    }
+    async function packApp(job, jdk, jar, inp, dst, name, mainClass, consoleMode, ctx, work) {
+      const { step, logp, fail } = ctx; let r;
+        step('deps', 'run'); let mods = 'java.base'; r = await exec(job, bin(jdk.home, 'jdeps'), ['--print-module-deps', '--ignore-missing-deps', '--multi-release', 'base', jar], work, 60000); logp('$ jdeps ...\n' + r.out);
+        const last = r.out.trim().split(/\r?\n/).pop(); if (r.code === 0 && /^[a-z][\w.]*(,[a-z][\w.]*)*$/.test(last)) { mods = last; step('deps', 'ok', mods); } else step('deps', 'ok', 'jdeps çözemedi; varsayılan: java.base' + (/awt|swing/.test(mainClass) ? '' : ''));
+        if (!/(^|,)java\.base(,|$)/.test(mods)) mods = 'java.base,' + mods; const gui = consoleMode === 'no' ? true : consoleMode === 'yes' ? false : /java\.desktop|javafx/.test(mods); const consoleOn = !gui;
+        step('pack', 'run'); const args = ['--type', 'app-image', '--name', name, '--input', inp, '--main-jar', 'app.jar', '--main-class', mainClass, '--dest', dst, '--add-modules', mods, '--jlink-options', '--strip-debug --no-header-files --no-man-pages']; if (isWin() && consoleOn) args.push('--win-console');
+        r = await exec(job, bin(jdk.home, 'jpackage'), args, work, 600000); logp('$ jpackage ...\n' + r.out); if (job.canceled) { job.state = 'canceled'; step('pack', 'fail', 'İptal edildi'); return; }
+        if (r.code !== 0) return fail('pack', 'Paketleme başarısız (jpackage). Ayrıntı için günlüğe bak.', { jpackageOutput: r.out.slice(-TAIL) });
+        const made = ls(dst); if (made.length !== 1) return fail('pack', 'jpackage beklenen çıktıyı üretmedi.'); step('pack', 'ok');
+        step('save', 'run'); fs.mkdirSync(root(), { recursive: true }); const outDir = uniqueDir(root(), name); fs.cpSync(path.join(dst, made[0]), outDir, { recursive: true }); fs.copyFileSync(jar, path.join(outDir, name + '.jar'));
+        const launcher = isWin() ? path.join(outDir, name + '.exe') : process.platform === 'darwin' ? outDir : path.join(outDir, 'bin', name); if (!fs.existsSync(launcher)) return fail('save', 'Çalıştırıcı dosya bulunamadı: ' + path.basename(launcher));
+        let size = 0; const walk = (d) => { for (const n of ls(d)) { const p = path.join(d, n); try { const s = fs.lstatSync(p); if (s.isDirectory()) walk(p); else size += s.size; } catch (e) { /* atla */ } } }; walk(outDir);
+        step('save', 'ok', outDir); job.result = { outDir, launcher, launcherName: path.basename(launcher), jar: path.join(outDir, name + '.jar'), size, modules: mods, gui, console: consoleOn, jdk: { version: jdk.version, home: jdk.home }, windows: isWin() };
+        job.state = 'done'; if (deps.notify) { try { deps.notify('Kovan Derleyici', 'Hazır: ' + path.basename(launcher) + ' (İndirilenler\\Kovan-Derleme)'); } catch (e) { /* bildirim yok */ } }
+    }
+    const scrub = (out, work) => String(out).replace(new RegExp(work.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&'), 'g'), '.').replace(/\/tmp\/kovan-[A-Za-z0-9_-]+/g, '.');
+    const NSTEPS = { tool: ['tool', 'Araç zinciri bulundu'], compile: ['compile', 'Derleniyor'], deps: ['deps', 'Gerekli modüller çözümleniyor (jdeps)'], pack: ['pack', 'Uygulama paketleniyor (jpackage)'], save: ['save', 'İndirilenler klasörüne kaydediliyor'] };
+    async function runNative(job, req, tl) {
+      const S = (k) => job.steps.find((x) => x.id === k); const step = (k, st, d) => { const x = S(k); if (!x) return; x.status = st; if (d !== undefined) x.detail = d; };
+      const logp = (t) => { job.log += t + '\n'; }; const work = fs.mkdtempSync(path.join(os.tmpdir(), 'kovan-' + req.lang + '-'));
+      const fail = (k, msg, extra) => { step(k, 'fail', msg); job.state = 'failed'; job.error = msg; if (extra) job.result = extra; };
+      try {
+        const t = tl.byId[req.lang]; step('tool', 'ok', t.tool + ' ' + t.version);
+        const cache = path.join(os.tmpdir(), 'kovan-build-cache'); const d = { work, src: path.join(work, 'src'), out: path.join(work, 'out'), obj: path.join(work, 'obj'), cache }; for (const x of [d.src, d.out, d.obj, cache, path.join(work, 'kt')]) fs.mkdirSync(x, { recursive: true });
+        for (const f of req.files) fs.writeFileSync(path.join(d.src, f.name), Buffer.from(f.bytes));
+        const plan = planNative(req, tl, d); for (const [n, c] of Object.entries(plan.gen)) fs.writeFileSync(path.join(d.src, n), c);
+        for (const c of plan.cmds) {
+          step('compile', 'run', c.label); const r = await exec(job, c.exe, c.args, c.cwd, c.ms, Object.assign({ TMPDIR: work, TEMP: work, TMP: work }, c.env)); logp('$ ' + c.label + '\n' + scrub(r.out, work));
+          if (job.canceled) { job.state = 'canceled'; step('compile', 'fail', 'İptal edildi'); return; }
+          if (r.code !== 0) return fail('compile', 'Derleme hatası (' + c.label.split(' ')[0] + '). Ayrıntı için günlüğe bak.', { compilerOutput: scrub(r.out, work).slice(-TAIL), lang: req.lang });
+        }
+        step('compile', 'ok');
+        if (req.lang === 'kotlin') {
+          if (!fs.existsSync(plan.output)) return fail('compile', 'Kotlin derleyicisi JAR üretmedi.');
+          const inp = path.join(work, 'input'), dst = path.join(work, 'dest'); fs.mkdirSync(inp); fs.mkdirSync(dst); const jar = path.join(inp, 'app.jar'); fs.copyFileSync(plan.output, jar);
+          await packApp(job, tl.jdk.best, jar, inp, dst, req.name, req.main, req.console, { step, logp, fail }, work); if (job.result && job.state === 'done') Object.assign(job.result, { lang: 'kotlin', langName: 'Kotlin', tool: 'kotlinc ' + t.version, target: 'host' }); return;
+        }
+        if (!fs.existsSync(plan.output)) return fail('compile', 'Derleyici çıktı dosyasını üretmedi: ' + (plan.outName || ''));
+        step('save', 'run'); fs.mkdirSync(root(), { recursive: true }); const outDir = uniqueDir(root(), req.name); fs.mkdirSync(outDir, { recursive: true }); let launcher;
+        if (req.lang === 'csharp') { for (const n of ls(plan.output)) { if (/\.pdb$/i.test(n)) continue; const sp = path.join(plan.output, n); if (fs.statSync(sp).isFile()) fs.copyFileSync(sp, path.join(outDir, n)); } launcher = path.join(outDir, plan.outName); if (!fs.existsSync(launcher)) { const dll = path.join(outDir, req.name + '.dll'); if (!fs.existsSync(dll)) return fail('save', 'Çıktı bulunamadı: ' + plan.outName); launcher = dll; } }
+        else { launcher = path.join(outDir, plan.outName); fs.copyFileSync(plan.output, launcher); try { if (!plan.winOut) fs.chmodSync(launcher, 0o755); } catch (e) { /* izin ayarlanamadı */ } }
+        let size = 0; for (const n of ls(outDir)) { try { size += fs.statSync(path.join(outDir, n)).size; } catch (e) { /* atla */ } }
+        const sha256 = require('crypto').createHash('sha256').update(fs.readFileSync(launcher)).digest('hex'); const tgt = (req.options && req.options.target) || 'host';
+        step('save', 'ok', outDir); job.result = { outDir, launcher, launcherName: path.basename(launcher), size, sha256, lang: req.lang, langName: LANGS[req.lang].name, tool: plan.tool + ' ' + plan.toolVersion, target: tgt, windows: plan.winOut, runsHere: plan.winOut === isWin() && (tgt === 'host' || req.lang === 'csharp' || true), framework: req.lang === 'csharp', gui: req.console === 'no' };
+        job.state = 'done'; if (deps.notify) { try { deps.notify('Kovan Derleyici', 'Hazır: ' + path.basename(launcher) + ' (İndirilenler\\Kovan-Derleme)'); } catch (e) { /* bildirim yok */ } }
+      } finally { try { fs.rmSync(work, { recursive: true, force: true }); } catch (e) { /* gecici klasor */ } if (job.state === 'running') job.state = 'failed'; }
     }
     async function run(job, req, jdk) {
       const S = (k) => job.steps.find((s) => s.id === k); const step = (k, st, d) => { const s = S(k); s.status = st; if (d !== undefined) s.detail = d; };
@@ -301,23 +494,12 @@ const COMPMOD = (() => {
         const mainPath = path.join(cls, ...req.mainClass.split('.')) + '.class'; if (!fs.existsSync(mainPath)) return fail('jar', 'Ana sınıf derlenmiş çıktıda yok: ' + req.mainClass);
         step('jar', 'run'); const jar = path.join(inp, 'app.jar'); r = await exec(job, bin(jdk.home, 'jar'), ['--create', '--file', jar, '--main-class', req.mainClass, '-C', cls, '.'], work, 60000); logp('$ jar ...\n' + r.out);
         if (r.code !== 0) return fail('jar', 'JAR oluşturulamadı.'); step('jar', 'ok');
-        step('deps', 'run'); let mods = 'java.base'; r = await exec(job, bin(jdk.home, 'jdeps'), ['--print-module-deps', '--ignore-missing-deps', '--multi-release', 'base', jar], work, 60000); logp('$ jdeps ...\n' + r.out);
-        const last = r.out.trim().split(/\r?\n/).pop(); if (r.code === 0 && /^[a-z][\w.]*(,[a-z][\w.]*)*$/.test(last)) { mods = last; step('deps', 'ok', mods); } else step('deps', 'ok', 'jdeps çözemedi; varsayılan: java.base' + (/awt|swing/.test(req.mainClass) ? '' : ''));
-        if (!/(^|,)java\.base(,|$)/.test(mods)) mods = 'java.base,' + mods; const gui = req.console === 'no' ? true : req.console === 'yes' ? false : /java\.desktop|javafx/.test(mods); const consoleOn = !gui;
-        step('pack', 'run'); const args = ['--type', 'app-image', '--name', req.name, '--input', inp, '--main-jar', 'app.jar', '--main-class', req.mainClass, '--dest', dst, '--add-modules', mods, '--jlink-options', '--strip-debug --no-header-files --no-man-pages']; if (isWin() && consoleOn) args.push('--win-console');
-        r = await exec(job, bin(jdk.home, 'jpackage'), args, work, 600000); logp('$ jpackage ...\n' + r.out); if (job.canceled) { job.state = 'canceled'; step('pack', 'fail', 'İptal edildi'); return; }
-        if (r.code !== 0) return fail('pack', 'Paketleme başarısız (jpackage). Ayrıntı için günlüğe bak.', { jpackageOutput: r.out.slice(-TAIL) });
-        const made = ls(dst); if (made.length !== 1) return fail('pack', 'jpackage beklenen çıktıyı üretmedi.'); step('pack', 'ok');
-        step('save', 'run'); fs.mkdirSync(root(), { recursive: true }); const outDir = uniqueDir(root(), req.name); fs.cpSync(path.join(dst, made[0]), outDir, { recursive: true }); fs.copyFileSync(jar, path.join(outDir, req.name + '.jar'));
-        const launcher = isWin() ? path.join(outDir, req.name + '.exe') : process.platform === 'darwin' ? outDir : path.join(outDir, 'bin', req.name); if (!fs.existsSync(launcher)) return fail('save', 'Çalıştırıcı dosya bulunamadı: ' + path.basename(launcher));
-        let size = 0; const walk = (d) => { for (const n of ls(d)) { const p = path.join(d, n); try { const s = fs.lstatSync(p); if (s.isDirectory()) walk(p); else size += s.size; } catch (e) { /* atla */ } } }; walk(outDir);
-        step('save', 'ok', outDir); job.result = { outDir, launcher, launcherName: path.basename(launcher), jar: path.join(outDir, req.name + '.jar'), size, modules: mods, gui, console: consoleOn, jdk: { version: jdk.version, home: jdk.home }, windows: isWin() };
-        job.state = 'done'; if (deps.notify) { try { deps.notify('Kovan Derleyici', 'Hazır: ' + path.basename(launcher) + ' (İndirilenler\\Kovan-Derleme)'); } catch (e) { /* bildirim yok */ } }
+        return await packApp(job, jdk, jar, inp, dst, req.name, req.mainClass, req.console, { step, logp, fail }, work);
       } finally { try { fs.rmSync(work, { recursive: true, force: true }); } catch (e) { /* gecici klasor */ } if (job.state === 'running') job.state = 'failed'; }
     }
     return { handlers };
   }
-  return { createCompileHost, findJdks, validate, LIM, MIN_MAJOR };
+  return { createCompileHost, findJdks, findTools, planNative, validate, validateNative, LANGS, LIM, MIN_MAJOR, _setPlatform: (p) => { platOverride = p; } };
 })();
 
 function riskyList(ui) {
@@ -422,7 +604,7 @@ function createHost(deps) {
     handlers['settings:checkUpdate'] = async () => { try { if (deps.settings.checkUpdate) await deps.settings.checkUpdate(); return { ok: true }; } catch (e) { return errObj(e); } };
   }
   /* Java derleyici (yalnizca kullanicinin kendi JDK'si; bkz. COMPMOD) */
-  if (deps.compile !== false) { const ch = COMPMOD.createCompileHost({ downloadsDir: deps.downloadsDir, outputBase: deps.compileOutputBase, env: deps.compileEnv, jdkDirs: deps.compileJdkDirs, onlyJdkDirs: deps.compileOnlyJdkDirs, notify: deps.notify, showItemInFolder: deps.showItemInFolder }); Object.assign(handlers, ch.handlers); }
+  if (deps.compile !== false) { const ch = COMPMOD.createCompileHost({ downloadsDir: deps.downloadsDir, outputBase: deps.compileOutputBase, env: deps.compileEnv, jdkDirs: deps.compileJdkDirs, onlyJdkDirs: deps.compileOnlyJdkDirs, notify: deps.notify, showItemInFolder: deps.showItemInFolder, toolDirs: deps.compileToolDirs, onlyToolDirs: deps.compileOnlyToolDirs }); Object.assign(handlers, ch.handlers); }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);

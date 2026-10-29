@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   showConfig: () => call('app:showConfig'),
   info: () => call('app:info'),
   compileJdk: () => call('compile:jdk'),
+  compileTools: () => call('compile:tools'),
   compileStart: (req) => call('compile:start', req),
   compileJob: (id) => call('compile:job', String(id)),
   compileCancel: (id) => call('compile:cancel', String(id)),
