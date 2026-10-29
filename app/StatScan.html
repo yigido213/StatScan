@@ -781,6 +781,25 @@ html:not([data-fx="off"]) #settings[open] .ssec:nth-child(1) { animation-delay: 
 html:not([data-fx="off"]) .nameform { animation: kpop .4s var(--spring); }
 html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([data-fx="off"]) .kfade *::before, html:not([data-fx="off"]) .kfade *::after { transition: background-color .45s ease, color .45s ease, border-color .45s ease, box-shadow .45s ease, fill .45s ease, stroke .45s ease !important; }
 }
+/* ---- Notlarim / Yonetim / engel ekrani (yalnizca sahip + engelli kurulum) ---- */
+.nt { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 16px; align-items: start; }
+.nt-side, .nt-main { display: grid; gap: 10px; min-width: 0; } .nt-top { display: flex; gap: 8px; flex-wrap: wrap; }
+.nt-quick, .nt-search, .ad-sec input { font: 500 14px var(--f-body); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.nt-quick:focus, .nt-search:focus, .nt-text:focus, .ad-sec input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nt-chips { display: flex; flex-wrap: wrap; gap: 6px; } .nt-chip { font: 600 12px var(--f-body); padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; } .nt-chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.nt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 58vh; overflow: auto; }
+.nt-item { width: 100%; text-align: left; display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font: 500 14px var(--f-body); } .nt-item b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .nt-item small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nt-item:hover { border-color: var(--accent); } .nt-item.on { border-color: var(--accent); background: var(--accent-soft); } .nt-none { color: var(--muted); font-size: 13.5px; padding: 8px 2px; }
+.nt-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .nt-count { color: var(--muted); font-size: 12.5px; margin-left: auto; } .nt-status { color: var(--muted); font-size: 12.5px; min-width: 120px; } .nt-status.bad { color: #ff8a8a; }
+.nt-text { min-height: 52vh; resize: vertical; font: 400 15.5px/1.6 var(--f-body); padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.nt-toast { position: fixed; right: 16px; bottom: 16px; z-index: 40; display: flex; gap: 12px; align-items: center; padding: 12px 16px; border: 1px solid var(--accent); border-radius: 14px; background: var(--surface); box-shadow: 0 20px 50px -18px rgba(0, 0, 0, .65); max-width: min(520px, calc(100vw - 32px)); overflow-wrap: anywhere; } .nt-toast[hidden] { display: none; }
+.ad-sec { display: grid; gap: 10px; margin: 18px 0; } .ad-sec h2 { font: 700 16px var(--f-body); margin: 0; } .ad-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ad-list li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); } .ad-list li.nt-none { display: block; border: 0; background: none; } .ad-list span { color: var(--muted); overflow-wrap: anywhere; } .ad-list small { color: var(--muted); }
+.bk-id { font: 600 14px ui-monospace, monospace; letter-spacing: .04em; padding: 2px 8px; border-radius: 8px; background: var(--surface2); user-select: all; }
+.ssec-dev { display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); } .sabout li:first-child { cursor: default; }
+#blocked { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--bg) 92%, #000); }
+.bk-card { max-width: 520px; display: grid; gap: 12px; padding: 28px; border: 1px solid #ff8a8a; border-radius: 20px; background: var(--surface); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7); } .bk-card h1 { margin: 0; font-size: 24px; } .bk-card p { margin: 0; color: var(--muted); line-height: 1.5; } .bk-notice { color: var(--ink) !important; font-weight: 600; } .bk-idrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .bk-act { display: flex; flex-wrap: wrap; gap: 8px; } .bk-small { font-size: 12.5px; }
+@media (max-width: 899px) { .nt { grid-template-columns: 1fr; } .nt-list { max-height: 30vh; } .nt-toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } .ad-list li { grid-template-columns: 1fr auto; } }
 </style>
 </head>
 <body>
@@ -806,6 +825,8 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 <section id="app-texpack" class="kv" aria-label="Doku paketi dönüştürücü" hidden></section>
 <section id="app-modconv" class="kv" aria-label="Mod sürüm ayarlayıcı" hidden></section>
 <section id="app-compiler" class="kv" aria-label="Derleyici" hidden></section>
+<section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
+<section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
 <header class="topbar">
   <div class="brand"><h1>StatScan<small>4.9</small></h1></div>
@@ -5192,6 +5213,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Hedef platform: {0} (bu bilgisayarda çalışmayabilir).': 'Target platform: {0} (it may not run on this computer).',
       'Çalıştırılabilir bir giriş noktası (main) bulunamadı.': 'No runnable entry point (main) was found.',
       'Araç zinciri bulundu': 'Toolchain found',
+      'Kurulum kimliği': 'Install ID',
+      'Kopyala': 'Copy',
+      'Kopyalandı': 'Copied',
+      'Erişim kapatıldı': 'Access closed',
+      'Bu kurulumun erişimi Kovan’ın geliştiricisi tarafından kapatıldı. Araçlar bu kurulumda çalışmaz.': 'Access for this installation was closed by Kovan’s developer. The tools do not work on this installation.',
+      'Kurulum kimliğin:': 'Your install ID:',
+      'Kimliği kopyala': 'Copy ID',
+      'Listeyi yeniden denetle': 'Check the list again',
+      'Bir yanlışlık olduğunu düşünüyorsan geliştiriciyle iletişime geç ve bu kimliği ilet.': 'If you think this is a mistake, contact the developer and send this ID.',
+      'Bu cihaza özel, rastgele görünümlü bir kimliktir (makine tanımlayıcısının geri çevrilemez özeti). Hiçbir yere otomatik gönderilmez; geliştiriciyle paylaşırsan yalnızca sen paylaşmış olursun. Geliştirici, imzalı bir listeyle belirli kimliklerin erişimini kapatabilir; liste GitHub’dan indirilir ve indirme sırasında kimliğin gönderilmez.': 'This is a device-specific, random-looking ID (an irreversible hash of a machine identifier). It is never sent anywhere automatically; it is shared only if you share it with the developer. The developer can close access for specific IDs with a signed list; the list is downloaded from GitHub and your ID is not sent during the download.',
+      'Geliştirici modu yalnızca uygulamanın sahibi içindir: uygulamayı imzalayan özel anahtar dosyası (private.pem) gerekir. Anahtar yalnızca bellekte tutulur, hiçbir yere kaydedilmez veya gönderilmez.': 'Developer mode is only for the app’s owner: it needs the private key file that signs the app (private.pem). The key is kept in memory only and is never saved or sent anywhere.',
+      'Sahip anahtarını seç (private.pem)': 'Choose owner key (private.pem)',
+      'Geliştirici modunu kapat': 'Turn off developer mode',
+      'Anahtar açık — yeniden seç': 'Key unlocked — choose again',
+      'Anahtarı yeniden seç (imzalamak için)': 'Choose the key again (to sign)',
       'Derleniyor': 'Compiling',
       'Derleyici bulunamadı': 'Compiler not found'
     };
@@ -5401,6 +5437,108 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     })();
   })();
 
+  /* ---------- Erisim: kurulum kimligi, engel ekrani, sahip araclari (Notlarim + Yonetim; yalnizca masaustu ve yalnizca sahip) ----------
+     Kimlik hicbir yere otomatik gonderilmez. Engel ve sahip modu icin bkz. host.js ACCESSMOD (imzali blocklist.json, private.pem ile sahip modu). */
+  const KovanAccess = (function () {
+    const H = window.statscanHost && window.statscanHost.accessStatus ? window.statscanHost : null; const A = { host: H, status: null, owner: false, unlocked: false, subs: [] };
+    const fmtT = (t) => { try { return new Date(t).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return ''; } };
+    const copy = async (txt, btn, label) => { try { await navigator.clipboard.writeText(txt); } catch (e) { const t = h('textarea', { style: 'position:fixed;opacity:0' }); t.value = txt; document.body.append(t); t.select(); try { document.execCommand('copy'); } catch (e2) { /* kopyalanamadi */ } t.remove(); } if (btn) { const o = btn.textContent; btn.textContent = KT('Kopyalandı'); setTimeout(() => { btn.textContent = label || o; }, 1400); } };
+    /* --- engel ekrani --- */
+    let ov = null;
+    function drawBlocked(s) {
+      const app = document.getElementById('app');
+      if (!s || !s.blocked) { if (ov) { ov.remove(); ov = null; } if (app) app.inert = false; return; }
+      for (const d of document.querySelectorAll('dialog[open]')) { try { d.close(); } catch (e) { /* kapali */ } } const pal = document.getElementById('pal'); if (pal) pal.hidden = true;
+      if (!ov) {
+        const copyBtn = h('button', { type: 'button', class: 'cv-btn' }, 'Kimliği kopyala'); const again = h('button', { type: 'button', class: 'cv-btn cv-primary' }, 'Listeyi yeniden denetle'); const idEl = h('code', { class: 'bk-id' });
+        ov = h('div', { id: 'blocked', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'bk-t' }, h('div', { class: 'bk-card' }, h('h1', { id: 'bk-t', tabindex: '-1' }, 'Erişim kapatıldı'), h('p', {}, 'Bu kurulumun erişimi Kovan’ın geliştiricisi tarafından kapatıldı. Araçlar bu kurulumda çalışmaz.'), h('p', { class: 'bk-notice' }), h('p', { class: 'bk-idrow' }, h('span', {}, 'Kurulum kimliğin:'), idEl), h('div', { class: 'bk-act' }, copyBtn, again), h('p', { class: 'bk-small' }, 'Bir yanlışlık olduğunu düşünüyorsan geliştiriciyle iletişime geç ve bu kimliği ilet.')));
+        copyBtn.addEventListener('click', () => copy(A.status.id, copyBtn, 'Kimliği kopyala')); again.addEventListener('click', async () => { again.disabled = true; await refresh(true); again.disabled = false; }); document.body.append(ov); { const w = document.createTreeWalker(ov, NodeFilter.SHOW_TEXT); let nd; while ((nd = w.nextNode())) { const nv = KL.tr(nd.nodeValue); if (nv !== nd.nodeValue) nd.nodeValue = nv; } }
+        if (app) app.inert = true; setTimeout(() => { const t = ov && ov.querySelector('h1'); if (t) t.focus(); }, 30);
+      }
+      ov.querySelector('.bk-id').textContent = s.id; const n = ov.querySelector('.bk-notice'); n.textContent = s.notice || ''; n.hidden = !s.notice;
+    }
+    async function refresh(force) { if (!H) return null; try { const s = force ? await H.accessRefresh() : await H.accessStatus(); if (s && !s.error) { A.status = s; A.owner = !!s.owner; A.unlocked = !!s.unlocked; drawBlocked(s); for (const f of A.subs) { try { f(s); } catch (e) { /* abone hatasi */ } } } return s; } catch (e) { return null; } }
+    A.refresh = refresh; A.onChange = (fn) => { A.subs.push(fn); if (A.status) fn(A.status); };
+    refresh(); setTimeout(refresh, 3500); setInterval(refresh, 60000);
+    /* --- Ayarlar > Hakkinda: kurulum kimligi + gizli sahip girisi (surum satirina 7 kez tikla) --- */
+    A.mountSettings = function (about, list) {
+      if (!H) return; const li = h('li', {}, h('b', {}, 'Kurulum kimliği'), h('span', {})); const idSp = li.lastChild; const idTx = h('code', { class: 'bk-id' }, '…'); const cb = h('button', { type: 'button', class: 'cv-btn', style: 'margin-left:8px;padding:4px 10px' }, 'Kopyala'); idSp.append(idTx, cb); list.append(li);
+      const note = h('p', { class: 'snote' }, 'Bu cihaza özel, rastgele görünümlü bir kimliktir (makine tanımlayıcısının geri çevrilemez özeti). Hiçbir yere otomatik gönderilmez; geliştiriciyle paylaşırsan yalnızca sen paylaşmış olursun. Geliştirici, imzalı bir listeyle belirli kimliklerin erişimini kapatabilir; liste GitHub’dan indirilir ve indirme sırasında kimliğin gönderilmez.'); about.append(note);
+      A.onChange((s) => { idTx.textContent = s.id; }); cb.addEventListener('click', () => A.status && copy(A.status.id, cb, 'Kopyala'));
+      const dev = h('div', { class: 'ssec-dev', hidden: true }, h('p', { class: 'snote' }, 'Geliştirici modu yalnızca uygulamanın sahibi içindir: uygulamayı imzalayan özel anahtar dosyası (private.pem) gerekir. Anahtar yalnızca bellekte tutulur, hiçbir yere kaydedilmez veya gönderilmez.')); const devMsg = h('p', { class: 'snote warn', hidden: true, role: 'status' }); const unl = h('button', { type: 'button', class: 'cv-btn' }, 'Sahip anahtarını seç (private.pem)'); const off = h('button', { type: 'button', class: 'cv-btn', hidden: true }, 'Geliştirici modunu kapat'); dev.append(unl, off, devMsg); about.append(dev);
+      const sync = () => { off.hidden = !A.owner; unl.textContent = KT(A.owner ? (A.unlocked ? 'Anahtar açık — yeniden seç' : 'Anahtarı yeniden seç (imzalamak için)') : 'Sahip anahtarını seç (private.pem)'); }; A.onChange(sync);
+      unl.addEventListener('click', async () => { unl.disabled = true; devMsg.hidden = true; try { const r = await H.ownerUnlock(); if (r && r.error) { devMsg.hidden = false; devMsg.textContent = r.message || 'Açılamadı.'; } else if (r && r.ok) { devMsg.hidden = false; devMsg.className = 'snote'; devMsg.textContent = 'Geliştirici modu açıldı. Kenar çubuğunda Notlarım ve Yönetim görünür.'; await refresh(); } } catch (e) { devMsg.hidden = false; devMsg.textContent = String(e && e.message || e); } unl.disabled = false; });
+      off.addEventListener('click', async () => { await H.ownerOff(); await refresh(); devMsg.hidden = false; devMsg.className = 'snote'; devMsg.textContent = 'Geliştirici modu kapatıldı (notların diskte durur).'; });
+      let clicks = 0, t0 = 0; list.firstChild.addEventListener('click', () => { const n = Date.now(); if (n - t0 > 4000) clicks = 0; t0 = n; if (++clicks >= 7) { dev.hidden = false; clicks = 0; } }); if (A.owner) dev.hidden = false; A.onChange((s) => { if (s.owner) dev.hidden = false; });
+    };
+    /* --- Notlarim --- */
+    function buildNotes() {
+      const root = document.getElementById('app-notes'); if (!root || root.dataset.built) return; root.dataset.built = '1'; const st = { notes: [], cur: null, q: '', tag: '', dirty: false, saving: false, again: false, timer: 0 };
+      const status = h('span', { class: 'nt-status', role: 'status', 'aria-live': 'polite' }, ''); const search = h('input', { type: 'search', class: 'nt-search', placeholder: 'Notlarda ara…', 'aria-label': 'Notlarda ara' }); const quick = h('input', { type: 'text', class: 'nt-quick', placeholder: 'Aklına gelen fikri yaz, Enter’a bas…', 'aria-label': 'Hızlı not', maxlength: '2000' });
+      const list = h('ul', { class: 'nt-list', 'aria-label': 'Notlar' }); const chips = h('div', { class: 'nt-chips' }); const ta = h('textarea', { class: 'nt-text', id: 'nt-text', placeholder: 'Bir not seç ya da yeni not başlat…', 'aria-label': 'Not metni', spellcheck: 'true', disabled: true });
+      const pinB = h('button', { type: 'button', class: 'cv-btn', disabled: true }, 'Sabitle'); const delB = h('button', { type: 'button', class: 'cv-btn', disabled: true }, 'Sil'); const dateB = h('button', { type: 'button', class: 'cv-btn', disabled: true, title: 'İmlecin olduğu yere tarih/saat ekle' }, 'Tarih ekle'); const newB = h('button', { type: 'button', class: 'cv-btn cv-primary' }, 'Yeni not'); const expB = h('button', { type: 'button', class: 'cv-btn' }, 'Dışa aktar (.md)'); const count = h('span', { class: 'nt-count' }); const toast = h('div', { class: 'nt-toast', role: 'status', hidden: true });
+      root.append(h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Notlarım'), h('p', { class: 'cv-lead' }, 'Aklına gelen fikirleri hemen yaz; otomatik kaydedilir. Notlar yalnızca bu bilgisayarda saklanır (ağa gönderilmez) ve yalnızca sahip modunda görünür.')),
+        h('div', { class: 'nt' }, h('aside', { class: 'nt-side' }, h('div', { class: 'nt-top' }, newB, expB), quick, search, chips, list), h('section', { class: 'nt-main' }, h('div', { class: 'nt-bar' }, pinB, dateB, delB, count, status), ta)), toast);
+      const title = (n) => (n.text.split('\n').find((l) => l.trim()) || 'Boş not').replace(/^#+\s*/, '').trim().slice(0, 70); const tagsOf = (t) => [...new Set((t.match(/(?:^|\s)#([\p{L}\p{N}_-]{1,30})/gu) || []).map((x) => x.trim().slice(1).toLocaleLowerCase('tr')))];
+      const sorted = () => st.notes.slice().sort((a, b) => (b.pinned - a.pinned) || (b.updated - a.updated)); const curNote = () => st.notes.find((n) => n.id === st.cur) || null;
+      function setStatus(t, bad) { status.textContent = t; status.className = 'nt-status' + (bad ? ' bad' : ''); }
+      function drawList() {
+        const q = st.q.toLocaleLowerCase('tr').trim(); list.textContent = ''; const all = new Map(); for (const n of st.notes) for (const t of tagsOf(n.text)) all.set(t, (all.get(t) || 0) + 1);
+        chips.textContent = ''; for (const [t, c] of [...all].sort((a, b) => b[1] - a[1]).slice(0, 12)) { const b = h('button', { type: 'button', class: 'nt-chip' + (st.tag === t ? ' on' : ''), 'aria-pressed': st.tag === t ? 'true' : 'false' }, '#' + t + ' ' + c); b.addEventListener('click', () => { st.tag = st.tag === t ? '' : t; drawList(); }); chips.append(b); }
+        const shown = sorted().filter((n) => (!q || n.text.toLocaleLowerCase('tr').includes(q)) && (!st.tag || tagsOf(n.text).includes(st.tag)));
+        for (const n of shown) { const li = h('li', {}); const b = h('button', { type: 'button', class: 'nt-item' + (n.id === st.cur ? ' on' : ''), 'aria-current': n.id === st.cur ? 'true' : 'false' }, h('b', {}, (n.pinned ? '📌 ' : '') + title(n)), h('small', {}, fmtT(n.updated) + ' · ' + (n.text.length > 70 ? n.text.replace(/\s+/g, ' ').slice(0, 90) : ''))); b.addEventListener('click', async () => { await flush(); open(n.id); }); li.append(b); list.append(li); }
+        if (!shown.length) list.append(h('li', { class: 'nt-none' }, st.notes.length ? 'Eşleşen not yok.' : 'Henüz not yok. Yukarıdaki kutuya bir fikir yaz.'));
+      }
+      function drawEditor() { const n = curNote(); const draft = st.cur === '__new'; ta.disabled = !(n || draft); pinB.disabled = !n; delB.disabled = !n; dateB.disabled = !(n || draft); pinB.textContent = KT(n && n.pinned ? 'Sabitlemeyi kaldır' : 'Sabitle'); if (document.activeElement !== ta) ta.value = n ? n.text : draft ? ta.value : ''; count.textContent = ta.value ? ta.value.length + ' karakter · ' + (ta.value.trim().split(/\s+/).filter(Boolean).length) + ' kelime' : ''; }
+      function open(id) { st.cur = id; st.dirty = false; drawList(); drawEditor(); if (id) { ta.focus(); } }
+      async function save() {
+        if (st.saving) { st.again = true; return; } const draft = st.cur === '__new'; const n = curNote(); if (!n && !draft) return; if (draft && !ta.value.trim()) { st.dirty = false; return; } st.saving = true; st.dirty = false; setStatus('Kaydediliyor…');
+        try { const r = await H.notesSave({ id: n ? n.id : undefined, text: ta.value, pinned: n ? n.pinned : undefined }); if (r && r.ok) { const note = r.note; const i = st.notes.findIndex((x) => x.id === note.id); if (i >= 0) st.notes[i] = note; else st.notes.unshift(note); if (draft) st.cur = note.id; setStatus('Kaydedildi · ' + fmtT(note.updated)); drawList(); } else setStatus((r && r.message) || 'Kaydedilemedi', true); } catch (e) { setStatus('Kaydedilemedi: ' + String(e && e.message || e), true); }
+        st.saving = false; if (st.again) { st.again = false; await save(); }
+      }
+      async function flush() { clearTimeout(st.timer); if (st.dirty) await save(); while (st.saving) await new Promise((r) => setTimeout(r, 30)); }
+      ta.addEventListener('input', () => { st.dirty = true; setStatus('Kaydedilmemiş değişiklik…'); count.textContent = ta.value.length + ' karakter · ' + (ta.value.trim().split(/\s+/).filter(Boolean).length) + ' kelime'; clearTimeout(st.timer); st.timer = setTimeout(save, 600); });
+      ta.addEventListener('blur', () => { if (st.dirty) flush(); });
+      newB.addEventListener('click', async () => { await flush(); st.cur = '__new'; ta.value = ''; drawList(); drawEditor(); ta.focus(); setStatus(''); });
+      quick.addEventListener('keydown', async (e) => { if (e.key !== 'Enter') return; e.preventDefault(); const v = quick.value.trim(); if (!v) return; quick.disabled = true; try { const r = await H.notesSave({ text: v }); if (r && r.ok) { st.notes.unshift(r.note); quick.value = ''; setStatus('Eklendi · ' + fmtT(r.note.updated)); drawList(); } else setStatus((r && r.message) || 'Eklenemedi', true); } catch (err) { setStatus('Eklenemedi', true); } quick.disabled = false; quick.focus(); });
+      search.addEventListener('input', () => { st.q = search.value; drawList(); });
+      pinB.addEventListener('click', async () => { const n = curNote(); if (!n) return; await flush(); const r = await H.notesSave({ id: n.id, text: n.text, pinned: !n.pinned }); if (r && r.ok) { Object.assign(n, r.note); drawList(); drawEditor(); } });
+      dateB.addEventListener('click', () => { const s = ta.selectionStart, t = new Date().toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }); ta.setRangeText(t, s, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); ta.focus(); });
+      let tt = 0; function showToast(msg, undo) { toast.textContent = ''; toast.append(h('span', {}, msg)); if (undo) { const u = h('button', { type: 'button', class: 'cv-btn' }, 'Geri al'); u.addEventListener('click', async () => { toast.hidden = true; clearTimeout(tt); await undo(); }); toast.append(u); } toast.hidden = false; clearTimeout(tt); tt = setTimeout(() => { toast.hidden = true; }, 8000); }
+      delB.addEventListener('click', async () => { const n = curNote(); if (!n) return; await flush(); const r = await H.notesDelete(n.id); if (r && r.ok) { st.notes = st.notes.filter((x) => x.id !== n.id); st.cur = null; ta.value = ''; drawList(); drawEditor(); showToast('Not silindi.', async () => { const b = await H.notesRestore(r.note); if (b && b.ok) { st.notes.push(b.note); open(b.note.id); } }); } else setStatus((r && r.message) || 'Silinemedi', true); });
+      expB.addEventListener('click', async () => { await flush(); const r = await H.notesExport(); showToast(r && r.ok ? r.count + ' not dışa aktarıldı: ' + r.file : (r && r.message) || 'Dışa aktarılamadı'); });
+      root.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') { e.preventDefault(); flush(); } else if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'n') { e.preventDefault(); newB.click(); } });
+      document.addEventListener('visibilitychange', () => { if (document.hidden && st.dirty) flush(); }); window.addEventListener('beforeunload', () => { if (st.dirty) { clearTimeout(st.timer); H.notesSave({ id: curNote() ? curNote().id : undefined, text: ta.value }); } }); window.addEventListener('hashchange', () => { if (st.dirty) flush(); });
+      A.newNote = () => { newB.click(); }; (async () => { try { const r = await H.notesList(); if (r && r.ok) { st.notes = r.notes; drawList(); drawEditor(); setStatus(st.notes.length + ' not'); } else setStatus((r && r.message) || 'Notlar okunamadı', true); } catch (e) { setStatus('Notlar okunamadı', true); } })();
+    }
+    /* --- Yonetim: kimlik, anahtar, engelli liste --- */
+    function buildAdmin() {
+      const root = document.getElementById('app-admin'); if (!root || root.dataset.built) return; root.dataset.built = '1';
+      const keyLine = h('p', { class: 'cp-jdk', role: 'status' }); const keyBtn = h('button', { type: 'button', class: 'cv-btn cv-primary' }, 'Sahip anahtarını seç (private.pem)'); const lockBtn = h('button', { type: 'button', class: 'cv-btn' }, 'Kilidi kapat (anahtarı bellekten sil)'); const msg = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' });
+      const idIn = h('input', { type: 'text', id: 'ad-id', placeholder: 'ABCD-EFGH-IJKL-MNOP', maxlength: '24', autocomplete: 'off', spellcheck: 'false' }); const noteIn = h('input', { type: 'text', id: 'ad-note', placeholder: 'Not (kimdi?)', maxlength: '200' }); const addB = h('button', { type: 'button', class: 'cv-btn' }, 'Listeye ekle');
+      const rows = h('ul', { class: 'ad-list' }); const live = h('p', { class: 'cp-jdk' }); const notice = h('input', { type: 'text', id: 'ad-notice', maxlength: '300', placeholder: 'Engellenenlere gösterilecek mesaj (isteğe bağlı)' }); const pubB = h('button', { type: 'button', class: 'cv-btn cv-primary', id: 'ad-pub' }, 'İmzala ve blocklist.json oluştur'); const res = h('div', { class: 'cv-note', hidden: true });
+      const myId = h('code', { class: 'bk-id' }, '…'); const myCopy = h('button', { type: 'button', class: 'cv-btn' }, 'Kopyala'); let draft = null;
+      const fld = (id, label, ctl) => h('label', { class: 'cv-f', for: id }, h('span', {}, label), ctl);
+      root.append(h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Yönetim'), h('p', { class: 'cv-lead' }, 'Yalnızca sahip için: uygulamanı kullanan belirli bir kurulumun erişimini imzalı bir listeyle kapat veya aç.')),
+        h('div', { class: 'cv-note' }, h('b', {}, 'Nasıl çalışır ve sınırları'), h('ul', {}, ['Kullanıcı, Ayarlar → Hakkında’daki “Kurulum kimliği”ni sana iletir (kimlik otomatik gönderilmez). Sen buraya eklersin.', 'Liste senin özel anahtarınla imzalanır; uygulama imzayı doğrular, sahte/eski listeyi yok sayar. Dosyayı repoya blocklist.json olarak koyup push’larsın; uygulamalar bunu açılışta ve 6 saatte bir indirir (GitHub önbelleği yüzünden birkaç dakika gecikebilir).', 'Ağ yoksa engel uygulanmaz (daha önce indirilmiş doğrulanmış liste geçerli kalır). Bu bir nezaket kilididir, kopya koruması değil: uygulama kodunu değiştiren ya da yalnızca tarayıcı sürümünü kullanan biri atlayabilir. Kimlik makineye bağlıdır; yeniden kurulum kimliği değiştirmez.', 'Kendi kimliğini engelleyemezsin (kilitlenme koruması). Engel kalkması için kimliği çıkarıp yeni listeyi yayınla.'].map((x) => h('li', {}, x)))),
+        h('section', { class: 'ad-sec' }, h('h2', {}, 'Bu cihazın kurulum kimliği'), h('p', {}, myId, ' ', myCopy)),
+        h('section', { class: 'ad-sec' }, h('h2', {}, 'Sahip anahtarı'), keyLine, h('div', { class: 'cv-opts' }, keyBtn, lockBtn), msg),
+        h('section', { class: 'ad-sec' }, h('h2', {}, 'Engelli kurulumlar'), live, h('div', { class: 'cv-opts' }, fld('ad-id', 'Kurulum kimliği', idIn), fld('ad-note', 'Not', noteIn), addB), rows, h('div', { class: 'cv-opts' }, fld('ad-notice', 'Engel mesajı', notice)), h('div', { class: 'cv-opts' }, pubB), res));
+      A.onChange((s) => { myId.textContent = s.id; keyLine.className = 'cp-jdk ' + (s.unlocked ? 'ok' : 'warn'); keyLine.textContent = s.unlocked ? 'Anahtar bellekte (imzalayabilirsin). Uygulamadan çıkınca silinir.' : 'Anahtar seçilmedi: listeyi düzenleyebilirsin ama imzalamak için private.pem’i seçmelisin.'; lockBtn.disabled = !s.unlocked; pubB.disabled = !s.unlocked; });
+      myCopy.addEventListener('click', () => A.status && copy(A.status.id, myCopy, 'Kopyala'));
+      function draw() { if (!draft) return; rows.textContent = ''; for (const e of draft.entries) { const rm = h('button', { type: 'button', class: 'cv-btn', 'aria-label': e.id + ' kimliğini çıkar' }, 'Çıkar'); rm.addEventListener('click', async () => { const r = await H.ownerBlRemove(e.id); if (r && r.ok) { draft = r.draft; draw(); } else msg.textContent = (r && r.message) || 'Çıkarılamadı'; }); rows.append(h('li', {}, h('code', {}, e.id), h('span', {}, e.note || '—'), h('small', {}, e.added || ''), rm)); } if (!draft.entries.length) rows.append(h('li', { class: 'nt-none' }, 'Listede kimse yok.')); notice.value = draft.notice || ''; }
+      async function load() { try { const r = await H.ownerBlGet(); if (r && r.ok) { draft = r.draft; live.textContent = 'Yayındaki liste: seq ' + (r.live.seq || 0) + ' · ' + r.live.count + ' kayıt (' + (r.live.source === 'none' ? 'henüz yok' : r.live.source === 'cache' ? 'önbellek' : 'GitHub') + '). Taslak: seq ' + draft.base + ' tabanlı.'; draw(); } else msg.textContent = (r && r.message) || 'Liste okunamadı'; } catch (e) { msg.textContent = 'Liste okunamadı'; } }
+      addB.addEventListener('click', async () => { msg.textContent = ''; const r = await H.ownerBlAdd(idIn.value, noteIn.value); if (r && r.ok) { draft = r.draft; idIn.value = ''; noteIn.value = ''; draw(); msg.textContent = 'Eklendi. Yayınlamak için “İmzala…”.'; } else msg.textContent = (r && r.message) || 'Eklenemedi'; });
+      idIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addB.click(); } });
+      notice.addEventListener('change', async () => { const r = await H.ownerBlNotice(notice.value); if (r && r.ok) draft = r.draft; });
+      keyBtn.addEventListener('click', async () => { keyBtn.disabled = true; msg.textContent = ''; try { const r = await H.ownerUnlock(); if (r && r.error) msg.textContent = r.message; else if (r && r.ok) { await A.refresh(); msg.textContent = 'Anahtar açıldı.'; } } catch (e) { msg.textContent = String(e && e.message || e); } keyBtn.disabled = false; });
+      lockBtn.addEventListener('click', async () => { await H.ownerLock(); await A.refresh(); msg.textContent = 'Anahtar bellekten silindi.'; });
+      pubB.addEventListener('click', async () => { pubB.disabled = true; msg.textContent = ''; try { await H.ownerBlNotice(notice.value); const r = await H.ownerBlPublish(); if (r && r.ok) { res.hidden = false; res.textContent = ''; res.append(h('b', {}, '✓ İmzalı liste hazır (seq ' + r.seq + ', ' + r.count + ' kayıt)'), h('p', {}, 'Dosya: ' + r.file), h('p', {}, 'Şimdi bu dosyayı repo köküne blocklist.json olarak koy ve push’la (ör. “git add blocklist.json && git commit && git push”). Dilersen dosyayı Claude’a ver, o commit’lesin. Yayınlanınca uygulamalar kısa süre içinde alır.')); await load(); } else { res.hidden = true; msg.textContent = (r && r.message) || 'İmzalanamadı'; } } catch (e) { msg.textContent = String(e && e.message || e); } pubB.disabled = !A.unlocked; });
+      load();
+    }
+    let built = false; A.onChange((s) => { if (s.owner && !built) { built = true; buildNotes(); buildAdmin(); } }); return A;
+  })();
+
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
@@ -5413,13 +5551,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       cube: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
       puzzle: '<path d="M9 4h6v3a2 2 0 1 1 0 4v3h-3a2 2 0 1 0-4 0H5V8h4V4Z"/><path d="M5 14v6h14v-4"/>',
       hammer: '<path d="m14 4 6 6-3 3-6-6 3-3Z"/><path d="m11 7-7 7v4h4l7-7"/><path d="M4 21h8"/>',
+      note: '<path d="M6 3.5h9l3 3v14H6z"/><path d="M14.5 3.5V7H18M9 12h6M9 16h4"/>',
+      key: '<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M15.5 7.5l2 2M13.5 9.5l2 2"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
     const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
       { id: 'texpack', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
-      { id: 'compiler', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] }];
+      { id: 'compiler', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
+      { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
     const mk = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
     const label = mk('div', { class: 'side-label', id: 'side-tools' }, 'Araçlar');
@@ -5427,14 +5569,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     for (const m of MODULES) {
       const a = mk('a', { class: 'nav-item', href: '#/' + m.id, 'data-route': m.id }, svg(m.icon) + '<span></span>'); a.querySelector('span').textContent = m.name; a.title = m.name; nav.append(a); linkOf[m.id] = a;
       const c = mk('button', { type: 'button', class: 'toolcard', 'data-open': m.id }, '<span class="ic">' + svg(m.icon) + '</span><h3></h3><p></p><span class="row"><span class="chip">' + (m.beta ? 'Beta' : 'Hazır') + '</span><span>Aç →</span></span>');
-      c.querySelector('h3').textContent = m.name; c.querySelector('p').textContent = m.desc; c.addEventListener('click', () => go(m.id)); grid.append(c);
+      c.querySelector('h3').textContent = m.name; c.querySelector('p').textContent = m.desc; c.addEventListener('click', () => go(m.id)); grid.append(c); if (m.owner) { a.hidden = true; c.hidden = true; m.nodes = [a, c]; }
     }
     grid.append(mk('div', { class: 'toolcard empty' }, '<span class="ic">' + svg('plus') + '</span><h3>Yeni araçlar için yer ayrıldı</h3><p>Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.</p>'));
     const facts = $('#home-facts'); const desktop = !!(window.statscanHost && window.statscanHost.desktop);
     for (const [k, v] of [['Sürüm', 'Kovan ' + KOVAN_VER], ['StatScan', StatScan.version || ''], ['Çalışma biçimi', desktop ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası'], ['Gizlilik', 'Statik tarama yerelde yapılır; dosyalar gönderilmez']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; facts.append(li); }
     $('#side-ver').textContent = KOVAN_VER;
     $('#side-theme').addEventListener('click', () => $('#theme').click());
-    function parse() { const h = location.hash; if (h === '#bilgi') return 'statscan'; const m = /^#\/([a-z0-9-]+)/.exec(h); if (m) return ids.includes(m[1]) ? m[1] : 'home'; return null; }
+    let ownerOn = false; const ownerIds = MODULES.filter((m) => m.owner).map((m) => m.id);
+    function parse() { const h = location.hash; if (h === '#bilgi') return 'statscan'; const m = /^#\/([a-z0-9-]+)/.exec(h); if (m) return ids.includes(m[1]) && (ownerOn || !ownerIds.includes(m[1])) ? m[1] : 'home'; return null; }
+    KovanAccess.onChange((s) => { const on = !!s.owner; if (on === ownerOn) return; ownerOn = on; for (const m of MODULES) if (m.owner) for (const n of m.nodes || []) n.hidden = !on; if (!on && ownerIds.includes(current)) render('home'); else if (on) window.dispatchEvent(new Event('hashchange')); });
     function render(id) {
       if (id === current) return; current = id;
       for (const x of ids) { const v = $('#app-' + x); if (v) v.hidden = x !== id; const l = linkOf[x]; if (l) { if (x === id) l.setAttribute('aria-current', 'page'); else l.removeAttribute('aria-current'); } }
@@ -5504,7 +5648,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const g4 = sSec('Veri'); const rst = mk('button', { type: 'button', id: 'st-reset' }, 'Kovan tercihlerini sıfırla'); let rT = 0;
       rst.addEventListener('click', () => { if (!rst.dataset.arm) { rst.dataset.arm = '1'; rst.textContent = 'Emin misin? Tekrar tıkla'; rT = setTimeout(() => { delete rst.dataset.arm; rst.textContent = 'Kovan tercihlerini sıfırla'; }, 4000); return; } clearTimeout(rT); try { for (const k of ['kovan.user', 'kovan.collapsed', 'kovan.typing', 'kovan.fx', 'kovan.lang', 'statscan-theme']) localStorage.removeItem(k); } catch (e) { /* yoksay */ } location.reload(); });
       g4.append(sRow('reset', 'Tercihleri sıfırla', 'Tema, kenar çubuğu, kullanıcı adı ve animasyon tercihlerini siler. Tarama sonuçlarına ve dosyalarına dokunmaz.', rst)); body.append(g4);
-      const g5 = sSec('Hakkında'); const ab = mk('ul', { class: 'sabout' }); for (const [k, v] of [['Kovan', KOVAN_VER], ['StatScan', StatScan.version || ''], ['Çalışma biçimi', host ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; ab.append(li); } g5.append(ab); body.append(g5);
+      const g5 = sSec('Hakkında'); const ab = mk('ul', { class: 'sabout' }); for (const [k, v] of [['Kovan', KOVAN_VER], ['StatScan', StatScan.version || ''], ['Çalışma biçimi', host ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; ab.append(li); } g5.append(ab); try { KovanAccess.mountSettings(g5, ab); } catch (e) { /* yalnizca masaustu */ } body.append(g5);
       async function hostSet(k, c) { c.disabled = true; stNote.hidden = true; try { const r = await host.settingsSet(k, c.checked); if (r && r.error) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = r.message || 'Ayar uygulanamadı.'; } else hostFill(r); } catch (e) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = 'Ayar uygulanamadı: ' + (e && e.message ? e.message : e); } syncMin(); }
       function syncMin() { swMin.disabled = !host || !swLogin.checked; }
       function hostFill(r) { if (!r || r.error) return; swLogin.checked = !!r.openAtLogin; swMin.checked = !!r.startMinimized; swAuto.checked = !!r.autoUpdate; swLogin.disabled = !r.autostart || !r.autostart.supported; swAuto.disabled = false; chk.disabled = false; stNote.hidden = !(r.autostart && !r.autostart.supported); if (!stNote.hidden) stNote.textContent = r.autostart.reason; syncMin(); }
@@ -5520,7 +5664,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const trl = (x) => String(x).toLocaleLowerCase('tr');
     function commands() {
       const c = [{ label: KT('Home’a git'), hint: KT('Sayfa'), run: () => go('home') }];
-      for (const m of MODULES) { c.push({ label: KT('{0} aracını aç', KT(m.name)), hint: KT('Araç'), run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: KT(a.label), hint: KT('Komut'), run: a.run }); }
+      for (const m of MODULES) { if (m.owner && !ownerOn) continue; c.push({ label: KT('{0} aracını aç', KT(m.name)), hint: KT('Araç'), run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: KT(a.label), hint: KT('Komut'), run: a.run }); }
       c.push({ label: KT('Temayı değiştir (açık/koyu)'), hint: KT('Komut'), run: () => $('#theme').click() }, { label: KT(app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'), hint: KT('Komut'), run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: KT('Kullanıcı adını değiştir'), hint: KT('Komut'), run: editName }, { label: KT('Ayarlar'), hint: 'Ctrl ,', run: openSettings });
       return c;
     }
