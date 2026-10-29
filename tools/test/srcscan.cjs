@@ -1,0 +1,46 @@
+const fs=require('fs');const path=require('path');const code=fs.readFileSync(path.join(__dirname,'../../src/engine/101-srcscan.js'),'utf8');
+const api=new Function(code+';return {srcScan,srcPlan,srcLangOf};')();
+let fail=0;const eq=(n,a,b)=>{const ok=JSON.stringify(a)===JSON.stringify(b);if(!ok){fail++;console.log('FAIL',n,JSON.stringify(a),'!=',JSON.stringify(b));}};
+const plan=(a)=>api.srcPlan(a.map(([name,text])=>({name,text})));
+let p=plan([['main.c','#include <stdio.h>\n#include <math.h>\n#include "util.h"\n// int main(){}\nconst char*s="int main(){}";\nint main(int c,char**v){return 0;}'],['util.h','int x;']]);
+eq('c lang',p.lang,'c');eq('c cands',p.candidates.map(c=>c.binary),['main']);eq('c libs m',p.libs.m,true);eq('c probs',p.problems,[]);
+p=plan([['a.cpp','#include "b.hpp"\nint main(){}'],['b.hpp','']]);eq('cpp',[p.lang,p.candidates.length,p.problems.length],['cpp',1,0]);
+p=plan([['a.cpp','#include "zz.hpp"\nint main(){}']]);eq('missing inc',p.problems.map(x=>x.code),['missing-include']);
+p=plan([['m.rs','mod helper;\nfn main(){println!("hi");}'],['helper.rs','pub fn f(){}']]);eq('rust',[p.lang,p.candidates.length,p.problems.length],['rust',1,0]);
+p=plan([['m.rs','mod nope;\nfn main(){}']]);eq('rust missing',p.problems.map(x=>x.code),['missing-mod']);
+p=plan([['main.go','package main\nimport "fmt"\nfunc main(){fmt.Println(1)}']]);eq('go',[p.lang,p.candidates.length,p.problems.length],['go',1,0]);
+p=plan([['main.go','package main\nimport (\n"fmt"\n"github.com/x/y"\n)\nfunc main(){}']]);eq('go ext',p.problems.map(x=>x.code),['go-ext']);
+p=plan([['a.zig','const std=@import("std");\npub fn main() void {}']]);eq('zig',[p.lang,p.candidates.length,p.problems.length],['zig',1,0]);
+p=plan([['P.cs','using System;\nnamespace A{class P{static void Main(string[] a){}}}']]);eq('cs',[p.lang,p.candidates.map(c=>c.binary),p.problems.length],['csharp',['A.P'],0]);
+p=plan([['P.cs','using System;\nConsole.WriteLine("x");']]);eq('cs top',[p.top,p.problems.length],[true,0]);
+p=plan([['Main.kt','fun main(args: Array<String>) { println(1) }']]);eq('kt',[p.lang,p.candidates.map(c=>c.binary),p.problems.length],['kotlin',['MainKt'],0]);
+p=plan([['hello.pas',"program Hello;\nuses SysUtils;\nbegin writeln('hi'); end."]]);eq('pas',[p.lang,p.candidates.length,p.problems.length],['pascal',1,0]);
+p=plan([['m.f90','module m\ncontains\nend module\n'],['p.f90','program p\nuse m\nend program']]);eq('for',[p.lang,p.candidates.length,p.order],['fortran',1,['m.f90','p.f90']]);
+p=plan([['a.d','import std.stdio;\nvoid main(){writeln(1);}']]);eq('d',[p.lang,p.candidates.length,p.problems.length],['d',1,0]);
+p=plan([['a.c','int main(){}'],['b.rs','fn main(){}']]);eq('multi',p.problems.some(x=>x.code==='multi-lang'),true);
+p=plan([['my file.c','int main(){}']]);eq('badname',p.problems.some(x=>x.code==='bad-name'),true);
+
+// --- kenar durumlar: yorum/dize içindeki main, ham dize, iç içe ---
+p=plan([['a.c','/* int main(){} */\nconst char*s="int main(void){}"; // int main(){}\nstatic int main_helper(void){return 0;}\nint main(void){return main_helper();}']]);eq('c: yorum/dize/yardımcı',p.candidates.length,1);
+p=plan([['a.cpp','const char*r=R"x(int main(){})x";\nnamespace n{ int main(){return 1;} }\nint main(){return 0;}']]);eq('cpp: ham dize, ad alanı içi main sayılmaz',p.candidates.length,1);
+p=plan([['a.c','int main(void){return 0;}'],['b.c','int main(void){return 1;}']]);eq('c: iki main',p.problems.some(x=>x.code==='dup-main'),true);
+p=plan([['a.c','#include "sub/x.h"\nint main(void){}'],['x.h','']]);eq('c: alt klasör include',p.problems.some(x=>x.code==='include-path'),true);
+p=plan([['a.c','#include <curl/curl.h>\nint main(void){}']]);eq('c: dış başlık notu',p.scans[0].external,['curl/curl.h']);
+p=plan([['a.c','#include <windows.h>\n#include <winsock2.h>\nint WINAPI WinMain(HINSTANCE a,HINSTANCE b,LPSTR c,int d){return 0;}']]);eq('c: WinMain GUI + ws2_32',[p.gui,p.libs.win],[true,['ws2_32']]);
+p=plan([['m.rs','// fn main(){}\nfn main(){ let s = "fn main(){}"; }\nmod a { pub fn main(){} }']]);eq('rust: yorum/dize/iç mod',p.candidates.length,1);
+p=plan([['m.rs','use serde::Serialize;\nfn main(){}']]);eq('rust: dış crate uyarısı',p.problems.some(x=>x.code==='rust-ext'),true);
+p=plan([['main.rs','mod a;\nfn main(){}'],['a.rs','mod b;\npub fn f(){}']]);eq('rust: iç içe mod',p.problems.some(x=>x.code==='nested-mod'),true);
+p=plan([['main.go','package foo\nfunc main(){}']]);eq('go: package main değil',p.problems.some(x=>x.code==='go-pkg'),true);
+p=plan([['main.go','package main\nimport "C"\nfunc main(){}']]);eq('go: cgo',p.problems.some(x=>x.code==='go-cgo'),true);
+p=plan([['P.cs','class A{ static void Main(){} }\nclass B{ static void Main(string[] a){} }']]);eq('cs: iki Main',[p.candidates.length,p.needStartup],[2,true]);
+p=plan([['P.cs','using System;\nclass A{ void M(){ var s = $"{{x}} {1+1}"; Console.WriteLine("static void Main(){}"); } static void Main(){} }']]);eq('cs: ilişkili dize + Main',p.candidates.map(c=>c.binary),['A']);
+p=plan([['P.cs','using System.Windows.Forms;\nclass A{ static void Main(){ } }']]);eq('cs: WinForms',[p.winforms,p.gui],[true,true]);
+p=plan([['A.kt','package demo\nobject A { @JvmStatic fun main(args: Array<String>) {} }']]);eq('kt: object @JvmStatic main',p.candidates.map(c=>c.binary),['demo.A']);
+p=plan([['A.kt','package demo\nfun main() { println(1) }']]);eq('kt: parametresiz main → AKt',p.candidates.map(c=>c.binary),['demo.AKt']);
+p=plan([['a.pas',"program A;\nuses Forms;\nbegin end."]]);eq('pas: LCL uses notu',p.notes.length>0,true);
+p=plan([['u.pas','unit Foo;\ninterface\nimplementation\nend.'],['a.pas','program A;\nuses foo;\nbegin end.']]);eq('pas: ünite adı dosya adıyla uyuşmuyor',p.problems.some(x=>x.code==='unit-name'),true);
+p=plan([['a.f90','program a\nuse b\nend program'],['b.f90','module b\nuse a_m\nend module'],['c.f90','module a_m\nuse b\nend module']]);eq('fortran: modül döngüsü',p.problems.some(x=>x.code==='mod-cycle'),true);
+p=plan([['a.d','/+ nested /+ void main(){} +/ +/\nvoid main(string[] args){}']]);eq('d: iç içe yorum',p.candidates.length,1);
+p=plan([['readme.txt','x']]);eq('desteklenmeyen uzantı',p.problems.some(x=>x.code==='bad-ext'),true);
+p=plan([['a.h','']]);eq('yalnız başlık',p.problems.some(x=>x.code==='no-source'),true);
+console.log(fail?'FAILS '+fail:'tüm testler geçti');process.exit(fail?1:0)

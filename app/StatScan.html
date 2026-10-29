@@ -5094,7 +5094,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.': 'Inspects JAR, EXE/DLL, scripts and archives without running them; produces a score, evidence and a report. Includes optional Windows Sandbox analysis and a desktop tool bridge.',
       'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.': 'Updates a Minecraft Java resource pack’s pack.mcmeta format and vanilla texture names for the version you pick. Does not convert redrawn textures; the report lists them explicitly.',
       'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.': 'Updates the target Minecraft version in a mod/plugin manifest and reports the risk of breakage. Does not convert compiled code; does not guarantee it will work.',
-      'Java (.java) dosyalarını otomatik algılar, derler ve kendi çalışma zamanıyla çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder. JDK 17+ gerekir; yalnızca masaüstü uygulamasında çalışır.': 'Automatically detects Java (.java) files, compiles them and saves a runnable app with its own runtime to your Downloads folder. Requires JDK 17+; works only in the desktop app.',
+      'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.': 'Automatically detects Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran and D source files, compiles them with the compilers on your computer and saves the output to your Downloads folder. You install the compilers yourself; works only in the desktop app.',
       'Yeni araçlar için yer ayrıldı': 'Room for new tools', 'Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.': 'No other tools added yet. When added, they appear here and in the sidebar.',
       'Kapat': 'Close', 'Ayarlar penceresini kapat': 'Close settings', '↑↓ seç · Enter çalıştır · Esc kapat': '↑↓ select · Enter run · Esc close', 'Komut paleti': 'Command palette', 'Araç veya komut ara…': 'Search tools or commands…', 'Sonuçlar': 'Results',
       /* Home / palet */
@@ -5142,7 +5142,58 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'JDK bulundu': 'JDK found', 'Derleniyor (javac)': 'Compiling (javac)', 'JAR oluşturuluyor': 'Creating JAR', 'Gerekli modüller çözümleniyor (jdeps)': 'Resolving required modules (jdeps)', 'Uygulama paketleniyor (jpackage)': 'Packaging app (jpackage)', 'İndirilenler klasörüne kaydediliyor': 'Saving to Downloads folder',
       'Başka bir derleme sürüyor.': 'Another build is in progress.', 'Derleme hatası (javac). Ayrıntı için günlüğe bak.': 'Compile error (javac). See the log for details.', 'JAR oluşturulamadı.': 'Could not create the JAR.', 'Paketleme başarısız (jpackage). Ayrıntı için günlüğe bak.': 'Packaging failed (jpackage). See the log for details.', 'jpackage beklenen çıktıyı üretmedi.': 'jpackage did not produce the expected output.', 'Uygun JDK bulunamadı. JDK 17+ (javac, jar, jdeps, jpackage içeren tam JDK) kurun.': 'No suitable JDK found. Install JDK 17+ (a full JDK with javac, jar, jdeps and jpackage).', 'JDK 17 veya üstü gerekir (bulunan: {0})': 'JDK 17 or newer is required (found: {0})',
       'public tür "{0}" dosya adıyla ("{1}.java") aynı olmalı; javac bu dosyayı reddeder.': 'public type “{0}” must match the file name (“{1}.java”); javac rejects this file.', 'JavaFX algılandı: JDK içinde JavaFX yoktur; derleme başarısız olabilir ya da JavaFX SDK gerekir.': 'JavaFX detected: the JDK does not include JavaFX; the build may fail or a JavaFX SDK may be needed.', '{0}: {1} (klasik başlatıcı public static void main ister).': '{0}: {1} (the classic launcher requires public static void main).', 'main static değil': 'main is not static', 'main public değil': 'main is not public', 'Aynı sınıf iki dosyada: {0}': 'The same class is in two files: {0}',
-      'Hiçbir dosyada çalıştırılabilir "public static void main(String[] args)" bulunamadı.': 'No runnable “public static void main(String[] args)” was found in any file.', 'Parametresiz main() (Java 21+ önizleme özelliği) desteklenmez; "public static void main(String[] args)" kullanın.': 'A parameterless main() (a Java 21+ preview feature) is not supported; use “public static void main(String[] args)”.', 'Bu dosyada "public static void main(String[] args)" yok.': 'This file has no “public static void main(String[] args)”.'
+      'Hiçbir dosyada çalıştırılabilir "public static void main(String[] args)" bulunamadı.': 'No runnable “public static void main(String[] args)” was found in any file.', 'Parametresiz main() (Java 21+ önizleme özelliği) desteklenmez; "public static void main(String[] args)" kullanın.': 'A parameterless main() (a Java 21+ preview feature) is not supported; use “public static void main(String[] args)”.', 'Bu dosyada "public static void main(String[] args)" yok.': 'This file has no “public static void main(String[] args)”.',
+      'Kaynak dosyanı bırak (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran veya D); araç dili ve giriş noktasını otomatik bulur, bilgisayarındaki derleyiciyle derler ve sonucu İndirilenler klasörüne kaydeder.': 'Drop your source files (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran or D); the tool finds the language and entry point automatically, compiles with the compiler on your computer and saves the result to your Downloads folder.',
+      'Derleyiciler bilgisayarında kurulu olmalı (aşağıdaki “Derleyici durumu”na bak). Araç hiçbir şey indirmez veya kurmaz; bağımlılık (crate, modül, NuGet paketi) de indirmez.': 'The compilers must be installed on your computer (see “Compiler status” below). The tool never downloads or installs anything, including dependencies (crates, modules, NuGet packages).',
+      'Her derlemede tek dil olur. Çıktı bu bilgisayarın işletim sistemi içindir (Go ve Zig için hedef platform seçebilirsin).': 'Each build uses a single language. The output is for this computer’s operating system (for Go and Zig you can pick a target platform).',
+      'Java ve Kotlin çıktısı kendi çalışma zamanıyla gelen bir klasördür; C# çıktısı .NET çalışma zamanı ister. Diğerleri tek dosyadır.': 'Java and Kotlin output is a folder with its own runtime; C# output needs the .NET runtime. The others are single files.',
+      'Derlenen program çalıştırılmaz. Çıktının SHA-256 özeti gösterilir.': 'The compiled program is never run. The SHA-256 hash of the output is shown.',
+      'Derleyici durumu': 'Compiler status',
+      'Derleyicileri yeniden ara': 'Search for compilers again',
+      'Kaynak dosyası seç': 'Choose source file',
+      'Kaynak dosyalarını buraya bırak': 'Drop your source files here',
+      'Dil': 'Language',
+      'Önerilen standart': 'Suggested standard',
+      '(üst düzey ifadeler)': '(top-level statements)',
+      'Derle': 'Compile',
+      'Optimizasyon': 'Optimization',
+      'Dengeli (varsayılan)': 'Balanced (default)',
+      'Hata ayıklama': 'Debug',
+      'Hız': 'Speed',
+      'Boyut': 'Size',
+      'Dil standardı': 'Language standard',
+      'Kitaplıkları statik bağla (başka bilgisayarda ek DLL/runtime istemez)': 'Link libraries statically (needs no extra DLL/runtime on another computer)',
+      'Rust sürümü (edition)': 'Rust edition',
+      'Hedef platform': 'Target platform',
+      'Bu bilgisayar': 'This computer',
+      'C kitaplığına bağla (-lc)': 'Link the C library (-lc)',
+      'Pascal modu': 'Pascal mode',
+      'GNU (varsayılan)': 'GNU (default)',
+      'Eski (legacy)': 'Legacy',
+      'Örtük using’ler (ImplicitUsings)': 'Implicit usings (ImplicitUsings)',
+      'Başlangıç sınıfı (birden çok Main var)': 'Startup class (there are several Main methods)',
+      'Ana dosya (otomatik bulundu)': 'Main file (found automatically)',
+      '{0}/{1} hazır': '{0}/{1} ready',
+      'bulunamadı': 'not found',
+      'Derleyiciler aranıyor…': 'Searching for compilers…',
+      'Derleyiciler aranamadı: {0}': 'Could not search for compilers: {0}',
+      '{0}: desteklenmeyen dosya türü.': '{0}: unsupported file type.',
+      '(Bu diller ve hazır jar/class/exe dosyaları desteklenmiyor.)': '(These languages and ready-made jar/class/exe files are not supported.)',
+      'Java dosyaları başka dillerle birlikte derlenemez; tek dil seç.': 'Java files cannot be built together with other languages; pick one language.',
+      'Atlandı (desteklenmeyen tür): {0}': 'Skipped (unsupported type): {0}',
+      'Hazır. Ad ve türü kontrol edip "Derle"ye bas.': 'Ready. Check the name and type, then press “Compile”.',
+      'Derleme için sorunları düzelt (yukarıdaki listeye bak).': 'Fix the problems above before compiling (see the list).',
+      '{0} için derleyici bulunamadı.': 'No compiler found for {0}.',
+      'Kurulum önerisi: {0}': 'Suggested install: {0}',
+      'Kurduktan sonra “Derleyicileri yeniden ara”ya bas. Kovan hiçbir şey kurmaz.': 'After installing, press “Search for compilers again”. Kovan never installs anything.',
+      'Derleniyor… (ilk derleme biraz sürebilir)': 'Compiling… (the first build can take a while)',
+      'Derleyici: {0}': 'Compiler: {0}',
+      'Çalıştırmak için hedef bilgisayarda .NET çalışma zamanı gerekir; klasörün tamamını taşı.': 'Running it requires the .NET runtime on the target computer; move the whole folder.',
+      'Hedef platform: {0} (bu bilgisayarda çalışmayabilir).': 'Target platform: {0} (it may not run on this computer).',
+      'Çalıştırılabilir bir giriş noktası (main) bulunamadı.': 'No runnable entry point (main) was found.',
+      'Araç zinciri bulundu': 'Toolchain found',
+      'Derleniyor': 'Compiling',
+      'Derleyici bulunamadı': 'Compiler not found'
     };
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
     function lookup(k) { return Object.prototype.hasOwnProperty.call(EN, k) ? EN[k] : undefined; }
@@ -5242,63 +5293,111 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       summary: (r) => [KT('Hedef: {0}', r.dstLabel), KT('Yükleyici: {0}', r.loaders.join(', ')), KT('Değişen bildirim: {0}', r.changed.length)],
       sections: (r) => [['Yapılan değişiklikler', r.changed], ['Atlananlar', r.skipped, 'warn'], ['Uyarılar', r.warnings, 'warn'], ['Riskler', r.risks, 'warn']]
     });
-    /* ---- Derleyici (Java .java -> uygulama; yalnizca masaustu + kullanicinin kendi JDK'si) ---- */
+    /* ---- Derleyici (cok dilli: Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D; yalnizca masaustu + kullanicinin KENDI arac zinciri) ---- */
     (function compilerUI() {
-      const root = $('#app-compiler'); const H = window.statscanHost && window.statscanHost.compileStart ? window.statscanHost : null; const { javaPlan } = StatScan;
-      const NAME_OK = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/; const st = { files: [], plan: null, busy: false, jdk: null, id: null };
+      const root = $('#app-compiler'); const H = window.statscanHost && window.statscanHost.compileStart ? window.statscanHost : null; const { javaPlan, srcPlan, srcLangOf } = StatScan;
+      const NAME_OK = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/; const st = { files: [], plan: null, lang: null, busy: false, tools: null, id: null, ctl: {} };
+      const LORDER = ['java', 'c', 'cpp', 'rust', 'csharp', 'go', 'zig', 'kotlin', 'pascal', 'fortran', 'd']; const LNAME = { java: 'Java', c: 'C', cpp: 'C++', rust: 'Rust', csharp: 'C#', go: 'Go', zig: 'Zig', kotlin: 'Kotlin', pascal: 'Pascal', fortran: 'Fortran', d: 'D' };
+      const EXTS = '.java,.c,.h,.cpp,.cc,.cxx,.c++,.cp,.hpp,.hh,.hxx,.h++,.inl,.ipp,.tpp,.rs,.cs,.go,.zig,.kt,.pas,.pp,.lpr,.dpr,.inc,.f90,.f95,.f03,.f08,.f18,.f,.for,.f77,.ftn,.d';
+      const BLOCK = new Set(['multi-lang', 'bad-name', 'bad-ext', 'no-source', 'no-main', 'dup-file', 'dup-main', 'missing-include', 'missing-mod', 'missing-import', 'include-path', 'top-multi', 'top-and-main', 'main', 'go-pkg', 'go-cgo', 'go-embed', 'zig-path', 'zig-embed', 'nested-mod', 'unit-cycle', 'mod-cycle', 'unit-name']);
+      const HINT = { c: ['winget install MSYS2.MSYS2  →  pacman -S mingw-w64-ucrt-x86_64-gcc', 'xcode-select --install', 'sudo apt install build-essential'], cpp: ['winget install MSYS2.MSYS2  →  pacman -S mingw-w64-ucrt-x86_64-gcc', 'xcode-select --install', 'sudo apt install build-essential'], rust: ['winget install Rustlang.Rustup', 'brew install rust', 'sudo apt install rustc'], csharp: ['winget install Microsoft.DotNet.SDK.8', 'brew install --cask dotnet-sdk', 'sudo apt install dotnet-sdk-8.0'], go: ['winget install GoLang.Go', 'brew install go', 'sudo apt install golang'], zig: ['winget install zig.zig', 'brew install zig', 'sudo snap install zig --classic --beta'], kotlin: ['winget install JetBrains.Kotlin.Compiler (+ JDK 17+)', 'brew install kotlin (+ JDK 17+)', 'sudo snap install kotlin --classic (+ JDK 17+)'], pascal: ['freepascal.org → Free Pascal (fpc)', 'brew install fpc', 'sudo apt install fpc'], fortran: ['winget install MSYS2.MSYS2  →  pacman -S mingw-w64-ucrt-x86_64-gcc-fortran', 'brew install gcc', 'sudo apt install gfortran'], d: ['github.com/ldc-developers/ldc/releases → ldc2', 'brew install ldc', 'sudo apt install ldc'], java: ['Eclipse Temurin JDK 17+', 'brew install --cask temurin', 'sudo apt install openjdk-21-jdk'] };
       const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' }); const setLive = (x) => { live.textContent = x; };
-      const jdkLine = h('p', { class: 'cp-jdk', role: 'status' }); const jdkBtn = h('button', { type: 'button', class: 'cv-btn' }, 'JDK’yı yeniden ara');
-      const input = h('input', { type: 'file', accept: '.java,text/x-java-source', multiple: true, hidden: true, id: 'cp-file' });
-      const pick = h('button', { type: 'button', class: 'cv-btn' }, '.java dosyası seç');
-      const zone = h('div', { class: 'cv-drop', tabindex: '0', role: 'button', 'aria-label': '.java dosyası seç' }, h('div', {}, h('strong', {}, '.java dosyanı buraya bırak'), h('span', {}, 'Birden çok dosya olabilir · dosyalar yalnızca bu cihazda işlenir')), pick);
-      const info = h('div', { class: 'cv-info', hidden: true }); const probs = h('ul', { class: 'cp-probs', hidden: true });
+      const toolsBox = h('details', { class: 'cp-tools' }, h('summary', {}, 'Derleyici durumu')); const toolsList = h('ul', { class: 'cp-toollist' }); const toolsLine = h('p', { class: 'cp-jdk', role: 'status' }); const toolsBtn = h('button', { type: 'button', class: 'cv-btn' }, 'Derleyicileri yeniden ara'); toolsBox.append(toolsList);
+      const input = h('input', { type: 'file', accept: EXTS, multiple: true, hidden: true, id: 'cp-file' });
+      const pick = h('button', { type: 'button', class: 'cv-btn' }, 'Kaynak dosyası seç');
+      const zone = h('div', { class: 'cv-drop', tabindex: '0', role: 'button', 'aria-label': 'Kaynak dosyası seç' }, h('div', {}, h('strong', {}, 'Kaynak dosyalarını buraya bırak'), h('span', {}, 'Birden çok dosya olabilir · dosyalar yalnızca bu cihazda işlenir')), pick);
+      const info = h('div', { class: 'cv-info', hidden: true }); const probs = h('ul', { class: 'cp-probs', hidden: true }); const need = h('p', { class: 'cp-jdk warn', hidden: true });
       const mainSel = h('select', { id: 'cp-main' }); const nameIn = h('input', { type: 'text', id: 'cp-name', maxlength: '40', autocomplete: 'off', spellcheck: 'false' }); const modeSel = h('select', { id: 'cp-mode' }, h('option', { value: 'auto' }, 'Otomatik'), h('option', { value: 'yes' }, 'Konsol uygulaması'), h('option', { value: 'no' }, 'Pencere (GUI) uygulaması'));
-      const fld = (id, label, ctl) => h('label', { class: 'cv-f', for: id }, h('span', {}, label), ctl);
-      const go = h('button', { type: 'button', class: 'cv-btn cv-primary', id: 'cp-go', disabled: true }, 'Derle ve paketle'); const cancel = h('button', { type: 'button', class: 'cv-btn', id: 'cp-cancel', hidden: true }, 'İptal');
-      const opts = h('div', { class: 'cv-opts', id: 'cp-opts', hidden: true }, fld('cp-main', 'Ana sınıf (otomatik bulundu)', mainSel), fld('cp-name', 'Uygulama adı', nameIn), fld('cp-mode', 'Uygulama türü', modeSel), go, cancel);
+      const fld = (id, label, ctl) => h('label', { class: 'cv-f', for: id }, h('span', {}, label), ctl); const mainFld = fld('cp-main', 'Ana sınıf (otomatik bulundu)', mainSel); const mainLabel = mainFld.firstChild;
+      const extra = h('div', { class: 'cp-extra' }); const go = h('button', { type: 'button', class: 'cv-btn cv-primary', id: 'cp-go', disabled: true }, 'Derle'); const cancel = h('button', { type: 'button', class: 'cv-btn', id: 'cp-cancel', hidden: true }, 'İptal');
+      const opts = h('div', { class: 'cv-opts', id: 'cp-opts', hidden: true }, mainFld, fld('cp-name', 'Uygulama adı', nameIn), fld('cp-mode', 'Uygulama türü', modeSel), extra, go, cancel);
       const steps = h('ol', { class: 'cp-steps', hidden: true, 'aria-label': 'Derleme adımları' }); const logBox = h('details', { class: 'cv-sec warn', hidden: true }, h('summary', {}, 'Derleyici çıktısı'), h('pre', { class: 'cp-log' }));
       const ready = h('div', { class: 'cp-ready', id: 'cp-ready', role: 'status', hidden: true }); document.body.append(ready);
-      root.append(h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Derleyici'), h('p', { class: 'cv-lead' }, 'Java kaynak dosyanı (.java) bırak; araç ana sınıfı otomatik bulur, derler ve çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder.')),
-        h('div', { class: 'cv-note' }, h('b', {}, 'Önce bilmen gerekenler'), h('ul', {}, ['Bilgisayarında JDK 17 veya üstü (javac, jar, jdeps, jpackage içeren tam JDK) kurulu olmalı. Araç hiçbir şey indirmez veya kurmaz.', 'Çıktı, kendi Java çalışma zamanıyla gelen bir klasördür (Windows’ta Ad.exe + runtime). Tek dosyalık exe değildir; klasörün tamamını taşı.', 'Derlenen program çalıştırılmaz. Şimdilik yalnızca Java (.java) desteklenir.'].map((x) => h('li', {}, x)))),
-        jdkLine, h('div', { class: 'cp-jdkrow' }, jdkBtn), zone, input, info, probs, opts, live, steps, logBox);
-      const spec = (n) => /[çğıöşüÇĞİÖŞÜ]/.test(n);
-      async function jdkCheck() { if (!H) { jdkLine.textContent = 'Derleyici yalnızca masaüstü uygulamasında çalışır; tarayıcıda yalnızca dosya incelenebilir.'; jdkLine.className = 'cp-jdk warn'; jdkBtn.disabled = true; return; } jdkBtn.disabled = true; jdkLine.className = 'cp-jdk'; jdkLine.textContent = 'JDK aranıyor…'; try { const r = await H.compileJdk(); st.jdk = r; if (r && r.found) { jdkLine.className = 'cp-jdk ok'; jdkLine.textContent = KT('JDK hazır: {0} — {1}', r.best.version, r.best.home); } else { jdkLine.className = 'cp-jdk warn'; const bad = (r && r.all || []).find((x) => !x.ok); jdkLine.textContent = KT('Uygun JDK bulunamadı.') + ' ' + (bad ? KT(bad.why) + '. ' : '') + KT('JDK 17+ kurun (ör. Eclipse Temurin), kurulumdan sonra “JDK’yı yeniden ara”ya basın.'); } } catch (e) { jdkLine.className = 'cp-jdk warn'; jdkLine.textContent = KT('JDK aranamadı: {0}', e && e.message ? e.message : e); } jdkBtn.disabled = false; refresh(); }
-      function refresh() { const p = st.plan; const okPlan = !!(p && p.mainDefault && NAME_OK.test(nameIn.value)); go.disabled = st.busy || !H || !(st.jdk && st.jdk.found) || !okPlan; }
-      async function load(list) {
-        const fl = [...list]; if (!fl.length) return; const rej = fl.filter((f) => !/\.java$/i.test(f.name)); const good = fl.filter((f) => /\.java$/i.test(f.name));
-        ready.hidden = true; steps.hidden = true; logBox.hidden = true; st.files = []; st.plan = null; info.hidden = true; probs.hidden = true; opts.hidden = true; go.disabled = true;
-        if (!good.length) { setLive(KT('{0}: yalnızca .java dosyaları desteklenir.', rej.map((f) => f.name).join(', ')) + (rej.some((f) => /\.(py|c|cpp|cs|js|jar|class|exe)$/i.test(f.name)) ? ' ' + KT('(Diğer diller ve hazır jar/class dosyaları bu sürümde yok.)') : '')); return; }
-        if (good.length > 50) { setLive('En fazla 50 dosya.'); return; } let tot = 0; for (const f of good) { if (f.size > 2 * 1048576) { setLive(KT('Dosya çok büyük (en çok 2 MB): {0}', f.name)); return; } tot += f.size; } if (tot > 10 * 1048576) { setLive('Toplam boyut en çok 10 MB olabilir.'); return; }
-        try { const dec = new TextDecoder('utf-8'); for (const f of good) { const u8 = new Uint8Array(await f.arrayBuffer()); st.files.push({ name: f.name, bytes: u8, text: dec.decode(u8) }); } } catch (e) { setLive('Dosya okunamadı.'); return; }
-        const p = javaPlan(st.files.map((f) => ({ name: f.name, text: f.text }))); st.plan = p;
-        info.hidden = false; info.textContent = ''; const rows = [[KT('Dosyalar'), st.files.map((f) => f.name + ' (' + fmt(f.bytes.length) + ')').join(', ')], [KT('Paket'), [...new Set(p.scans.map((s) => s.package || KT('(varsayılan)')))].join(', ')], [KT('Tür'), p.gui ? KT('Pencere (GUI) uygulaması algılandı') : KT('Konsol uygulaması algılandı')]]; for (const [k, v] of rows) info.append(h('div', {}, h('span', {}, k), h('b', {}, v)));
-        mainSel.textContent = ''; for (const c of p.candidates) mainSel.append(h('option', { value: c.binary }, c.binary + '  (' + c.file + ')')); if (!p.candidates.length) mainSel.append(h('option', { value: '' }, KT('— bulunamadı —'))); if (p.mainDefault) mainSel.value = p.mainDefault; nameIn.value = p.suggestName; modeSel.value = 'auto';
-        probs.textContent = ''; const all = p.problems.map((x) => (x.file ? x.file + ': ' : '') + KT(x.msg)).concat(p.scans.flatMap((s) => s.notes.map((n) => s.file + ': ' + KT(n)))); if (rej.length) all.push(KT('Atlandı (.java değil): {0}', rej.map((f) => f.name).join(', '))); for (const x of all) probs.append(h('li', {}, x)); probs.hidden = !all.length;
-        opts.hidden = false; setLive(KT(p.mainDefault ? 'Hazır. Ad ve türü kontrol edip "Derle ve paketle"ye bas.' : 'Çalıştırılabilir bir ana sınıf bulunamadı.')); refresh();
+      root.append(h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Derleyici'), h('p', { class: 'cv-lead' }, 'Kaynak dosyanı bırak (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran veya D); araç dili ve giriş noktasını otomatik bulur, bilgisayarındaki derleyiciyle derler ve sonucu İndirilenler klasörüne kaydeder.')),
+        h('div', { class: 'cv-note' }, h('b', {}, 'Önce bilmen gerekenler'), h('ul', {}, ['Derleyiciler bilgisayarında kurulu olmalı (aşağıdaki “Derleyici durumu”na bak). Araç hiçbir şey indirmez veya kurmaz; bağımlılık (crate, modül, NuGet paketi) de indirmez.', 'Her derlemede tek dil olur. Çıktı bu bilgisayarın işletim sistemi içindir (Go ve Zig için hedef platform seçebilirsin).', 'Java ve Kotlin çıktısı kendi çalışma zamanıyla gelen bir klasördür; C# çıktısı .NET çalışma zamanı ister. Diğerleri tek dosyadır.', 'Derlenen program çalıştırılmaz. Çıktının SHA-256 özeti gösterilir.'].map((x) => h('li', {}, x)))),
+        toolsBox, toolsLine, h('div', { class: 'cp-jdkrow' }, toolsBtn), zone, input, info, need, probs, opts, live, steps, logBox);
+      const isWinHost = () => !!(st.tools && st.tools.windows); const osIdx = () => (st.tools && st.tools.platform === 'win32' ? 0 : st.tools && st.tools.platform === 'darwin' ? 1 : 2);
+      const toolOf = (l) => (st.tools && st.tools.byId[l]) || null;
+      function drawTools() {
+        toolsList.textContent = ''; let n = 0; for (const l of LORDER) { const t = toolOf(l); if (t && t.ok) n++; toolsList.append(h('li', { class: 'cp-tl ' + (t && t.ok ? 'ok' : 'no') }, h('b', {}, (t && t.ok ? '✓ ' : '✗ ') + LNAME[l]), h('span', {}, t && t.ok ? t.tool + ' ' + t.version : KT(t ? t.why : 'bulunamadı')))); }
+        toolsBox.firstChild.textContent = KT('Derleyici durumu') + ': ' + KT('{0}/{1} hazır', n, LORDER.length);
       }
+      async function toolsCheck() {
+        if (!H) { toolsLine.textContent = KT('Derleyici yalnızca masaüstü uygulamasında çalışır; tarayıcıda yalnızca dosya incelenebilir.'); toolsLine.className = 'cp-jdk warn'; toolsBtn.disabled = true; return; }
+        toolsBtn.disabled = true; toolsLine.className = 'cp-jdk'; toolsLine.textContent = KT('Derleyiciler aranıyor…');
+        try { let r; if (H.compileTools) r = await H.compileTools(); else { const j = await H.compileJdk(); r = { list: [{ id: 'java', ok: !!j.found, tool: 'javac', version: j.best ? j.best.version : '', why: 'JDK 17+ bulunamadı' }] }; } if (r && r.error) throw new Error(r.message); st.tools = { byId: Object.fromEntries(r.list.map((x) => [x.id, x])), windows: !!r.windows, platform: r.platform || '' }; toolsLine.textContent = ''; drawTools(); const j = toolOf('java'); toolsLine.className = 'cp-jdk'; }
+        catch (e) { toolsLine.className = 'cp-jdk warn'; toolsLine.textContent = KT('Derleyiciler aranamadı: {0}', e && e.message ? e.message : e); }
+        toolsBtn.disabled = false; if (st.plan) setupFor(); refresh();
+      }
+      const blocked = (p) => !!(p && p.problems.some((x) => BLOCK.has(x.code)));
+      function refresh() { const p = st.plan; const t = st.lang && toolOf(st.lang); const needsC = st.lang === 'cpp' && st.files.some((f) => /\.c$/i.test(f.name)); const cOk = !needsC || (toolOf('c') && toolOf('c').ok); const okPlan = !!(p && (p.mainDefault || (st.lang === 'csharp' && p.top)) && !blocked(p) && NAME_OK.test(nameIn.value)); go.disabled = st.busy || !H || !(t && t.ok) || !cOk || !okPlan; go.textContent = KT(st.lang === 'java' ? 'Derle ve paketle' : 'Derle'); }
+      const mkSel = (id, label, list, val) => { const s = h('select', { id }); for (const [v, t] of list) s.append(h('option', { value: v }, t)); if (val !== undefined) s.value = val; return [fld(id, label, s), s]; };
+      const mkChk = (id, label, val) => { const c = h('input', { type: 'checkbox', id }); c.checked = !!val; return [h('label', { class: 'cv-f cv-chk', for: id }, c, h('span', {}, label)), c]; };
+      const OPTL = [['default', 'Dengeli (varsayılan)'], ['debug', 'Hata ayıklama'], ['speed', 'Hız'], ['size', 'Boyut']];
+      const CSTD = ['c99', 'c11', 'c17', 'c23', 'gnu11', 'gnu17', 'gnu23'].map((x) => [x, x]); const CPPSTD = ['c++14', 'c++17', 'c++20', 'c++23', 'gnu++17', 'gnu++20', 'gnu++23'].map((x) => [x, x]);
+      const FSTD = [['gnu', 'GNU (varsayılan)'], ['legacy', 'Eski (legacy)'], ['f95', 'Fortran 95'], ['f2003', 'Fortran 2003'], ['f2008', 'Fortran 2008'], ['f2018', 'Fortran 2018']];
+      const GOT = [['host', 'Bu bilgisayar'], ['windows/amd64', 'Windows x64'], ['windows/arm64', 'Windows ARM64'], ['linux/amd64', 'Linux x64'], ['linux/arm64', 'Linux ARM64'], ['darwin/amd64', 'macOS Intel'], ['darwin/arm64', 'macOS Apple Silicon']];
+      const ZIGT = [['host', 'Bu bilgisayar'], ['x86_64-windows', 'Windows x64'], ['aarch64-windows', 'Windows ARM64'], ['x86_64-linux', 'Linux x64'], ['aarch64-linux', 'Linux ARM64'], ['x86_64-macos', 'macOS Intel'], ['aarch64-macos', 'macOS Apple Silicon']];
+      function setupFor() {
+        const L = st.lang, p = st.plan; extra.textContent = ''; st.ctl = {}; const c = st.ctl; const add = (k, pair) => { c[k] = pair[1]; extra.append(pair[0]); };
+        mainFld.hidden = false; mainLabel.textContent = KT(L === 'java' || L === 'kotlin' ? 'Ana sınıf (otomatik bulundu)' : L === 'csharp' ? 'Başlangıç sınıfı (birden çok Main var)' : 'Ana dosya (otomatik bulundu)');
+        if (L === 'c' || L === 'cpp' || L === 'fortran' || L === 'd' || L === 'go') mainFld.hidden = true; if (L === 'csharp' && (p.top || p.candidates.length < 2)) mainFld.hidden = true; if ((L === 'rust' || L === 'zig' || L === 'pascal') && p.candidates.length < 2) mainFld.hidden = true;
+        if (L === 'java' || L === 'kotlin') { modeSel.parentNode.hidden = false; return; } modeSel.parentNode.hidden = false;
+        add('opt', mkSel('cp-opt', 'Optimizasyon', OPTL.map(([v, t]) => [v, KT(t)]), 'default'));
+        if (L === 'c' || L === 'cpp') { add('std', mkSel('cp-std', 'Dil standardı', L === 'c' ? CSTD : CPPSTD, p.std)); add('static', mkChk('cp-static', KT('Kitaplıkları statik bağla (başka bilgisayarda ek DLL/runtime istemez)'), isWinHost())); }
+        if (L === 'rust') add('edition', mkSel('cp-ed', 'Rust sürümü (edition)', [['2021', '2021'], ['2018', '2018'], ['2024', '2024']], '2021'));
+        if (L === 'go') add('target', mkSel('cp-tg', 'Hedef platform', GOT.map(([v, t]) => [v, KT(t)]), 'host'));
+        if (L === 'zig') { add('target', mkSel('cp-tg', 'Hedef platform', ZIGT.map(([v, t]) => [v, KT(t)]), 'host')); add('libc', mkChk('cp-libc', KT('C kitaplığına bağla (-lc)'), p.scans.some((s) => s.libc))); }
+        if (L === 'pascal') add('mode', mkSel('cp-pm', 'Pascal modu', [['default', KT('Varsayılan')], ['fpc', 'FPC'], ['objfpc', 'ObjFPC'], ['delphi', 'Delphi']], 'default'));
+        if (L === 'fortran') { add('std', mkSel('cp-fs', 'Dil standardı', FSTD.map(([v, t]) => [v, KT(t)]), 'gnu')); add('static', mkChk('cp-static', KT('Kitaplıkları statik bağla (başka bilgisayarda ek DLL/runtime istemez)'), true)); }
+        if (L === 'csharp') add('implicitUsings', mkChk('cp-iu', KT('Örtük using’ler (ImplicitUsings)'), true));
+      }
+      async function load(list) {
+        const fl = [...list]; if (!fl.length) return; const good = fl.filter((f) => srcLangOf(f.name)); const rej = fl.filter((f) => !srcLangOf(f.name));
+        ready.hidden = true; steps.hidden = true; logBox.hidden = true; st.files = []; st.plan = null; st.lang = null; info.hidden = true; probs.hidden = true; need.hidden = true; opts.hidden = true; go.disabled = true;
+        if (!good.length) { setLive(KT('{0}: desteklenmeyen dosya türü.', rej.map((f) => f.name).join(', ')) + (rej.some((f) => /\.(py|js|ts|jar|class|exe|rb|php|swift|dart)$/i.test(f.name)) ? ' ' + KT('(Bu diller ve hazır jar/class/exe dosyaları desteklenmiyor.)') : '')); return; }
+        if (good.length > 50) { setLive(KT('En fazla 50 dosya.')); return; } let tot = 0; for (const f of good) { if (f.size > 2 * 1048576) { setLive(KT('Dosya çok büyük (en çok 2 MB): {0}', f.name)); return; } tot += f.size; } if (tot > 10 * 1048576) { setLive(KT('Toplam boyut en çok 10 MB olabilir.')); return; }
+        try { const dec = new TextDecoder('utf-8'); for (const f of good) { const u8 = new Uint8Array(await f.arrayBuffer()); st.files.push({ name: f.name, bytes: u8, text: dec.decode(u8) }); } } catch (e) { setLive(KT('Dosya okunamadı.')); return; }
+        const javaFiles = st.files.filter((f) => /\.java$/i.test(f.name)); let p;
+        if (javaFiles.length) { if (javaFiles.length !== st.files.length) { setLive(KT('Java dosyaları başka dillerle birlikte derlenemez; tek dil seç.')); st.files = []; return; } st.lang = 'java'; p = javaPlan(st.files.map((f) => ({ name: f.name, text: f.text }))); }
+        else { p = srcPlan(st.files.map((f) => ({ name: f.name, text: f.text }))); st.lang = p.lang; }
+        st.plan = p; info.hidden = false; info.textContent = '';
+        const langName = st.lang === 'java' ? 'Java' : p.langName || '—'; const rows = [[KT('Dil'), langName], [KT('Dosyalar'), st.files.map((f) => f.name + ' (' + fmt(f.bytes.length) + ')').join(', ')]]; if (st.lang === 'java') rows.push([KT('Paket'), [...new Set(p.scans.map((s) => s.package || KT('(varsayılan)')))].join(', ')]); else if (p.std && (st.lang === 'c' || st.lang === 'cpp')) rows.push([KT('Önerilen standart'), p.std]); rows.push([KT('Tür'), p.gui ? KT('Pencere (GUI) uygulaması algılandı') : KT('Konsol uygulaması algılandı')]); for (const [k, v] of rows) info.append(h('div', {}, h('span', {}, k), h('b', {}, v)));
+        mainSel.textContent = ''; for (const c of p.candidates) mainSel.append(h('option', { value: c.binary }, (c.binary || KT('(üst düzey ifadeler)')) + (c.file ? '  (' + c.file + ')' : ''))); if (!p.candidates.length) mainSel.append(h('option', { value: '' }, KT('— bulunamadı —'))); if (p.mainDefault !== null && p.mainDefault !== undefined) mainSel.value = p.mainDefault; nameIn.value = p.suggestName; modeSel.value = 'auto';
+        probs.textContent = ''; const all = p.problems.map((x) => (x.file ? x.file + ': ' : '') + KT(x.msg)).concat((p.scans || []).flatMap((s) => (s.notes || []).map((n) => s.file + ': ' + KT(n)))).concat(st.lang === 'java' ? [] : (p.notes || []).map((n) => KT(n))); if (rej.length) all.push(KT('Atlandı (desteklenmeyen tür): {0}', rej.map((f) => f.name).join(', '))); for (const x of all) probs.append(h('li', {}, x)); probs.hidden = !all.length;
+        opts.hidden = !p.langName && st.lang !== 'java'; setupFor(); showNeed();
+        setLive(KT(!p.candidates.length && !p.top ? 'Çalıştırılabilir bir giriş noktası (main) bulunamadı.' : !blocked(p) ? 'Hazır. Ad ve türü kontrol edip "Derle"ye bas.' : 'Derleme için sorunları düzelt (yukarıdaki listeye bak).')); refresh();
+      }
+      function showNeed() { const t = st.lang && toolOf(st.lang); need.hidden = true; if (!st.lang || !st.tools) return; if (t && t.ok) return; const hs = HINT[st.lang]; need.hidden = false; need.textContent = KT('{0} için derleyici bulunamadı.', LNAME[st.lang]) + ' ' + (t && t.why ? KT(t.why) + '. ' : '') + KT('Kurulum önerisi: {0}', hs ? hs[osIdx()] : '') + ' · ' + KT('Kurduktan sonra “Derleyicileri yeniden ara”ya bas. Kovan hiçbir şey kurmaz.'); }
       const ICON = { wait: '○', run: '…', ok: '✓', fail: '✗', skip: '–' };
-      function drawSteps(j) { steps.hidden = false; steps.textContent = ''; for (const s of j.steps) { const li = h('li', { class: 'cp-s ' + s.status }, h('span', { class: 'cp-i', 'aria-hidden': 'true' }, ICON[s.status] || '○'), h('span', {}, s.label), s.detail ? h('small', {}, s.detail) : null); steps.append(li); } }
+      function drawSteps(j) { steps.hidden = false; steps.textContent = ''; for (const s of j.steps) { const li = h('li', { class: 'cp-s ' + s.status }, h('span', { class: 'cp-i', 'aria-hidden': 'true' }, ICON[s.status] || '○'), h('span', {}, KT(s.label)), s.detail ? h('small', {}, s.detail) : null); steps.append(li); } }
+      function buildReq() {
+        const L = st.lang, p = st.plan, c = st.ctl; const files = st.files.map((f) => ({ name: f.name, bytes: f.bytes })); if (L === 'java') return { files, mainClass: mainSel.value, name: nameIn.value, console: modeSel.value };
+        const con = modeSel.value === 'auto' ? (p.gui ? 'no' : 'yes') : modeSel.value; const req = { lang: L, files, name: nameIn.value, console: con }; const o = {}; const V = (k) => (c[k] ? c[k].value : undefined); const B = (k) => (c[k] ? !!c[k].checked : undefined);
+        if (c.opt) o.opt = V('opt'); if (L === 'c' || L === 'cpp') { o.std = V('std'); o.static = B('static'); if (p.libs && p.libs.win.length) o.winlibs = p.libs.win.slice(); } if (L === 'rust') o.edition = V('edition'); if (L === 'go' || L === 'zig') o.target = V('target'); if (L === 'zig') o.libc = B('libc'); if (L === 'pascal') o.mode = V('mode'); if (L === 'fortran') { o.std = V('std'); o.static = B('static'); } if (L === 'csharp') { o.implicitUsings = B('implicitUsings'); if (p.winforms) o.winforms = true; }
+        if (L === 'rust' || L === 'zig' || L === 'pascal') req.main = mainSel.value; else if (L === 'kotlin') req.main = mainSel.value; else if (L === 'csharp') req.main = p.top || p.candidates.length < 2 ? '' : mainSel.value; if (L === 'fortran' || L === 'pascal') req.order = (p.order || []).slice(); req.options = o; return req;
+      }
       async function run() {
         if (go.disabled || st.busy) return; if (!NAME_OK.test(nameIn.value)) { setLive(KT('Uygulama adı geçersiz: harfle başlamalı; yalnızca harf, rakam, - ve _ (en çok 40).')); return; }
-        st.busy = true; go.disabled = true; cancel.hidden = false; ready.hidden = true; logBox.hidden = true; setLive(KT('Derleniyor… (ilk paketleme bir dakika sürebilir)'));
-        const req = { files: st.files.map((f) => ({ name: f.name, bytes: f.bytes })), mainClass: mainSel.value, name: nameIn.value, console: modeSel.value };
-        let r; try { r = await H.compileStart(req); } catch (e) { r = { error: 'x', message: String(e && e.message || e) }; }
-        if (r.error) { setLive(KT(r.message || 'Başlatılamadı.')); st.busy = false; cancel.hidden = true; if (r.needJdk) jdkCheck(); refresh(); return; }
+        st.busy = true; go.disabled = true; cancel.hidden = false; ready.hidden = true; logBox.hidden = true; setLive(KT('Derleniyor… (ilk derleme biraz sürebilir)'));
+        const req = buildReq(); let r; try { r = await H.compileStart(req); } catch (e) { r = { error: 'x', message: String(e && e.message || e) }; }
+        if (r.error) { setLive(KT(r.message || 'Başlatılamadı.')); st.busy = false; cancel.hidden = true; if (r.needJdk || r.needTool) toolsCheck(); refresh(); return; }
         st.id = r.id; let j; for (;;) { try { j = await H.compileJob(r.id); } catch (e) { j = { state: 'failed', steps: [], error: String(e && e.message || e), log: '' }; } if (j.steps) drawSteps(j); if (j.state !== 'running') break; await new Promise((x) => setTimeout(x, 400)); }
         st.busy = false; cancel.hidden = true; refresh();
-        if (j.state === 'done') { const R = j.result; setLive('Bitti.'); showReady(R); }
-        else { setLive(j.state === 'canceled' ? KT('İptal edildi.') : KT('Derleme başarısız: {0}', KT(j.error || ''))); const out = (j.result && (j.result.javacOutput || j.result.jpackageOutput)) || j.log; if (out) { logBox.hidden = false; logBox.open = true; logBox.querySelector('pre').textContent = out; } }
+        if (j.state === 'done') { setLive(KT('Bitti.')); showReady(j.result); }
+        else { setLive(j.state === 'canceled' ? KT('İptal edildi.') : KT('Derleme başarısız: {0}', KT(j.error || ''))); const out = (j.result && (j.result.compilerOutput || j.result.javacOutput || j.result.jpackageOutput)) || j.log; if (out) { logBox.hidden = false; logBox.open = true; logBox.querySelector('pre').textContent = out; } }
       }
       function showReady(R) {
-        ready.textContent = ''; const t = h('div', { class: 'cp-rt' }, h('b', {}, KT('✓ İndirilmeye hazır: {0}', R.launcherName)), h('span', {}, KT('İndirilenler klasörüne kaydedildi: {0}', R.outDir) + ' · ' + fmt(R.size) + ' · ' + KT(R.console ? 'konsol uygulaması' : 'pencere uygulaması') + (R.windows ? '' : ' ' + KT('(bu işletim sisteminde .exe değil)'))));
+        ready.textContent = ''; const kind = R.lang && R.lang !== 'kotlin' ? '' : ' · ' + KT(R.console ? 'konsol uygulaması' : 'pencere uygulaması');
+        const t = h('div', { class: 'cp-rt' }, h('b', {}, KT('✓ İndirilmeye hazır: {0}', R.launcherName)), h('span', {}, KT('İndirilenler klasörüne kaydedildi: {0}', R.outDir) + ' · ' + fmt(R.size) + kind + (R.windows ? '' : ' ' + KT('(bu işletim sisteminde .exe değil)'))), R.tool ? h('span', {}, KT('Derleyici: {0}', R.tool)) : null, R.sha256 ? h('span', { class: 'cp-hash' }, 'SHA-256: ' + R.sha256) : null, R.framework ? h('span', {}, KT('Çalıştırmak için hedef bilgisayarda .NET çalışma zamanı gerekir; klasörün tamamını taşı.')) : null, R.target && R.target !== 'host' ? h('span', {}, KT('Hedef platform: {0} (bu bilgisayarda çalışmayabilir).', R.target)) : null);
         const open = h('button', { type: 'button', class: 'cv-btn cv-primary' }, 'Klasörü göster'); open.addEventListener('click', () => H.compileOpen(st.id)); const x = h('button', { type: 'button', class: 'cv-btn', 'aria-label': 'Kapat' }, 'Kapat'); x.addEventListener('click', () => { ready.hidden = true; });
         ready.append(t, h('div', { class: 'cp-ra' }, open, x)); ready.hidden = false;
       }
       pick.addEventListener('click', (e) => { e.stopPropagation(); input.click(); }); zone.addEventListener('click', () => input.click()); zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
-      input.addEventListener('change', () => { load(input.files); input.value = ''; }); go.addEventListener('click', run); cancel.addEventListener('click', () => { if (st.id && H) H.compileCancel(st.id); }); jdkBtn.addEventListener('click', jdkCheck); nameIn.addEventListener('input', refresh);
+      input.addEventListener('change', () => { load(input.files); input.value = ''; }); go.addEventListener('click', run); cancel.addEventListener('click', () => { if (st.id && H) H.compileCancel(st.id); }); toolsBtn.addEventListener('click', toolsCheck); nameIn.addEventListener('input', refresh);
       for (const ev of ['dragenter', 'dragover']) zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('over'); }); for (const ev of ['dragleave', 'drop']) zone.addEventListener(ev, () => zone.classList.remove('over'));
       zone.addEventListener('drop', (e) => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (fs && fs.length) load(fs); });
-      new MutationObserver(() => { if (!root.hidden && st.jdk === null) jdkCheck(); }).observe(root, { attributes: true, attributeFilter: ['hidden'] }); if (!root.hidden) jdkCheck();
+      new MutationObserver(() => { if (!root.hidden && st.tools === null) toolsCheck(); }).observe(root, { attributes: true, attributeFilter: ['hidden'] }); if (!root.hidden) toolsCheck();
     })();
   })();
 
@@ -5320,7 +5419,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
       { id: 'texpack', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
-      { id: 'compiler', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java (.java) dosyalarını otomatik algılar, derler ve kendi çalışma zamanıyla çalıştırılabilir bir uygulama olarak İndirilenler klasörüne kaydeder. JDK 17+ gerekir; yalnızca masaüstü uygulamasında çalışır.', actions: [] }];
+      { id: 'compiler', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
     const mk = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
     const label = mk('div', { class: 'side-label', id: 'side-tools' }, 'Araçlar');
