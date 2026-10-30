@@ -1,6 +1,6 @@
 {
-  "version": "4.9.8",
-  "url": "StatScan-4.9.8.ssu",
-  "sha256": "dd98aacf52a5156cf315a5e533e455b0b8d0424ddb218f8b79bd108c4c3948ac",
-  "notes": "4.9.8 HOTFIX — Kovan beta 0.0.6: sahibin kurulum kimliği otomatik tanınır; Notlarım ve Yönetim anahtar/restart olmadan açılır"
+  "version": "4.9.9",
+  "url": "StatScan-4.9.9.ssu",
+  "sha256": "ef13d9063cce3dd8aeb3e39ae0bfcfb9b477345b2772be0550be7200c10fefc3",
+  "notes": "4.9.9 — Kovan beta 0.0.7: kategoriler (Güvenlik/Windows/Minecraft/Kodlama) + Görev Yöneticisi v0.0.1 (Basic/Extended) + Ağ İzleyici v0.0.1; kenar çubuğu küçük pencerede kaydırılabilir"
 }
