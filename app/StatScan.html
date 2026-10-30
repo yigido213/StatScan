@@ -525,6 +525,7 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 .side-brand .wm { font: 800 21px/1 var(--f-display); letter-spacing: .02em; }
 .side-brand .sub { display: block; font: 500 10.5px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
 .side-nav { display: grid; gap: 4px; align-content: start; flex: 1; }
+@media (min-width: 900px) { .side-nav { min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px; margin: -2px; scrollbar-width: thin; } }
 .side-label { font: 600 10.5px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 4px; }
 .nav-item { position: relative; display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border-radius: 12px; color: var(--muted); text-decoration: none; font: 600 14.5px var(--f-body); transition: background-color .2s, color .2s; }
 .nav-item svg { width: 20px; height: 20px; flex: none; }
@@ -571,7 +572,8 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
   .app { grid-template-columns: 1fr; }
   .side { position: fixed; inset: auto 0 0 0; height: auto; flex-direction: row; align-items: stretch; gap: 0; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); border-right: 0; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 94%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
   .side-brand, .side-label, .side-foot .ver { display: none; }
-  .side-nav { display: flex; gap: 6px; flex: 1; }
+  .side-nav { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; padding-top: 8px; margin-top: -8px; scrollbar-width: none; } .side-nav::-webkit-scrollbar { display: none; }
+  .side-nav .nav-item { flex: 1 0 66px; min-width: 66px; } .nav-item > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nav-item { flex: 1; flex-direction: column; justify-content: center; gap: 2px; min-height: 50px; padding: 4px 6px; font-size: 12px; }
   .nav-item[aria-current="page"]::before { left: 18%; right: 18%; top: -7px; bottom: auto; width: auto; height: 3px; border-radius: 0 0 4px 4px; }
   .side-foot { border: 0; padding: 0 0 0 6px; }
@@ -685,6 +687,42 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .cv-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .cv-sec { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; } .cv-sec.warn { border-color: color-mix(in srgb, var(--s1) 45%, var(--line)); }
 .cv-sec summary { cursor: pointer; font-weight: 600; } .cv-sec ul { margin: 8px 0 2px; padding-left: 18px; display: grid; gap: 3px; font: 12.5px/1.45 var(--f-mono); overflow-wrap: anywhere; }
+/* Home kategori basliklari */
+.toolgrid .toolcat { grid-column: 1 / -1; margin: 10px 0 -4px; font: 600 12px var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); } .toolgrid .toolcat:first-child { margin-top: 0; }
+/* Kovan sistem araclari: Gorev Yoneticisi + Ag Izleyici */
+.kv.kv-wide { max-width: 1320px; } .kv.kv-wide > *, .kv.kv-wide > div > * { min-width: 0; max-width: 100%; } .kv.kv-wide { grid-template-columns: minmax(0, 1fr); }
+.sm-top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; } .sm-top > div:first-child { flex: 1 1 420px; min-width: 0; }
+.sm-mode { display: flex; align-items: center; gap: 10px; } .sm-lbl { font: 500 11.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.sm-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.sm-seg button { font: 600 13.5px var(--f-body); padding: 9px 18px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.sm-seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); } .sm-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.sm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.sm-card { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 12px 14px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.sm-card.warn { border-color: color-mix(in srgb, var(--s3) 55%, var(--line)); }
+.sm-card span { font: 500 11.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; } .sm-card b { font: 700 22px var(--f-display); overflow-wrap: anywhere; } .sm-card small { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.sm-bar { height: 6px; border-radius: 99px; background: var(--surface2); overflow: hidden; } .sm-bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .4s var(--ease); } .sm-bar i.hot { background: var(--s2); } .sm-bar i.crit { background: var(--s3); }
+.sm-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.sm-tabs button { font: 600 13.5px var(--f-body); padding: 8px 14px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; }
+.sm-tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--line); background: var(--surface2); } .sm-tabs button:hover { color: var(--ink); } .sm-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sm-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; } .sm-tools a.cv-btn { text-decoration: none; display: inline-block; }
+.sm-tools input[type=search], .sm-tools select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 14px var(--f-body); min-width: 0; } .sm-tools input[type=search] { flex: 1 1 240px; }
+.sm-chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.sm-note { margin: 0; }
+.sm-wrap { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: auto; max-height: min(60vh, 640px); }
+.sm-t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.sm-t th { position: sticky; top: 0; z-index: 1; background: var(--surface2); text-align: left; font: 600 11.5px var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 0; white-space: nowrap; }
+.sm-t th button { all: unset; display: block; padding: 9px 10px; cursor: pointer; width: 100%; box-sizing: border-box; } .sm-t th button:hover { color: var(--ink); } .sm-t th button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sm-t th[aria-sort="ascending"] button::after { content: " ▲"; } .sm-t th[aria-sort="descending"] button::after { content: " ▼"; }
+.sm-t td { padding: 6px 10px; border-top: 1px solid var(--line); vertical-align: top; white-space: nowrap; } .sm-t td.w { white-space: normal; overflow-wrap: anywhere; min-width: 200px; max-width: 420px; } .sm-t td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sm-t tbody tr { cursor: pointer; } .sm-t tbody tr:hover td, .sm-t tbody tr.sel td { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); } .sm-t tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sm-name { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; } .sm-tg { all: unset; display: inline-block; width: 18px; text-align: center; cursor: pointer; color: var(--muted); } button.sm-tg:focus-visible { outline: 2px solid var(--accent); }
+.sm-pill { display: inline-block; padding: 1px 9px; border-radius: 99px; font: 600 11.5px var(--f-mono); border: 1px solid currentColor; white-space: nowrap; } .sm-pill.low { color: var(--s0); } .sm-pill.mid { color: var(--s2); } .sm-pill.high { color: var(--s3); }
+.sm-flags { display: flex; flex-wrap: wrap; gap: 4px; } .sm-flag { font: 600 11.5px var(--f-body); padding: 1px 8px; border-radius: 8px; border: 1px solid currentColor; } .sm-flag.s1 { color: var(--s1); } .sm-flag.s2 { color: var(--s3); }
+.sm-detail { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 16px; display: grid; gap: 12px; } .sm-detail[hidden] { display: none; } .sm-detail summary { list-style: none; } .sm-detail summary::marker { content: ''; }
+.sm-detail h2 { margin: 0; font-size: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.sm-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; } .sm-kv dt { color: var(--muted); font: 500 11.5px var(--f-mono); text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; } .sm-kv dd { margin: 0; overflow-wrap: anywhere; font: 13px var(--f-mono); }
+.sm-why { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+@media (max-width: 640px) { .sm-kv { grid-template-columns: 1fr; } .sm-kv dt { padding-top: 6px; } }
 /* ===== Kovan animasyonlari (claude-animasyon) =====
    Hepsi transform/opacity agirlikli. Sistem "hareketi azalt" ayari ya da Ayarlar > "Arayuz animasyonlari" kapaliyken (html[data-fx="off"]) hicbiri calismaz. */
 @media (prefers-reduced-motion: no-preference) {
@@ -818,7 +856,7 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
   <div class="kstage" id="content">
 <section class="home" id="app-home" aria-labelledby="home-title">
   <h1 id="home-title" data-focus tabindex="-1"><span class="sr">Welcome home, yigit717</span><span class="tw" id="tw" aria-hidden="true"><span class="ghost">Welcome home, yigit717</span><span><span class="typed">Welcome home, yigit717</span><span class="caret"></span></span></span></h1>
-  <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an dört araç var: StatScan, doku paketi dönüştürücü, mod sürüm ayarlayıcı ve derleyici (üçü beta).</p>
+  <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Araçlar kategorilere ayrıldı: Güvenlik (StatScan), Windows (Görev Yöneticisi, Ağ İzleyici), Minecraft (doku paketi dönüştürücü, mod sürüm ayarlayıcı) ve Kodlama (derleyici).</p>
   <div class="tools-row" id="tools-row"><button type="button" id="home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>Ara veya komut çalıştır <kbd>Ctrl K</kbd></button><span id="name-slot"><button type="button" id="name-edit">Adı değiştir</button></span></div>
   <h2>Araçlar</h2>
   <div class="toolgrid" id="toolgrid"></div>
@@ -828,6 +866,8 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 <section id="app-texpack" class="kv" aria-label="Doku paketi dönüştürücü" hidden></section>
 <section id="app-modconv" class="kv" aria-label="Mod sürüm ayarlayıcı" hidden></section>
 <section id="app-compiler" class="kv" aria-label="Derleyici" hidden></section>
+<section id="app-taskmgr" class="kv kv-wide" aria-label="Görev Yöneticisi" hidden></section>
+<section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
 <section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
 <section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
@@ -5110,9 +5150,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
      KAPSAM DISI: StatScan'in analiz ekranlari ve olusturulan raporlar (.md) / motorun uyari ayrintilari — Turkce kalir. */
   const KL = (function () {
     const EN = {
-      'çalışma alanı': 'workspace', 'Ara…': 'Search…', 'Araçlar': 'Tools', 'Derleyici': 'Compiler', 'Doku paketi dönüştürücü': 'Texture pack converter', 'Mod sürüm ayarlayıcı': 'Mod version adjuster', 'Ayarlar': 'Settings', 'Tema': 'Theme',
+      'çalışma alanı': 'workspace', 'Ara…': 'Search…', 'Araçlar': 'Tools', 'Güvenlik': 'Security', 'Kodlama': 'Coding', 'Görev Yöneticisi': 'Task Manager', 'Ağ İzleyici': 'Network Monitor', 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.': 'Basic: plain, like the Windows Task Manager. Extended: shows everything that is running in detail (process tree, signature, SHA-256, command line, DLLs, connections, services, drivers, startup, scheduled tasks) and gives a suspicion score. Works only in the desktop app.', 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.': 'Which process connects where? Ties every connection to its process and signature; flags suspicious ports, unsigned or temp-folder processes reaching the internet, and regularly timed (beacon-like) traffic. Works only in the desktop app.', 'Görev Yöneticisi: Extended modu': 'Task Manager: Extended mode', 'Bu araç sistem bilgisini okumak için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.': 'This tool needs the desktop app to read system information; it does not work in a browser page.', 'Derleyici': 'Compiler', 'Doku paketi dönüştürücü': 'Texture pack converter', 'Mod sürüm ayarlayıcı': 'Mod version adjuster', 'Ayarlar': 'Settings', 'Tema': 'Theme',
       'Ana gezinme': 'Main navigation', 'Kovan — Home': 'Kovan — Home', 'Ara veya komut çalıştır (Ctrl K)': 'Search or run a command (Ctrl K)', 'Bölümler': 'Sections', 'Ayarlar (Ctrl+,)': 'Settings (Ctrl+,)', 'Açık/koyu tema': 'Light/dark theme', 'Açık/koyu temayı değiştir': 'Switch light/dark theme', 'Kenar çubuğunu daralt': 'Collapse sidebar', 'Kenar çubuğunu genişlet': 'Expand sidebar', 'İçeriğe geç': 'Skip to content',
-      'Kovan, araçlarını tek yerde toplayan çalışma alanın. Şu an dört araç var: StatScan, doku paketi dönüştürücü, mod sürüm ayarlayıcı ve derleyici (üçü beta).': 'Kovan is your workspace that gathers your tools in one place. There are four tools right now: StatScan, the texture pack converter, the mod version adjuster and the compiler (three are beta).',
+      'Kovan, araçlarını tek yerde toplayan çalışma alanın. Araçlar kategorilere ayrıldı: Güvenlik (StatScan), Windows (Görev Yöneticisi, Ağ İzleyici), Minecraft (doku paketi dönüştürücü, mod sürüm ayarlayıcı) ve Kodlama (derleyici).': 'Kovan is your workspace that gathers your tools in one place. Tools are grouped into categories: Security (StatScan), Windows (Task Manager, Network Monitor), Minecraft (texture pack converter, mod version adjuster) and Coding (compiler).',
       'Ara veya komut çalıştır': 'Search or run a command', 'Adı değiştir': 'Change name', 'Hazır': 'Ready', 'Beta': 'Beta', 'Aç →': 'Open →', 'Çalışma alanı': 'Workspace', 'Sürüm': 'Version', 'Çalışma biçimi': 'Mode', 'Tarayıcı sayfası': 'Browser page', 'Masaüstü uygulaması': 'Desktop app', 'Gizlilik': 'Privacy',
       'Statik tarama yerelde yapılır; dosyalar gönderilmez': 'Static scanning runs locally; files are never uploaded',
       'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.': 'Inspects JAR, EXE/DLL, scripts and archives without running them; produces a score, evidence and a report. Includes optional Windows Sandbox analysis and a desktop tool bridge.',
@@ -5542,6 +5582,168 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let built = false; A.onChange((s) => { if (s.owner && !built) { built = true; buildNotes(); buildAdmin(); } }); return A;
   })();
 
+  /* ---------- Kovan araclari: Gorev Yoneticisi (v0.0.1) + Ag Izleyici (v0.0.1) ----------
+     Salt okunur; tek yazma islemi onayli surec sonlandirma. Veri masaustu koprusunden (SYSMOD, host.js) gelir; tarayici modunda calismaz. */
+  (function kovanSys() {
+    const H = window.statscanHost && window.statscanHost.sysProcs ? window.statscanHost : null;
+    const LSg = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }; const LSs = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* depolama yok */ } };
+    const B = (n) => { n = +n || 0; const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i ? n.toFixed(n >= 100 ? 0 : 1) : n.toFixed(0)) + ' ' + u[i]; };
+    const pc = (n) => (n < 10 ? n.toFixed(1) : n.toFixed(0)) + ' %';
+    const dt = (t) => (t ? new Date(t).toLocaleString('tr-TR') : '—'); const tt = (t) => (t ? new Date(t).toLocaleTimeString('tr-TR') : '—');
+    const up = (s) => { const d = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60); return (d ? d + ' g ' : '') + hh + ' sa ' + m + ' dk'; };
+    const SIG = { Valid: 'İmzalı', NotSigned: 'İmzasız', HashMismatch: 'İmza bozuk', NotTrusted: 'Güvenilmez', Unknown: 'Bilinmiyor' };
+    const LV = { low: 'Düşük', mid: 'Orta', high: 'Yüksek' };
+    const dl = (name, text, type) => { const a = h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name }); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
+    const csv = (rows, cols) => '﻿' + [cols.map((c) => c.t).join(';'), ...rows.map((r) => cols.map((c) => '"' + String(c.x ? c.x(r) : c.v(r)).replace(/"/g, '""') + '"').join(';'))].join('\r\n');
+    const visible = (root) => !root.hidden && !document.hidden;
+    function noHost(root, title) { root.append(h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, title), h('p', { class: 'cv-lead' }, 'Bu araç sistem bilgisini okumak için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.'))); }
+    /* siralanabilir tablo: cols [{k,t,n,v(row)->deger, f(row)->Node}] */
+    function mkTable(cols, st, onRow, onSort) {
+      const wrap = h('div', { class: 'sm-wrap' }); const tb = h('tbody'); const head = h('tr');
+      for (const c of cols) { const b = h('button', { type: 'button', 'aria-label': c.t + ' sütununa göre sırala', onclick: () => { if (st.key === c.k) st.dir *= -1; else { st.key = c.k; st.dir = c.n ? -1 : 1; } onSort && onSort(); } }, c.t); head.append(h('th', { scope: 'col', 'data-k': c.k }, b)); }
+      const tbl = h('table', { class: 'sm-t' }, h('thead', {}, head), tb); wrap.append(tbl);
+      function render(rows, selKey, tree) {
+        const top = wrap.scrollTop; tb.replaceChildren(); const c = cols.find((x) => x.k === st.key) || cols[0];
+        if (!tree) rows = rows.slice().sort((a, b) => { const x = c.v(a), y = c.v(b); return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'tr')) * st.dir; });
+        for (const [i, r] of rows.slice(0, 1500).entries()) { const tr = h('tr', { tabindex: '0', 'aria-selected': selKey != null && r._key === selKey ? 'true' : 'false', class: r._key === selKey ? 'sel' : '' }); for (const k of cols) tr.append(h('td', { class: (k.n ? 'n' : '') + (k.w ? ' w' : '') }, k.f ? k.f(r) : String(k.v(r)))); if (onRow) { tr.addEventListener('click', () => onRow(r)); tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRow(r); } }); } tb.append(tr); }
+        if (rows.length > 1500) tb.append(h('tr', {}, h('td', { colspan: String(cols.length) }, (rows.length - 1500) + ' satır daha var; aramayla daralt.')));
+        for (const th of head.children) th.setAttribute('aria-sort', th.dataset.k === st.key ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'); wrap.scrollTop = top;
+      }
+      return { wrap, render };
+    }
+    const pill = (lv, txt) => h('span', { class: 'sm-pill ' + lv }, txt);
+    const seg = (items, cur, fn, label) => { const el = h('div', { class: 'sm-seg', role: 'group', 'aria-label': label }); const set = (v) => { for (const b of el.children) b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'); }; for (const [v, t] of items) el.append(h('button', { type: 'button', 'data-v': v, onclick: () => { set(v); fn(v); } }, t)); set(cur); el.set = set; return el; };
+    const tabs = (items, cur, fn) => { const el = h('div', { class: 'sm-tabs', role: 'tablist' }); const set = (v) => { for (const b of el.children) { const on = b.dataset.v === v; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } }; el.render = (list, v) => { el.replaceChildren(); for (const [k, t] of list) el.append(h('button', { type: 'button', role: 'tab', 'data-v': k, onclick: () => { set(k); fn(k); } }, t)); set(v); }; el.render(items, cur); el.set = set; return el; };
+    const kill = async (pid, after) => { const r = await H.sysKill(pid); if (r && r.ok) { toast('Süreç sonlandırıldı'); after && after(); } else if (r && r.error !== 'declined') toast(r.message || 'Sonlandırılamadı'); };
+
+    /* ================= Gorev Yoneticisi ================= */
+    (function taskmgr() {
+      const root = $('#app-taskmgr'); if (!H) { noHost(root, 'Görev Yöneticisi'); return; }
+      const st = { mode: LSg('kovan.tm.mode') === 'ext' ? 'ext' : 'basic', tab: 'procs', procs: [], stats: null, sort: { key: 'cpu', dir: -1 }, q: '', sel: null, collapsed: new Set(), lists: {}, listAt: {}, sigAt: 0, busy: false, detail: null, plat: '', self: 0 };
+      const BASIC = [['procs', 'Süreçler'], ['startup', 'Başlangıç'], ['services', 'Hizmetler']]; const EXT = [['tree', 'Süreç ağacı'], ['procs', 'Tüm süreçler'], ['services', 'Hizmetler'], ['drivers', 'Sürücüler'], ['startup', 'Başlangıç girdileri'], ['tasks', 'Zamanlanmış görevler']];
+      const modeSeg = seg([['basic', 'Basic'], ['ext', 'Extended']], st.mode, (v) => { st.mode = v; LSs('kovan.tm.mode', v); st.tab = v === 'ext' ? 'tree' : 'procs'; st.sel = null; st.detail = null; setup(); refresh(); }, 'Görünüm modu');
+      const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' });
+      const cards = h('div', { class: 'sm-cards', 'aria-label': 'Performans' }); const mkCard = (id, t) => { const bar = h('div', { class: 'sm-bar' }, h('i')); const c = h('div', { class: 'sm-card', id }, h('span', {}, t), h('b', {}, '—'), bar, h('small', {})); return c; }; const cCpu = mkCard('sm-cpu', 'İşlemci'), cMem = mkCard('sm-mem', 'Bellek'), cDsk = mkCard('sm-dsk', 'Disk'), cUp = mkCard('sm-up', 'Sistem'); cards.append(cCpu, cMem, cDsk, cUp);
+      const setCard = (c, big, sub, p) => { c.querySelector('b').textContent = big; c.querySelector('small').textContent = sub; const i = c.querySelector('i'); i.style.width = Math.max(0, Math.min(100, p || 0)) + '%'; i.className = p >= 90 ? 'crit' : p >= 70 ? 'hot' : ''; };
+      const tabBar = tabs(BASIC, st.tab, (v) => { st.tab = v; st.sel = null; st.detail = null; refresh(); });
+      const search = h('input', { type: 'search', id: 'tm-q', placeholder: 'Süreç adı veya PID ara (Extended: yol ve komut satırı da)', 'aria-label': 'Ara', autocomplete: 'off', spellcheck: 'false', oninput: (e) => { st.q = e.target.value.trim().toLowerCase(); draw(); } });
+      const endBtn = h('button', { type: 'button', class: 'cv-btn', id: 'tm-end', disabled: true, onclick: () => st.sel != null && kill(st.sel, () => { st.sel = null; st.detail = null; refresh(); }) }, 'Görevi sonlandır');
+      const reloadBtn = h('button', { type: 'button', class: 'cv-btn', id: 'tm-reload', onclick: () => { st.lists = {}; st.listAt = {}; st.sigAt = 0; refresh(); } }, 'Yenile'); const expBtn = h('button', { type: 'button', class: 'cv-btn', id: 'tm-exp', onclick: exportCsv }, 'CSV olarak dışa aktar');
+      const netLink = h('a', { class: 'cv-btn', href: '#/netmon', id: 'tm-net' }, 'Ağ İzleyici’yi aç');
+      const note = h('p', { class: 'cv-note sm-note', id: 'tm-note' }); const stage = h('div', { id: 'tm-stage' }); const detail = h('div', { class: 'sm-detail', id: 'tm-detail', hidden: true, 'aria-live': 'polite' });
+      root.append(h('div', { class: 'sm-top' }, h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Görev Yöneticisi'), h('p', { class: 'cv-lead' }, 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: arkada çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç girdileri, zamanlanmış görevler) ve her sürece sezgisel bir şüphe puanı verir.')), modeSel()), cards, note, h('div', { class: 'sm-tools' }, search, endBtn, reloadBtn, expBtn, netLink), tabBar, live, stage, detail);
+      function modeSel() { return h('div', { class: 'sm-mode' }, h('span', { class: 'sm-lbl' }, 'Mod'), modeSeg); }
+      const lvOf = (p) => p.level || 'low';
+      const nameCell = (p) => h('span', { class: 'sm-name' }, p.name || '(adsız)');
+      const cols = {
+        basic: [{ k: 'name', t: 'Ad', v: (p) => p.name.toLowerCase(), f: (p) => nameCell(p) }, { k: 'pid', t: 'PID', n: 1, v: (p) => p.pid }, { k: 'cpu', t: 'İşlemci', n: 1, v: (p) => p.cpu || 0, f: (p) => pc(p.cpu || 0) }, { k: 'mem', t: 'Bellek', n: 1, v: (p) => p.mem, f: (p) => B(p.mem) }, { k: 'io', t: 'Disk G/Ç', n: 1, v: (p) => p.ioRate || 0, f: (p) => B(p.ioRate || 0) + '/sn' }],
+        ext: [{ k: 'score', t: 'Şüphe', n: 1, v: (p) => p.score || 0, f: (p) => pill(lvOf(p), (p.score || 0) + ' · ' + LV[lvOf(p)]) }, { k: 'name', t: 'Ad', v: (p) => p.name.toLowerCase(), f: (p) => nameCell(p) }, { k: 'pid', t: 'PID', n: 1, v: (p) => p.pid }, { k: 'ppid', t: 'Üst', n: 1, v: (p) => p.ppid }, { k: 'cpu', t: 'İşlemci', n: 1, v: (p) => p.cpu || 0, f: (p) => pc(p.cpu || 0) }, { k: 'mem', t: 'Bellek', n: 1, v: (p) => p.mem, f: (p) => B(p.mem) }, { k: 'thr', t: 'İş par.', n: 1, v: (p) => p.threads }, { k: 'hnd', t: 'Handle', n: 1, v: (p) => p.handles }, { k: 'conn', t: 'Bağl.', n: 1, v: (p) => p.nconn || 0 }, { k: 'sig', t: 'İmza', v: (p) => p.sig || '~', f: (p) => (p.sig ? SIG[p.sig] || p.sig : p.path ? '…' : '—') }, { k: 'path', t: 'Yol', w: 1, v: (p) => p.path || '', f: (p) => p.path || '—' }, { k: 'cmd', t: 'Komut satırı', w: 1, v: (p) => p.cmd || '', f: (p) => (p.cmd || '').slice(0, 160) }]
+      };
+      const tblProcs = mkTable([], st.sort, null); /* yer tutucu; setup() gercek tabloyu kurar */
+      let T = null, listT = null;
+      function setup() {
+        tabBar.render(st.mode === 'ext' ? EXT : BASIC, st.tab); stage.replaceChildren(); detail.hidden = true; T = null; listT = null; expBtn.hidden = st.mode !== 'ext'; netLink.hidden = st.mode !== 'ext';
+        note.textContent = st.mode === 'ext' ? 'Şüphe puanı sezgiseldir (0–100); yüksek puan “kötü amaçlı” demek değildir, bakılması gereken sinyaldir. İmza bilgisi arka planda toplanır. Yönetici olarak açarsan korumalı süreçlerin yolları da okunur.' : 'Sade görünüm. Her şeyi ayrıntısıyla görmek için Extended’e geç.'; note.hidden = false;
+      }
+      const filt = (rows) => (st.q ? rows.filter((p) => (p.name + ' ' + p.pid + (st.mode === 'ext' ? ' ' + (p.path || '') + ' ' + (p.cmd || '') : '')).toLowerCase().includes(st.q)) : rows);
+      function treeRows() {
+        const by = new Map(); for (const p of st.procs) { if (!by.has(p.ppid)) by.set(p.ppid, []); by.get(p.ppid).push(p); } const ids = new Set(st.procs.map((p) => p.pid)); const out = [];
+        const roots = st.procs.filter((p) => !ids.has(p.ppid) || p.ppid === p.pid).sort((a, b) => a.pid - b.pid);
+        const walk = (p, d, seen) => { if (seen.has(p.pid)) return; seen.add(p.pid); const kids = (by.get(p.pid) || []).filter((k) => k.pid !== p.pid).sort((a, b) => a.pid - b.pid); out.push(Object.assign(p, { _depth: d, _kids: kids.length })); if (!st.collapsed.has(p.pid)) for (const k of kids) walk(k, d + 1, seen); };
+        const seen = new Set(); for (const r of roots) walk(r, 0, seen); return out;
+      }
+      const SL = {
+        services: [{ k: 'Name', t: 'Hizmet' }, { k: 'DisplayName', t: 'Görünen ad' }, { k: 'State', t: 'Durum' }, { k: 'StartMode', t: 'Başlatma' }, { k: 'StartName', t: 'Hesap' }, { k: 'ProcessId', t: 'PID', n: 1 }, { k: 'PathName', t: 'Yol / komut' }],
+        drivers: [{ k: 'Name', t: 'Sürücü' }, { k: 'DisplayName', t: 'Görünen ad' }, { k: 'State', t: 'Durum' }, { k: 'StartMode', t: 'Başlatma' }, { k: 'ServiceType', t: 'Tür' }, { k: 'PathName', t: 'Yol' }],
+        startup: [{ k: 'Name', t: 'Ad' }, { k: 'Command', t: 'Komut' }, { k: 'Location', t: 'Konum' }],
+        tasks: [{ k: 'Name', t: 'Görev' }, { k: 'Path', t: 'Klasör' }, { k: 'State', t: 'Durum' }, { k: 'Author', t: 'Kullanıcı' }, { k: 'Command', t: 'Çalıştırdığı' }]
+      };
+      async function drawList(kind) {
+        const now = Date.now(); if (!st.lists[kind] || now - (st.listAt[kind] || 0) > 30000) { live.textContent = 'Liste okunuyor…'; const r = await H.sysList(kind); st.lists[kind] = r; st.listAt[kind] = Date.now(); live.textContent = ''; if (st.tab !== kind) return; }
+        const r = st.lists[kind]; if (r.error) { stage.replaceChildren(h('p', { class: 'cv-note' }, r.message || 'Liste okunamadı.')); return; }
+        const spec = SL[kind]; if (!listT || listT.kind !== kind) { const ls = { key: spec[0].k, dir: 1 }; listT = Object.assign(mkTable(spec.map((c) => ({ k: c.k, t: c.t, n: c.n, w: /^(PathName|Command|DisplayName|Path|Location)$/.test(c.k) ? 1 : 0, v: (r2) => (c.n ? +r2[c.k] || 0 : String(r2[c.k] == null ? '' : r2[c.k]).toLowerCase()), f: (r2) => String(r2[c.k] == null ? '' : r2[c.k]) })), ls, null, () => drawList(kind)), { kind, ls }); stage.replaceChildren(listT.wrap); }
+        const rows = (r.items || []).map((x, i) => Object.assign({ _key: i }, x)).filter((x) => !st.q || Object.values(x).join(' ').toLowerCase().includes(st.q));
+        listT.render(rows, null); live.textContent = (r.note ? r.note + ' · ' : '') + rows.length + ' kayıt';
+      }
+      function draw() {
+        if (st.tab === 'services' || st.tab === 'drivers' || st.tab === 'startup' || st.tab === 'tasks') { drawList(st.tab); return; }
+        const tree = st.mode === 'ext' && st.tab === 'tree'; const spec = cols[st.mode];
+        if (!T || T.mode !== st.mode) { T = Object.assign(mkTable(tree ? spec.map((c) => (c.k === 'name' ? Object.assign({}, c, { f: (p) => h('span', { class: 'sm-name', style: 'padding-left:' + (p._depth || 0) * 16 + 'px' }, p._kids ? h('button', { type: 'button', class: 'sm-tg', 'aria-label': (st.collapsed.has(p.pid) ? 'Genişlet ' : 'Daralt ') + p.name, 'aria-expanded': st.collapsed.has(p.pid) ? 'false' : 'true', onclick: (e) => { e.stopPropagation(); if (st.collapsed.has(p.pid)) st.collapsed.delete(p.pid); else st.collapsed.add(p.pid); draw(); } }, st.collapsed.has(p.pid) ? '▸' : '▾') : h('span', { class: 'sm-tg' }), p.name) }) : c)) : spec, st.sort, pick, draw), { mode: st.mode, tree }); stage.replaceChildren(T.wrap); }
+        if (T.tree !== tree) { T = null; draw(); return; }
+        let rows = st.procs.map((p) => Object.assign(p, { _key: p.pid })); rows = tree ? (st.q ? filt(rows) : treeRows().map((p) => Object.assign(p, { _key: p.pid }))) : filt(rows);
+        T.render(rows, st.sel, tree && !st.q); const n = st.procs.length; live.textContent = n + ' süreç' + (st.mode === 'ext' ? ' · ' + st.procs.filter((p) => p.level === 'high').length + ' yüksek, ' + st.procs.filter((p) => p.level === 'mid').length + ' orta şüphe' : '');
+      }
+      async function pick(p) { st.sel = p.pid; endBtn.disabled = p.pid === st.self; draw(); if (st.mode === 'ext') { detail.hidden = false; detail.replaceChildren(h('p', {}, 'Ayrıntılar okunuyor…')); const d = await H.sysDetail(p.pid); if (st.sel !== p.pid) return; st.detail = d; drawDetail(d); } }
+      function kvs(pairs) { const dl_ = h('dl', { class: 'sm-kv' }); for (const [k, v] of pairs) { if (v == null || v === '') continue; dl_.append(h('dt', {}, k), h('dd', {}, v)); } return dl_; }
+      function drawDetail(d) {
+        if (d.error) { detail.replaceChildren(h('p', {}, d.message || 'Ayrıntı okunamadı.')); return; }
+        const sig = d.sig ? (SIG[d.sig.status] || d.sig.status) + (d.sig.signer ? ' — ' + d.sig.signer : '') : '';
+        const mod = h('details', { class: 'cv-sec' }, h('summary', {}, 'Yüklü modüller / DLL’ler (' + d.modules.length + ')'), h('ul', {}, d.modules.map((m) => h('li', {}, m.name + (m.company ? ' · ' + m.company : '') + ' — ' + m.path))));
+        const con = h('details', { class: 'cv-sec', open: d.conns.length && d.conns.length < 12 ? '' : null }, h('summary', {}, 'Ağ bağlantıları (' + d.conns.length + ')'), h('ul', {}, d.conns.map((c) => h('li', {}, c.proto + ' ' + c.local + ':' + c.lport + (c.remote ? ' → ' + c.remote + ':' + c.rport : '') + ' · ' + c.state))));
+        const why = h('ul', { class: 'sm-why' }, (d.why.length ? d.why : [{ pts: 0, text: 'Belirgin bir şüphe sinyali yok.' }]).map((w) => h('li', {}, (w.pts ? '+' + w.pts + ' ' : '') + w.text)));
+        const acts = h('div', { class: 'cv-actions' }, d.path ? h('button', { type: 'button', class: 'cv-btn', onclick: () => H.sysReveal(d.pid) }, 'Klasörde göster') : null, d.path ? h('button', { type: 'button', class: 'cv-btn', onclick: () => copy(d.path, 'Yol') }, 'Yolu kopyala') : null, d.sha256 ? h('button', { type: 'button', class: 'cv-btn', onclick: () => copy(d.sha256, 'SHA-256') }, 'SHA-256 kopyala') : null, d.sha256 && H.openVirusTotal ? h('button', { type: 'button', class: 'cv-btn', onclick: () => H.openVirusTotal('https://www.virustotal.com/gui/file/' + d.sha256) }, 'VirusTotal’da hash’i aç') : null, d.pid !== st.self ? h('button', { type: 'button', class: 'cv-btn', onclick: () => kill(d.pid, () => { st.sel = null; detail.hidden = true; refresh(); }) }, 'Sonlandır') : null);
+        detail.replaceChildren(h('h2', {}, d.name + ' ', pill(d.level || 'low', 'Şüphe ' + (d.score || 0) + ' · ' + LV[d.level || 'low'])), why, kvs([['PID', String(d.pid)], ['Üst süreç', d.parent ? d.parent + ' (' + d.ppid + ')' : String(d.ppid)], ['Alt süreçler', d.children.map((c) => c.name + ' (' + c.pid + ')').join(', ')], ['Yol', d.path], ['Komut satırı', d.cmd], ['Kullanıcı', d.owner], ['Yayıncı / sürüm', [d.company, d.version].filter(Boolean).join(' · ')], ['Açıklama', d.desc], ['İmza', sig], ['SHA-256', d.sha256], ['Boyut', d.size ? B(d.size) : ''], ['Başlangıç', d.start ? dt(d.start) : ''], ['Bellek', B(d.mem)], ['İş parçacığı / Handle', d.threads + ' / ' + d.handles], ['Barındırdığı hizmetler', d.services.map((s) => s.n + ' (' + s.s + ')').join(', ')]]), con, mod, acts);
+      }
+      function exportCsv() { const rows = st.procs; dl('gorev-yoneticisi-' + Date.now() + '.csv', csv(rows, [{ t: 'Şüphe', v: (p) => p.score || 0 }, { t: 'Ad', v: (p) => p.name }, { t: 'PID', v: (p) => p.pid }, { t: 'Üst PID', v: (p) => p.ppid }, { t: 'İmza', v: (p) => p.sig || '' }, { t: 'Yol', v: (p) => p.path || '' }, { t: 'Komut', v: (p) => p.cmd || '' }, { t: 'Gerekçe', v: (p) => (p.why || []).join(' | ') }]), 'text/csv'); }
+      async function refresh() {
+        if (st.busy) return; st.busy = true;
+        try {
+          const r = await H.sysProcs(st.mode === 'ext'); if (r.error) { live.textContent = r.message; return; } st.procs = r.procs; st.stats = r.stats; st.plat = r.platform; st.self = r.self;
+          const s = r.stats; setCard(cCpu, pc(s.cpu), s.cores + ' çekirdek · ' + (s.model || ''), s.cpu); const mu = s.memTotal - s.memFree; setCard(cMem, pc((mu / s.memTotal) * 100), B(mu) + ' / ' + B(s.memTotal), (mu / s.memTotal) * 100); if (s.disk) { const du = s.disk.total - s.disk.free; setCard(cDsk, pc((du / s.disk.total) * 100), s.disk.root + ' ' + B(du) + ' / ' + B(s.disk.total), (du / s.disk.total) * 100); } else setCard(cDsk, '—', 'okunamadı', 0); setCard(cUp, up(s.uptime), s.host + ' · ' + r.procs.length + ' süreç', 0);
+          if (st.mode === 'ext' && Date.now() - st.sigAt > 90000 && r.platform === 'win32') { st.sigAt = Date.now(); H.sysSigs(); }
+          if (st.sel != null && !st.procs.some((p) => p.pid === st.sel)) { st.sel = null; detail.hidden = true; endBtn.disabled = true; } else if (st.sel != null) endBtn.disabled = st.sel === st.self;
+          draw();
+        } catch (e) { live.textContent = 'Veri okunamadı: ' + (e && e.message || e); } finally { st.busy = false; }
+      }
+      setup(); refresh(); setInterval(() => { if (visible(root)) refresh(); }, 2500);
+      new MutationObserver(() => { if (visible(root)) refresh(); }).observe(root, { attributes: true, attributeFilter: ['hidden'] });
+      root.__tm = st;
+    })();
+
+    /* ================= Ag Izleyici ================= */
+    (function netmon() {
+      const root = $('#app-netmon'); if (!H) { noHost(root, 'Ağ İzleyici'); return; }
+      const st = { tab: 'live', conns: [], sum: null, hist: [], dir: 'out', flagged: false, proto: 'all', q: '', paused: false, sel: null, sort: { key: 'flag', dir: -1 }, hsort: { key: 'last', dir: -1 }, psort: { key: 'ext', dir: -1 }, alerts: new Map(), busy: false };
+      const TABS = [['live', 'Canlı bağlantılar'], ['procs', 'Süreç özeti'], ['hist', 'Geçmiş ve beacon'], ['alerts', 'Uyarılar']];
+      const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' }); const chips = h('div', { class: 'sm-cards', id: 'nm-chips' }); const stage = h('div', { id: 'nm-stage' });
+      const tabBar = tabs(TABS, st.tab, (v) => { st.tab = v; draw(); });
+      const dirSel = h('select', { id: 'nm-dir', 'aria-label': 'Yön', onchange: (e) => { st.dir = e.target.value; draw(); } }, h('option', { value: 'out' }, 'İnternete giden'), h('option', { value: 'all' }, 'Tümü'), h('option', { value: 'local' }, 'Yerel ağ'), h('option', { value: 'listen' }, 'Dinleyen')); const protoSel = h('select', { id: 'nm-proto', 'aria-label': 'Protokol', onchange: (e) => { st.proto = e.target.value; draw(); } }, h('option', { value: 'all' }, 'TCP + UDP'), h('option', { value: 'TCP' }, 'Yalnız TCP'), h('option', { value: 'UDP' }, 'Yalnız UDP'));
+      const flagChk = h('input', { type: 'checkbox', id: 'nm-flag', onchange: (e) => { st.flagged = e.target.checked; draw(); } }); const search = h('input', { type: 'search', id: 'nm-q', placeholder: 'Süreç, adres, port ara', 'aria-label': 'Ara', autocomplete: 'off', spellcheck: 'false', oninput: (e) => { st.q = e.target.value.trim().toLowerCase(); draw(); } });
+      const pauseBtn = h('button', { type: 'button', class: 'cv-btn', id: 'nm-pause', onclick: () => { st.paused = !st.paused; pauseBtn.textContent = st.paused ? 'Devam et' : 'Duraklat'; if (!st.paused) refresh(); } }, 'Duraklat'); const resetBtn = h('button', { type: 'button', class: 'cv-btn', id: 'nm-reset', onclick: async () => { await H.sysNetReset(); st.alerts.clear(); st.hist = []; refresh(); } }, 'Geçmişi sıfırla'); const expBtn = h('button', { type: 'button', class: 'cv-btn', id: 'nm-exp', onclick: exportIt }, 'CSV dışa aktar'); const killBtn = h('button', { type: 'button', class: 'cv-btn', id: 'nm-kill', disabled: true, onclick: () => st.sel && kill(st.sel.pid, () => { st.sel = null; refresh(); }) }, 'Süreci sonlandır'); const showBtn = h('button', { type: 'button', class: 'cv-btn', id: 'nm-show', disabled: true, onclick: () => st.sel && H.sysReveal(st.sel.pid) }, 'Klasörde göster');
+      root.append(h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Ağ İzleyici'), h('p', { class: 'cv-lead' }, 'Hangi süreç, nereye bağlanıyor? Her bağlantıyı sahibi sürece, imzasına ve yoluna bağlar; şüpheli portları, internete çıkan kabuk/imzasız/geçici klasör süreçlerini ve düzenli aralıkla yeniden bağlanan (beacon benzeri) trafiği işaretler.')), h('p', { class: 'cv-note sm-note' }, 'Wireshark’tan farkı: paket içeriğini yakalamaz ama her bağlantıyı sürece bağlar (Wireshark bunu yapmaz). Bu araç yalnızca bilgisayarının bağlantı tablosunu okur; DNS/GeoIP sorgusu ya da internete istek yapmaz, kayıtlar yalnızca bellekte tutulur. Çok kısa süreli bağlantılar iki okuma arasında kaçabilir.'), chips, h('div', { class: 'sm-tools' }, dirSel, protoSel, h('label', { class: 'sm-chk', for: 'nm-flag' }, flagChk, 'Yalnız işaretliler'), search, pauseBtn, resetBtn, expBtn, killBtn, showBtn), tabBar, live, stage);
+      const keyOf = (c) => c.pid + '|' + c.proto + '|' + c.local + ':' + c.lport + '|' + c.remote + ':' + c.rport;
+      const flagEls = (c) => c.flags.map((f) => h('span', { class: 'sm-flag s' + f.sev, title: f.t }, f.t));
+      const worst = (c) => c.flags.reduce((m, f) => Math.max(m, f.sev), 0);
+      const LCOLS = [{ k: 'flag', t: 'Uyarı', w: 1, v: (c) => worst(c), f: (c) => (c.flags.length ? h('div', { class: 'sm-flags' }, flagEls(c)) : '—') }, { k: 'name', t: 'Süreç', v: (c) => c.name.toLowerCase(), f: (c) => c.name + ' (' + c.pid + ')' }, { k: 'proto', t: 'Prot.', v: (c) => c.proto }, { k: 'local', t: 'Yerel', v: (c) => c.local + ':' + c.lport }, { k: 'remote', t: 'Uzak', v: (c) => (c.remote ? c.remote + ':' + c.rport : ''), f: (c) => (c.remote ? c.remote + ':' + c.rport : '—') }, { k: 'state', t: 'Durum', v: (c) => c.state }, { k: 'sig', t: 'İmza', v: (c) => c.sig || '~', f: (c) => (c.sig ? SIG[c.sig] || c.sig : '—') }, { k: 'since', t: 'İlk görülme', n: 1, v: (c) => c.since || 0, f: (c) => (c.since ? tt(c.since) : '—') }, { k: 'hits', t: 'Yeni bağl.', n: 1, v: (c) => c.hits || 0 }, { k: 'path', t: 'Yol', w: 1, v: (c) => c.path || '', f: (c) => c.path || '—' }];
+      const PCOLS = [{ k: 'name', t: 'Süreç', v: (r) => r.name.toLowerCase(), f: (r) => r.name + ' (' + r.pid + ')' }, { k: 'ext', t: 'İnternete bağl.', n: 1, v: (r) => r.ext }, { k: 'uniq', t: 'Farklı uzak adres', n: 1, v: (r) => r.uniq }, { k: 'listen', t: 'Dinlediği port', n: 1, v: (r) => r.listen }, { k: 'flag', t: 'İşaretli', n: 1, v: (r) => r.flag }, { k: 'sig', t: 'İmza', v: (r) => r.sig || '~', f: (r) => (r.sig ? SIG[r.sig] || r.sig : '—') }, { k: 'remotes', t: 'Başlıca uzak adresler', w: 1, v: (r) => r.remotes, f: (r) => r.remotes }];
+      const HCOLS = [{ k: 'beacon', t: 'Beacon', n: 1, v: (r) => (r.beacon.beacon ? 1 : 0), f: (r) => (r.beacon.beacon ? pill('high', '~' + Math.round(r.beacon.mean / 1000) + ' sn') : '—') }, { k: 'name', t: 'Süreç', v: (r) => r.name.toLowerCase(), f: (r) => r.name + ' (' + r.pid + ')' }, { k: 'remote', t: 'Uzak', v: (r) => r.remote + ':' + r.rport, f: (r) => r.remote + ':' + r.rport }, { k: 'ext', t: 'Dış', v: (r) => (r.external ? 'internet' : 'yerel'), f: (r) => (r.external ? 'internet' : 'yerel') }, { k: 'total', t: 'Yeni bağl.', n: 1, v: (r) => r.total }, { k: 'first', t: 'İlk', n: 1, v: (r) => r.first, f: (r) => tt(r.first) }, { k: 'last', t: 'Son', n: 1, v: (r) => r.last, f: (r) => tt(r.last) }];
+      const ACOLS = [{ k: 'sev', t: 'Önem', n: 1, v: (a) => a.sev, f: (a) => pill(a.sev >= 2 ? 'high' : 'mid', a.sev >= 2 ? 'Yüksek' : 'Orta') }, { k: 'first', t: 'İlk görülme', n: 1, v: (a) => a.first, f: (a) => tt(a.first) }, { k: 'name', t: 'Süreç', v: (a) => a.name.toLowerCase(), f: (a) => a.name + ' (' + a.pid + ')' }, { k: 'remote', t: 'Uzak', v: (a) => a.remote }, { k: 'text', t: 'Neden', w: 1, v: (a) => a.text }];
+      const tbl = {}; const mk = (id, cols, s, onRow) => { if (!tbl[id]) { tbl[id] = mkTable(cols, s, onRow, draw); } return tbl[id]; };
+      const external = (c) => c.dir === 'out';
+      function viewRows() {
+        return st.conns.filter((c) => (st.dir === 'all' || c.dir === st.dir) && (st.proto === 'all' || c.proto === st.proto) && (!st.flagged || c.flags.length) && (!st.q || (c.name + ' ' + c.pid + ' ' + c.local + ':' + c.lport + ' ' + c.remote + ':' + c.rport + ' ' + c.state + ' ' + (c.path || '')).toLowerCase().includes(st.q))).map((c) => Object.assign(c, { _key: keyOf(c) }));
+      }
+      function draw() {
+        const sum = st.sum; if (sum) { chips.replaceChildren(...[['Toplam', sum.total, ''], ['Kurulu', sum.established, ''], ['İnternete açık', sum.external, sum.procs + ' süreç'], ['Dinleyen', sum.listening, ''], ['İşaretli', sum.flagged, sum.flagged ? 'incele' : 'temiz'], ['İzleme', tt(sum.since), 'başlangıcından beri']].map(([t, v, s]) => h('div', { class: 'sm-card' + (t === 'İşaretli' && sum.flagged ? ' warn' : '') }, h('span', {}, t), h('b', {}, String(v)), h('small', {}, s)))); }
+        if (st.tab === 'live') { const T = mk('live', LCOLS, st.sort, (c) => { st.sel = c; killBtn.disabled = !c.pid || c.pid <= 4; showBtn.disabled = !c.path; draw(); }); if (stage.firstChild !== T.wrap) stage.replaceChildren(T.wrap); const rows = viewRows(); T.render(rows, st.sel ? keyOf(st.sel) : null); live.textContent = rows.length + ' bağlantı gösteriliyor' + (st.sel ? ' · seçili: ' + st.sel.name : ''); }
+        else if (st.tab === 'procs') { const by = new Map(); for (const c of st.conns) { if (!c.pid) continue; let r = by.get(c.pid); if (!r) { r = { _key: c.pid, pid: c.pid, name: c.name, path: c.path, sig: c.sig, ext: 0, rem: new Map(), listen: 0, flag: 0 }; by.set(c.pid, r); } if (c.dir === 'out' && c.state === 'Established') { r.ext++; r.rem.set(c.remote, (r.rem.get(c.remote) || 0) + 1); } if (c.state === 'Listen') r.listen++; if (c.flags.length) r.flag++; } const rows = [...by.values()].map((r) => Object.assign(r, { uniq: r.rem.size, remotes: [...r.rem.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map((x) => x[0]).join(', ') })).filter((r) => !st.q || (r.name + r.pid + r.remotes).toLowerCase().includes(st.q)); const T = mk('procs', PCOLS, st.psort, (r) => { st.sel = { pid: r.pid, path: r.path, name: r.name }; killBtn.disabled = r.pid <= 4; showBtn.disabled = !r.path; }); if (stage.firstChild !== T.wrap) stage.replaceChildren(T.wrap); T.render(rows, null); live.textContent = rows.length + ' süreç'; }
+        else if (st.tab === 'hist') { const rows = st.hist.map((r, i) => Object.assign({ _key: i }, r)).filter((r) => (!st.flagged || r.beacon.beacon) && (!st.q || (r.name + r.remote).toLowerCase().includes(st.q))); const T = mk('hist', HCOLS, st.hsort, null); if (stage.firstChild !== T.wrap) stage.replaceChildren(T.wrap); T.render(rows, null); live.textContent = rows.length + ' uzak uç · ' + rows.filter((r) => r.beacon.beacon).length + ' beacon benzeri (≥6 yeniden bağlanma, düzenli aralık)'; }
+        else { const rows = [...st.alerts.values()].map((a, i) => Object.assign({ _key: i }, a)).filter((a) => !st.q || (a.name + a.remote + a.text).toLowerCase().includes(st.q)); const T = mk('alerts', ACOLS, { key: 'first', dir: -1 }, null); if (stage.firstChild !== T.wrap) stage.replaceChildren(T.wrap); T.render(rows, null); live.textContent = rows.length ? rows.length + ' uyarı (bu oturum, yalnızca bellekte)' : 'Henüz uyarı yok.'; }
+      }
+      function exportIt() { const rows = viewRows(); dl('ag-izleyici-' + Date.now() + '.csv', csv(rows, [{ t: 'Süreç', v: (c) => c.name }, { t: 'PID', v: (c) => c.pid }, { t: 'Protokol', v: (c) => c.proto }, { t: 'Yerel', v: (c) => c.local + ':' + c.lport }, { t: 'Uzak', v: (c) => (c.remote ? c.remote + ':' + c.rport : '') }, { t: 'Durum', v: (c) => c.state }, { t: 'İmza', v: (c) => c.sig || '' }, { t: 'Yol', v: (c) => c.path || '' }, { t: 'Uyarılar', v: (c) => c.flags.map((f) => f.t).join(' | ') }]), 'text/csv'); }
+      async function refresh() {
+        if (st.busy || st.paused) return; st.busy = true;
+        try {
+          const r = await H.sysNet(); if (r.error) { live.textContent = r.message; return; } st.conns = r.conns; st.sum = r.summary; st.hist = (await H.sysNetHist()).hist || [];
+          for (const c of r.conns) for (const f of c.flags) { const k = c.pid + '|' + c.remote + '|' + c.rport + '|' + f.t; if (!st.alerts.has(k)) st.alerts.set(k, { pid: c.pid, name: c.name, remote: c.remote ? c.remote + ':' + c.rport : c.local + ':' + c.lport, text: f.t, sev: f.sev, first: r.t }); }
+          if (st.alerts.size > 500) for (const k of [...st.alerts.keys()].slice(0, st.alerts.size - 400)) st.alerts.delete(k); draw();
+        } catch (e) { live.textContent = 'Veri okunamadı: ' + (e && e.message || e); } finally { st.busy = false; }
+      }
+      /* arac acikken 3 sn'de bir; baska sayfadayken gecmis/beacon birikimi icin 15 sn'de bir (pencere gizliyse hic) */
+      let slow = 0; refresh(); setInterval(() => { if (document.hidden) return; if (visible(root)) { slow = 0; refresh(); } else if (++slow >= 5) { slow = 0; refresh(); } }, 3000); new MutationObserver(() => { if (visible(root)) refresh(); }).observe(root, { attributes: true, attributeFilter: ['hidden'] }); root.__nm = st;
+    })();
+  })();
+
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
@@ -5556,22 +5758,29 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       hammer: '<path d="m14 4 6 6-3 3-6-6 3-3Z"/><path d="m11 7-7 7v4h4l7-7"/><path d="M4 21h8"/>',
       note: '<path d="M6 3.5h9l3 3v14H6z"/><path d="M14.5 3.5V7H18M9 12h6M9 16h4"/>',
       key: '<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M15.5 7.5l2 2M13.5 9.5l2 2"/>',
+      monitor: '<rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8M12 16.5V20"/><path d="M6.5 12l2.5-3 2.5 2 2.5-4 2 3"/>',
+      radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5.5-5.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
-    const MODULES = [{ id: 'statscan', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
-      { id: 'texpack', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
-      { id: 'modconv', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
-      { id: 'compiler', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+    /* Kategoriler: kenar cubugu ve Home bu sirayla gruplar. Yeni arac: MODULES girdisine cat: 'guvenlik' | 'windows' | 'minecraft' | 'kodlama' ekle. */
+    const CATS = [['guvenlik', 'Güvenlik'], ['windows', 'Windows'], ['minecraft', 'Minecraft'], ['kodlama', 'Kodlama']];
+    const MODULES = [{ id: 'statscan', cat: 'guvenlik', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
+      { id: 'texpack', cat: 'minecraft', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
+      { id: 'modconv', cat: 'minecraft', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
+      { id: 'compiler', cat: 'kodlama', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
+      { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
     const mk = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
-    const label = mk('div', { class: 'side-label', id: 'side-tools' }, 'Araçlar');
-    const homeLink = mk('a', { class: 'nav-item', href: '#/home', 'data-route': 'home', title: 'Home' }, svg('home') + '<span>Home</span>'); linkOf.home = homeLink; nav.append(homeLink, label);
-    for (const m of MODULES) {
+    const homeLink = mk('a', { class: 'nav-item', href: '#/home', 'data-route': 'home', title: 'Home' }, svg('home') + '<span>Home</span>'); linkOf.home = homeLink; nav.append(homeLink);
+    const catOf = (m) => (CATS.some((c) => c[0] === m.cat) ? m.cat : null); const MODS = [...MODULES].sort((a, b) => (a.owner ? 1 : 0) - (b.owner ? 1 : 0) || CATS.findIndex((c) => c[0] === a.cat) - CATS.findIndex((c) => c[0] === b.cat) || MODULES.indexOf(a) - MODULES.indexOf(b)); let lastCat = null;
+    for (const m of MODS) {
+      if (!m.owner && catOf(m) && catOf(m) !== lastCat) { lastCat = catOf(m); const nm = CATS.find((c) => c[0] === lastCat)[1]; nav.append(mk('div', { class: 'side-label', 'data-cat': lastCat }, nm)); grid.append(mk('h3', { class: 'toolcat', 'data-cat': lastCat }, nm)); }
       const a = mk('a', { class: 'nav-item', href: '#/' + m.id, 'data-route': m.id }, svg(m.icon) + '<span></span>'); a.querySelector('span').textContent = m.name; a.title = m.name; (m.owner ? ownerBox : nav).append(a); linkOf[m.id] = a;
-      const c = mk('button', { type: 'button', class: 'toolcard', 'data-open': m.id }, '<span class="ic">' + svg(m.icon) + '</span><h3></h3><p></p><span class="row"><span class="chip">' + (m.beta ? 'Beta' : 'Hazır') + '</span><span>Aç →</span></span>');
+      const c = mk('button', { type: 'button', class: 'toolcard', 'data-open': m.id }, '<span class="ic">' + svg(m.icon) + '</span><h3></h3><p></p><span class="row"><span class="chip">' + (m.beta ? 'Beta' : 'Hazır') + (m.ver ? ' · v' + m.ver : '') + '</span><span>Aç →</span></span>');
       c.querySelector('h3').textContent = m.name; c.querySelector('p').textContent = m.desc; c.addEventListener('click', () => go(m.id)); grid.append(c); if (m.owner) { a.hidden = true; c.hidden = true; m.nodes = [a, c]; }
     }
     grid.append(mk('div', { class: 'toolcard empty' }, '<span class="ic">' + svg('plus') + '</span><h3>Yeni araçlar için yer ayrıldı</h3><p>Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.</p>'));

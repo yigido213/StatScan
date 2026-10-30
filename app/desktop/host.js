@@ -628,6 +628,206 @@ const ACCESSMOD = (() => {
   return { createAccessHost, verifyBlocklist, signBlocklist, trustedKey, normId, fmtId, b32, machineGuid, EMBEDDED_PUBKEY, DEFAULT_URL, OWNER_IDS, ID_RE, LIM };
 })();
 
+/* --- Sistem araclari: Gorev Yoneticisi (Basic/Extended) + Gelismis Ag Izleyici (SYSMOD v0.0.1) ---
+ * Yalnizca OKUR/GOSTERIR: dosya degistirmez, silmez, calistirmaz. Tek yazma islemi: kullanici onayiyla surec sonlandirma (sys:kill).
+ * Arayuz komut/yol gonderemez; yalnizca tamsayi PID ve sabit kanallar. Ag: yalnizca yerel baglanti tablosu okunur; DNS/GeoIP sorgusu YOK.
+ * Windows: PowerShell + WMI (CIM). Diger sistemler: /proc (yalnizca gelistirme/test icin; uygulama Windows hedefli). */
+const SYSMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const os = require('os'); const cp = require('child_process');
+  const NAMES_SYS = { 'svchost.exe': 'system32', 'lsass.exe': 'system32', 'csrss.exe': 'system32', 'winlogon.exe': 'system32', 'services.exe': 'system32', 'smss.exe': 'system32', 'wininit.exe': 'system32', 'taskhostw.exe': 'system32', 'spoolsv.exe': 'system32', 'dwm.exe': 'system32', 'conhost.exe': 'system32', 'fontdrvhost.exe': 'system32', 'sihost.exe': 'system32', 'ctfmon.exe': 'system32', 'dllhost.exe': 'system32', 'runtimebroker.exe': 'system32', 'searchindexer.exe': 'system32', 'explorer.exe': 'windows' };
+  const SCRIPT_HOSTS = new Set(['powershell.exe', 'pwsh.exe', 'wscript.exe', 'cscript.exe', 'mshta.exe', 'cmd.exe', 'rundll32.exe', 'regsvr32.exe', 'certutil.exe', 'bitsadmin.exe', 'msbuild.exe', 'installutil.exe', 'wmic.exe']);
+  const SUSP_ARGS = /(-enc(odedcommand)?\b|-e\s+[A-Za-z0-9+/=]{30,}|frombase64string|downloadstring|downloadfile|invoke-expression|\biex\b|-w(indowstyle)?\s+hidden|-nop\b|-noni\b|bypass|net\.webclient|invoke-webrequest|\bcurl\b.+http|urlcache|\/i:http|scrobj\.dll)/i;
+  const BAD_DIRS = [/\\appdata\\local\\temp\\/i, /\\windows\\temp\\/i, /\\users\\public\\/i, /\\downloads\\/i, /\\\$recycle\.bin\\/i, /\\appdata\\roaming\\[^\\]+\.(exe|scr)$/i, /\\programdata\\[^\\]+\.(exe|scr)$/i];
+  const SUSP_PORTS = { 4444: 'Metasploit varsayılanı', 1337: 'sık görülen arka kapı portu', 31337: 'klasik arka kapı portu', 6667: 'IRC (botnet C2)', 6697: 'IRC (TLS)', 5555: 'ADB/RAT portu', 9001: 'Tor yönlendirici', 9030: 'Tor dizin', 9050: 'Tor SOCKS', 9150: 'Tor Browser SOCKS', 8333: 'Bitcoin düğümü', 3333: 'madencilik havuzu (stratum)', 4443: 'sık görülen alternatif TLS', 2222: 'alternatif SSH', 12345: 'NetBus', 23: 'Telnet', 5900: 'VNC', 3389: 'RDP', 5985: 'WinRM', 5986: 'WinRM (TLS)' };
+  const MINER_PORTS = new Set([3333, 4444, 5555, 7777, 14444, 45560]);
+  const swapped = (a, b) => { if (a.length !== b.length) return false; for (let i = 0; i < a.length - 1; i++) { if (a[i] !== b[i]) return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2); } return false; };
+  const lev = (a, b) => { const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 9; let p = Array.from({ length: n + 1 }, (_, i) => i); for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; } return p[n]; };
+
+  /* ---- saf yardimcilar (test edilebilir) ---- */
+  function ipClass(ip) {
+    ip = String(ip || '').trim().toLowerCase(); if (!ip || ip === '*' || ip === '0.0.0.0' || ip === '::') return 'any';
+    const m4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip); if (m4) ip = m4[1];
+    if (ip.includes(':')) { if (ip === '::1') return 'loopback'; if (/^fe[89ab]/.test(ip)) return 'linklocal'; if (/^f[cd]/.test(ip)) return 'private'; if (/^ff/.test(ip)) return 'multicast'; return 'public'; }
+    const p = ip.split('.').map(Number); if (p.length !== 4 || p.some((x) => !(x >= 0 && x <= 255))) return 'unknown';
+    if (p[0] === 127) return 'loopback'; if (p[0] === 10) return 'private'; if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return 'private'; if (p[0] === 192 && p[1] === 168) return 'private';
+    if (p[0] === 169 && p[1] === 254) return 'linklocal'; if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return 'cgnat'; if (p[0] >= 224 && p[0] <= 239) return 'multicast'; if (p[0] === 0 || p[0] >= 240) return 'unknown';
+    return 'public';
+  }
+  const isExternal = (ip) => { const c = ipClass(ip); return c === 'public' || c === 'cgnat'; };
+  /* ayni uzaga duzenli araliklarla yeni baglanti: beacon (C2 isareti) benzeri. times: ms zaman damgalari */
+  function beaconScore(times) {
+    const t = (times || []).slice().sort((a, b) => a - b); if (t.length < 6) return { beacon: false, n: t.length };
+    const d = []; for (let i = 1; i < t.length; i++) d.push(t[i] - t[i - 1]); const mean = d.reduce((a, b) => a + b, 0) / d.length; if (mean < 4000 || mean > 3600000) return { beacon: false, n: t.length, mean };
+    const sd = Math.sqrt(d.reduce((a, b) => a + (b - mean) * (b - mean), 0) / d.length); const cv = sd / mean;
+    return { beacon: cv < 0.2, n: t.length, mean: Math.round(mean), cv: +cv.toFixed(3) };
+  }
+  function splitCmd(s) { return String(s || ''); }
+  /* sureç icin sezgisel supheli puani (0-100) + gerekceler. sig: { status:'Valid'|'NotSigned'|'HashMismatch'|'NotTrusted'|'Unknown', signer } veya null */
+  function scoreProc(p, sig, conns, ctx) {
+    const why = []; let s = 0; const add = (n, t) => { s += n; why.push({ pts: n, text: t }); };
+    const name = String(p.name || '').toLowerCase(); const exe = String(p.path || ''); const low = exe.toLowerCase();
+    if (p.pid === 0 || p.pid === 4 || name === 'system' || name === 'system idle process' || name === 'registry' || name === 'memory compression' || name === 'secure system') return { score: 0, level: 'low', why };
+    if (NAMES_SYS[name] && exe) { const want = NAMES_SYS[name] === 'windows' ? '\\windows\\' : '\\windows\\system32\\'; const okp = NAMES_SYS[name] === 'windows' ? /^[a-z]:\\windows\\explorer\.exe$/.test(low) : low.includes(want); if (!okp) add(45, 'Sistem süreci adını taşıyor ama beklenen konumda değil (taklit olabilir): ' + exe); }
+    if (!NAMES_SYS[name] && !/^(taskhost|taskhostex)\.exe$/.test(name)) for (const k of Object.keys(NAMES_SYS)) { if (name !== k && name.length >= 6 && (lev(name, k) <= 1 || swapped(name, k))) { add(40, 'Adı sistem sürecine çok benziyor: ' + k); break; } }
+    if (exe && BAD_DIRS.some((r) => r.test(exe))) add(20, 'Kullanıcının yazabildiği/geçici bir konumdan çalışıyor');
+    if (SCRIPT_HOSTS.has(name) && SUSP_ARGS.test(p.cmd || '')) add(25, 'Komut satırında gizleme/kodlama/indirme kalıpları var');
+    if (SCRIPT_HOSTS.has(name) && ctx && ctx.parentName && /^(winword|excel|powerpnt|outlook|acrord32|acrobat|msedge|chrome|firefox|java|javaw)\.exe$/.test(ctx.parentName)) add(25, 'Belge/tarayıcı/Java uygulamasının alt süreci olarak kabuk çalıştırıyor (' + ctx.parentName + ')');
+    if (sig) { if (sig.status === 'HashMismatch') add(40, 'Dijital imza bozuk (dosya imzalandıktan sonra değiştirilmiş)'); else if (sig.status === 'NotTrusted') add(25, 'İmza güvenilir bir yayıncıya bağlanmıyor'); else if (sig.status === 'NotSigned') add(exe && /\\windows\\/i.test(low) ? 15 : 12, 'Dijital imzası yok'); }
+    const ext = (conns || []).filter((c) => c.state === 'Established' && isExternal(c.remote));
+    if (ext.length) { const bad = (sig && sig.status !== 'Valid') || (exe && BAD_DIRS.some((r) => r.test(exe))) || SCRIPT_HOSTS.has(name); if (bad) add(15, 'İmzasız/şüpheli konumlu veya kabuk süreci internete bağlı (' + ext.length + ' bağlantı)'); }
+    if ((conns || []).some((c) => c.remote && SUSP_PORTS[c.rport] && isExternal(c.remote) && [4444, 1337, 31337, 6667, 5555, 12345, 9001, 9030, 9050, 9150].includes(c.rport))) add(20, 'Şüpheli porta bağlantı');
+    if (p.pathMissing && !/^(system|registry|memory compression|secure system|system idle process)$/.test(name) && p.pid > 4) { why.push({ pts: 0, text: 'Yürütülebilir yol okunamadı (yetki yok olabilir; yönetici olarak açınca netleşir)' }); }
+    s = Math.max(0, Math.min(100, s)); return { score: s, level: s >= 60 ? 'high' : s >= 25 ? 'mid' : 'low', why };
+  }
+  /* bir baglanti icin supheli bayraklari */
+  function flagConn(c, proc, sig) {
+    const f = []; const ext = isExternal(c.remote);
+    if (c.state === 'Listen' && (c.local === '0.0.0.0' || c.local === '::') && proc && proc.pid > 4 && !/^(svchost|system|lsass|services|wininit|spoolsv|System)(\.exe)?$/i.test(proc.name || '')) f.push({ t: 'Tüm arayüzlerde dinliyor', sev: 1 });
+    if (ext && SUSP_PORTS[c.rport]) f.push({ t: 'Port ' + c.rport + ': ' + SUSP_PORTS[c.rport], sev: [23, 3389, 5900, 5985, 5986, 2222].includes(c.rport) ? 1 : 2 });
+    if (ext && MINER_PORTS.has(c.rport)) f.push({ t: 'Madencilik havuzu portu olabilir', sev: 2 });
+    if (ext && c.state === 'Established' && proc && SCRIPT_HOSTS.has(String(proc.name || '').toLowerCase())) f.push({ t: 'Kabuk/betik süreci internete bağlı', sev: 2 });
+    if (ext && c.state === 'Established' && proc && proc.path && BAD_DIRS.some((r) => r.test(proc.path))) f.push({ t: 'Geçici/kullanıcı klasöründeki süreç internete bağlı', sev: 2 });
+    if (ext && c.state === 'Established' && sig && (sig.status === 'NotSigned' || sig.status === 'HashMismatch' || sig.status === 'NotTrusted')) f.push({ t: 'İmzasız/güvenilmez süreç internete bağlı', sev: 2 });
+    if (c.beacon && c.beacon.beacon) f.push({ t: 'Düzenli aralıklı yeniden bağlanma (~' + Math.round(c.beacon.mean / 1000) + ' sn, ' + c.beacon.n + ' kez) — beacon benzeri', sev: 2 });
+    return f;
+  }
+  const num = (x) => (Number.isFinite(+x) ? +x : 0);
+  const STATES = { 1: 'Closed', 2: 'Listen', 3: 'SynSent', 4: 'SynReceived', 5: 'Established', 6: 'FinWait1', 7: 'FinWait2', 8: 'CloseWait', 9: 'Closing', 10: 'LastAck', 11: 'TimeWait', 12: 'DeleteTCB', 100: 'Bound' };
+  const normState = (s) => { if (typeof s === 'number') return STATES[s] || String(s); const x = String(s || ''); return x ? x[0].toUpperCase() + x.slice(1) : ''; };
+
+  /* ---- toplayicilar ---- */
+  const winPS = (script, run, timeout) => run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '[Console]::OutputEncoding=[Text.Encoding]::UTF8;$ProgressPreference="SilentlyContinue";$ErrorActionPreference="SilentlyContinue";' + script], timeout || 25000);
+  const defaultRun = (cmd, args, timeout) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: timeout || 25000, windowsHide: true, maxBuffer: 96 * 1024 * 1024, encoding: 'utf8' }, (e, so, se) => (e && !so ? reject(e) : resolve(String(so || '')))); });
+  const parseJson = (t) => { t = String(t || '').trim(); if (!t) return []; try { const v = JSON.parse(t.charCodeAt(0) === 0xfeff ? t.slice(1) : t); return Array.isArray(v) ? v : [v]; } catch (e) { return []; } };
+  const J = (x) => 'ConvertTo-Json -InputObject @(' + x + ') -Compress -Depth 4';
+
+  function createSysHost(deps) {
+    deps = deps || {}; const plat = () => deps.platform || process.platform; const isWin = () => plat() === 'win32'; const run = deps.run || defaultRun; const now = deps.now || (() => Date.now());
+    const NCPU = Math.max(1, (os.cpus() || []).length || 1);
+    let prev = null; let prevCpu = null; let procCache = { t: 0, list: [] }; let sigCache = new Map(); let sigBusy = false; const hist = new Map(); let netStart = now(); let lastNet = null;
+    const ownPid = deps.ownPid || process.pid;
+
+    /* --- sureçler --- */
+    async function readProcs() {
+      if (isWin()) {
+        const out = await winPS(J('Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine,ThreadCount,HandleCount,WorkingSetSize,PrivateBytes=PageFileUsage,KernelModeTime,UserModeTime,ReadTransferCount,WriteTransferCount,@{n="start";e={if($_.CreationDate){[int64]([datetimeoffset]$_.CreationDate).ToUnixTimeMilliseconds()}}}'), run);
+        return parseJson(out).map((r) => ({ pid: num(r.ProcessId), ppid: num(r.ParentProcessId), name: String(r.Name || ''), path: r.ExecutablePath || '', cmd: String(r.CommandLine || '').slice(0, 4000), threads: num(r.ThreadCount), handles: num(r.HandleCount), mem: num(r.WorkingSetSize), commit: num(r.PrivateBytes) * 1024, cpuT: (num(r.KernelModeTime) + num(r.UserModeTime)) / 1e4, ioR: num(r.ReadTransferCount), ioW: num(r.WriteTransferCount), start: num(r.start) || 0 }));
+      }
+      const out = []; const tick = 100; let pagesz = 4096; const up = (() => { try { return +fs.readFileSync('/proc/uptime', 'utf8').split(' ')[0]; } catch (e) { return 0; } })(); const bt = (() => { try { const m = /^btime (\d+)/m.exec(fs.readFileSync('/proc/stat', 'utf8')); return m ? +m[1] * 1000 : 0; } catch (e) { return 0; } })();
+      for (const d of fs.readdirSync('/proc')) { if (!/^\d+$/.test(d)) continue; try { const st = fs.readFileSync('/proc/' + d + '/stat', 'utf8'); const i = st.lastIndexOf(')'); const nm = st.slice(st.indexOf('(') + 1, i); const f = st.slice(i + 2).split(' '); let exe = ''; try { exe = fs.readlinkSync('/proc/' + d + '/exe'); } catch (e) { exe = ''; } let cmd = ''; try { cmd = fs.readFileSync('/proc/' + d + '/cmdline', 'utf8').replace(/\0/g, ' ').trim(); } catch (e) { cmd = ''; } out.push({ pid: +d, ppid: +f[1], name: nm, path: exe, cmd: cmd.slice(0, 4000), threads: +f[17], handles: (() => { try { return fs.readdirSync('/proc/' + d + '/fd').length; } catch (e) { return 0; } })(), mem: +f[21] * pagesz, commit: +f[20], cpuT: ((+f[11] + +f[12]) / tick) * 1000, ioR: 0, ioW: 0, start: bt + (+f[19] / tick) * 1000 }); } catch (e) { /* surec bitti */ } }
+      return out;
+    }
+    async function procs(force) {
+      const t = now(); if (!force && procCache.list.length && t - procCache.t < 1200) return procCache.list;
+      const list = await readProcs(); const dt = prev ? Math.max(1, t - prev.t) : 0;
+      for (const p of list) { const o = prev && prev.m.get(p.pid); p.pathMissing = !p.path; if (o && o.start === p.start && dt) { p.cpu = Math.max(0, Math.min(100, ((p.cpuT - o.cpuT) / dt / NCPU) * 100)); p.ioRate = Math.max(0, (p.ioR + p.ioW - o.ioR - o.ioW) / (dt / 1000)); } else { p.cpu = 0; p.ioRate = 0; } }
+      prev = { t, m: new Map(list.map((p) => [p.pid, p])) }; procCache = { t, list }; return list;
+    }
+    let connCache = { t: 0, list: [] };
+    async function annotate(list) { /* Extended: imza onbellegi + baglantilarla supheli puani */
+      const t = now(); if (t - connCache.t > 2500) connCache = { t, list: await readConns().catch(() => []) };
+      const by = new Map(); for (const c of connCache.list) { if (!by.has(c.pid)) by.set(c.pid, []); by.get(c.pid).push(c); } const byPid = new Map(list.map((p) => [p.pid, p]));
+      for (const p of list) { const sig = p.path ? sigCache.get(p.path) || null : null; const par = byPid.get(p.ppid); const cs = by.get(p.pid) || []; const sc = scoreProc(p, sig, cs, { parentName: par ? String(par.name).toLowerCase() : '' }); p.score = sc.score; p.level = sc.level; p.why = sc.why.map((w) => w.text); p.sig = sig ? sig.status : ''; p.signer = sig ? sig.signer : ''; p.nconn = cs.filter((c) => c.state === 'Established').length; }
+    }
+    function sysStats() {
+      const cpus = os.cpus() || []; let idle = 0, tot = 0; for (const c of cpus) { for (const k of Object.keys(c.times)) tot += c.times[k]; idle += c.times.idle; } let cpu = 0; if (prevCpu && tot > prevCpu.tot) cpu = Math.max(0, Math.min(100, (1 - (idle - prevCpu.idle) / (tot - prevCpu.tot)) * 100)); prevCpu = { idle, tot };
+      let disk = null; try { const root = isWin() ? (process.env.SystemDrive || 'C:') + '\\' : '/'; const s = fs.statfsSync(root); disk = { root, total: s.blocks * s.bsize, free: s.bavail * s.bsize }; } catch (e) { disk = null; }
+      return { cpu, cores: NCPU, model: (cpus[0] && cpus[0].model) || '', memTotal: os.totalmem(), memFree: os.freemem(), uptime: os.uptime(), disk, host: os.hostname(), platform: plat() };
+    }
+    /* --- imza (Windows) --- */
+    async function sigs(paths) {
+      const need = [...new Set(paths.filter((p) => p && /^[A-Za-z]:\\/.test(p)))].filter((p) => !sigCache.has(p)).slice(0, 400); if (!isWin() || !need.length) return;
+      const esc = need.map((p) => "'" + p.replace(/'/g, "''") + "'").join(',');
+      const out = await winPS(J('@(' + esc + ') | ForEach-Object { $s = Get-AuthenticodeSignature -LiteralPath $_; [pscustomobject]@{ p=$_; st=[string]$s.Status; who=if($s.SignerCertificate){$s.SignerCertificate.Subject}else{""} } }'), run, 120000);
+      for (const r of parseJson(out)) sigCache.set(r.p, { status: r.st === 'Valid' ? 'Valid' : r.st === 'NotSigned' ? 'NotSigned' : r.st === 'HashMismatch' ? 'HashMismatch' : r.st === 'NotTrusted' || r.st === 'UnknownError' ? 'NotTrusted' : r.st || 'Unknown', signer: String(r.who || '').replace(/^.*?CN=([^,]+).*$/, '$1').slice(0, 120) });
+      for (const p of need) if (!sigCache.has(p)) sigCache.set(p, { status: 'Unknown', signer: '' });
+    }
+    /* --- baglantilar --- */
+    async function readConns() {
+      if (isWin()) {
+        const o = await winPS(J('Get-NetTCPConnection | Select-Object LocalAddress,LocalPort,RemoteAddress,RemotePort,@{n="State";e={[string]$_.State}},OwningProcess') + ';"@@UDP@@";' + J('Get-NetUDPEndpoint | Select-Object LocalAddress,LocalPort,OwningProcess'), run);
+        const [a, b] = String(o).split('@@UDP@@'); const L = [];
+        for (const r of parseJson(a)) L.push({ proto: 'TCP', local: String(r.LocalAddress), lport: num(r.LocalPort), remote: String(r.RemoteAddress || ''), rport: num(r.RemotePort), state: normState(r.State), pid: num(r.OwningProcess) });
+        for (const r of parseJson(b)) L.push({ proto: 'UDP', local: String(r.LocalAddress), lport: num(r.LocalPort), remote: '', rport: 0, state: 'Bound', pid: num(r.OwningProcess) });
+        return L;
+      }
+      const L = []; const inodePid = new Map(); for (const d of fs.readdirSync('/proc')) { if (!/^\d+$/.test(d)) continue; try { for (const fd of fs.readdirSync('/proc/' + d + '/fd')) { const l = fs.readlinkSync('/proc/' + d + '/fd/' + fd); const m = /^socket:\[(\d+)\]$/.exec(l); if (m) inodePid.set(m[1], +d); } } catch (e) { /* izin yok */ } }
+      const hex4 = (h) => h.match(/../g).reverse().map((x) => parseInt(x, 16)).join('.'); const hex6 = (h) => { const w = h.match(/.{8}/g).map((x) => x.match(/../g).reverse().join('')); return w.join('').match(/.{4}/g).join(':').replace(/(^|:)0{1,3}/g, '$1').replace(/(:0)+:?$/, '::') || '::'; };
+      const ST = { '01': 'Established', '02': 'SynSent', '03': 'SynReceived', '04': 'FinWait1', '05': 'FinWait2', '06': 'TimeWait', '07': 'Closed', '08': 'CloseWait', '09': 'LastAck', '0A': 'Listen', '0B': 'Closing' };
+      for (const [f, proto, v6] of [['tcp', 'TCP', false], ['tcp6', 'TCP', true], ['udp', 'UDP', false], ['udp6', 'UDP', true]]) { let t = ''; try { t = fs.readFileSync('/proc/net/' + f, 'utf8'); } catch (e) { continue; } for (const ln of t.split('\n').slice(1)) { const c = ln.trim().split(/\s+/); if (c.length < 10) continue; const [la, lp] = c[1].split(':'); const [ra, rp] = c[2].split(':'); L.push({ proto, local: v6 ? hex6(la) : hex4(la), lport: parseInt(lp, 16), remote: parseInt(rp, 16) || (v6 ? ra !== '0'.repeat(32) : ra !== '00000000') ? (v6 ? hex6(ra) : hex4(ra)) : '', rport: parseInt(rp, 16), state: proto === 'UDP' ? 'Bound' : ST[c[3]] || c[3], pid: inodePid.get(c[9]) || 0 }); } }
+      return L;
+    }
+    async function net() {
+      const t = now(); const list = await procs(false); const byPid = new Map(list.map((p) => [p.pid, p])); const conns = await readConns();
+      await sigs(conns.filter((c) => c.state === 'Established' && isExternal(c.remote)).map((c) => (byPid.get(c.pid) || {}).path));
+      const seenNow = new Set(); const out = [];
+      for (const c of conns) {
+        const p = byPid.get(c.pid); c.name = p ? p.name : (c.pid ? '(pid ' + c.pid + ')' : 'Sistem'); c.path = p ? p.path : ''; c.dir = c.state === 'Listen' || c.proto === 'UDP' ? 'listen' : (c.remote && !isExternal(c.remote) ? 'local' : 'out');
+        if (c.remote && c.state !== 'Listen' && c.proto === 'TCP' && c.state !== 'TimeWait' && c.state !== 'Closed') { const key = c.pid + '|' + c.remote + '|' + c.rport; seenNow.add(key + '|' + c.lport); let h = hist.get(key); if (!h) { h = { pid: c.pid, name: c.name, remote: c.remote, rport: c.rport, first: t, last: t, locals: new Set(), times: [], total: 0 }; hist.set(key, h); } h.last = t; h.name = c.name; if (!h.locals.has(c.lport)) { h.locals.add(c.lport); h.times.push(t); h.total++; if (h.times.length > 60) h.times.shift(); if (h.locals.size > 400) h.locals = new Set([...h.locals].slice(-200)); } c.since = h.first; c.hits = h.total; c.beacon = beaconScore(h.times); }
+        const sig = c.path ? sigCache.get(c.path) : null; c.sig = sig ? sig.status : ''; c.flags = flagConn(c, p, sig); out.push(c);
+      }
+      for (const [k, h] of hist) if (t - h.last > 6 * 3600 * 1000) hist.delete(k); if (hist.size > 5000) for (const k of [...hist.keys()].slice(0, hist.size - 4000)) hist.delete(k);
+      const est = out.filter((c) => c.state === 'Established'); const sum = { total: out.length, established: est.length, external: est.filter((c) => isExternal(c.remote)).length, listening: out.filter((c) => c.state === 'Listen').length, flagged: out.filter((c) => c.flags.length).length, since: netStart, procs: new Set(est.filter((c) => isExternal(c.remote)).map((c) => c.pid)).size };
+      lastNet = { t, conns: out }; return { conns: out, summary: sum, t };
+    }
+    function history() { const L = [...hist.values()].map((h) => ({ pid: h.pid, name: h.name, remote: h.remote, rport: h.rport, first: h.first, last: h.last, total: h.total, beacon: beaconScore(h.times), external: isExternal(h.remote) })); return L.sort((a, b) => b.last - a.last).slice(0, 2000); }
+
+    /* --- ayrintilar --- */
+    const asPid = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 0 && n < 0x7fffffff ? n : null; };
+    async function detail(pid) {
+      const list = await procs(false); const p = list.find((x) => x.pid === pid); if (!p) return { error: 'gone', message: 'Süreç artık yok.' };
+      const parent = list.find((x) => x.pid === p.ppid); const kids = list.filter((x) => x.ppid === pid).map((x) => ({ pid: x.pid, name: x.name }));
+      const d = { pid, name: p.name, path: p.path, cmd: p.cmd, ppid: p.ppid, parent: parent ? parent.name : '', children: kids.slice(0, 50), threads: p.threads, handles: p.handles, mem: p.mem, commit: p.commit, start: p.start, modules: [], services: [], owner: '', sha256: '', size: 0, version: '', company: '', sig: null };
+      if (p.path) { try { const st = fs.statSync(p.path); d.size = st.size; d.mtime = st.mtimeMs; } catch (e) { /* okunamadi */ } }
+      if (isWin() && p.path) {
+        const lp = "'" + p.path.replace(/'/g, "''") + "'";
+        const [o1, o2] = await Promise.all([
+          winPS('$p=Get-Process -Id ' + pid + ';$m=@($p.Modules|ForEach-Object{[pscustomobject]@{n=$_.ModuleName;p=$_.FileName;v=$_.FileVersionInfo.CompanyName}});$o="";try{$o=(Get-CimInstance Win32_Process -Filter "ProcessId=' + pid + '"|Invoke-CimMethod -MethodName GetOwner|ForEach-Object{$_.Domain+"\\"+$_.User})}catch{};$s=@(Get-CimInstance Win32_Service -Filter "ProcessId=' + pid + '"|ForEach-Object{[pscustomobject]@{n=$_.Name;d=$_.DisplayName;s=$_.State}});$fv=(Get-Item -LiteralPath ' + lp + ').VersionInfo;[pscustomobject]@{mods=$m;owner=$o;svcs=$s;ver=$fv.FileVersion;co=$fv.CompanyName;desc=$fv.FileDescription}|ConvertTo-Json -Compress -Depth 4', run, 30000).catch(() => ''),
+          winPS('$h=(Get-FileHash -LiteralPath ' + lp + ' -Algorithm SHA256).Hash;$s=Get-AuthenticodeSignature -LiteralPath ' + lp + ';[pscustomobject]@{h=$h;st=[string]$s.Status;who=if($s.SignerCertificate){$s.SignerCertificate.Subject}else{""}}|ConvertTo-Json -Compress', run, 60000).catch(() => '')
+        ]);
+        const a = parseJson(o1)[0]; if (a) { d.modules = (Array.isArray(a.mods) ? a.mods : a.mods ? [a.mods] : []).slice(0, 600).map((m) => ({ name: m.n, path: m.p, company: m.v || '' })); d.owner = a.owner || ''; d.services = Array.isArray(a.svcs) ? a.svcs : a.svcs ? [a.svcs] : []; d.version = a.ver || ''; d.company = a.co || ''; d.desc = a.desc || ''; }
+        const b = parseJson(o2)[0]; if (b) { d.sha256 = String(b.h || '').toLowerCase(); d.sig = { status: b.st === 'Valid' ? 'Valid' : b.st === 'NotSigned' ? 'NotSigned' : b.st === 'HashMismatch' ? 'HashMismatch' : 'NotTrusted', signer: String(b.who || '').replace(/^.*?CN=([^,]+).*$/, '$1').slice(0, 120) }; sigCache.set(p.path, d.sig); }
+      } else if (p.path) { try { const crypto = require('crypto'); if (d.size < 200 * 1048576) d.sha256 = crypto.createHash('sha256').update(fs.readFileSync(p.path)).digest('hex'); } catch (e) { /* okunamadi */ } }
+      const conns = (lastNet ? lastNet.conns : await readConns().catch(() => [])).filter((c) => c.pid === pid); d.conns = conns.slice(0, 200).map((c) => ({ proto: c.proto, local: c.local, lport: c.lport, remote: c.remote, rport: c.rport, state: c.state }));
+      const sc = scoreProc(p, d.sig || sigCache.get(p.path) || null, d.conns, { parentName: String(d.parent || '').toLowerCase() }); d.score = sc.score; d.level = sc.level; d.why = sc.why; return d;
+    }
+    /* --- listeler (Extended) --- */
+    async function listOf(kind) {
+      if (!isWin()) return { items: [], note: 'Bu liste yalnızca Windows’ta okunur.' };
+      const Q = {
+        services: J('Get-CimInstance Win32_Service | Select-Object Name,DisplayName,State,StartMode,PathName,StartName,ProcessId,Description'),
+        drivers: J('Get-CimInstance Win32_SystemDriver | Select-Object Name,DisplayName,State,StartMode,PathName,ServiceType'),
+        startup: J('$r=@();foreach($k in "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run","HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce","HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run","HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce","HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run"){$i=Get-ItemProperty -Path $k;if($i){$i.PSObject.Properties|Where-Object{$_.Name -notmatch "^PS"}|ForEach-Object{$r+=[pscustomobject]@{Name=$_.Name;Command=[string]$_.Value;Location=$k}}}};foreach($f in "$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup","$env:ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp"){Get-ChildItem -LiteralPath $f -File|ForEach-Object{$r+=[pscustomobject]@{Name=$_.Name;Command=$_.FullName;Location=$f}}};$r'),
+        tasks: J('Get-ScheduledTask | Where-Object { $_.TaskPath -notlike "\\Microsoft\\Windows\\*" } | ForEach-Object { [pscustomobject]@{Name=$_.TaskName;Path=$_.TaskPath;State=[string]$_.State;Command=(($_.Actions|ForEach-Object{($_.Execute+" "+$_.Arguments).Trim()}) -join " ; ");Author=[string]$_.Principal.UserId} }')
+      }; if (!Q[kind]) return { error: 'bad', message: 'Geçersiz liste.' };
+      const items = parseJson(await winPS(Q[kind], run, 60000)); return { items: items.slice(0, 5000) };
+    }
+    return {
+      procs, sysStats, net, history, detail, listOf, sigs, ipClass, sigCache: () => sigCache,
+      handlers: {
+        'sys:procs': async (_e, ext) => { try { const list = await procs(false); if (ext === true) await annotate(list); const stats = sysStats(); return { procs: list, stats, platform: plat(), self: ownPid }; } catch (e) { return errObj(e); } },
+        'sys:sigs': async () => { try { if (sigBusy) return { busy: true }; sigBusy = true; try { const list = await procs(false); await sigs(list.map((p) => p.path)); } finally { sigBusy = false; } return { ok: true, count: sigCache.size }; } catch (e) { return errObj(e); } },
+        'sys:detail': async (_e, pid) => { try { const n = asPid(pid); if (n === null) return { error: 'bad', message: 'Geçersiz PID.' }; return await detail(n); } catch (e) { return errObj(e); } },
+        'sys:list': async (_e, kind) => { try { return await listOf(String(kind)); } catch (e) { return errObj(e); } },
+        'sys:net': async () => { try { return await net(); } catch (e) { return errObj(e); } },
+        'sys:nethist': async () => { try { return { hist: history(), since: netStart }; } catch (e) { return errObj(e); } },
+        'sys:netreset': async () => { hist.clear(); netStart = now(); return { ok: true, since: netStart }; },
+        'sys:reveal': async (_e, pid) => { try { const n = asPid(pid); const p = (procCache.list || []).find((x) => x.pid === n); if (!p || !p.path) return { error: 'nopath', message: 'Bu sürecin dosya yolu okunamadı.' }; if (deps.showItemInFolder) deps.showItemInFolder(p.path); return { ok: true }; } catch (e) { return errObj(e); } },
+        'sys:kill': async (_e, pid) => {
+          try {
+            const n = asPid(pid); if (n === null || n <= 4) return { error: 'bad', message: 'Bu süreç sonlandırılamaz.' }; if (n === ownPid) return { error: 'self', message: 'StatScan kendi sürecini buradan sonlandırmaz.' };
+            const p = (procCache.list || []).find((x) => x.pid === n); if (!p) return { error: 'gone', message: 'Süreç artık yok.' };
+            if (isWin() && /^(csrss|wininit|winlogon|services|lsass|smss|system|registry|memory compression|secure system)(\.exe)?$/i.test(p.name)) return { error: 'critical', message: 'Bu kritik bir Windows sürecidir; sonlandırmak sistemi çökertir. İşlem yapılmadı.' };
+            const ok = deps.confirm ? await deps.confirm({ title: 'Süreç sonlandırılsın mı?', message: p.name + ' (PID ' + n + ') zorla kapatılacak. Kaydedilmemiş veriler kaybolabilir.' + (p.path ? '\n\n' + p.path : ''), ok: 'Sonlandır', cancel: 'Vazgeç' }) : false; if (!ok) return { error: 'declined', message: 'İptal edildi.', status: 400 };
+            (deps.kill || process.kill)(n); procCache = { t: 0, list: [] }; return { ok: true };
+          } catch (e) { return errObj(e); }
+        }
+      }
+    };
+  }
+  return { createSysHost, ipClass, isExternal, beaconScore, scoreProc, flagConn, SUSP_PORTS };
+})();
+
 function riskyList(ui) {
   const out = []; ui = ui || {};
   for (const k of RISKY) if (ui[k] && ui[k] !== 'Disable') out.push(RISK_TEXT[k]);
@@ -731,6 +931,8 @@ function createHost(deps) {
   }
   /* Java derleyici (yalnizca kullanicinin kendi JDK'si; bkz. COMPMOD) */
   if (deps.compile !== false) { const ch = COMPMOD.createCompileHost({ downloadsDir: deps.downloadsDir, outputBase: deps.compileOutputBase, env: deps.compileEnv, jdkDirs: deps.compileJdkDirs, onlyJdkDirs: deps.compileOnlyJdkDirs, notify: deps.notify, showItemInFolder: deps.showItemInFolder, toolDirs: deps.compileToolDirs, onlyToolDirs: deps.compileOnlyToolDirs }); Object.assign(handlers, ch.handlers); }
+  /* Gorev Yoneticisi + Ag Izleyici (salt okunur; bkz. SYSMOD) */
+  if (deps.sys !== false) { const sh = SYSMOD.createSysHost(Object.assign({ confirm: deps.confirm, showItemInFolder: deps.showItemInFolder }, deps.sys || {})); Object.assign(handlers, sh.handlers); }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
@@ -759,4 +961,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD };

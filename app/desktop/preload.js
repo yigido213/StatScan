@@ -51,6 +51,15 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   notesDelete: (id) => call('notes:delete', String(id)),
   notesRestore: (n) => call('notes:restore', n),
   notesExport: () => call('notes:export'),
+  sysProcs: (ext) => call('sys:procs', ext === true),
+  sysSigs: () => call('sys:sigs'),
+  sysDetail: (pid) => call('sys:detail', Number(pid)),
+  sysList: (k) => call('sys:list', String(k)),
+  sysNet: () => call('sys:net'),
+  sysNetHist: () => call('sys:nethist'),
+  sysNetReset: () => call('sys:netreset'),
+  sysReveal: (pid) => call('sys:reveal', Number(pid)),
+  sysKill: (pid) => call('sys:kill', Number(pid)),
   storeGet: (k) => call('store:get', String(k)),
   storeSet: (k, v) => call('store:set', String(k), String(v))
 }));
