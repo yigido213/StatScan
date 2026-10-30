@@ -13,6 +13,12 @@ const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'kacc-')); const kp = ()
   ok((await mk(tmp(), { machineId: () => 'baska-makine' }).handlers['access:status']()).id !== s.id, 'farklı makine → farklı kimlik');
   ok(!s.id.replace(/-/g, '').includes('MACHINE'), 'kimlik GUID’i açık etmez (tuzlu özet)');
   const dr = tmp(); const r1 = (await mk(dr, { machineId: () => null }).handlers['access:status']()).id; ok(r1 === (await mk(dr, { machineId: () => null }).handlers['access:status']()).id && fs.existsSync(path.join(dr, 'install-id.json')), 'GUID yoksa rastgele kimlik üretilir ve saklanır, sonraki açılışta aynı');
+  { const sid = s.id.replace(/-/g, ''); const dI = tmp(); const hI = mk(dI, { ownerIds: [sid] }); const si = await hI.handlers['access:status'](); ok(si.owner === true && si.unlocked === false, 'sahip kimliği eşleşirse anahtarsız sahip (Notlarım/Yönetim açık)');
+    ok((await hI.handlers['notes:list']()).ok === true && (await hI.handlers['owner:bl:get']()).ok === true, 'kimlikle sahipken notlar ve liste taslağı kullanılabilir');
+    ok((await hI.handlers['owner:bl:publish']()).needKey === true, 'kimlikle sahip olsa da liste imzalamak private.pem ister');
+    ok((await mk(tmp(), { ownerIds: [sid], machineId: () => 'baska-makine' }).handlers['access:status']()).owner === false, 'başka makinede aynı sahip listesi sahip yapmaz');
+    ok((await hI.handlers['owner:off']()).owner === true, 'kimlikle tanınan sahip owner:off ile kapanmaz');
+    ok(A.OWNER_IDS.length >= 1 && A.OWNER_IDS.every((x) => A.ID_RE.test(x)), 'gömülü sahip kimlikleri geçerli biçimde'); }
   // --- imzalı liste ---
   const selfId = s.id.replace(/-/g, ''); const sign = (k, seq, ids, notice) => A.signBlocklist(k.privateKey, { seq, notice, entries: ids.map((id) => ({ id, note: 'x', added: '2026-10-29' })) });
   const net = { text: null, err: null }; const fetchText = async () => { if (net.err) throw new Error(net.err); return net.text; };

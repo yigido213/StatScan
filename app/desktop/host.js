@@ -515,6 +515,8 @@ const ACCESSMOD = (() => {
   const fs = require('fs'); const path = require('path'); const crypto = require('crypto'); const cp = require('child_process'); const https = require('https');
   const EMBEDDED_PUBKEY = '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAzd4sQ75S5pVxMGRgjONDV6fWeWB7qKwp7T2mYYXn2Wk=\n-----END PUBLIC KEY-----\n';
   const DEFAULT_URL = 'https://raw.githubusercontent.com/yigido213/StatScan/main/blocklist.json';
+  /* Sahibin kurulum kimlikleri: bu kimlikteki kurulum anahtar secmeden sahip sayilir (Notlarim + Yonetim hemen gorunur). Kimlik makine GUID'inin tuzlu ozetidir; baska makine ayni kimligi uretemez. Liste imzalama yine private.pem ister. */
+  const OWNER_IDS = ['OPAMWK7TX6YLR76T'];
   const ID_RE = /^[A-Z2-7]{16}$/; const LIM = { entries: 5000, text: 512 * 1024, note: 200, notice: 300, notes: 5000, noteText: 200000, notesTotal: 20 * 1024 * 1024, keyFile: 8192 };
   const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   function b32(buf) { let bits = 0, val = 0, out = ''; for (const b of buf) { val = (val << 8) | b; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } } if (bits > 0) out += B32[(val << (5 - bits)) & 31]; return out; }
@@ -571,7 +573,7 @@ const ACCESSMOD = (() => {
       catch (e) { st.error = 'Liste alınamadı: ' + String(e && e.message || e); } st.checked = now(); return snapshot();
     }
     let priv = null; let persistErr = ''; /* anahtar bellekte dogrulandiysa sahip say (owner.json yazilamasa bile); yeniden aciliste dosya bayragi gecerli */
-    const ownerFlag = () => { if (priv) return true; const o = readJson(F('owner.json')); return !!(o && pubFp && o.fp === pubFp); };
+    const ownerIds = (deps.ownerIds || OWNER_IDS).map(normId); const ownerFlag = () => { if (priv || ownerIds.includes(id)) return true; const o = readJson(F('owner.json')); return !!(o && pubFp && o.fp === pubFp); };
     const snapshot = () => ({ id: fmtId(id), blocked: st.blocked, notice: st.notice, source: st.source, seq: st.seq, count: st.count, checked: st.checked, error: st.error, owner: ownerFlag(), unlocked: !!priv, trusted: !!pub });
     const needOwner = () => (ownerFlag() ? null : errE('Bu işlem yalnızca uygulamanın sahibi içindir.'));
     const needKey = () => (priv ? null : errE('Önce sahip anahtarını (private.pem) seç.', { needKey: true }));
@@ -591,7 +593,7 @@ const ACCESSMOD = (() => {
       'owner:status': async () => ({ owner: ownerFlag(), unlocked: !!priv, trusted: !!pub }),
       'owner:unlock': async (_e, file) => { if (typeof file === 'string' && deps.allowPathUnlock) return unlockFromPath(file); if (!deps.chooseFile) return errE('Dosya seçimi yok.'); const f = await deps.chooseFile(); if (!f) return { canceled: true }; return unlockFromPath(f); },
       'owner:lock': async () => { priv = null; return { ok: true, owner: ownerFlag(), unlocked: false }; },
-      'owner:off': async () => { priv = null; try { fs.rmSync(F('owner.json'), { force: true }); } catch (e) { /* yok */ } return { ok: true, owner: false, unlocked: false }; },
+      'owner:off': async () => { priv = null; try { fs.rmSync(F('owner.json'), { force: true }); } catch (e) { /* yok */ } return { ok: true, owner: ownerFlag(), unlocked: false }; },
       'owner:bl:get': async () => needOwner() || { ok: true, draft: draftView(draftRead()), live: { seq: st.seq, count: st.count, source: st.source } },
       'owner:bl:add': async (_e, rawId, note) => { const bad = needOwner(); if (bad) return bad; const nid = normId(rawId); if (!ID_RE.test(nid)) return errE('Kimlik 16 karakter olmalı (A–Z ve 2–7), ör. ABCD-EFGH-IJKL-MNOP.'); if (nid === id) return errE('Kendi kimliğini engelleyemezsin.'); const d = draftRead(); if (d.entries.length >= LIM.entries) return errE('Liste dolu.'); if (d.entries.some((e) => e.id === nid)) return errE('Bu kimlik zaten listede.'); d.entries.push({ id: nid, note: String(note || '').slice(0, LIM.note), added: new Date(now()).toISOString().slice(0, 10) }); draftWrite(d); return { ok: true, draft: draftView(d) }; },
       'owner:bl:remove': async (_e, rawId) => { const bad = needOwner(); if (bad) return bad; const nid = normId(rawId); const d = draftRead(); const n = d.entries.length; d.entries = d.entries.filter((e) => e.id !== nid); if (d.entries.length === n) return errE('Bu kimlik listede yok.'); draftWrite(d); return { ok: true, draft: draftView(d) }; },
@@ -623,7 +625,7 @@ const ACCESSMOD = (() => {
     function stop() { if (timer) { clearInterval(timer); timer = null; } }
     return { handlers, start, stop, refresh, isBlocked: () => st.blocked, snapshot, id: () => id, fmtId };
   }
-  return { createAccessHost, verifyBlocklist, signBlocklist, trustedKey, normId, fmtId, b32, machineGuid, EMBEDDED_PUBKEY, DEFAULT_URL, ID_RE, LIM };
+  return { createAccessHost, verifyBlocklist, signBlocklist, trustedKey, normId, fmtId, b32, machineGuid, EMBEDDED_PUBKEY, DEFAULT_URL, OWNER_IDS, ID_RE, LIM };
 })();
 
 function riskyList(ui) {
