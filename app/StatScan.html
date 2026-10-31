@@ -723,6 +723,27 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .sm-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; } .sm-kv dt { color: var(--muted); font: 500 11.5px var(--f-mono); text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; } .sm-kv dd { margin: 0; overflow-wrap: anywhere; font: 13px var(--f-mono); }
 .sm-why { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
 @media (max-width: 640px) { .sm-kv { grid-template-columns: 1fr; } .sm-kv dt { padding-top: 6px; } }
+/* RAM Analizi (ramanaliz) */
+.rm-box { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; } .rm-box h2 { margin: 0; font-size: 17px; }
+.rm-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; } .rm-row input[type=number] { width: 6.5em; } .rm-row input, .rm-row select { font: 14px var(--f-body); padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); min-width: 0; max-width: 100%; } .rm-row input[type=search] { flex: 1 1 220px; }
+.rm-hint { margin: 0; color: var(--muted); font-size: 13.5px; text-wrap: pretty; }
+.rm-fs { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 10px; margin: 0; min-width: 0; } .rm-fs legend { padding: 0 6px; font-weight: 600; font-size: 14px; }
+.rm-layers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 6px 14px; }
+.rm-opt { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; font-size: 14px; } .rm-opt input { margin-top: 3px; flex: none; } .rm-opt span { display: grid; gap: 2px; min-width: 0; } .rm-opt small { color: var(--muted); font-size: 12.5px; } .rm-opt input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rm-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; } .rm-res[hidden] { display: none; }
+.rm-score { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 14px 18px; }
+.rm-big { font: 700 clamp(44px, 9vw, 68px)/1 var(--f-display); letter-spacing: -.02em; } .rm-big small { font-size: .38em; color: var(--muted); font-weight: 500; }
+.rm-scoretx { display: grid; gap: 6px; min-width: 0; flex: 1 1 260px; } .rm-lvl { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rm-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 10px; }
+.rm-find { border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--surface); display: grid; gap: 6px; overflow-wrap: anywhere; min-width: 0; } .rm-find.high { border-left-color: var(--s3); } .rm-find.mid { border-left-color: var(--s2); } .rm-find.low { border-left-color: var(--s0); }
+.rm-find header { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; } .rm-find p { margin: 0; } .rm-proc { color: var(--muted); font: 12.5px var(--f-mono); } .rm-pts { margin-left: auto; font: 600 12.5px var(--f-mono); color: var(--muted); } .rm-detail { font-size: 14px; } .rm-find .cv-sec p { margin: 6px 0 2px; font-size: 13.5px; color: var(--muted); }
+.rm-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; } .rm-row select { flex: 1 1 180px; width: 0; min-width: 0; text-overflow: ellipsis; } .rm-pos { font: 12.5px var(--f-mono); color: var(--muted); }
+@media (max-width: 640px) { .rm-box { padding: 12px; } .rm-pts { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { #app-ramanaliz .cp-s.run .cp-i { animation: none; } }
+#app-ramanaliz summary { list-style: none; } #app-ramanaliz summary::-webkit-details-marker { display: none; }
+#rm-pq, #rm-lq { font: 14px var(--f-body); padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; }
+#rm-pq:focus-visible, #rm-lq:focus-visible, .rm-row select:focus-visible, .rm-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+html[data-fx="off"] #app-ramanaliz .cp-s.run .cp-i { animation: none; }
 /* ===== Kovan animasyonlari (claude-animasyon) =====
    Hepsi transform/opacity agirlikli. Sistem "hareketi azalt" ayari ya da Ayarlar > "Arayuz animasyonlari" kapaliyken (html[data-fx="off"]) hicbiri calismaz. */
 @media (prefers-reduced-motion: no-preference) {
@@ -868,6 +889,7 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 <section id="app-compiler" class="kv" aria-label="Derleyici" hidden></section>
 <section id="app-taskmgr" class="kv kv-wide" aria-label="Görev Yöneticisi" hidden></section>
 <section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
+<section id="app-ramanaliz" class="kv kv-wide" aria-label="RAM Analizi" hidden></section>
 <section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
 <section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
@@ -2910,6 +2932,194 @@ function srcPlan(files) {
   out.suggestName = (String(out.suggestName).replace(/[^A-Za-z0-9_-]/g, '') || 'app').replace(/^[^A-Za-z]+/, '') || 'app'; return out;
 }
 /*#endregion srcscan*/
+/*#region memscan*/
+/* Kovan RAM Analizi: bulgu motoru (Volatility 3 "-r json" çıktıları üstünde sezgisel kurallar).
+   SAF JS: dosya / ağ / süreç erişimi YOK; yalnızca verilen satırları okur. Aynı kod hem StatScan.html motorunda (inject.mjs) hem host tarafında çalışır.
+   Girdi: { info, pslist, psscan, pstree, cmdline, dlllist, ldrmodules, malfind, netscan, svcscan, modules, driverscan, filescan, handles } — her biri
+   Volatility satırlarının dizisi (verilmeyen katman = çalışmadı). Sütun adları büyük/küçük harf ve boşluk duyarsız okunur (Volatility sürümleri arası).
+   ÖNEMLİ: Bu bir SEZGİSEL puanlamadır. Hiçbir döküm "sorunsuz" ilan edilmez; her bulguda yanlış pozitif açıklaması bulunur.
+   Sistem süreci tabloları SYSMOD (host.js) ile aynı kalıptan KOPYALANDI (taşınmadı; SYSMOD'a dokunulmaz). */
+const RAM_SCRIPT_HOSTS = new Set(['powershell.exe', 'pwsh.exe', 'wscript.exe', 'cscript.exe', 'mshta.exe', 'cmd.exe', 'rundll32.exe', 'regsvr32.exe', 'certutil.exe', 'bitsadmin.exe', 'msbuild.exe', 'installutil.exe', 'wmic.exe']);
+const RAM_SUSP_ARGS = /(-enc(odedcommand)?\s|-e\s+[A-Za-z0-9+/=]{30,}|frombase64string|downloadstring|downloadfile|invoke-expression|\biex\b|net\.webclient|-w(indowstyle)?\s+hidden|-nop\b|-noni\b|-ep\s+bypass|executionpolicy\s+bypass|urlcache|scrobj\.dll|\/i:https?:|mshta(\.exe)?\s+(https?:|vbscript:|javascript:)|rundll32.*javascript:|bitsadmin.*\/transfer|wmic.*process\s+call\s+create)/i;
+const RAM_BAD_DIRS = [/\\appdata\\local\\temp\\/i, /\\windows\\temp\\/i, /\\users\\public\\/i, /\\downloads\\/i, /\\\$recycle\.bin\\/i, /\\appdata\\roaming\\[^\\]+\.(exe|scr|dll)$/i, /\\programdata\\[^\\]+\.(exe|scr|dll)$/i];
+const RAM_PORTS = { 4444: 'Metasploit varsayılanı', 1337: 'sık görülen arka kapı portu', 31337: 'klasik arka kapı portu', 6667: 'IRC (botnet C2)', 6697: 'IRC (TLS)', 5555: 'ADB/RAT portu', 9001: 'Tor yönlendirici', 9030: 'Tor dizin', 9050: 'Tor SOCKS', 3333: 'madencilik havuzu (stratum)', 14444: 'madencilik havuzu', 12345: 'NetBus' };
+/* beklenen konum (system32 | windows), beklenen ebeveyn(ler); parentMayBeGone: ebeveyn normalde sonlanır; single: tek örnek olmalı */
+const RAM_SYSTEM = {
+  'smss.exe': { dir: 'system32', parents: ['system', 'smss.exe'], gone: true }, 'csrss.exe': { dir: 'system32', parents: ['smss.exe'], gone: true }, 'wininit.exe': { dir: 'system32', parents: ['smss.exe'], gone: true, single: true },
+  'winlogon.exe': { dir: 'system32', parents: ['smss.exe'], gone: true }, 'services.exe': { dir: 'system32', parents: ['wininit.exe'], single: true }, 'lsass.exe': { dir: 'system32', parents: ['wininit.exe'], single: true },
+  'lsm.exe': { dir: 'system32', parents: ['wininit.exe'] }, 'svchost.exe': { dir: 'system32', parents: ['services.exe'] }, 'taskhostw.exe': { dir: 'system32', parents: ['svchost.exe'] }, 'spoolsv.exe': { dir: 'system32', parents: ['services.exe'] },
+  'dwm.exe': { dir: 'system32', parents: ['winlogon.exe'], gone: true }, 'explorer.exe': { dir: 'windows', parents: ['userinit.exe', 'winlogon.exe', 'explorer.exe'], gone: true }, 'runtimebroker.exe': { dir: 'system32', parents: ['svchost.exe'] },
+  'sihost.exe': { dir: 'system32', parents: ['svchost.exe'] }, 'dllhost.exe': { dir: 'system32', parents: ['svchost.exe'] }, 'fontdrvhost.exe': { dir: 'system32', parents: ['wininit.exe', 'winlogon.exe'], gone: true }, 'ctfmon.exe': { dir: 'system32', parents: [] },
+  'conhost.exe': { dir: 'system32', parents: [] }, 'searchindexer.exe': { dir: 'system32', parents: ['services.exe'] }
+};
+const RAM_JIT = new Set(['chrome.exe', 'msedge.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'vivaldi.exe', 'java.exe', 'javaw.exe', 'dotnet.exe', 'powershell.exe', 'pwsh.exe', 'code.exe', 'node.exe', 'devenv.exe', 'teams.exe', 'slack.exe', 'discord.exe', 'spotify.exe', 'steam.exe', 'steamwebhelper.exe', 'msmpeng.exe', 'onedrive.exe', 'msedgewebview2.exe']);
+const RAM_SKIP = new Set(['system', 'idle', 'registry', 'memory compression', 'secure system', 'system idle process']);
+const RAM_FP = {
+  hidden: 'Döküm alınırken sonlanan/oluşan süreçler, tutarsız (smear) bellek sayfaları ve bozuk EPROCESS kalıntıları pslist ile psscan arasında fark üretebilir. Adı, PID’i ve zamanları tutarlıysa gerçek bir gizlenmiş süreç olma ihtimali artar.',
+  terminated: 'Sonlanmış süreçlerin kalıntıları psscan’de normal olarak durur; tek başına şüphe değildir.',
+  inject: 'JIT derleyen programlar (tarayıcılar, .NET, Java, Electron uygulamaları), bazı DRM/anti-hile ve güvenlik yazılımları RWX özel bellek kullanır. MZ başlığı olmayan RWX bölgeleri en sık yanlış pozitiftir; MZ başlığı (PE) olanlar çok daha anlamlıdır.',
+  unlink: 'Ana yürütülebilir dosya ve bazı sistem DLL’leri listelerden birinde bulunmayabilir; veri olarak eşlenen dosyalar da çıkabilir. Üç listeden de eksik olan, yürütülebilir uzantılı bir görüntü daha anlamlıdır.',
+  parent: 'Windows 10/11’de bazı sistem süreçlerinin ebeveyni (smss, userinit) kısa sürede sonlandığı için pslist’te görünmez; sanallaştırma/güvenlik ürünleri de süreç ağacını değiştirebilir. Tek başına ebeveyn uyuşmazlığı kesin kanıt değildir.',
+  single: 'Nadiren, döküm anında eski bir örneğin kalıntısı veya oturum yeniden başlatması ikinci bir örnek gösterebilir.',
+  path: 'Konum bilgisi PEB/denetim kaydından okunur; bozuk veya bellekten atılmış sayfalar yanlış yol gösterebilir. Kurulu sistemde WinSxS ve yama sürümleri nadiren farklı konum kullanır.',
+  lookalike: 'Güvenlik yazılımları, sanallaştırma ürünleri ve bazı üçüncü taraf araçlar sistem süreçlerine benzer adlar kullanabilir.',
+  baddir: 'Bazı meşru kurulum programları, taşınabilir uygulamalar ve güncelleyiciler geçici/İndirilenler/AppData klasörlerinden çalışır.',
+  cmdline: 'Yönetim betikleri, kurulum programları ve kurumsal araçlar (SCCM, Intune, Chocolatey) kodlanmış veya gizli pencereli PowerShell kullanabilir.',
+  shellnet: 'Betik konakları yazılım kurulumu/güncellemesi sırasında meşru olarak internete bağlanabilir; netscan kapanmış/eski bağlantı artıklarını da gösterebilir.',
+  sysnet: 'LSASS ve benzeri sistem süreçleri normalde genel internete bağlanmaz; ancak bağlantı artığı veya yanlış eşleşen PID/sahip bilgisi yanlış pozitif doğurabilir.',
+  port: 'Bu portlar kötü amaçlı yazılımda sık görülür ama meşru uygulamalar da kullanabilir.',
+  dll: 'Kullanıcı klasörlerinden DLL yüklemek bazı meşru uygulamalarda (Electron, taşınabilir araçlar) yaygındır.',
+  service: 'Bazı meşru yazılımlar hizmet ikili dosyasını ProgramData veya kullanıcı profilinde tutar.',
+  driver: 'Yüklemesi kaldırılmış sürücüler driverscan’de kalır; farklı adlandırılmış sürücüler karşılaştırmada eşleşmeyebilir.'
+};
+const RAM_LAYERS = ['info', 'pslist', 'psscan', 'pstree', 'cmdline', 'dlllist', 'ldrmodules', 'malfind', 'netscan', 'svcscan', 'modules', 'driverscan', 'filescan', 'handles'];
+const ramKey = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+function ramGet(row, names) { if (!row || typeof row !== 'object') return undefined; const ks = Object.keys(row); for (const n of names) { const want = ramKey(n); for (const k of ks) if (ramKey(k) === want) { const v = row[k]; if (v !== null && v !== undefined) return v; } } return undefined; }
+const ramInt = (v) => { if (v === undefined || v === null || v === '') return null; const n = typeof v === 'number' ? v : parseInt(String(v), /^0x/i.test(String(v)) ? 16 : 10); return Number.isFinite(n) ? n : null; };
+const ramStr = (v) => (v === undefined || v === null ? '' : String(v));
+const ramTime = (v) => { if (v === undefined || v === null) return null; const s = String(v).trim(); return !s || s === '-' || /^n\/?a$/i.test(s) || /^disabled$/i.test(s) || /^1601-/.test(s) ? null : s; };
+const ramLow = (v) => ramStr(v).toLowerCase();
+function ramPathNorm(p) { if (!p) return ''; let s = String(p).trim().replace(/^"|"$/g, '').replace(/\//g, '\\').toLowerCase(); s = s.replace(/^\\\?\?\\/, '').replace(/^\\\\\?\\/, '').replace(/^\\systemroot\\/, '\\windows\\').replace(/^\\device\\harddiskvolume\d+/, '').replace(/^[a-z]:/, ''); return s; }
+function ramExePath(cmd) { const s = ramStr(cmd).trim(); if (!s) return ''; if (s[0] === '"') { const e = s.indexOf('"', 1); return e > 0 ? s.slice(1, e) : s.slice(1); } const m = /^(.*?\.(?:exe|sys|dll|scr|bat|cmd))(?:\s|$)/i.exec(s); return m ? m[1] : s.split(/\s+/)[0]; }
+function ramLev(a, b) { const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 9; let p = Array.from({ length: n + 1 }, (_, i) => i); for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; } return p[n]; }
+function ramSwapped(a, b) { if (a.length !== b.length) return false; for (let i = 0; i < a.length - 1; i++) { if (a[i] !== b[i]) return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2); } return false; }
+function ramIpClass(ip) {
+  ip = String(ip || '').trim().toLowerCase(); if (!ip || ip === '*' || ip === '0.0.0.0' || ip === '::') return 'any';
+  const m4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip); if (m4) ip = m4[1];
+  if (ip.includes(':')) { if (ip === '::1') return 'loopback'; if (/^fe[89ab]/.test(ip)) return 'linklocal'; if (/^f[cd]/.test(ip)) return 'private'; if (/^ff/.test(ip)) return 'multicast'; return 'public'; }
+  const p = ip.split('.').map(Number); if (p.length !== 4 || p.some((x) => !(x >= 0 && x <= 255))) return 'unknown';
+  if (p[0] === 127) return 'loopback'; if (p[0] === 10) return 'private'; if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return 'private'; if (p[0] === 192 && p[1] === 168) return 'private';
+  if (p[0] === 169 && p[1] === 254) return 'linklocal'; if (p[0] === 100 && p[1] >= 64 && p[1] <= 127) return 'cgnat'; if (p[0] >= 224 && p[0] <= 239) return 'multicast'; if (p[0] === 0 || p[0] >= 240) return 'unknown';
+  return 'public';
+}
+const ramExternal = (ip) => { const c = ramIpClass(ip); return c === 'public' || c === 'cgnat'; };
+/* Volatility "__children" ağacını (pstree) düz satırlara çevirir; her satıra __depth ekler */
+function ramFlatten(rows, depth) { const out = []; for (const r of Array.isArray(rows) ? rows : []) { if (!r || typeof r !== 'object') continue; const { __children, ...rest } = r; rest.__depth = depth || 0; out.push(rest); if (Array.isArray(__children) && __children.length) for (const c of ramFlatten(__children, (depth || 0) + 1)) out.push(c); } return out; }
+const RAM_LEVEL = (s) => (s >= 60 ? 'high' : s >= 30 ? 'mid' : 'low');
+const RAM_SEV = (p) => (p >= 35 ? 'high' : p >= 15 ? 'mid' : p > 0 ? 'low' : 'info');
+
+function ramScan(data, opts) {
+  data = data || {}; opts = opts || {};
+  const has = (k) => Array.isArray(data[k]); const rowsOf = (k) => (has(k) ? data[k] : []);
+  const coverage = RAM_LAYERS.map((k) => ({ id: k, state: has(k) ? 'ok' : 'missing', rows: has(k) ? data[k].length : 0 }));
+  const notes = []; const F = []; let seq = 0;
+  const add = (rule, pts, pid, proc, title, detail, fp) => { F.push({ id: 'F' + (++seq), rule, sev: RAM_SEV(pts), pts, pid: pid === undefined ? null : pid, proc: proc || '', title, detail: detail || '', fp: fp || RAM_FP[rule] || '' }); };
+  /* --- süreçler --- */
+  const norm = (r, kind) => ({ kind, pid: ramInt(ramGet(r, ['PID'])), ppid: ramInt(ramGet(r, ['PPID'])), name: ramStr(ramGet(r, ['ImageFileName', 'Name', 'Process'])), created: ramTime(ramGet(r, ['CreateTime'])), exited: ramTime(ramGet(r, ['ExitTime'])), threads: ramInt(ramGet(r, ['Threads'])), handles: ramInt(ramGet(r, ['Handles'])), session: ramInt(ramGet(r, ['SessionId'])), path: ramStr(ramGet(r, ['Path'])), cmd: ramStr(ramGet(r, ['Cmd'])) });
+  const pl = rowsOf('pslist').map((r) => norm(r, 'pslist')).filter((p) => p.pid !== null); const ps = rowsOf('psscan').map((r) => norm(r, 'psscan')).filter((p) => p.pid !== null); const pt = ramFlatten(rowsOf('pstree')).map((r) => norm(r, 'pstree')).filter((p) => p.pid !== null);
+  const live = has('pslist') ? pl : ps.filter((p) => !p.exited); if (!has('pslist')) notes.push('pslist çalışmadı: süreç listesi psscan’den (ZamanBitişi olmayanlar) türetildi; gizli süreç karşılaştırması yapılamadı.');
+  const byPid = new Map(); for (const p of [...ps, ...pt, ...pl]) byPid.set(p.pid, p);
+  const procMap = new Map(); const P = (pid, name) => { let o = procMap.get(pid); if (!o) { o = { pid, name: name || '', ppid: null, path: '', cmd: '', created: null, exited: null, hidden: false, why: [] }; procMap.set(pid, o); } if (name && !o.name) o.name = name; return o; };
+  for (const p of [...ps, ...pt, ...pl]) { const o = P(p.pid, p.name); if (p.ppid !== null) o.ppid = p.ppid; if (p.created) o.created = p.created; if (p.exited !== undefined && p.kind !== 'psscan') o.exited = p.exited; if (p.path && !o.path) o.path = p.path; if (p.cmd && !o.cmd) o.cmd = p.cmd; }
+  const pathOf = (p) => { const o = procMap.get(p.pid); return o ? o.path : ''; };
+  for (const r of rowsOf('cmdline')) { const pid = ramInt(ramGet(r, ['PID'])); const a = ramStr(ramGet(r, ['Args'])); if (pid === null || !a || /inaccessible|swapped/i.test(a)) continue; const o = P(pid, ramStr(ramGet(r, ['Process']))); o.cmd = a; }
+  const dllBy = new Map(); for (const r of rowsOf('dlllist')) { const pid = ramInt(ramGet(r, ['PID'])); if (pid === null) continue; const d = { name: ramStr(ramGet(r, ['Name'])), path: ramStr(ramGet(r, ['Path'])) }; if (!dllBy.has(pid)) dllBy.set(pid, []); dllBy.get(pid).push(d); }
+  for (const [pid, list] of dllBy) { const o = procMap.get(pid); if (o && !o.path && list[0] && ramLow(list[0].name) === ramLow(o.name)) o.path = list[0].path; }
+  const nameOf = (pid, fb) => { const o = procMap.get(pid); return (o && o.name) || fb || ''; };
+  /* R1: pslist ↔ psscan */
+  if (has('pslist') && has('psscan')) {
+    const seen = new Set(pl.map((p) => p.pid + '|' + (p.created || ''))); const seenPid = new Set(pl.map((p) => p.pid)); const gone = [];
+    for (const p of ps) {
+      if (seen.has(p.pid + '|' + (p.created || ''))) continue;
+      if (p.exited) { gone.push(p); continue; }
+      const o = P(p.pid, p.name); o.hidden = true;
+      const odd = !p.created; const reuse = seenPid.has(p.pid);
+      add('hidden', odd ? 15 : 45, p.pid, p.name, 'pslist’te yok, psscan’de duruyor (ExitTime yok)', (p.name || '?') + ' (PID ' + p.pid + ', PPID ' + (p.ppid === null ? '?' : p.ppid) + ') etkin süreç listesinde değil ama havuz taramasında bulundu' + (odd ? '; CreateTime yok → bozuk kalıntı olabilir' : '') + (reuse ? '; aynı PID başka bir süreç tarafından da kullanılıyor (PID yeniden kullanımı)' : '') + '.');
+    }
+    if (gone.length) add('terminated', 0, null, '', gone.length + ' sonlanmış süreç kalıntısı (psscan)', gone.slice(0, 12).map((p) => (p.name || '?') + ':' + p.pid).join(', ') + (gone.length > 12 ? ' …' : ''));
+    const plOnly = pl.filter((p) => !ps.some((q) => q.pid === p.pid && (q.created || '') === (p.created || ''))); if (plOnly.length && plOnly.length <= 20) for (const p of plOnly) add('hidden', 8, p.pid, p.name, 'pslist’te var, psscan’de bulunamadı', (p.name || '?') + ' (PID ' + p.pid + ') havuz taramasında görünmüyor; havuz etiketi üzerine yazılmış veya sayfa bozuk olabilir.');
+  } else if (has('pslist') !== has('psscan')) notes.push('pslist/psscan karşılaştırması için iki katman da gerekir.');
+  /* R4: sistem süreci taklidi, yanlış yol, ebeveyn */
+  const liveBy = new Map(); for (const p of live) { const k = ramLow(p.name); if (!liveBy.has(k)) liveBy.set(k, []); liveBy.get(k).push(p); }
+  for (const p of live) {
+    const ln = ramLow(p.name); if (!ln || RAM_SKIP.has(ln)) continue; const sys = RAM_SYSTEM[ln]; const pth = ramPathNorm(pathOf(p));
+    if (sys) {
+      if (pth) { const want = sys.dir === 'windows' ? ['\\windows\\' + ln] : ['\\windows\\system32\\' + ln, '\\windows\\syswow64\\' + ln]; if (!want.includes(pth)) add('path', 45, p.pid, p.name, 'Sistem süreci adı, beklenmeyen konumdan', p.name + ' (PID ' + p.pid + ') şu konumda: ' + pathOf(p) + ' — beklenen: ' + want[0] + ' (taklit olabilir).'); }
+      if (p.ppid !== null && sys.parents) {
+        const par = byPid.get(p.ppid);
+        if (par) { const pn = ramLow(par.name); if (sys.parents.length && !sys.parents.includes(pn)) add('parent', 30, p.pid, p.name, 'Beklenmeyen ebeveyn süreç', p.name + ' (PID ' + p.pid + ') ebeveyni ' + (par.name || '?') + ' (PID ' + p.ppid + '); beklenen: ' + sys.parents.join(' / ') + '.'); }
+        else if (!sys.gone && sys.parents.length) add('parent', 15, p.pid, p.name, 'Ebeveyn süreç listede yok', p.name + ' (PID ' + p.pid + ') için PPID ' + p.ppid + ' hiçbir listede bulunamadı; beklenen ebeveyn: ' + sys.parents.join(' / ') + '.');
+      }
+      if (sys.single) { const all = liveBy.get(ln) || []; if (all.length > 1) { const first = all.slice().sort((a, b) => String(a.created || '').localeCompare(String(b.created || '')))[0]; if (p !== first || all.some((q) => !q.created)) add('single', 30, p.pid, p.name, 'Tek olması gereken sistem süreğinden birden fazla var', all.length + ' adet ' + p.name + ' çalışıyor (PID: ' + all.map((q) => q.pid).join(', ') + ').'); } }
+    } else if (ln.length >= 6 && !/^(taskhost|taskhostex)\.exe$/.test(ln)) {
+      for (const k of Object.keys(RAM_SYSTEM)) if (ln !== k && k.length >= 6 && (ramLev(ln, k) <= 1 || ramSwapped(ln, k))) { add('lookalike', 40, p.pid, p.name, 'Adı sistem sürecine çok benziyor', p.name + ' (PID ' + p.pid + ') adı ' + k + ' ile neredeyse aynı.'); break; }
+    }
+    if (pth && RAM_BAD_DIRS.some((r) => r.test(pth))) add('baddir', 20, p.pid, p.name, 'Kullanıcının yazabildiği/geçici konumdan çalışıyor', p.name + ' (PID ' + p.pid + ') konumu: ' + pathOf(p));
+  }
+  /* R5: şüpheli komut satırı */
+  for (const [pid, o] of procMap) {
+    if (!o.cmd) continue; const ln = ramLow(o.name); let pts = 0; const why = [];
+    if (RAM_SUSP_ARGS.test(o.cmd)) { pts += RAM_SCRIPT_HOSTS.has(ln) ? 30 : 20; why.push('kodlama/gizleme/indirme kalıpları'); }
+    const b64 = /[A-Za-z0-9+/]{200,}={0,2}/.exec(o.cmd); if (b64) { pts += 15; why.push('çok uzun kodlanmış veri (' + b64[0].length + ' karakter)'); }
+    if (pts) add('cmdline', pts, pid, o.name, 'Şüpheli komut satırı', (o.name || '?') + ' (PID ' + pid + '): ' + why.join('; ') + ' — ' + o.cmd.slice(0, 220) + (o.cmd.length > 220 ? ' …' : ''));
+  }
+  /* R2: malfind */
+  const mfBy = new Map(); for (const r of rowsOf('malfind')) { const pid = ramInt(ramGet(r, ['PID'])); if (pid === null) continue; if (!mfBy.has(pid)) mfBy.set(pid, []); mfBy.get(pid).push(r); }
+  for (const [pid, list] of mfBy) {
+    const name = nameOf(pid, ramStr(ramGet(list[0], ['Process']))); const ln = ramLow(name);
+    const reg = list.map((r) => { const hd = ramStr(ramGet(r, ['Hexdump'])).trim().toLowerCase(); const notes2 = ramStr(ramGet(r, ['Notes'])); const prot = ramStr(ramGet(r, ['Protection'])); return { start: ramGet(r, ['Start VPN']), end: ramGet(r, ['End VPN']), prot, rwx: /EXECUTE_READWRITE|EXECUTE_WRITECOPY/i.test(prot), mz: /^4d 5a/.test(hd) || /^4d5a/.test(hd) || /MZ header|PE header/i.test(notes2), tag: ramStr(ramGet(r, ['Tag'])) }; });
+    const mz = reg.filter((x) => x.mz).length; const hx = (v) => (typeof v === 'number' ? '0x' + v.toString(16) : ramStr(v)); const extra = Math.min(10, 3 * (reg.length - 1));
+    const pts = mz ? 35 + extra : (RAM_JIT.has(ln) ? 6 : 20) + Math.min(8, extra);
+    add('inject', pts, pid, name, mz ? 'Bellekte PE (MZ) başlıklı yürütülebilir bölge: enjekte kod/yansıtmalı DLL olabilir' : 'RWX özel bellek bölgesi (enjekte kod olabilir)', reg.length + ' bölge: ' + reg.slice(0, 4).map((x) => hx(x.start) + '–' + hx(x.end) + ' ' + (x.prot || '?') + (x.mz ? ' [MZ]' : '')).join('; ') + (reg.length > 4 ? ' …' : '') + (!mz && RAM_JIT.has(ln) ? ' — ' + name + ' JIT kullanan bir program olabilir (puan düşürüldü).' : ''));
+  }
+  /* R3: ldrmodules */
+  const ldBy = new Map(); for (const r of rowsOf('ldrmodules')) { const pid = ramInt(ramGet(r, ['Pid', 'PID'])); if (pid === null) continue; const flag = (n) => { const v = ramGet(r, [n]); return v === true || ramLow(v) === 'true'; }; if (flag('InLoad') || flag('InInit') || flag('InMem')) continue; const path = ramStr(ramGet(r, ['MappedPath'])); if (!ldBy.has(pid)) ldBy.set(pid, []); ldBy.get(pid).push({ base: ramGet(r, ['Base']), path }); }
+  for (const [pid, list] of ldBy) {
+    const exe = list.filter((x) => /\.(dll|exe|sys|ocx|cpl|drv)$/i.test(x.path)); const anon = list.filter((x) => !x.path);
+    if (exe.length) add('unlink', Math.min(45, 30 + 4 * (exe.length - 1)), pid, nameOf(pid), 'Modül üç PEB listesinden de silinmiş (unlink)', exe.slice(0, 5).map((x) => x.path).join('; ') + (exe.length > 5 ? ' …' : ''));
+    else if (anon.length) add('unlink', Math.min(25, 15 + 3 * (anon.length - 1)), pid, nameOf(pid), 'Yolu olmayan görüntü bölgesi üç listede de yok', anon.length + ' bölge (taban: ' + anon.slice(0, 3).map((x) => (typeof x.base === 'number' ? '0x' + x.base.toString(16) : ramStr(x.base))).join(', ') + ').');
+  }
+  /* dlllist: kullanıcı klasörlerinden DLL */
+  for (const [pid, list] of dllBy) { const bad = list.filter((d) => RAM_BAD_DIRS.some((r) => r.test(ramPathNorm(d.path)))); if (bad.length) add('dll', Math.min(18, 6 * bad.length), pid, nameOf(pid), 'Kullanıcının yazabildiği/geçici konumdan DLL yüklü', bad.slice(0, 4).map((d) => d.path).join('; ') + (bad.length > 4 ? ' …' : '')); }
+  /* R6: ağ */
+  const netBy = new Map(); let netRows = 0;
+  for (const r of rowsOf('netscan')) {
+    const pid = ramInt(ramGet(r, ['PID'])); const fa = ramStr(ramGet(r, ['ForeignAddr'])); const fp = ramInt(ramGet(r, ['ForeignPort'])); const st = ramStr(ramGet(r, ['State'])).toUpperCase(); const owner = ramStr(ramGet(r, ['Owner']));
+    if (!ramExternal(fa)) continue; netRows++; const name = nameOf(pid, owner); const ln = ramLow(name); const historic = /^(CLOSED|TIME_WAIT|)$/.test(st); let pts = 0; const why = [];
+    if (RAM_SCRIPT_HOSTS.has(ln)) { pts += historic ? 18 : 30; why.push('betik/komut konağı internete bağlanıyor'); }
+    else if (/^(lsass|services|winlogon|csrss|smss|wininit)\.exe$/.test(ln)) { pts += 25; why.push('sistem süreci genel internete bağlanıyor'); }
+    if (RAM_PORTS[fp]) { pts += 10; why.push('port ' + fp + ' (' + RAM_PORTS[fp] + ')'); }
+    if (!pts) continue; const key = pid === null ? 'x' : pid; if (!netBy.has(key)) netBy.set(key, { pid, name, pts: 0, items: [], sys: false }); const e = netBy.get(key); if (/^(lsass|services|winlogon|csrss|smss|wininit)\.exe$/.test(ln)) e.sys = true; e.pts = Math.min(40, Math.max(e.pts, pts) + (e.items.length ? 3 : 0)); e.items.push(fa + ':' + fp + ' ' + (st || '?') + ' — ' + why.join('; '));
+  }
+  for (const e of netBy.values()) { const isShell = RAM_SCRIPT_HOSTS.has(ramLow(e.name)); add(isShell ? 'shellnet' : e.sys ? 'sysnet' : 'port', e.pts, e.pid, e.name, isShell ? 'Betik/komut konağı genel internete bağlantılı' : e.sys ? 'Sistem süreci genel internete bağlantılı' : 'Şüpheli port bağlantısı', e.items.slice(0, 4).join(' | ') + (e.items.length > 4 ? ' …' : '')); }
+  /* hizmetler */
+  for (const r of rowsOf('svcscan')) {
+    const bin = ramStr(ramGet(r, ['Binary', 'Binary (Registry)'])); if (!bin) continue; const exe = ramPathNorm(ramExePath(bin)); const nm = ramStr(ramGet(r, ['Name'])); const pid = ramInt(ramGet(r, ['PID']));
+    if (RAM_BAD_DIRS.some((x) => x.test(exe))) add('service', 25, pid, nameOf(pid), 'Hizmet ikili dosyası kullanıcı/geçici klasöründe', 'Hizmet ' + nm + ': ' + bin);
+    else if (RAM_SCRIPT_HOSTS.has(ramLow(ramExePath(bin)).split(/[\\/]/).pop())) add('service', 25, pid, nameOf(pid), 'Hizmet komut/betik konağı üzerinden başlatılıyor', 'Hizmet ' + nm + ': ' + bin);
+  }
+  /* sürücüler */
+  const mods = rowsOf('modules'); const modNames = new Set(mods.map((r) => ramLow(ramGet(r, ['Name'])).replace(/\.(sys|dll|exe)$/, '')));
+  for (const r of mods) { const pth = ramPathNorm(ramGet(r, ['Path'])); if (pth && RAM_BAD_DIRS.some((x) => x.test(pth))) add('driver', 30, null, '', 'Çekirdek modülü kullanıcı/geçici klasöründen yüklü', ramStr(ramGet(r, ['Name'])) + ' — ' + ramStr(ramGet(r, ['Path']))); }
+  if (has('modules') && has('driverscan')) { const miss = rowsOf('driverscan').map((r) => ramStr(ramGet(r, ['Name', 'Driver Name']))).filter((n) => n && !modNames.has(ramLow(n).replace(/^\\driver\\/, '').replace(/\.(sys|dll|exe)$/, ''))); if (miss.length) add('driver', miss.length <= 5 ? 10 : 12, null, '', miss.length + ' sürücü driverscan’de var, modül listesinde yok', miss.slice(0, 10).join(', ') + (miss.length > 10 ? ' …' : '') + ' — yüklemesi kaldırılmış veya gizlenmiş olabilir.'); }
+  /* --- puanlama --- */
+  for (const f of F) if (f.pid !== null) P(f.pid, f.proc); /* bulgusu olup listelerde görünmeyen PID de süreç tablosunda yer alsın */
+  const perPid = new Map(); let dumpPts = 0; for (const f of F) { if (f.pid === null) dumpPts += f.pts; else perPid.set(f.pid, (perPid.get(f.pid) || 0) + f.pts); }
+  const procs = [...procMap.values()].map((o) => { const score = Math.min(100, perPid.get(o.pid) || 0); const why = F.filter((f) => f.pid === o.pid && f.pts > 0).map((f) => ({ id: f.id, pts: f.pts, text: f.title })); return { pid: o.pid, ppid: o.ppid, name: o.name, path: o.path, cmd: o.cmd.slice(0, 400), created: o.created, exited: o.exited, hidden: o.hidden, score, level: RAM_LEVEL(score), why }; }).filter((p) => p.score > 0 || (has('pslist') && live.some((l) => l.pid === p.pid)));
+  procs.sort((a, b) => b.score - a.score || a.pid - b.pid);
+  const top = procs.filter((p) => p.score > 0).map((p) => p.score); let score = (top[0] || 0) + 0.2 * (top.slice(1, 4).reduce((a, b) => a + b, 0)) + Math.min(30, dumpPts); score = Math.min(100, Math.round(score)); const level = RAM_LEVEL(score);
+  const key = ['pslist', 'psscan', 'malfind', 'netscan', 'ldrmodules', 'cmdline']; const missing = key.filter((k) => !has(k)); if (missing.length) notes.push('Çalışmayan/eksik katmanlar: ' + missing.join(', ') + ' — bu katmanlara dayanan kurallar değerlendirilemedi; puan eksik veriye göre düşük kalmış olabilir.');
+  const counts = { procs: live.length, findings: F.length, high: F.filter((f) => f.sev === 'high').length, mid: F.filter((f) => f.sev === 'mid').length, low: F.filter((f) => f.sev === 'low').length, info: F.filter((f) => f.sev === 'info').length };
+  const headline = level === 'high' ? 'Güçlü şüphe bulguları var — ayrıntılı inceleme önerilir.' : level === 'mid' ? 'Dikkat gerektiren bulgular var.' : 'Belirgin bulgu yok (bu, dökümün zararsız olduğu anlamına gelmez).';
+  const kv = {}; for (const r of rowsOf('info')) { const k = ramStr(ramGet(r, ['Variable'])); if (k) kv[k] = ramStr(ramGet(r, ['Value'])); }
+  const findings = F.slice().sort((a, b) => b.pts - a.pts);
+  return { version: 1, score, level, headline, counts, coverage, notes, os: kv, procs, findings, caveats: ['Sezgisel puandır; bir sınıflandırma veya “zararlı/zararsız” hükmü değildir.', 'Düşük puan, dökümün sorunsuz olduğunu göstermez: eksik katmanlar, bozuk sayfalar ve bilinmeyen teknikler bulunamaz.', 'Her bulgunun yanında olası yanlış pozitif açıklaması vardır; kesin yargı için kaynak katman çıktılarını ve Volatility’yi kendin doğrula.'] };
+}
+const RAM_LV_TR = { high: 'Yüksek', mid: 'Orta', low: 'Düşük', info: 'Bilgi' };
+function ramReportText(res, meta) {
+  meta = meta || {}; const L = []; const q = (s) => String(s === undefined || s === null ? '' : s).replace(/\r?\n/g, ' ');
+  L.push('# Kovan RAM Analizi raporu', '');
+  L.push('- Dosya: ' + q(meta.name || '?') + (meta.size ? ' (' + meta.size + ' bayt)' : ''), '- Volatility: ' + q(meta.vol || '?'), '- Tarih: ' + q(meta.date || ''), '- Durum: ' + (meta.partial ? 'KISMİ (zaman aşımı/iptal/hatalı katman)' : 'tamamlandı'), '');
+  L.push('## Genel puan: ' + res.score + ' / 100 — ' + RAM_LV_TR[res.level], '', res.headline, '');
+  L.push('> Bu rapor sezgiseldir; hiçbir dökümü “sorunsuz” ilan etmez. Her bulgu için olası yanlış pozitif açıklaması aşağıdadır.', '');
+  L.push('## Katman kapsamı', '', '| Katman | Durum | Satır |', '|---|---|---|'); for (const c of res.coverage) L.push('| ' + c.id + ' | ' + (c.state === 'ok' ? 'çalıştı' : 'yok') + ' | ' + c.rows + ' |'); L.push('');
+  if (res.notes.length) { L.push('## Notlar', ''); for (const n of res.notes) L.push('- ' + n); L.push(''); }
+  const sp = res.procs.filter((p) => p.score > 0).slice(0, 25); L.push('## Süreç puanları (en şüpheliler)', ''); if (!sp.length) L.push('Puan alan süreç yok.', ''); else { L.push('| PID | Süreç | Puan | Düzey | Gerekçeler |', '|---|---|---|---|---|'); for (const p of sp) L.push('| ' + p.pid + ' | ' + q(p.name) + ' | ' + p.score + ' | ' + RAM_LV_TR[p.level] + ' | ' + q(p.why.map((w) => w.text + ' (+' + w.pts + ')').join('; ')) + ' |'); L.push(''); }
+  L.push('## Bulgular', ''); if (!res.findings.length) L.push('Bulgu yok.', ''); for (const f of res.findings) { L.push('### [' + RAM_LV_TR[f.sev] + ', +' + f.pts + '] ' + q(f.title) + (f.pid !== null ? ' — ' + q(f.proc) + ' (PID ' + f.pid + ')' : ''), '', q(f.detail), '', '*Olası yanlış pozitif:* ' + q(f.fp), ''); }
+  L.push('## Sınırlar', ''); for (const c of res.caveats) L.push('- ' + c); L.push('- Volatility GERÇEK bir Windows dökümünde bu uygulama tarafından henüz denenmemiştir (v0.0.1 beta).');
+  return L.join('\n') + '\n';
+}
+/*#endregion memscan*/
 /*#region dotnet*/
 /* ---------- v3.6: .NET meta veri (ECMA-335) ayristirma ----------
    Gercek tablo ayristirmasi: TypeRef/MemberRef/P-Invoke (ImplMap)/AssemblyRef/ManifestResource.
@@ -4880,7 +5090,7 @@ function mmReportText(r, srcName) {
   return L.join('\n');
 }
 /*#endregion modconv*/
-const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, srcScan, srcPlan, srcLangOf, srcLangName, SRC_LANGS, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.9.9', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, srcScan, srcPlan, srcLangOf, srcLangName, SRC_LANGS, ramScan, ramReportText, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '4.9.9', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -5272,7 +5482,122 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Anahtar açık — yeniden seç': 'Key unlocked — choose again',
       'Anahtarı yeniden seç (imzalamak için)': 'Choose the key again (to sign)',
       'Derleniyor': 'Compiling',
-      'Derleyici bulunamadı': 'Compiler not found'
+      'Derleyici bulunamadı': 'Compiler not found',
+      'RAM Analizi': 'Memory Analysis',
+      'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.': 'Decodes a Windows memory dump (.raw .mem .dmp .vmem .lime) with your own Volatility 3 installation; flags hidden processes, injected code, unlinked modules, system-process impersonation and suspicious commands/connections heuristically and gives a 0-100 suspicion score. Never declares a dump “clean”. Works only in the desktop app.',
+      'Bu araç bellek dökümünü Volatility 3 ile çözmek için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.': 'This tool needs the desktop app to decode a memory dump with Volatility 3; it does not run in a browser page.',
+      'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi bilgisayarındaki Volatility 3 ile çözer; gizli süreçleri, enjekte kodu, silinmiş modülleri, taklit sistem süreçlerini ve şüpheli komut/bağlantıları sezgisel kurallarla işaretler.': 'Decodes a Windows memory dump (.raw .mem .dmp .vmem .lime) with the Volatility 3 on your own computer; flags hidden processes, injected code, unlinked modules, impersonated system processes and suspicious commands/connections with heuristic rules.',
+      'Beta v0.0.1 — dürüst sınırlar': 'Beta v0.0.1 — honest limits',
+      'Gerçek bir Windows’ta gerçek Volatility ile henüz denenmedi; testler kayıtlı çıktılar üreten sahte bir “vol” ile yapıldı.': 'Not yet tried on a real Windows with real Volatility; tests used a fake “vol” that replays recorded output.',
+      'Puan sezgiseldir; “temiz/zararsız” hükmü vermez. Her bulgunun yanında olası yanlış pozitif açıklaması vardır.': 'The score is heuristic and never declares a dump “clean/harmless”. Every finding comes with a possible false-positive explanation.',
+      'Döküm dosyası yalnızca okunur: çalıştırılmaz, değiştirilmez, taşınmaz. Canlı bellek dökümü alma bu sürümde yok.': 'The dump file is only read: never executed, modified or moved. Capturing a live memory dump is not in this version.',
+      'Volatility 3 aranıyor…': 'Looking for Volatility 3…',
+      'Volatility 3 bulundu: sürüm {0} — {1}': 'Volatility 3 found: version {0} — {1}',
+      'Volatility 3 bulunamadı.': 'Volatility 3 not found.',
+      'Yeniden ara': 'Search again',
+      'Yol seç…': 'Choose path…',
+      'Denenen konumlar': 'Locations tried',
+      'Volatility 3 kurulu değil': 'Volatility 3 is not installed',
+      'Volatility 3 bu uygulamayla gelmez; kendi bilgisayarına kur:': 'Volatility 3 does not ship with this app; install it on your own computer:',
+      '1) Python 3.8+ kur (python.org).': '1) Install Python 3.8+ (python.org).',
+      '2) Komut satırında: pip install volatility3': '2) On the command line: pip install volatility3',
+      '3) Bu sayfada “Yeniden ara”ya bas; bulunamazsa “vol” dosyasını (Scripts klasöründeki vol.exe veya vol.py) “Yol seç” ile göster.': '3) Press “Search again” on this page; if it is still not found, point to the “vol” file (vol.exe or vol.py in the Scripts folder) with “Choose path”.',
+      '2 · Bellek dökümü': '2 · Memory dump',
+      'Henüz döküm seçilmedi.': 'No dump selected yet.',
+      'Döküm seç…': 'Choose dump…',
+      'Dosyayı bu uygulama değil, işletim sisteminin dosya penceresi seçer; arayüz dosya yolunu hiçbir yere gönderemez.': 'The file is chosen by the operating system’s file dialog, not by this page; the interface cannot send the file path anywhere.',
+      '3 · Seçenekler': '3 · Options',
+      'Analiz katmanları': 'Analysis layers',
+      'Zaman aşımı (dakika)': 'Timeout (minutes)',
+      'Analiz dakikalar sürebilir. Süre dolarsa o ana kadar biten katmanlarla KISMİ rapor üretilir (1–120 dk; varsayılan 10).': 'Analysis can take minutes. If time runs out, a PARTIAL report is built from the layers finished so far (1–120 min; default 10).',
+      'Windows sembolleri (ağ)': 'Windows symbols (network)',
+      'Çevrimdışı (varsayılan)': 'Offline (default)',
+      'Ağ KULLANILMAZ. Yalnızca Volatility’nin önbelleğindeki semboller kullanılır; yoksa bunu net söyleriz.': 'No network is used. Only symbols already in Volatility’s cache are used; if they are missing we say so plainly.',
+      'Sembol indirmeye izin iste': 'Ask to allow symbol download',
+      'Başlatınca neyin indirileceğini anlatan bir onay penceresi çıkar. Sen onaylamadan ağ kullanılmaz; reddedersen çevrimdışı devam edilir.': 'When you start, a confirmation dialog explains what would be downloaded. No network is used without your approval; if you decline, it continues offline.',
+      'Analizi başlat': 'Start analysis',
+      'İptal et': 'Cancel',
+      'Sembol indirmeye izin vererek yeniden dene': 'Retry and allow symbol download',
+      'Analiz adımları': 'Analysis steps',
+      'Volatility çıktısı': 'Volatility output',
+      'Analiz sonucu': 'Analysis result',
+      'Sistem bilgisi': 'System info',
+      'Süreç listesi': 'Process list',
+      'Güçlü şüphe bulguları var — ayrıntılı inceleme önerilir.': 'Strong suspicion findings — a detailed review is recommended.',
+      'Dikkat gerektiren bulgular var.': 'There are findings that need attention.',
+      'Belirgin bulgu yok (bu, dökümün zararsız olduğu anlamına gelmez).': 'No prominent findings (this does not mean the dump is harmless).',
+      'kapalı (--offline)': 'off (--offline)',
+      '{0} satır': '{0} rows',
+      '(kesildi)': '(truncated)',
+      'İptal edildi': 'Canceled',
+      'Zaman aşımı': 'Timed out',
+      'Atlandı (döküm çözülemedi)': 'Skipped (dump could not be decoded)',
+      'Süreç taraması (havuz)': 'Process scan (pool)',
+      'Süreç ağacı': 'Process tree',
+      'Komut satırları': 'Command lines',
+      'Yüklü DLL’ler': 'Loaded DLLs',
+      'Modül listeleri (ldrmodules)': 'Module lists (ldrmodules)',
+      'Enjekte kod (malfind)': 'Injected code (malfind)',
+      'Ağ bağlantıları': 'Network connections',
+      'Hizmetler': 'Services',
+      'Çekirdek modülleri': 'Kernel modules',
+      'Sürücü taraması': 'Driver scan',
+      'Dosya nesneleri (ağır)': 'File objects (heavy)',
+      'Tutamaçlar (ağır)': 'Handles (heavy)',
+      'En az bir katman seç.': 'Select at least one layer.',
+      'İş okunamadı.': 'Could not read the job.',
+      'Analiz başarısız.': 'Analysis failed.',
+      'Çalışıyor… {0} sn geçti (en çok {1} dk); ağ: {2}': 'Running… {0} s elapsed (max {1} min); network: {2}',
+      'izinli': 'allowed',
+      'kapalı': 'off',
+      'Süre: {0} sn': 'Time: {0} s',
+      'Kısmi sonuç.': 'Partial result.',
+      'Analiz bitti.': 'Analysis finished.',
+      'Volatility doğrulandı': 'Volatility verified',
+      'Sembol indirme reddedildi: çevrimdışı devam ediliyor': 'Symbol download declined: continuing offline',
+      'Rapor alınamadı': 'Could not get the report',
+      'Satırlar okunamadı.': 'Could not read rows.',
+      'Genel şüphe puanı {0} / 100': 'Overall suspicion score {0} / 100',
+      'ağ': 'network',
+      'Kısmi rapor': 'Partial report',
+      'Bazı katmanlar çalışmadığı için rapor eksik.': 'The report is incomplete because some layers did not run.',
+      'Notlar': 'Notes',
+      'Sınırlar ve yorumlama': 'Limits and interpretation',
+      'JSON indir': 'Download JSON',
+      'Bulgu motoru kullanılamadı': 'Findings engine unavailable',
+      'Ham katman çıktılarını “Katmanlar” sekmesinde inceleyebilirsin.': 'You can inspect the raw layer output in the “Layers” tab.',
+      'Bulgular': 'Findings',
+      'Süreçler': 'Processes',
+      'Katmanlar': 'Layers',
+      'Tümü': 'All',
+      'Yüksek': 'High',
+      'Orta': 'Medium',
+      'Düşük': 'Low',
+      'Bilgi': 'Info',
+      'Önem düzeyi': 'Severity',
+      'Bu süzgeçte bulgu yok.': 'No findings in this filter.',
+      'Bulgu yok. Bu, dökümün sorunsuz olduğu anlamına gelmez.': 'No findings. This does not mean the dump is problem-free.',
+      'Olası yanlış pozitif': 'Possible false positive',
+      '{0} bulgu daha var; tam liste için raporu indir.': '{0} more findings; download the report for the full list.',
+      'Süreç adı, PID, yol veya komut satırı ara': 'Search process name, PID, path or command line',
+      'Puan': 'Score',
+      'Süreç': 'Process',
+      'Gerekçe': 'Reason',
+      'Gizli (pslist’te yok)': 'Hidden (not in pslist)',
+      'Yol': 'Path',
+      'Komut satırı': 'Command line',
+      'Bitiş': 'End',
+      'Puan gerekçeleri': 'Score reasons',
+      'Bu süreç için puan gerekçesi yok (bu, sorunsuz olduğu anlamına gelmez).': 'No score reasons for this process (this does not mean it is problem-free).',
+      'Bu katmanda ara': 'Search this layer',
+      'Katmanda ara': 'Search in layer',
+      'Katman': 'Layer',
+      '‹ Önceki': '‹ Previous',
+      'Sonraki ›': 'Next ›',
+      'Gösterilecek katman yok.': 'No layer to show.',
+      'Çalışmayan katmanlar': 'Layers that did not run',
+      'çıktı kesildi': 'output truncated',
+      '(adsız)': '(unnamed)'
     };
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
     function lookup(k) { return Object.prototype.hasOwnProperty.call(EN, k) ? EN[k] : undefined; }
@@ -5292,7 +5617,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-ramanaliz, #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -5744,6 +6069,165 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     })();
   })();
 
+  /* ---------- Kovan araci: RAM Analizi (v0.0.1 beta) ----------
+     Windows bellek dokumlerini kullanicinin KENDI Volatility 3 kurulumuyla cozer (host.js MEMMOD); bulgu motoru src/engine/102-memscan.js (host tarafinda calisir).
+     Arayuz dosya yolu GONDEREMEZ (dosya host'ta dialogla secilir); dokum yalnizca okunur. Varsayilan ag KAPALI; sembol indirme yalnizca onayla.
+     Yalnizca masaustu uygulamasinda calisir. Gercek Windows + gercek Volatility ile HENUZ denenmedi (testler sahte vol ile). */
+  (function kovanMem() {
+    const root = $('#app-ramanaliz'); if (!root) return;
+    const H = window.statscanHost && window.statscanHost.memTools ? window.statscanHost : null;
+    if (!H) { root.append(h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'RAM Analizi'), h('p', { class: 'cv-lead' }, 'Bu araç bellek dökümünü Volatility 3 ile çözmek için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.'))); return; }
+    const B = (n) => { n = +n || 0; const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i ? n.toFixed(n >= 100 ? 0 : 1) : n.toFixed(0)) + ' ' + u[i]; };
+    const LV = { high: 'Yüksek', mid: 'Orta', low: 'Düşük', info: 'Bilgi' };
+    const ICN = { wait: '○', run: '▶', ok: '✓', fail: '✕', skip: '–' };
+    const visible = () => !root.hidden && !document.hidden;
+    const dl = (name, text, type) => { const a = h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name }); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
+    const pill = (lv, txt) => h('span', { class: 'sm-pill ' + (lv === 'info' ? 'low' : lv) }, txt);
+    const tabs = (items, cur, fn) => { const el = h('div', { class: 'sm-tabs', role: 'tablist' }); const set = (v) => { for (const b of el.children) { const on = b.dataset.v === v; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } }; for (const [k, t] of items) el.append(h('button', { type: 'button', role: 'tab', 'data-v': k, onclick: () => { set(k); fn(k); }, onkeydown: (e) => { const bs = [...el.children]; const i = bs.indexOf(e.currentTarget); const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : -1; if (n >= 0 && n < bs.length) { e.preventDefault(); bs[n].focus(); bs[n].click(); } } }, t)); set(cur); el.set = set; return el; };
+    const seg = (items, cur, fn, label) => { const el = h('div', { class: 'sm-seg', role: 'group', 'aria-label': label }); const set = (v) => { for (const b of el.children) b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'); }; for (const [v, t] of items) el.append(h('button', { type: 'button', 'data-v': v, onclick: () => { set(v); fn(v); } }, t)); set(cur); el.set = set; return el; };
+    /* siralanabilir tablo (kovanSys kalibi; en cok 1500 satir cizilir) */
+    function mkTable(cols, st, onRow, onSort) {
+      const wrap = h('div', { class: 'sm-wrap' }); const tb = h('tbody'); const head = h('tr');
+      for (const c of cols) { const b = h('button', { type: 'button', 'aria-label': c.t + ' sütununa göre sırala', onclick: () => { if (st.key === c.k) st.dir *= -1; else { st.key = c.k; st.dir = c.n ? -1 : 1; } onSort && onSort(); } }, c.t); head.append(h('th', { scope: 'col', 'data-k': c.k }, b)); }
+      wrap.append(h('table', { class: 'sm-t' }, h('thead', {}, head), tb));
+      function render(rows, selKey) {
+        tb.replaceChildren(); const c = cols.find((x) => x.k === st.key) || cols[0];
+        rows = rows.slice().sort((a, b) => { const x = c.v(a), y = c.v(b); return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'tr')) * st.dir; });
+        for (const r of rows.slice(0, 1500)) { const tr = h('tr', { tabindex: '0', 'aria-selected': selKey != null && r._key === selKey ? 'true' : 'false', class: r._key === selKey ? 'sel' : '' }); for (const k of cols) tr.append(h('td', { class: (k.n ? 'n' : '') + (k.w ? ' w' : '') }, k.f ? k.f(r) : String(k.v(r)))); if (onRow) { tr.addEventListener('click', () => onRow(r)); tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRow(r); } }); } tb.append(tr); }
+        if (rows.length > 1500) tb.append(h('tr', {}, h('td', { colspan: String(cols.length) }, (rows.length - 1500) + ' satır daha var; aramayla daralt.')));
+        for (const th of head.children) th.setAttribute('aria-sort', th.dataset.k === st.key ? (st.dir > 0 ? 'ascending' : 'descending') : 'none');
+      }
+      return { wrap, render };
+    }
+    const st = { tools: null, dump: null, jobId: null, running: false, timer: 0, res: null, tab: 'findings', sev: 'all', psort: { key: 'score', dir: -1 }, sel: null, lay: '', off: 0, q: '', lsort: { key: '', dir: 1 }, lastLayerResp: null, rseq: 0 };
+
+    /* ---- iskelet ---- */
+    const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite', id: 'rm-live' });
+    const toolsLine = h('p', { class: 'cp-jdk', role: 'status', id: 'rm-toolsline' }, 'Volatility 3 aranıyor…');
+    const rescanB = h('button', { type: 'button', class: 'cv-btn', id: 'rm-rescan', onclick: () => loadTools(true) }, 'Yeniden ara'); const pickVolB = h('button', { type: 'button', class: 'cv-btn', id: 'rm-pickvol', onclick: pickVol }, 'Yol seç…');
+    const triedBox = h('details', { class: 'cv-sec', hidden: true }, h('summary', {}, 'Denenen konumlar')); const triedList = h('ul'); triedBox.append(triedList);
+    const installBox = h('div', { class: 'cv-note', id: 'rm-install', hidden: true }); const installList = h('ul'); installBox.append(h('b', {}, 'Volatility 3 kurulu değil'), installList);
+    const dumpLine = h('p', { class: 'cp-jdk', id: 'rm-dumpline' }, 'Henüz döküm seçilmedi.'); const pickDumpB = h('button', { type: 'button', class: 'cv-btn cv-primary', id: 'rm-pickdump', onclick: pickDump }, 'Döküm seç…');
+    const layerBox = h('fieldset', { class: 'rm-fs', id: 'rm-layers' }, h('legend', {}, 'Analiz katmanları')); const layerGrid = h('div', { class: 'rm-layers' }); layerBox.append(layerGrid);
+    const tmo = h('input', { type: 'number', id: 'rm-timeout', min: '1', max: '120', step: '1', value: '10', inputmode: 'numeric', 'aria-describedby': 'rm-tmo-help' });
+    const symOff = h('input', { type: 'radio', name: 'rm-sym', id: 'rm-sym-off', value: 'offline', checked: 'checked' }); const symOn = h('input', { type: 'radio', name: 'rm-sym', id: 'rm-sym-on', value: 'allow' });
+    const symBox = h('fieldset', { class: 'rm-fs', id: 'rm-sym' }, h('legend', {}, 'Windows sembolleri (ağ)'),
+      h('label', { class: 'rm-opt', for: 'rm-sym-off' }, symOff, h('span', {}, h('b', {}, 'Çevrimdışı (varsayılan)'), h('small', {}, 'Ağ KULLANILMAZ. Yalnızca Volatility’nin önbelleğindeki semboller kullanılır; yoksa bunu net söyleriz.'))),
+      h('label', { class: 'rm-opt', for: 'rm-sym-on' }, symOn, h('span', {}, h('b', {}, 'Sembol indirmeye izin iste'), h('small', {}, 'Başlatınca neyin indirileceğini anlatan bir onay penceresi çıkar. Sen onaylamadan ağ kullanılmaz; reddedersen çevrimdışı devam edilir.'))));
+    const startB = h('button', { type: 'button', class: 'cv-btn cv-primary', id: 'rm-start', disabled: true, onclick: start }, 'Analizi başlat'); const cancelB = h('button', { type: 'button', class: 'cv-btn', id: 'rm-cancel', hidden: true, onclick: cancel }, 'İptal et');
+    const retryB = h('button', { type: 'button', class: 'cv-btn', id: 'rm-retry', hidden: true, onclick: () => { symOn.checked = true; start(); } }, 'Sembol indirmeye izin vererek yeniden dene');
+    const steps = h('ol', { class: 'cp-steps', id: 'rm-steps', hidden: true, 'aria-label': 'Analiz adımları' }); const logPre = h('pre', { class: 'cp-log' }); const logBox = h('details', { class: 'cv-sec warn', hidden: true }, h('summary', {}, 'Volatility çıktısı'), logPre);
+    const res = h('section', { class: 'rm-res', id: 'rm-res', hidden: true, 'aria-label': 'Analiz sonucu' });
+    root.append(h('div', { class: 'sm-top' }, h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'RAM Analizi'), h('p', { class: 'cv-lead' }, 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi bilgisayarındaki Volatility 3 ile çözer; gizli süreçleri, enjekte kodu, silinmiş modülleri, taklit sistem süreçlerini ve şüpheli komut/bağlantıları sezgisel kurallarla işaretler.'))),
+      h('div', { class: 'cv-note', id: 'rm-note' }, h('b', {}, 'Beta v0.0.1 — dürüst sınırlar'), h('ul', {}, h('li', {}, 'Gerçek bir Windows’ta gerçek Volatility ile henüz denenmedi; testler kayıtlı çıktılar üreten sahte bir “vol” ile yapıldı.'), h('li', {}, 'Puan sezgiseldir; “temiz/zararsız” hükmü vermez. Her bulgunun yanında olası yanlış pozitif açıklaması vardır.'), h('li', {}, 'Döküm dosyası yalnızca okunur: çalıştırılmaz, değiştirilmez, taşınmaz. Canlı bellek dökümü alma bu sürümde yok.'))),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'rm-h1' }, h('h2', { id: 'rm-h1' }, '1 · Volatility 3'), toolsLine, h('div', { class: 'rm-row' }, rescanB, pickVolB), installBox, triedBox),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'rm-h2' }, h('h2', { id: 'rm-h2' }, '2 · Bellek dökümü'), dumpLine, h('div', { class: 'rm-row' }, pickDumpB), h('p', { class: 'rm-hint' }, 'Dosyayı bu uygulama değil, işletim sisteminin dosya penceresi seçer; arayüz dosya yolunu hiçbir yere gönderemez.')),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'rm-h3' }, h('h2', { id: 'rm-h3' }, '3 · Seçenekler'), layerBox, h('div', { class: 'rm-row' }, h('label', { for: 'rm-timeout' }, 'Zaman aşımı (dakika)'), tmo), h('p', { class: 'rm-hint', id: 'rm-tmo-help' }, 'Analiz dakikalar sürebilir. Süre dolarsa o ana kadar biten katmanlarla KISMİ rapor üretilir (1–120 dk; varsayılan 10).'), symBox),
+      h('div', { class: 'rm-row' }, startB, cancelB, retryB), live, steps, logBox, res);
+
+    /* ---- Volatility / dosya ---- */
+    function drawTools() {
+      const t = st.tools; triedList.textContent = ''; installList.textContent = ''; if (!t) return;
+      if (t.error) { toolsLine.className = 'cp-jdk warn'; toolsLine.textContent = t.message || 'Araçlar okunamadı.'; return; }
+      if (t.found) { toolsLine.className = 'cp-jdk ok'; toolsLine.textContent = KT('Volatility 3 bulundu: sürüm {0} — {1}', t.version, t.label); } else { toolsLine.className = 'cp-jdk warn'; toolsLine.textContent = KT('Volatility 3 bulunamadı.'); }
+      installBox.hidden = !!t.found; for (const l of t.install || []) installList.append(h('li', {}, l));
+      triedBox.hidden = !(t.tried && t.tried.length); for (const x of t.tried || []) triedList.append(h('li', {}, (x.ok ? '✓ ' : '✕ ') + x.label + (x.version ? ' (' + x.version + ')' : '') + (x.why ? ' — ' + x.why : '')));
+      if (!layerGrid.children.length && t.layers) for (const l of t.layers) { const cb = h('input', { type: 'checkbox', id: 'rm-l-' + l.id, 'data-id': l.id }); if (!l.heavy) cb.checked = true; layerGrid.append(h('label', { class: 'rm-opt rm-lay', for: 'rm-l-' + l.id }, cb, h('span', {}, l.title))); }
+      sync();
+    }
+    async function loadTools(force) { toolsLine.className = 'cp-jdk'; toolsLine.textContent = 'Volatility 3 aranıyor…'; rescanB.disabled = true; try { st.tools = await H.memTools(force === true); } catch (e) { st.tools = { error: 'mem', message: String(e && e.message || e) }; } rescanB.disabled = false; drawTools(); }
+    async function pickVol() { pickVolB.disabled = true; try { const r = await H.memChooseVol(); if (r && r.canceled) { /* vazgecildi */ } else if (r && r.ok) { st.tools = r; drawTools(); toast(KT('Volatility doğrulandı')); } else if (r) { st.tools = Object.assign({}, st.tools || {}, r, { found: false }); drawTools(); toolsLine.textContent = r.message || 'Doğrulanamadı'; } } catch (e) { toolsLine.textContent = String(e && e.message || e); } pickVolB.disabled = false; }
+    async function pickDump() { pickDumpB.disabled = true; try { const r = await H.memChooseDump(); if (r && r.canceled) { /* vazgecildi */ } else if (r && r.ok) { st.dump = r; dumpLine.className = 'cp-jdk ok'; dumpLine.textContent = r.name + ' — ' + B(r.size); } else if (r) { st.dump = null; dumpLine.className = 'cp-jdk warn'; dumpLine.textContent = r.message || 'Dosya kabul edilmedi.'; } } catch (e) { dumpLine.className = 'cp-jdk warn'; dumpLine.textContent = String(e && e.message || e); } pickDumpB.disabled = false; sync(); }
+    function sync() { startB.disabled = st.running || !(st.tools && st.tools.found) || !st.dump; cancelB.hidden = !st.running; for (const b of [pickDumpB, rescanB, pickVolB]) b.disabled = st.running; for (const e of root.querySelectorAll('#rm-layers input, #rm-timeout, #rm-sym input')) e.disabled = st.running; }
+    const chosen = () => [...layerGrid.querySelectorAll('input[type=checkbox]')].filter((c) => c.checked).map((c) => c.dataset.id);
+
+    /* ---- is ---- */
+    async function start() {
+      const layers = chosen(); if (!layers.length) { live.textContent = KT('En az bir katman seç.'); return; } retryB.hidden = true; res.hidden = true; res.textContent = ''; st.res = null; live.textContent = '';
+      let r; try { r = await H.memStart({ layers, symbols: symOn.checked ? 'allow' : 'offline', timeoutMin: Number(tmo.value) || 10 }); } catch (e) { r = { error: 'mem', message: String(e && e.message || e) }; }
+      if (!r || r.error) { live.textContent = (r && r.message) || KT('Başlatılamadı.'); if (r && r.needVol) loadTools(true); return; }
+      st.jobId = r.id; st.running = true; sync(); if (r.declined) toast(KT('Sembol indirme reddedildi: çevrimdışı devam ediliyor')); poll();
+    }
+    async function cancel() { if (st.jobId) { cancelB.disabled = true; try { await H.memCancel(st.jobId); } catch (e) { /* bitmis */ } cancelB.disabled = false; } }
+    async function poll() {
+      clearTimeout(st.timer); if (!st.jobId) return; if (!visible()) { st.timer = setTimeout(poll, 1500); return; }
+      let j; try { j = await H.memJob(st.jobId); } catch (e) { j = { error: 'mem', message: String(e && e.message || e) }; }
+      if (!j || (j.state === undefined && j.error)) { st.running = false; live.textContent = (j && j.message) || KT('İş okunamadı.'); sync(); return; } /* RPC hatasi: state yok; basarisiz/kismi is: state var, error = is mesaji */
+      drawJob(j); if (j.state === 'running') st.timer = setTimeout(poll, 700); else finish(j);
+    }
+    function drawJob(j) {
+      steps.hidden = false; steps.textContent = ''; for (const s of j.steps) steps.append(h('li', { class: 'cp-s ' + s.status }, h('span', { class: 'cp-i', 'aria-hidden': 'true' }, ICN[s.status] || '○'), h('span', {}, s.label), s.detail ? h('small', {}, s.detail.replace(/^(\d+) satır/, (m, n) => KT('{0} satır', n)).replace('(kesildi)', KT('(kesildi)'))) : null));
+      logBox.hidden = !j.log; logPre.textContent = j.log || '';
+      if (j.state === 'running') live.textContent = KT('Çalışıyor… {0} sn geçti (en çok {1} dk); ağ: {2}', Math.round(j.elapsed / 1000), j.timeoutMin, j.network ? KT('izinli') : KT('kapalı'));
+    }
+    function finish(j) {
+      st.running = false; sync(); const ms = KT('Süre: {0} sn', Math.round(j.elapsed / 1000));
+      if (j.state === 'canceled') { live.textContent = KT('İptal edildi.') + ' ' + ms; return; }
+      if (j.state === 'failed') { live.textContent = (j.error || KT('Analiz başarısız.')) + ' ' + ms; retryB.hidden = j.errorCode !== 'symbols' || j.network; if (!retryB.hidden) retryB.focus(); return; }
+      live.textContent = (j.state === 'partial' ? (j.error || KT('Kısmi sonuç.')) : KT('Analiz bitti.')) + ' ' + ms; st.res = j; showResult(j);
+    }
+
+    /* ---- sonuc ---- */
+    const layTitle = (id) => { const l = st.tools && st.tools.layers && st.tools.layers.find((x) => x.id === id); return l ? KT(l.title) : id; };
+    function showResult(j) {
+      const R = j.result; const sc = R.scan; res.hidden = false; res.textContent = ''; const meta = R.meta || {};
+      const body = h('div', { class: 'rm-body', id: 'rm-body' });
+      if (sc) {
+        res.append(h('div', { class: 'rm-score' }, h('div', { class: 'rm-big', role: 'img', 'aria-label': KT('Genel şüphe puanı {0} / 100', sc.score) }, String(sc.score), h('small', {}, ' / 100')), h('div', { class: 'rm-scoretx' }, h('p', { class: 'rm-lvl' }, pill(sc.level, LV[sc.level]), h('b', {}, sc.headline)), h('p', { class: 'rm-hint' }, [meta.name, B(meta.size), 'Volatility ' + meta.vol, KT('ağ') + ': ' + KT(meta.network)].filter(Boolean).join(' · ')))));
+        if (R.partial) res.append(h('div', { class: 'cv-note', role: 'status' }, h('b', {}, 'Kısmi rapor'), h('ul', {}, h('li', {}, j.error || 'Bazı katmanlar çalışmadığı için rapor eksik.'))));
+        if (sc.notes && sc.notes.length) res.append(h('div', { class: 'cv-note' }, h('b', {}, 'Notlar'), h('ul', {}, sc.notes.map((n) => h('li', {}, n)))));
+        res.append(h('details', { class: 'cv-sec' }, h('summary', {}, 'Sınırlar ve yorumlama'), h('ul', {}, (sc.caveats || []).map((c) => h('li', {}, c)))));
+        res.append(h('div', { class: 'rm-row' }, h('button', { type: 'button', class: 'cv-btn', id: 'rm-exp-md', onclick: () => exportRep('md') }, 'Raporu indir (.md)'), h('button', { type: 'button', class: 'cv-btn', id: 'rm-exp-json', onclick: () => exportRep('json') }, 'JSON indir')));
+      } else res.append(h('div', { class: 'cv-note' }, h('b', {}, 'Bulgu motoru kullanılamadı'), h('ul', {}, h('li', {}, 'Ham katman çıktılarını “Katmanlar” sekmesinde inceleyebilirsin.'))));
+      const items = (sc ? [['findings', 'Bulgular'], ['procs', 'Süreçler']] : []).concat([['layers', 'Katmanlar']]); st.tab = items[0][0]; st.sel = null; st.sev = 'all'; st.lay = ''; st.off = 0; st.q = '';
+      const tb = tabs(items, st.tab, (v) => { st.tab = v; drawTab(); }); res.append(tb, body); drawTab(); if (tb && res.scrollIntoView) { try { res.scrollIntoView({ block: 'nearest' }); } catch (e) { /* eski tarayici */ } }
+      function drawTab() { body.textContent = ''; if (st.tab === 'findings') drawFindings(body, sc, R); else if (st.tab === 'procs') drawProcs(body, sc); else drawLayers(body, R); }
+    }
+    async function exportRep(kind) { if (!st.jobId) return; const r = await H.memReport(st.jobId, kind); if (r && r.ok) dl(r.name, r.text, r.mime); else toast((r && r.message) || KT('Rapor alınamadı')); }
+    function drawFindings(box, sc, R) {
+      const F = sc.findings; const cnt = (s) => (s === 'all' ? F.length : F.filter((f) => f.sev === s).length);
+      const sg = seg([['all', KT('Tümü') + ' (' + cnt('all') + ')'], ['high', KT('Yüksek') + ' (' + cnt('high') + ')'], ['mid', KT('Orta') + ' (' + cnt('mid') + ')'], ['low', KT('Düşük') + ' (' + cnt('low') + ')'], ['info', KT('Bilgi') + ' (' + cnt('info') + ')']], st.sev, (v) => { st.sev = v; draw(); }, 'Önem düzeyi');
+      const list = h('div', { class: 'rm-list', id: 'rm-findings' }); box.append(sg, list);
+      function draw() {
+        list.textContent = ''; const L = st.sev === 'all' ? F : F.filter((f) => f.sev === st.sev); if (!L.length) list.append(h('p', { class: 'rm-hint' }, F.length ? 'Bu süzgeçte bulgu yok.' : 'Bulgu yok. Bu, dökümün sorunsuz olduğu anlamına gelmez.'));
+        for (const f of L) list.append(h('article', { class: 'rm-find ' + f.sev }, h('header', {}, pill(f.sev, LV[f.sev]), h('b', {}, f.title), f.pts ? h('span', { class: 'rm-pts' }, '+' + f.pts) : null), f.pid !== null && f.pid !== undefined ? h('p', { class: 'rm-proc' }, (f.proc || '?') + ' · PID ' + f.pid) : null, h('p', { class: 'rm-detail' }, f.detail), f.fp ? h('details', { class: 'cv-sec' }, h('summary', {}, 'Olası yanlış pozitif'), h('p', {}, f.fp)) : null));
+        if (sc.moreFindings) list.append(h('p', { class: 'rm-hint' }, KT('{0} bulgu daha var; tam liste için raporu indir.', sc.moreFindings)));
+      }
+      draw();
+    }
+    function drawProcs(box, sc) {
+      const q = h('input', { type: 'search', id: 'rm-pq', placeholder: 'Süreç adı, PID, yol veya komut satırı ara', 'aria-label': 'Ara', autocomplete: 'off', spellcheck: 'false', oninput: () => draw() }); const detail = h('div', { class: 'sm-detail', id: 'rm-pdetail', hidden: true, 'aria-live': 'polite' });
+      const cols = [{ k: 'score', t: 'Puan', n: 1, v: (p) => p.score, f: (p) => pill(p.level, String(p.score)) }, { k: 'pid', t: 'PID', n: 1, v: (p) => p.pid }, { k: 'name', t: 'Süreç', v: (p) => String(p.name || '').toLowerCase(), f: (p) => p.name || '(adsız)' }, { k: 'ppid', t: 'PPID', n: 1, v: (p) => (p.ppid === null || p.ppid === undefined ? -1 : p.ppid), f: (p) => (p.ppid === null || p.ppid === undefined ? '—' : p.ppid) }, { k: 'created', t: 'Başlangıç', v: (p) => p.created || '', f: (p) => p.created || '—' }, { k: 'why', t: 'Gerekçe', w: 1, v: (p) => (p.why.length ? p.why[0].text : ''), f: (p) => (p.why.length ? p.why[0].text + (p.why.length > 1 ? ' (+' + (p.why.length - 1) + ')' : '') : '—') }];
+      const T = mkTable(cols, st.psort, (p) => { st.sel = p.pid; draw(); showDetail(p); }, () => draw()); box.append(q, T.wrap, detail);
+      function draw() { const n = q.value.trim().toLowerCase(); const rows = sc.procs.filter((p) => !n || String(p.pid) === n || (p.name || '').toLowerCase().includes(n) || (p.path || '').toLowerCase().includes(n) || (p.cmd || '').toLowerCase().includes(n)).map((p) => Object.assign(p, { _key: p.pid })); T.render(rows, st.sel); }
+      function showDetail(p) {
+        detail.hidden = false; detail.textContent = ''; detail.append(h('h2', {}, p.name || '(adsız)', pill(p.level, p.score + ' / 100'), p.hidden ? h('span', { class: 'sm-flag s1' }, 'Gizli (pslist’te yok)') : null));
+        const kv = h('dl', { class: 'sm-kv' }); for (const [k, v] of [['PID', p.pid], ['PPID', p.ppid === null || p.ppid === undefined ? '—' : p.ppid], ['Yol', p.path || '—'], ['Komut satırı', p.cmd || '—'], ['Başlangıç', p.created || '—'], ['Bitiş', p.exited || '—']]) kv.append(h('dt', {}, k), h('dd', {}, String(v))); detail.append(kv);
+        detail.append(h('h3', {}, 'Puan gerekçeleri'), p.why.length ? h('ul', { class: 'sm-why' }, p.why.map((w) => h('li', {}, '+' + w.pts + ' — ' + w.text))) : h('p', { class: 'rm-hint' }, 'Bu süreç için puan gerekçesi yok (bu, sorunsuz olduğu anlamına gelmez).'));
+      }
+      draw();
+    }
+    function cell(v) { if (v === null || v === undefined || v === '') return '—'; if (typeof v === 'object') { try { v = JSON.stringify(v); } catch (e) { v = String(v); } } v = String(v); return v.length > 300 ? v.slice(0, 300) + '…' : v; }
+    function drawLayers(box, R) {
+      const L = Object.keys(R.layers || {}).filter((id) => R.layers[id] && !R.layers[id].error && R.layers[id].rows >= 0); const info = Object.keys(R.layers || {}).filter((id) => R.layers[id] && R.layers[id].error);
+      if (!L.length) { box.append(h('p', { class: 'rm-hint' }, 'Gösterilecek katman yok.')); return; } if (!L.includes(st.lay)) { st.lay = L[0]; st.off = 0; st.q = ''; st.lsort = { key: '', dir: 1 }; }
+      const sel = h('select', { id: 'rm-lsel', 'aria-label': 'Katman', onchange: () => { st.lay = sel.value; st.off = 0; st.q = ''; q.value = ''; st.lsort = { key: '', dir: 1 }; load(); } }); for (const id of L) { const o = h('option', { value: id }, layTitle(id) + ' (' + R.layers[id].rows + (R.layers[id].truncated ? '+' : '') + ')'); if (id === st.lay) o.selected = true; sel.append(o); }
+      let tmr = 0; const q = h('input', { type: 'search', id: 'rm-lq', placeholder: 'Bu katmanda ara', 'aria-label': 'Katmanda ara', autocomplete: 'off', spellcheck: 'false', oninput: () => { clearTimeout(tmr); tmr = setTimeout(() => { st.q = q.value.trim(); st.off = 0; load(); }, 250); } });
+      const prev = h('button', { type: 'button', class: 'cv-btn', id: 'rm-prev', onclick: () => { st.off = Math.max(0, st.off - 100); load(); } }, '‹ Önceki'); const next = h('button', { type: 'button', class: 'cv-btn', id: 'rm-next', onclick: () => { st.off += 100; load(); } }, 'Sonraki ›'); const pos = h('span', { class: 'rm-pos', id: 'rm-pos', role: 'status', 'aria-live': 'polite' });
+      const holder = h('div', { id: 'rm-ltable' }); box.append(h('div', { class: 'rm-row' }, h('label', { for: 'rm-lsel' }, 'Katman'), sel, q), holder, h('div', { class: 'rm-row' }, prev, pos, next));
+      if (info.length) box.append(h('p', { class: 'rm-hint' }, KT('Çalışmayan katmanlar') + ': ' + info.map((id) => layTitle(id) + ' (' + R.layers[id].error + ')').join('; ')));
+      async function load() {
+        const my = ++st.rseq; let r; try { r = await H.memRows(st.jobId, st.lay, st.off, 100, st.q); } catch (e) { r = { error: 'mem', message: String(e && e.message || e) }; } if (my !== st.rseq) return; holder.textContent = '';
+        if (!r || r.error) { holder.append(h('p', { class: 'rm-hint' }, (r && r.message) || KT('Satırlar okunamadı.'))); prev.disabled = next.disabled = true; pos.textContent = ''; return; }
+        st.off = r.offset; const cols = r.columns.map((c) => ({ k: c, t: c, n: r.rows.some((x) => typeof x[c] === 'number') && r.rows.every((x) => x[c] === null || typeof x[c] === 'number'), w: r.rows.some((x) => String(cell(x[c])).length > 40), v: (row) => { const x = row[c]; return typeof x === 'number' ? x : cell(x); }, f: (row) => cell(row[c]) })); if (!st.lsort.key || !cols.some((c) => c.k === st.lsort.key)) st.lsort = { key: cols[0] ? cols[0].k : '', dir: 1 };
+        const T = mkTable(cols, st.lsort, null, () => T.render(r.rows.map((x, i) => Object.assign({ _key: i }, x)))); holder.append(T.wrap); T.render(r.rows.map((x, i) => Object.assign({ _key: i }, x)));
+        const from = r.total ? r.offset + 1 : 0; pos.textContent = from + '–' + (r.offset + r.rows.length) + ' / ' + r.total + (r.truncated ? ' (' + KT('çıktı kesildi') + ')' : ''); prev.disabled = r.offset <= 0; next.disabled = r.offset + r.rows.length >= r.total;
+      }
+      load();
+    }
+    loadTools(false); sync();
+  })();
+
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
@@ -5760,6 +6244,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       key: '<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M15.5 7.5l2 2M13.5 9.5l2 2"/>',
       monitor: '<rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8M12 16.5V20"/><path d="M6.5 12l2.5-3 2.5 2 2.5-4 2 3"/>',
       radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5.5-5.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>',
+      chip: '<rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 3.5v3M12 3.5v3M14.5 3.5v3M9.5 17.5v3M12 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 12h3M3.5 14.5h3M17.5 9.5h3M17.5 12h3M17.5 14.5h3"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
@@ -5771,6 +6256,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'compiler', cat: 'kodlama', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

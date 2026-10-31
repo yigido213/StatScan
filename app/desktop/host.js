@@ -828,6 +828,143 @@ const SYSMOD = (() => {
   return { createSysHost, ipClass, isExternal, beaconScore, scoreProc, flagConn, SUSP_PORTS };
 })();
 
+/* --- RAM Analizi (Volatility 3 koprusu; Kovan 'ramanaliz' v0.0.1) ---
+ * Volatility GOMULMEZ/INDIRILMEZ: kullanicinin kendi kurulumu bulunur (PATH'te vol / vol.py, Python + volatility3, ya da kullanicinin sectigi dosya).
+ * Dokum dosyasinin yolunu arayuz GONDEREMEZ: dosya burada dialog ile secilir (deps.chooseDump); dokum yalnizca OKUNUR (Volatility'ye -f ile verilir), asla calistirilmaz/degistirilmez/tasinmaz.
+ * Komutlar: sabit eklenti beyaz listesi, "-r json", arguman DIZISI, shell YOK. Varsayilan AG KAPALI (--offline); Windows sembol (PDB) indirmesi yalnizca acik onayla.
+ * Is modeli: start/job/cancel, tek eszamanli is, zaman asimi (varsayilan 10 dk, asilirsa kismi rapor), cikti boyut siniri + sayfalama. Bulgu motoru: src/engine/102-memscan.js (deps.engine.ramScan). */
+const MEMMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const os = require('os'); const cp = require('child_process');
+  let platOverride = null; const isWin = () => (platOverride || process.platform) === 'win32';
+  const EXTS = ['.raw', '.mem', '.dmp', '.vmem', '.lime'];
+  /* id, eklenti adaylari (ilk calisan), baslik, agir mi (istege bagli) */
+  const LAYERS = [
+    { id: 'info', names: ['windows.info'], title: 'Sistem bilgisi', heavy: false }, { id: 'pslist', names: ['windows.pslist'], title: 'Süreç listesi', heavy: false }, { id: 'psscan', names: ['windows.psscan'], title: 'Süreç taraması (havuz)', heavy: false },
+    { id: 'pstree', names: ['windows.pstree'], title: 'Süreç ağacı', heavy: false }, { id: 'cmdline', names: ['windows.cmdline'], title: 'Komut satırları', heavy: false }, { id: 'dlllist', names: ['windows.dlllist'], title: 'Yüklü DLL’ler', heavy: false },
+    { id: 'ldrmodules', names: ['windows.malware.ldrmodules', 'windows.ldrmodules'], title: 'Modül listeleri (ldrmodules)', heavy: false }, { id: 'malfind', names: ['windows.malware.malfind', 'windows.malfind'], title: 'Enjekte kod (malfind)', heavy: false },
+    { id: 'netscan', names: ['windows.netscan'], title: 'Ağ bağlantıları', heavy: false }, { id: 'svcscan', names: ['windows.svcscan'], title: 'Hizmetler', heavy: false }, { id: 'modules', names: ['windows.modules'], title: 'Çekirdek modülleri', heavy: false },
+    { id: 'driverscan', names: ['windows.driverscan'], title: 'Sürücü taraması', heavy: false }, { id: 'filescan', names: ['windows.filescan'], title: 'Dosya nesneleri (ağır)', heavy: true }, { id: 'handles', names: ['windows.handles'], title: 'Tutamaçlar (ağır)', heavy: true }
+  ];
+  const LAYER = Object.create(null); for (const l of LAYERS) LAYER[l.id] = l;
+  const DEFAULT_IDS = LAYERS.filter((l) => !l.heavy).map((l) => l.id);
+  const LIM = { out: 96 * 1024 * 1024, rows: 300000, page: 200, find: 600, procs: 600, log: 12000, timeoutMin: [1, 120], defMin: 10, q: 120 };
+  const PYCODE = 'from volatility3.cli import main; main()'; /* "python -m volatility3" 2.x'te yok (__main__ eksik): giris noktasi dogrudan cagrilir */
+  const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
+  const cleanEnv = (base) => { const e = Object.assign({}, base || process.env); for (const k of ['PYTHONSTARTUP', 'PYTHONINSPECT', 'PYTHONBREAKPOINT', 'PYTHONHOME']) delete e[k]; e.PYTHONIOENCODING = 'utf-8'; e.PYTHONUTF8 = '1'; return e; };
+  function runSync(file, args, env, ms) { const r = cp.spawnSync(file, args, { env, encoding: 'utf8', timeout: ms || 30000, windowsHide: true, shell: false, maxBuffer: 4 * 1024 * 1024 }); return { code: r.status, out: String(r.stdout || '') + String(r.stderr || ''), err: r.error }; }
+  const exeNames = (b) => (isWin() ? [b + '.exe'] : [b]);
+  function pathDirs(env, only) { if (only) return only.slice(); const out = []; for (const d of String(env.PATH || env.Path || '').split(path.delimiter)) if (d && path.isAbsolute(d) && !out.includes(d)) out.push(d); return out; }
+  function whichIn(dirs, names) { for (const d of dirs) for (const n of names) { const p = path.join(d, n); if (isFile(p)) return p; } return null; }
+  const verOf = (txt) => { const m = /Volatility 3 Framework\s+(\S+)/i.exec(String(txt)); return m ? m[1] : ''; };
+  function findPython(env, dirs) { for (const nm of isWin() ? ['py', 'python', 'python3'] : ['python3', 'python']) { const p = whichIn(dirs, exeNames(nm)); if (p) return { exe: p, pre: nm === 'py' ? ['-3'] : [] }; } return null; }
+  /* Kullanicinin Volatility kurulumunu bul. extra: kullanicinin sectigi dosya (vol, vol.exe, vol.py). Bulunan her aday '-h' ile dogrulanir. */
+  function findVol(o) {
+    o = o || {}; const env = cleanEnv(o.env); const dirs = pathDirs(env, o.onlyDirs); const cand = []; const seen = new Set(); const add = (c) => { const k = c.exe + '\u0000' + c.pre.join(' '); if (!seen.has(k)) { seen.add(k); cand.push(c); } };
+    if (o.userPath && path.isAbsolute(o.userPath) && isFile(o.userPath)) { const ext = path.extname(o.userPath).toLowerCase(); if (ext === '.py') { const py = findPython(env, dirs); if (py) add({ kind: 'user-py', label: 'Seçilen: ' + o.userPath, exe: py.exe, pre: [...py.pre, o.userPath] }); } else if (ext === '' || ext === '.exe') add({ kind: 'user', label: 'Seçilen: ' + o.userPath, exe: o.userPath, pre: [] }); }
+    const v = whichIn(dirs, exeNames('vol')); if (v) add({ kind: 'path', label: 'PATH: ' + v, exe: v, pre: [] });
+    const vp = whichIn(dirs, ['vol.py']); const py = findPython(env, dirs); if (vp && py) add({ kind: 'path-py', label: 'PATH: ' + vp + ' (Python ile)', exe: py.exe, pre: [...py.pre, vp] });
+    if (py) add({ kind: 'module', label: 'Python modülü: volatility3 (' + py.exe + ')', exe: py.exe, pre: [...py.pre, '-c', PYCODE] });
+    const tried = []; let best = null;
+    for (const c of cand) { const r = runSync(c.exe, [...c.pre, '-h'], env, o.probeMs || 40000); const ver = verOf(r.out); const ok = !!ver; tried.push({ label: c.label, ok, version: ver, why: ok ? '' : (r.err && r.err.code === 'ENOENT' ? 'bulunamadı' : /No module named/i.test(r.out) ? 'volatility3 Python paketi kurulu değil' : 'Volatility 3 olarak doğrulanamadı') }); if (ok && !best) best = Object.assign({}, c, { version: ver }); }
+    return { found: !!best, best, tried, python: !!py };
+  }
+  const INSTALL = ['Volatility 3 bu uygulamayla gelmez; kendi bilgisayarına kur:', '1) Python 3.8+ kur (python.org).', '2) Komut satırında: pip install volatility3', '3) Bu sayfada “Yeniden ara”ya bas; bulunamazsa “vol” dosyasını (Scripts klasöründeki vol.exe veya vol.py) “Yol seç” ile göster.'];
+  function validDump(p) {
+    if (typeof p !== 'string' || !path.isAbsolute(p)) return { error: 'Geçersiz dosya yolu.' }; let st; try { st = fs.statSync(p); } catch (e) { return { error: 'Dosya okunamadı.' } } if (!st.isFile()) return { error: 'Bu bir dosya değil.' };
+    const ext = path.extname(p).toLowerCase(); if (!EXTS.includes(ext)) return { error: 'Desteklenmeyen uzantı (' + (ext || 'yok') + '). Beklenen: ' + EXTS.join(' ') }; if (!st.size) return { error: 'Dosya boş.' };
+    try { fs.accessSync(p, fs.constants.R_OK); } catch (e) { return { error: 'Dosya okunamıyor (izin yok).' } } return { ok: true, size: st.size, name: path.basename(p), ext };
+  }
+  function classify(out, offline) {
+    const s = String(out); if (/Unsatisfied requirement[\s\S]*symbol_table_name|symbol table requirement|Unable to validate the plugin requirements/i.test(s) && /symbol/i.test(s)) return { code: 'symbols', message: offline ? 'Bu dökümün Windows sembolleri (PDB/ISF) çevrimdışı önbellekte yok. Ağ kapalı olduğu için indirilemedi. İzin verirsen Microsoft sembol sunucusundan indirilir; ya da sembolü Volatility’nin sembol klasörüne kendin koy.' : 'Windows sembolleri bulunamadı veya indirilemedi (ağ/sunucu hatası ya da bu sürüm için sembol yok).' };
+    if (/translation layer requirement was not fulfilled|valid memory image/i.test(s)) return { code: 'layer', message: 'Dosya geçerli bir Windows bellek dökümü olarak tanınmadı (biçim/boyut bozuk ya da Windows dışı bir döküm olabilir).' };
+    if (/No such file|cannot find the file/i.test(s)) return { code: 'file', message: 'Döküm dosyası bulunamadı.' }; return { code: 'plugin', message: 'Eklenti başarısız oldu.' };
+  }
+  function parseJson(txt) { const s = String(txt); const i = s.search(/[\[{]/); if (i < 0) return null; try { const v = JSON.parse(s.slice(i)); return Array.isArray(v) ? v : (v && typeof v === 'object' ? [v] : null); } catch (e) { return null; } }
+  function flat(rows, depth) { const out = []; for (const r of Array.isArray(rows) ? rows : []) { if (!r || typeof r !== 'object') continue; const rest = Object.assign({}, r); const ch = rest.__children; delete rest.__children; rest.__depth = depth || 0; out.push(rest); if (Array.isArray(ch) && ch.length) for (const c of flat(ch, (depth || 0) + 1)) out.push(c); } return out; }
+  const confirmText = () => 'Windows bellek dökümlerini çözmek için Volatility, çekirdeğin sembol (PDB) dosyasını Microsoft sembol sunucusundan (msdl.microsoft.com, HTTP) indirmek ister.\n\n• Giden bilgi: yalnızca çekirdek dosya adı ve sürüm kimliği (GUID/yaş) ile bağlantı bilgin (IP). Döküm içeriği GÖNDERİLMEZ.\n• İnen: sembol dosyaları (onlarca MB’a kadar); Volatility’nin kendi önbellek klasörüne yazılır. Hiçbir şey çalıştırılmaz.\n• Reddedersen ağ KULLANILMAZ; yalnızca çevrimdışı önbellekteki semboller kullanılır ve yoksa bunu net söyleriz.';
+  function createMemHost(deps) {
+    deps = deps || {}; const jobs = new Map(); let seq = 0; let active = null; let picked = null; let userVol = null; let volCache = null;
+    const errE = (message, extra) => Object.assign({ error: 'mem', message }, extra || {});
+    const eng = deps.engine || null; const stateFile = deps.dataDir ? path.join(deps.dataDir, 'ramanaliz.json') : null;
+    if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o.vol === 'string' && path.isAbsolute(o.vol)) userVol = o.vol; } catch (e) { /* ilk kullanim */ } }
+    const saveState = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify({ vol: userVol })); fs.renameSync(t, stateFile); } catch (e) { /* yazilamazsa bellekte kalir */ } };
+    const locate = (force) => { if (volCache && !force) return volCache; volCache = findVol({ env: deps.env, onlyDirs: deps.onlyDirs, userPath: userVol, probeMs: deps.probeMs }); return volCache; };
+    const pub = (r) => ({ found: r.found, version: r.best ? r.best.version : '', label: r.best ? r.best.label : '', tried: r.tried, python: r.python, install: INSTALL });
+    function exec(job, file, args, cwd, ms) {
+      return new Promise((resolve) => {
+        const env = cleanEnv(deps.env); let out = ''; let errs = ''; let size = 0; let over = false; let done = false; let timer; const chunks = [];
+        const fin = (r) => { if (done) return; done = true; clearTimeout(timer); job.child = null; resolve(Object.assign({ out: Buffer.concat(chunks).toString('utf8'), err: errs, over }, r)); };
+        let c; try { c = cp.spawn(file, args, { cwd, env, windowsHide: true, shell: false, stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return fin({ code: -1, err: String(e && e.message || e) }); }
+        job.child = c; c.stdout.on('data', (d) => { size += d.length; if (size > LIM.out) { if (!over) { over = true; try { c.kill(); } catch (e) { /* bitmis */ } } return; } chunks.push(d); });
+        c.stderr.on('data', (d) => { errs += d; if (errs.length > 200000) errs = errs.slice(-100000); });
+        timer = setTimeout(() => { job.timedOut = true; try { c.kill(); } catch (e) { /* bitmis */ } fin({ code: -2 }); }, Math.max(1000, ms));
+        c.on('error', (e) => fin({ code: -1, err: errs + String(e && e.message || e) })); c.on('close', (code) => fin({ code }));
+      });
+    }
+    async function run(job, req, vol, allowNet) {
+      const work = fs.mkdtempSync(path.join(os.tmpdir(), 'kovan-ram-')); const logp = (t) => { job.log += t + '\n'; if (job.log.length > 60000) job.log = job.log.slice(-40000); };
+      const S = (id) => job.steps.find((s) => s.id === id); const step = (id, st, d) => { const s = S(id); if (!s) return; s.status = st; if (d !== undefined) s.detail = d; };
+      try {
+        for (const id of req.layers) {
+          if (job.canceled || job.timedOut) break; const L = LAYER[id]; step(id, 'run'); let got = null; let lastErr = '';
+          for (const nm of L.names) {
+            const left = job.deadline - Date.now(); if (left < 1000) { job.timedOut = true; break; }
+            const args = [...vol.pre, '-q', ...(allowNet ? [] : ['--offline']), '-o', work, '-f', req.file, '-r', 'json', nm]; if (deps.logArgs) deps.logArgs(vol.exe, args);
+            const r = await exec(job, vol.exe, args, work, left); if (job.canceled || job.timedOut) break;
+            if (r.over) { lastErr = 'Çıktı boyut sınırını aştı (' + Math.round(LIM.out / 1048576) + ' MB).'; logp('[' + nm + '] ' + lastErr); got = { truncated: true, rows: [] }; break; }
+            const rows = r.code === 0 ? parseJson(r.out) : null;
+            if (rows) { let f = flat(rows); let tr = false; if (f.length > LIM.rows) { f = f.slice(0, LIM.rows); tr = true; } got = { rows: f, truncated: tr }; break; }
+            const c = classify(r.err + '\n' + r.out.slice(0, 4000), !allowNet); lastErr = c.message; logp('[' + nm + '] ' + String(r.err).trim().split(/\r?\n/).slice(-6).join('\n')); if (/invalid choice|unrecognized|No plugin|not a valid plugin/i.test(r.err) && L.names.length > 1) { lastErr = ''; continue; } if (c.code === 'symbols' || c.code === 'layer' || c.code === 'file') { job.fatal = job.fatal || c; break; } break;
+          }
+          if (got && got.rows.length >= 0 && !lastErr) { job.data[id] = got.rows; job.layerInfo[id] = { rows: got.rows.length, truncated: got.truncated, error: '' }; step(id, 'ok', got.rows.length + ' satır' + (got.truncated ? ' (kesildi)' : '')); }
+          else if (got && got.truncated) { job.layerInfo[id] = { rows: 0, truncated: true, error: lastErr }; step(id, 'fail', lastErr); }
+          else if (!job.canceled && !job.timedOut) { job.layerInfo[id] = { rows: 0, truncated: false, error: lastErr || 'Eklenti çalışmadı.' }; step(id, 'fail', lastErr || 'Eklenti çalışmadı.'); if (job.fatal && (id === 'info' || id === 'pslist' || Object.keys(job.data).length === 0)) { for (const x of job.steps) if (x.status === 'wait') { x.status = 'skip'; x.detail = 'Atlandı (döküm çözülemedi)'; } break; } }
+        }
+        for (const x of job.steps) if (x.status === 'run') { x.status = 'fail'; x.detail = job.canceled ? 'İptal edildi' : job.timedOut ? 'Zaman aşımı' : x.detail; } else if (x.status === 'wait' && (job.canceled || job.timedOut)) { x.status = 'skip'; x.detail = job.canceled ? 'İptal edildi' : 'Zaman aşımı'; }
+        const have = Object.keys(job.data).length;
+        if (job.canceled) { job.state = 'canceled'; return; }
+        if (!have) { job.state = 'failed'; job.error = job.fatal ? job.fatal.message : (job.timedOut ? 'Zaman aşımı: hiçbir katman tamamlanmadı.' : 'Hiçbir katman çalıştırılamadı. Ayrıntı için günlüğe bak.'); job.errorCode = job.fatal ? job.fatal.code : (job.timedOut ? 'timeout' : 'plugin'); return; }
+        const partial = job.timedOut || req.layers.some((id) => !job.data[id]); const scan = eng && eng.ramScan ? eng.ramScan(job.data) : null;
+        job.result = { partial, timedOut: !!job.timedOut, scan: scan ? { version: scan.version, score: scan.score, level: scan.level, headline: scan.headline, counts: scan.counts, coverage: scan.coverage, notes: scan.notes, os: scan.os, caveats: scan.caveats, procs: scan.procs.slice(0, LIM.procs), findings: scan.findings.slice(0, LIM.find), moreFindings: Math.max(0, scan.findings.length - LIM.find) } : null, layers: job.layerInfo, meta: job.meta };
+        job.scan = scan; job.state = partial ? 'partial' : 'done'; if (job.timedOut) job.error = 'Zaman aşımı (' + job.timeoutMin + ' dk): kısmi rapor üretildi.';
+        if (deps.notify) { try { deps.notify('Kovan RAM Analizi', scan ? 'Bitti: puan ' + scan.score + '/100 (' + (partial ? 'kısmi' : 'tam') + ')' : 'Bitti') } catch (e) { /* bildirim yok */ } }
+      } finally { try { fs.rmSync(work, { recursive: true, force: true }); } catch (e) { /* gecici klasor */ } if (job.state === 'running') job.state = 'failed'; job.endedAt = Date.now(); }
+    }
+    const handlers = {
+      'mem:tools': async (_e, force) => { try { const r = locate(force === true); return Object.assign(pub(r), { layers: LAYERS.map((l) => ({ id: l.id, title: l.title, heavy: l.heavy })), exts: EXTS, windows: isWin() }); } catch (e) { return errE(String(e && e.message || e)); } },
+      'mem:chooseVol': async () => { if (!deps.chooseVol) return errE('Dosya seçimi yok.'); const f = await deps.chooseVol(); if (!f) return { canceled: true }; if (typeof f !== 'string' || !path.isAbsolute(f)) return errE('Geçersiz yol.'); userVol = f; const r = locate(true); if (!r.found) { userVol = null; volCache = null; return Object.assign(errE('Seçilen dosya Volatility 3 olarak doğrulanamadı.'), pub(r)); } saveState(); return Object.assign({ ok: true }, pub(r)); },
+      'mem:chooseDump': async () => { if (!deps.chooseDump) return errE('Dosya seçimi yok.'); const f = await deps.chooseDump(); if (!f) return { canceled: true }; const v = validDump(f); if (v.error) { picked = null; return errE(v.error); } picked = { path: f, size: v.size, name: v.name, ext: v.ext }; return { ok: true, name: v.name, size: v.size, ext: v.ext }; },
+      'mem:start': async (_e, req) => {
+        if (!req || typeof req !== 'object') return errE('Geçersiz istek.'); if (active) return errE('Başka bir analiz sürüyor.'); if (!picked) return errE('Önce bir bellek dökümü seç.');
+        const v = validDump(picked.path); if (v.error) return errE(v.error); if (req.layers !== undefined && !Array.isArray(req.layers)) return errE('Katman seçimi geçersiz.'); const ids = Array.isArray(req.layers) ? req.layers : DEFAULT_IDS; if (!ids.length || ids.length > LAYERS.length || ids.some((x) => typeof x !== 'string' || !LAYER[x]) || new Set(ids).size !== ids.length) return errE('Katman seçimi geçersiz.');
+        const order = LAYERS.map((l) => l.id).filter((x) => ids.includes(x)); const sym = req.symbols === 'allow' ? 'allow' : 'offline'; let tmo = Number(req.timeoutMin); if (!Number.isFinite(tmo)) tmo = LIM.defMin; tmo = Math.min(LIM.timeoutMin[1], Math.max(LIM.timeoutMin[0], Math.round(tmo)));
+        const vr = locate(false); if (!vr.found) return errE('Volatility 3 bulunamadı.', { needVol: true, install: INSTALL, tried: vr.tried });
+        let allowNet = false; if (sym === 'allow') { if (!deps.confirm) return errE('Onay penceresi yok; ağ kullanılamaz (çevrimdışı devam için “çevrimdışı” seç).'); allowNet = !!(await deps.confirm({ title: 'Sembol indirmeye izin verilsin mi?', message: confirmText(), ok: 'İndirmeye izin ver', cancel: 'Çevrimdışı devam et' })); }
+        const id = String(++seq); const job = { id, state: 'running', steps: order.map((x) => ({ id: x, label: LAYER[x].title, status: 'wait', detail: '' })), log: '', result: null, scan: null, error: null, errorCode: '', data: {}, layerInfo: {}, startedAt: Date.now(), deadline: Date.now() + tmo * (deps.msPerMin || 60000), timeoutMin: tmo, net: allowNet, netAsked: sym === 'allow', canceled: false, timedOut: false, fatal: null, child: null, meta: { name: picked.name, size: picked.size, vol: vr.best.version, date: new Date().toISOString(), network: allowNet ? 'izinli' : 'kapalı (--offline)' } };
+        jobs.set(id, job); active = job; if (jobs.size > 6) { const k = jobs.keys().next().value; if (jobs.get(k) !== job) jobs.delete(k); }
+        run(job, Object.assign({ layers: order, file: picked.path }), vr.best, allowNet).catch((e) => { job.state = 'failed'; job.error = String(e && e.message || e); }).finally(() => { active = null; });
+        return { id, network: allowNet, declined: sym === 'allow' && !allowNet };
+      },
+      'mem:job': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); return { id: j.id, state: j.state, steps: j.steps, log: j.log.slice(-LIM.log), result: j.result, error: j.error, errorCode: j.errorCode, network: j.net, elapsed: (j.endedAt || Date.now()) - j.startedAt, timeoutMin: j.timeoutMin }; },
+      'mem:cancel': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); j.canceled = true; try { j.child && j.child.kill(); } catch (e) { /* bitmis */ } return { ok: true }; },
+      'mem:rows': async (_e, id, layer, offset, limit, q) => {
+        const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); if (typeof layer !== 'string' || !LAYER[layer]) return errE('Katman geçersiz.'); const rows = j.data[layer]; if (!rows) return errE('Bu katman çalışmadı.');
+        let off = Math.max(0, Math.floor(Number(offset)) || 0); const lim = Math.min(LIM.page, Math.max(1, Math.floor(Number(limit)) || 100)); const needle = String(q || '').toLowerCase().slice(0, LIM.q); let list = rows;
+        if (needle) list = rows.filter((r) => { try { return JSON.stringify(r).toLowerCase().includes(needle); } catch (e) { return false; } });
+        const cols = []; for (const r of list.slice(0, 50)) for (const k of Object.keys(r)) if (k !== '__depth' && !cols.includes(k)) cols.push(k); if (off >= list.length) off = Math.max(0, list.length - lim);
+        return { layer, total: list.length, all: rows.length, offset: off, columns: cols.slice(0, 24), rows: list.slice(off, off + lim), truncated: !!(j.layerInfo[layer] && j.layerInfo[layer].truncated) };
+      },
+      'mem:report': async (_e, id, kind) => {
+        const j = jobs.get(String(id)); if (!j || !j.scan) return errE('Rapor yok (analiz bitmemiş).'); const meta = Object.assign({}, j.meta, { partial: j.state === 'partial' });
+        if (kind === 'json') return { ok: true, name: 'kovan-ram-analizi.json', mime: 'application/json', text: JSON.stringify({ meta, result: j.scan }, null, 2) };
+        return { ok: true, name: 'kovan-ram-analizi.md', mime: 'text/markdown', text: eng && eng.ramReportText ? eng.ramReportText(j.scan, meta) : '' };
+      }
+    };
+    return { handlers, _locate: locate, _pick: (p) => { const v = validDump(p); if (v.error) return v; picked = { path: p, size: v.size, name: v.name, ext: v.ext }; return v; } };
+  }
+  return { createMemHost, findVol, validDump, classify, parseJson, flat, LAYERS, EXTS, LIM, DEFAULT_IDS, PYCODE, _setPlatform: (p) => { platOverride = p; } };
+})();
+
 function riskyList(ui) {
   const out = []; ui = ui || {};
   for (const k of RISKY) if (ui[k] && ui[k] !== 'Disable') out.push(RISK_TEXT[k]);
@@ -933,6 +1070,8 @@ function createHost(deps) {
   if (deps.compile !== false) { const ch = COMPMOD.createCompileHost({ downloadsDir: deps.downloadsDir, outputBase: deps.compileOutputBase, env: deps.compileEnv, jdkDirs: deps.compileJdkDirs, onlyJdkDirs: deps.compileOnlyJdkDirs, notify: deps.notify, showItemInFolder: deps.showItemInFolder, toolDirs: deps.compileToolDirs, onlyToolDirs: deps.compileOnlyToolDirs }); Object.assign(handlers, ch.handlers); }
   /* Gorev Yoneticisi + Ag Izleyici (salt okunur; bkz. SYSMOD) */
   if (deps.sys !== false) { const sh = SYSMOD.createSysHost(Object.assign({ confirm: deps.confirm, showItemInFolder: deps.showItemInFolder }, deps.sys || {})); Object.assign(handlers, sh.handlers); }
+  /* RAM Analizi: kullanicinin kendi Volatility 3 kurulumu (bkz. MEMMOD); dosya secimi + ag onayi host tarafinda */
+  if (deps.mem !== false) { const mh = MEMMOD.createMemHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.mem || {})); Object.assign(handlers, mh.handlers); }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
@@ -961,4 +1100,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD };

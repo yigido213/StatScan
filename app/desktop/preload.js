@@ -60,6 +60,14 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   sysNetReset: () => call('sys:netreset'),
   sysReveal: (pid) => call('sys:reveal', Number(pid)),
   sysKill: (pid) => call('sys:kill', Number(pid)),
+  memTools: (force) => call('mem:tools', force === true),
+  memChooseVol: () => call('mem:chooseVol'),
+  memChooseDump: () => call('mem:chooseDump'),
+  memStart: (req) => call('mem:start', { layers: req && Array.isArray(req.layers) ? req.layers.map(String) : undefined, symbols: req && req.symbols === 'allow' ? 'allow' : 'offline', timeoutMin: req && Number(req.timeoutMin) }),
+  memJob: (id) => call('mem:job', String(id)),
+  memCancel: (id) => call('mem:cancel', String(id)),
+  memRows: (id, layer, offset, limit, q) => call('mem:rows', String(id), String(layer), Number(offset) || 0, Number(limit) || 100, String(q || '')),
+  memReport: (id, kind) => call('mem:report', String(id), kind === 'json' ? 'json' : 'md'),
   storeGet: (k) => call('store:get', String(k)),
   storeSet: (k, v) => call('store:set', String(k), String(v))
 }));

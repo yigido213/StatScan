@@ -15,7 +15,8 @@ await pg.keyboard.press('Escape'); await pg.waitForTimeout(100);
 ok(/Settings/.test(await pg.textContent('#side-settings')) && /Security/.test(await pg.textContent('.side')) && /Coding/.test(await pg.textContent('.side')) && /Task Manager/.test(await pg.textContent('.side')), 'kenar çubuğu İngilizce');
 ok(/grouped into categories/.test(await pg.textContent('#app-home .lead')) && /Compiler/.test(await pg.textContent('#toolgrid')), 'Home İngilizce');
 ok((await pg.title()).startsWith('Home'), 'başlık');
-const roots = { texpack: '#app-texpack', modconv: '#app-modconv', compiler: '#app-compiler' };
+ok(/Memory Analysis/.test(await pg.textContent('.side')) && /Memory Analysis/.test(await pg.textContent('#toolgrid')) && /Never declares a dump/.test(await pg.textContent('#toolgrid')) && !/RAM Analizi/.test(await pg.textContent('#toolgrid')), 'RAM Analizi: kenar çubuğu ve Home kartı İngilizce (Memory Analysis)');
+const roots = { texpack: '#app-texpack', modconv: '#app-modconv', compiler: '#app-compiler', ramanaliz: '#app-ramanaliz' };
 for (const [id, sel] of Object.entries(roots)) { await pg.evaluate((i) => { location.hash = '#/' + i; }, id); await pg.waitForTimeout(250);
   const left = await pg.evaluate((s) => { const out = []; const w = document.createTreeWalker(document.querySelector(s), NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const t = n.nodeValue.trim(); if (t && /[çğıöşüÇĞİÖŞÜ]/.test(t) && !n.parentElement.closest('pre,textarea,script,style,[hidden]')) out.push(t.slice(0, 80)); } return out; }, sel);
   ok(left.length === 0, id + ': Türkçe kalıntı yok ' + left.join(' | ')); }

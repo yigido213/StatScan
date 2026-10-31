@@ -1,0 +1,809 @@
+{
+ "windows.info": [
+  {
+   "Variable": "Kernel Base",
+   "Value": "0xf80000000000",
+   "__children": []
+  },
+  {
+   "Variable": "NTBuildLab",
+   "Value": "19041.1.amd64fre.vb_release.191206-1406",
+   "__children": []
+  },
+  {
+   "Variable": "Is64Bit",
+   "Value": "True",
+   "__children": []
+  }
+ ],
+ "windows.pslist": [
+  {
+   "PID": 4,
+   "PPID": 0,
+   "ImageFileName": "System",
+   "Offset(V)": 4294942724,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 300,
+   "PPID": 4,
+   "ImageFileName": "smss.exe",
+   "Offset(V)": 4294943020,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 400,
+   "PPID": 300,
+   "ImageFileName": "csrss.exe",
+   "Offset(V)": 4294943120,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 480,
+   "PPID": 300,
+   "ImageFileName": "wininit.exe",
+   "Offset(V)": 4294943200,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 560,
+   "PPID": 480,
+   "ImageFileName": "services.exe",
+   "Offset(V)": 4294943280,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 580,
+   "PPID": 480,
+   "ImageFileName": "lsass.exe",
+   "Offset(V)": 4294943300,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 700,
+   "PPID": 560,
+   "ImageFileName": "svchost.exe",
+   "Offset(V)": 4294943420,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 1500,
+   "PPID": 1480,
+   "ImageFileName": "explorer.exe",
+   "Offset(V)": 4294944220,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 2000,
+   "PPID": 1500,
+   "ImageFileName": "chrome.exe",
+   "Offset(V)": 4294944720,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 3100,
+   "PPID": 1500,
+   "ImageFileName": "notepad.exe",
+   "Offset(V)": 4294945820,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 900,
+   "PPID": 1234,
+   "ImageFileName": "svchost.exe",
+   "Offset(V)": 4294943620,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 4100,
+   "PPID": 560,
+   "ImageFileName": "scvhost.exe",
+   "Offset(V)": 4294946820,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 4200,
+   "PPID": 1500,
+   "ImageFileName": "powershell.exe",
+   "Offset(V)": 4294946920,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  }
+ ],
+ "windows.psscan": [
+  {
+   "PID": 4,
+   "PPID": 0,
+   "ImageFileName": "System",
+   "Offset(V)": 4294942724,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 300,
+   "PPID": 4,
+   "ImageFileName": "smss.exe",
+   "Offset(V)": 4294943020,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 400,
+   "PPID": 300,
+   "ImageFileName": "csrss.exe",
+   "Offset(V)": 4294943120,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 480,
+   "PPID": 300,
+   "ImageFileName": "wininit.exe",
+   "Offset(V)": 4294943200,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 560,
+   "PPID": 480,
+   "ImageFileName": "services.exe",
+   "Offset(V)": 4294943280,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 580,
+   "PPID": 480,
+   "ImageFileName": "lsass.exe",
+   "Offset(V)": 4294943300,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 700,
+   "PPID": 560,
+   "ImageFileName": "svchost.exe",
+   "Offset(V)": 4294943420,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 1500,
+   "PPID": 1480,
+   "ImageFileName": "explorer.exe",
+   "Offset(V)": 4294944220,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 2000,
+   "PPID": 1500,
+   "ImageFileName": "chrome.exe",
+   "Offset(V)": 4294944720,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 3100,
+   "PPID": 1500,
+   "ImageFileName": "notepad.exe",
+   "Offset(V)": 4294945820,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 900,
+   "PPID": 1234,
+   "ImageFileName": "svchost.exe",
+   "Offset(V)": 4294943620,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 4100,
+   "PPID": 560,
+   "ImageFileName": "scvhost.exe",
+   "Offset(V)": 4294946820,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 4200,
+   "PPID": 1500,
+   "ImageFileName": "powershell.exe",
+   "Offset(V)": 4294946920,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 6666,
+   "PPID": 4,
+   "ImageFileName": "rootkitd.exe",
+   "Offset(V)": 4294949386,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 5000,
+   "PPID": 1500,
+   "ImageFileName": "old.exe",
+   "Offset(V)": 4294947720,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": "2026-10-30T09:10:00+00:00",
+   "File output": "Disabled",
+   "__children": []
+  }
+ ],
+ "windows.pstree": [
+  {
+   "PID": 4,
+   "PPID": 0,
+   "ImageFileName": "System",
+   "Offset(V)": 4294942724,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 0,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:00:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": [
+    {
+     "PID": 300,
+     "PPID": 4,
+     "ImageFileName": "smss.exe",
+     "Offset(V)": 4294943020,
+     "Threads": 4,
+     "Handles": 100,
+     "SessionId": 0,
+     "Wow64": false,
+     "CreateTime": "2026-10-30T09:00:00+00:00",
+     "ExitTime": null,
+     "File output": "Disabled",
+     "__children": [
+      {
+       "PID": 400,
+       "PPID": 300,
+       "ImageFileName": "csrss.exe",
+       "Offset(V)": 4294943120,
+       "Threads": 4,
+       "Handles": 100,
+       "SessionId": 0,
+       "Wow64": false,
+       "CreateTime": "2026-10-30T09:00:00+00:00",
+       "ExitTime": null,
+       "File output": "Disabled",
+       "__children": []
+      },
+      {
+       "PID": 480,
+       "PPID": 300,
+       "ImageFileName": "wininit.exe",
+       "Offset(V)": 4294943200,
+       "Threads": 4,
+       "Handles": 100,
+       "SessionId": 0,
+       "Wow64": false,
+       "CreateTime": "2026-10-30T09:00:00+00:00",
+       "ExitTime": null,
+       "File output": "Disabled",
+       "__children": [
+        {
+         "PID": 560,
+         "PPID": 480,
+         "ImageFileName": "services.exe",
+         "Offset(V)": 4294943280,
+         "Threads": 4,
+         "Handles": 100,
+         "SessionId": 0,
+         "Wow64": false,
+         "CreateTime": "2026-10-30T09:00:00+00:00",
+         "ExitTime": null,
+         "File output": "Disabled",
+         "__children": [
+          {
+           "PID": 700,
+           "PPID": 560,
+           "ImageFileName": "svchost.exe",
+           "Offset(V)": 4294943420,
+           "Threads": 4,
+           "Handles": 100,
+           "SessionId": 0,
+           "Wow64": false,
+           "CreateTime": "2026-10-30T09:00:00+00:00",
+           "ExitTime": null,
+           "File output": "Disabled",
+           "__children": []
+          },
+          {
+           "PID": 4100,
+           "PPID": 560,
+           "ImageFileName": "scvhost.exe",
+           "Offset(V)": 4294946820,
+           "Threads": 4,
+           "Handles": 100,
+           "SessionId": 1,
+           "Wow64": false,
+           "CreateTime": "2026-10-30T09:05:00+00:00",
+           "ExitTime": null,
+           "File output": "Disabled",
+           "__children": []
+          }
+         ]
+        },
+        {
+         "PID": 580,
+         "PPID": 480,
+         "ImageFileName": "lsass.exe",
+         "Offset(V)": 4294943300,
+         "Threads": 4,
+         "Handles": 100,
+         "SessionId": 0,
+         "Wow64": false,
+         "CreateTime": "2026-10-30T09:00:00+00:00",
+         "ExitTime": null,
+         "File output": "Disabled",
+         "__children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "PID": 1500,
+   "PPID": 1480,
+   "ImageFileName": "explorer.exe",
+   "Offset(V)": 4294944220,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": [
+    {
+     "PID": 2000,
+     "PPID": 1500,
+     "ImageFileName": "chrome.exe",
+     "Offset(V)": 4294944720,
+     "Threads": 4,
+     "Handles": 100,
+     "SessionId": 1,
+     "Wow64": false,
+     "CreateTime": "2026-10-30T09:05:00+00:00",
+     "ExitTime": null,
+     "File output": "Disabled",
+     "__children": []
+    },
+    {
+     "PID": 3100,
+     "PPID": 1500,
+     "ImageFileName": "notepad.exe",
+     "Offset(V)": 4294945820,
+     "Threads": 4,
+     "Handles": 100,
+     "SessionId": 1,
+     "Wow64": false,
+     "CreateTime": "2026-10-30T09:05:00+00:00",
+     "ExitTime": null,
+     "File output": "Disabled",
+     "__children": []
+    },
+    {
+     "PID": 4200,
+     "PPID": 1500,
+     "ImageFileName": "powershell.exe",
+     "Offset(V)": 4294946920,
+     "Threads": 4,
+     "Handles": 100,
+     "SessionId": 1,
+     "Wow64": false,
+     "CreateTime": "2026-10-30T09:05:00+00:00",
+     "ExitTime": null,
+     "File output": "Disabled",
+     "__children": []
+    }
+   ]
+  },
+  {
+   "PID": 900,
+   "PPID": 1234,
+   "ImageFileName": "svchost.exe",
+   "Offset(V)": 4294943620,
+   "Threads": 4,
+   "Handles": 100,
+   "SessionId": 1,
+   "Wow64": false,
+   "CreateTime": "2026-10-30T09:05:00+00:00",
+   "ExitTime": null,
+   "File output": "Disabled",
+   "__children": []
+  }
+ ],
+ "windows.cmdline": [
+  {
+   "PID": 4200,
+   "Process": "powershell.exe",
+   "Args": "powershell.exe -w hidden -nop -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkA",
+   "__children": []
+  },
+  {
+   "PID": 4100,
+   "Process": "scvhost.exe",
+   "Args": "C:\\Users\\bob\\AppData\\Local\\Temp\\scvhost.exe",
+   "__children": []
+  },
+  {
+   "PID": 3100,
+   "Process": "notepad.exe",
+   "Args": "\"C:\\Windows\\system32\\notepad.exe\"",
+   "__children": []
+  },
+  {
+   "PID": 700,
+   "Process": "svchost.exe",
+   "Args": "C:\\Windows\\system32\\svchost.exe -k DcomLaunch",
+   "__children": []
+  }
+ ],
+ "windows.dlllist": [
+  {
+   "PID": 4100,
+   "Process": "scvhost.exe",
+   "Base": "0x400000",
+   "Size": "0x1000",
+   "Name": "scvhost.exe",
+   "Path": "C:\\Users\\bob\\AppData\\Local\\Temp\\scvhost.exe",
+   "LoadCount": 65535,
+   "LoadTime": "2026-10-30T09:05:00+00:00",
+   "File output": "Disabled",
+   "__children": []
+  },
+  {
+   "PID": 3100,
+   "Process": "notepad.exe",
+   "Base": "0x7ff600000000",
+   "Size": "0x1000",
+   "Name": "notepad.exe",
+   "Path": "C:\\Windows\\System32\\notepad.exe",
+   "LoadCount": 65535,
+   "LoadTime": "2026-10-30T09:05:00+00:00",
+   "File output": "Disabled",
+   "__children": []
+  }
+ ],
+ "windows.ldrmodules": [
+  {
+   "Pid": 3100,
+   "Process": "notepad.exe",
+   "Base": "0x7ff600000000",
+   "InLoad": true,
+   "InInit": true,
+   "InMem": true,
+   "MappedPath": "\\Windows\\System32\\notepad.exe",
+   "__children": []
+  },
+  {
+   "Pid": 4100,
+   "Process": "scvhost.exe",
+   "Base": "0x10000000",
+   "InLoad": false,
+   "InInit": false,
+   "InMem": false,
+   "MappedPath": "\\Users\\bob\\AppData\\Local\\Temp\\implant.dll",
+   "__children": []
+  }
+ ],
+ "windows.malfind": [
+  {
+   "PID": 4100,
+   "Process": "scvhost.exe",
+   "Start VPN": 2752512,
+   "End VPN": 2818047,
+   "Tag": "VadS",
+   "Protection": "PAGE_EXECUTE_READWRITE",
+   "CommitCharge": 16,
+   "PrivateMemory": 1,
+   "File output": "Disabled",
+   "Notes": "MZ header",
+   "Hexdump": "4d 5a 90 00 03 00 00 00",
+   "Disasm": "dec ebp",
+   "__children": []
+  },
+  {
+   "PID": 2000,
+   "Process": "chrome.exe",
+   "Start VPN": 7995392,
+   "End VPN": 7999487,
+   "Tag": "VadS",
+   "Protection": "PAGE_EXECUTE_READWRITE",
+   "CommitCharge": 1,
+   "PrivateMemory": 1,
+   "File output": "Disabled",
+   "Notes": "N/A",
+   "Hexdump": "48 89 5c 24 08 57 48 83",
+   "Disasm": "mov",
+   "__children": []
+  }
+ ],
+ "windows.netscan": [
+  {
+   "Offset": "0xa1",
+   "Proto": "TCPv4",
+   "LocalAddr": "10.0.0.5",
+   "LocalPort": 49800,
+   "ForeignAddr": "203.0.113.9",
+   "ForeignPort": 4444,
+   "State": "ESTABLISHED",
+   "PID": 4200,
+   "Owner": "powershell.exe",
+   "Created": "2026-10-30T09:05:00+00:00",
+   "__children": []
+  },
+  {
+   "Offset": "0xa2",
+   "Proto": "TCPv4",
+   "LocalAddr": "10.0.0.5",
+   "LocalPort": 49801,
+   "ForeignAddr": "142.250.1.1",
+   "ForeignPort": 443,
+   "State": "ESTABLISHED",
+   "PID": 2000,
+   "Owner": "chrome.exe",
+   "Created": "2026-10-30T09:05:00+00:00",
+   "__children": []
+  }
+ ],
+ "windows.svcscan": [
+  {
+   "Offset": "0xb1",
+   "Order": 1,
+   "PID": 4100,
+   "Start": "SERVICE_AUTO_START",
+   "State": "SERVICE_RUNNING",
+   "Type": "SERVICE_WIN32_OWN_PROCESS",
+   "Name": "UpdSvc",
+   "Display": "Updater",
+   "Binary": "C:\\Users\\bob\\AppData\\Local\\Temp\\scvhost.exe",
+   "Binary (Registry)": null,
+   "Dll": null,
+   "__children": []
+  },
+  {
+   "Offset": "0xb2",
+   "Order": 2,
+   "PID": 700,
+   "Start": "SERVICE_AUTO_START",
+   "State": "SERVICE_RUNNING",
+   "Type": "SERVICE_WIN32_SHARE_PROCESS",
+   "Name": "DcomLaunch",
+   "Display": "DCOM",
+   "Binary": "C:\\Windows\\system32\\svchost.exe -k DcomLaunch",
+   "Binary (Registry)": null,
+   "Dll": null,
+   "__children": []
+  }
+ ],
+ "windows.modules": [
+  {
+   "Offset": "0xc1",
+   "Base": "0xf80000000000",
+   "Size": "0x100000",
+   "Name": "ntoskrnl.exe",
+   "Path": "\\SystemRoot\\system32\\ntoskrnl.exe",
+   "File output": "Disabled",
+   "__children": []
+  }
+ ],
+ "windows.driverscan": [
+  {
+   "Offset": "0xd1",
+   "Start": "0xf80000000000",
+   "Size": "0x100000",
+   "Service Key": "ntoskrnl",
+   "Driver Name": "ntoskrnl",
+   "Name": "ntoskrnl.exe",
+   "__children": []
+  }
+ ],
+ "windows.filescan": [
+  {
+   "Offset": "0xe1",
+   "Name": "\\Windows\\System32\\notepad.exe",
+   "__children": []
+  }
+ ],
+ "windows.handles": [
+  {
+   "PID": 3100,
+   "Process": "notepad.exe",
+   "Offset": "0xf1",
+   "HandleValue": "0x4",
+   "Type": "File",
+   "GrantedAccess": "0x100001",
+   "Name": "\\Device\\x",
+   "__children": []
+  }
+ ]
+}
