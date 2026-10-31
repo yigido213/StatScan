@@ -1,6 +1,6 @@
 {
-  "version": "4.9.9",
-  "url": "StatScan-4.9.9.ssu",
-  "sha256": "ef13d9063cce3dd8aeb3e39ae0bfcfb9b477345b2772be0550be7200c10fefc3",
-  "notes": "4.9.9 — Kovan beta 0.0.7: kategoriler (Güvenlik/Windows/Minecraft/Kodlama) + Görev Yöneticisi v0.0.1 (Basic/Extended) + Ağ İzleyici v0.0.1; kenar çubuğu küçük pencerede kaydırılabilir"
+  "version": "5.0.0",
+  "url": "StatScan-5.0.0.ssu",
+  "sha256": "e7126b540c8779670481388f03de6af1097ae89d526afffccef0dec747ee92d5",
+  "notes": "5.0.0 — Kovan beta 0.0.8: RAM Analizi v0.0.1 (Volatility 3 tabanlı bellek dökümü analizi, Windows kategorisi; kendi Volatility kurulumun gerekir) + kategoriler + Görev Yöneticisi + Ağ İzleyici"
 }
