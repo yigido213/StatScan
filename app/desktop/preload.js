@@ -2,6 +2,7 @@
 /* Sandbox'lı preload: arayuze yalnizca dar bir API verir (contextIsolation acik, node yok). */
 const { contextBridge, ipcRenderer } = require('electron');
 const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
+const gameReq = (r) => ({ preset: r && typeof r.preset === 'string' ? r.preset : undefined, resolution: r && r.resolution ? { w: Number(r.resolution.w), h: Number(r.resolution.h) } : undefined, resIdx: r && Number.isInteger(r.resIdx) ? r.resIdx : undefined });
 contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   desktop: true,
   status: () => call('dyn:status'),
@@ -68,6 +69,24 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   memCancel: (id) => call('mem:cancel', String(id)),
   memRows: (id, layer, offset, limit, q) => call('mem:rows', String(id), String(layer), Number(offset) || 0, Number(limit) || 100, String(q || '')),
   memReport: (id, kind) => call('mem:report', String(id), kind === 'json' ? 'json' : 'md'),
+  gameScan: (force) => call('game:scan', force === true),
+  gameRunning: () => call('game:running'),
+  gameConfig: (id) => call('game:config', String(id)),
+  gameUseConfig: (id, idx) => call('game:useConfig', String(id), Number(idx)),
+  gameChooseConfig: (id) => call('game:chooseConfig', String(id)),
+  gameSnap: (id, preset) => call('game:snap', String(id), String(preset)),
+  gameSnapClear: (id, preset) => call('game:snapClear', String(id), String(preset)),
+  gamePlan: (id, req) => call('game:plan', String(id), gameReq(req)),
+  gameApply: (id, req) => call('game:apply', String(id), gameReq(req)),
+  gameRestore: (id, which) => call('game:restore', String(id), which === 'orig' ? 'orig' : 'last'),
+  gameTarget: (id, fps, allowRes) => call('game:target', String(id), Number(fps), allowRes === true),
+  gameHw: (force) => call('game:hw', force === true),
+  gameEstimate: (fps, w, h) => call('game:estimate', Number(fps), Number(w), Number(h)),
+  gamePm: (force) => call('game:pm', force === true),
+  gameChoosePm: () => call('game:choosePm'),
+  gameMeasureStart: (seconds) => call('game:measure:start', { seconds: Number(seconds) }),
+  gameMeasureJob: (id) => call('game:measure:job', String(id)),
+  gameMeasureCancel: (id) => call('game:measure:cancel', String(id)),
   storeGet: (k) => call('store:get', String(k)),
   storeSet: (k, v) => call('store:set', String(k), String(v))
 }));
