@@ -1,6 +1,6 @@
 {
-  "version": "5.0.3",
-  "url": "StatScan-5.0.3.ssu",
-  "sha256": "49a2ed9a0b3dac2e64c8602c41446f23aee75e557045d531751773f1803f8c67",
-  "notes": "5.0.3 HOTFIX — Kovan beta 0.0.9: Oyun Ayarlayıcı, oyun klasöründe kökte config.ini yokken alt klasörlerdeki ayar dosyasını da bulur (derinlik 6, büyük içerik klasörleri atlanır). Gerçek Windows'ta denenmedi."
+  "version": "5.0.4",
+  "url": "StatScan-5.0.4.ssu",
+  "sha256": "a275ef1c07837f08132d340bd13a312498139266efe9042999541b116efc47c7",
+  "notes": "5.0.4 — Kovan beta 0.0.10: Obfuscate aracı (Kodlama kategorisi; çok dilli kaynak obfuscator — Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D; tamamen istemci tarafında, yorum/boşluk temizliği + desteklenen dillerde güvenliği kanıtlanabilir yerel değişken adı karıştırma) birleştirildi. 5.0.1–5.0.3'teki Oyun Ayarlayıcı (Steam/Epic algılama, grafik ön ayarı/çözünürlük, hedef FPS, iç içe ayar dosyası bulma) de dahildir."
 }
