@@ -1076,7 +1076,7 @@ const GAMEMOD = (() => {
     const SETTINGS_NAME = /^(config|settings|graphics|video|gameusersettings|options|engine|display)[\w .\-]*\.(ini|cfg|conf)$/i;
     /* ---- ayar dosyasi bulma: cok katmanli arama + puanlama (bkz. scoreCfg) ---- */
     const GENERIC_DIR = new Set(['microsoft', 'windows', 'nvidia', 'nvidiacorporation', 'packages', 'temp', 'crashdumps', 'unitycache', 'google', 'mozilla', 'discord', 'steam', 'epicgameslauncher', 'programs', 'apple', 'adobe', 'intel', 'amd', 'packagecache', 'd3dscache', 'cache', 'logs', 'tempstate', 'connecteddevicesplatform', 'comms', 'publishers', 'virtualstore', 'jetbrains', 'slack', 'spotify', 'riotgames', 'electron']);
-    const SKIP_IN_GAME = /^(engine|content|plugins|redist|_commonredist|paks|movies|localization|shaders?|streamingassets|managed|mono|il2cpp_data|resources|logs?|crashes|\.git|node_modules)$/i;
+    const SKIP_IN_GAME = /^(engine|content|plugins|redist|_commonredist|paks|movies|localization|shaders?|streamingassets|managed|mono|il2cpp_data|resources|logs?|crashes|\.git|node_modules|natives|streaming|sounds?|audio|videos?|movie|fonts?|dlc|_redist|redistributable|directx|vcredist|dotnet|bink|wwise)$/i;
     const BAD_CFG = /(input|bind|control|crash|launcher|eos|account|install|manifest|cache|dedicated|server|steam_appid|uninst|telemetry|analytics|plugin)/i;
     const GFX_KEY = /(shadow|texture|quality|resolution|fullscreen|windowmode|vsync|antialias|anti_alias|\baa\b|graphic|fov|displaymode|screenmode|framerate|fps|ssao|bloom|motionblur|raytrac|upscal|dlss|fsr|gamma|brightness|vegetation|foliage|reflection|lighting)/i;
     const cdir = (p) => path.dirname(p);
@@ -1095,7 +1095,7 @@ const GAMEMOD = (() => {
       const add = (where) => async (p) => { const k = lc(p); try { const st = await fsp.stat(p); if (!(st.isFile() && st.size > 0 && st.size <= LIM.cfgBytes && /\.(ini|cfg|conf)$/i.test(p))) return; const o = found.get(k); if (!o || rank[where] > rank[o.where]) found.set(k, { path: p, where, size: st.size, mtime: st.mtimeMs }); } catch (e) { /* yok */ } };
       const bud = () => ({ n: 700 });
       await add('game')(path.join(g.dir, 'config.ini'));
-      await walkIni(g.dir, 3, add('game'), bud(), SKIP_IN_GAME);
+      await walkIni(g.dir, 6, add('game'), { n: 8000 }, SKIP_IN_GAME, true);
       const names = new Set(); const exact = new Set(); const addName = (s) => { const n = norm(s); if (n.length >= 5) names.add(n); };
       addName(g.name); addName(path.basename(g.dir)); addName(String(g.name).replace(/\(.*?\)/g, '')); addName(String(g.name).split(/[:\-–]/)[0]); if (g.exe) addName(String(g.exe).replace(/\.exe$/i, ''));
       for (const pr of await ueProjects(g.dir)) { const n = norm(pr); if (n.length >= 3) exact.add(n); addName(pr); }
@@ -1131,12 +1131,20 @@ const GAMEMOD = (() => {
     async function configCandidates(g) {
       const hit = candCache.get(g.id); if (hit && now() - hit.t < 30000) return hit.list;
       const raw = await findRaw(g); const list = [];
-      for (const c of raw.slice(0, 60)) { const sc = scoreCfg(c); if (sc.score >= 1) list.push(Object.assign({}, c, { score: sc.score, kind: sc.kind })); }
+      for (const c of raw.slice().sort((x, y) => x.path.split(/[\\/]/).length - y.path.split(/[\\/]/).length).slice(0, 80)) { const sc = scoreCfg(c); if (sc.score >= 1) list.push(Object.assign({}, c, { score: sc.score, kind: sc.kind })); }
       list.sort((a, b) => b.score - a.score || a.path.length - b.path.length); const out = list.slice(0, 12); candCache.set(g.id, { t: now(), list: out }); return out;
     }
-    async function walkIni(d, depth, add, budget, skip) {
-      if (budget.n <= 0) return; let ents; try { ents = await fsp.readdir(d, { withFileTypes: true }); } catch (e) { return; }
-      for (const e of ents) { if (budget.n-- <= 0) return; const p = path.join(d, e.name); if (e.isDirectory() && !e.isSymbolicLink() && depth > 0) { if (skip && skip.test(e.name)) continue; await walkIni(p, depth - 1, add, budget, skip); } else if (e.isFile() && SETTINGS_NAME.test(e.name)) await add(p); }
+    /* genis (BFS) tarama: once yakin klasorler; anyName=true ise oyun klasorunde HER .ini/.cfg/.conf aday (puanlama eler) */
+    async function walkIni(d, depth, add, budget, skip, anyName) {
+      const rx = anyName ? /\.(ini|cfg|conf)$/i : SETTINGS_NAME; let level = [d];
+      for (let lv = 0; lv <= depth && level.length; lv++) {
+        const next = [];
+        for (const dir of level) {
+          if (budget.n <= 0) return; let ents; try { ents = await fsp.readdir(dir, { withFileTypes: true }); } catch (e) { continue; }
+          for (const e of ents) { if (budget.n-- <= 0) return; const p = path.join(dir, e.name); if (e.isDirectory() && !e.isSymbolicLink()) { if (lv < depth && !(skip && skip.test(e.name))) next.push(p); } else if (e.isFile() && rx.test(e.name)) await add(p); }
+        }
+        level = next;
+      }
     }
     function setConfig(s, p, auto) { if (s.config !== p) { s.config = p; s.snaps = {}; s.last = null; s.hist = []; } s.auto = !!auto; const r = readCfg(p); s.kind = !r.error && isUe(iniParse(r.text)) ? 'ue' : ''; }
     /* tum oyunlar icin ayar dosyasini otomatik bul; net kazanan varsa SEC (dosyaya yazmaz). Kullanicinin elle sectigini degistirmez. */
