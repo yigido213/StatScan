@@ -898,6 +898,12 @@ const GAMEMOD = (() => {
   }
   const snapOf = (parsed) => { const o = {}; for (const e of parsed.entries) o[e.id] = e.value; return o; };
 
+  /* ---------- Unreal Engine yerlesik profil (ScalabilityGroups olcegi: 0 Dusuk, 1 Orta, 2 Yuksek, 3 Epic, 4 Sinematik) ---------- */
+  const UE_KEYS = /^sg\.(ViewDistance|AntiAliasing|Shadow|GlobalIllumination|Reflection|PostProcess|Texture|Effects|Foliage|Shading)Quality$/i;
+  const UE_LEVEL = { low: 0, medium: 1, high: 2, ultra: 3 };
+  const ueScan = (parsed) => parsed.entries.filter((e) => UE_KEYS.test(e.key) && /^[0-4]$/.test(e.value));
+  const isUe = (parsed) => ueScan(parsed).length >= 3;
+  function ueChanges(parsed, preset) { const m = new Map(); for (const e of ueScan(parsed)) m.set(e.id, String(UE_LEVEL[preset])); return m; }
   /* ---------- cozunurluk ---------- */
   const RES_RE = /^(\s*)(\d{3,5})(\s*[x×*,\/ ]\s*)(\d{3,5})(\s*)$/;
   const RES_PAIRS = [['resolutionsizex', 'resolutionsizey'], ['lastuserconfirmedresolutionsizex', 'lastuserconfirmedresolutionsizey'], ['desiredscreenwidth', 'desiredscreenheight'], ['lastuserconfirmeddesiredscreenwidth', 'lastuserconfirmeddesiredscreenheight'], ['resolutionx', 'resolutiony'], ['resolutionwidth', 'resolutionheight'], ['screenwidth', 'screenheight'], ['windowwidth', 'windowheight'], ['displaywidth', 'displayheight'], ['resx', 'resy'], ['sizex', 'sizey'], ['width', 'height']];
@@ -1068,15 +1074,86 @@ const GAMEMOD = (() => {
 
     /* --- ayar dosyasi --- */
     const SETTINGS_NAME = /^(config|settings|graphics|video|gameusersettings|options|engine|display)[\w .\-]*\.(ini|cfg|conf)$/i;
-    async function configCandidates(g) {
-      const out = []; const seen = new Set(); const add = async (p) => { const k = lc(p); if (seen.has(k)) return; try { const st = await fsp.stat(p); if (st.isFile() && st.size > 0 && st.size <= LIM.cfgBytes && /\.(ini|cfg|conf)$/i.test(p)) { seen.add(k); out.push({ path: p, size: st.size, mtime: st.mtimeMs }); } } catch (e) { /* yok */ } };
-      await add(path.join(g.dir, 'config.ini'));
-      for (const sub of ['', 'config', 'Config', 'Settings']) { let ents = []; try { ents = await fsp.readdir(path.join(g.dir, sub)); } catch (e) { continue; } for (const n of ents) if (SETTINGS_NAME.test(n)) await add(path.join(g.dir, sub, n)); }
-      const home = os.homedir(); const bases = [path.join(deps.docsDir || path.join(home, 'Documents'), 'My Games'), deps.localAppData || process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local')]; const nm = norm(g.name);
-      for (const b of bases) { let subs = []; try { subs = await fsp.readdir(b, { withFileTypes: true }); } catch (e) { continue; } for (const s of subs) { if (!s.isDirectory()) continue; const sn = norm(s.name); if (sn.length < 5 || !(nm.includes(sn) || sn.includes(nm))) continue; await walkIni(path.join(b, s.name), 4, add); } }
-      return out.slice(0, 40);
+    /* ---- ayar dosyasi bulma: cok katmanli arama + puanlama (bkz. scoreCfg) ---- */
+    const GENERIC_DIR = new Set(['microsoft', 'windows', 'nvidia', 'nvidiacorporation', 'packages', 'temp', 'crashdumps', 'unitycache', 'google', 'mozilla', 'discord', 'steam', 'epicgameslauncher', 'programs', 'apple', 'adobe', 'intel', 'amd', 'packagecache', 'd3dscache', 'cache', 'logs', 'tempstate', 'connecteddevicesplatform', 'comms', 'publishers', 'virtualstore', 'jetbrains', 'slack', 'spotify', 'riotgames', 'electron']);
+    const SKIP_IN_GAME = /^(engine|content|plugins|redist|_commonredist|paks|movies|localization|shaders?|streamingassets|managed|mono|il2cpp_data|resources|logs?|crashes|\.git|node_modules)$/i;
+    const BAD_CFG = /(input|bind|control|crash|launcher|eos|account|install|manifest|cache|dedicated|server|steam_appid|uninst|telemetry|analytics|plugin)/i;
+    const GFX_KEY = /(shadow|texture|quality|resolution|fullscreen|windowmode|vsync|antialias|anti_alias|\baa\b|graphic|fov|displaymode|screenmode|framerate|fps|ssao|bloom|motionblur|raytrac|upscal|dlss|fsr|gamma|brightness|vegetation|foliage|reflection|lighting)/i;
+    const cdir = (p) => path.dirname(p);
+    let docsCache = null;
+    async function docsDirs() {
+      if (docsCache) return docsCache; const set = new Set(); const home = deps.home || os.homedir();
+      if (deps.docsDir) set.add(deps.docsDir); else {
+        set.add(path.join(home, 'Documents')); if (process.env.OneDrive) set.add(path.join(process.env.OneDrive, 'Documents'));
+        if (winMode()) { try { const o = await run('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders', '/v', 'Personal'], 8000); const m = /Personal\s+REG_(?:EXPAND_)?SZ\s+(.+)$/mi.exec(o); if (m) { const v = m[1].trim().replace(/%([^%]+)%/g, (_, k) => process.env[k] || ''); if (v && path.isAbsolute(v)) set.add(v); } } catch (e) { /* kayit yok */ } }
+      }
+      docsCache = [...set].filter((d) => isDir(d)); return docsCache;
     }
-    async function walkIni(d, depth, add) { let ents; try { ents = await fsp.readdir(d, { withFileTypes: true }); } catch (e) { return; } for (const e of ents) { const p = path.join(d, e.name); if (e.isDirectory() && !e.isSymbolicLink() && depth > 0) await walkIni(p, depth - 1, add); else if (e.isFile() && SETTINGS_NAME.test(e.name)) await add(p); } }
+    /* yalnizca ayar dosyasi adayi ekler: where = 'named' (oyun adina uyan klasor) > 'game' (kurulum klasoru) > 'userdata' (Steam bulut) */
+    async function findRaw(g) {
+      const found = new Map(); const rank = { named: 3, game: 2, userdata: 1 };
+      const add = (where) => async (p) => { const k = lc(p); try { const st = await fsp.stat(p); if (!(st.isFile() && st.size > 0 && st.size <= LIM.cfgBytes && /\.(ini|cfg|conf)$/i.test(p))) return; const o = found.get(k); if (!o || rank[where] > rank[o.where]) found.set(k, { path: p, where, size: st.size, mtime: st.mtimeMs }); } catch (e) { /* yok */ } };
+      const bud = () => ({ n: 700 });
+      await add('game')(path.join(g.dir, 'config.ini'));
+      await walkIni(g.dir, 3, add('game'), bud(), SKIP_IN_GAME);
+      const names = new Set(); const exact = new Set(); const addName = (s) => { const n = norm(s); if (n.length >= 5) names.add(n); };
+      addName(g.name); addName(path.basename(g.dir)); addName(String(g.name).replace(/\(.*?\)/g, '')); addName(String(g.name).split(/[:\-–]/)[0]); if (g.exe) addName(String(g.exe).replace(/\.exe$/i, ''));
+      for (const pr of await ueProjects(g.dir)) { const n = norm(pr); if (n.length >= 3) exact.add(n); addName(pr); }
+      const mt = (sn) => { if (exact.has(sn)) return true; if (sn.length < 5) return false; for (const n of names) if (n.includes(sn) || sn.includes(n)) return true; return false; };
+      const home = deps.home || os.homedir(); const local = deps.localAppData || process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'); const roaming = deps.roamingAppData || process.env.APPDATA || path.join(cdir(local), 'Roaming');
+      const bases = []; for (const d of await docsDirs()) { bases.push([d, true]); bases.push([path.join(d, 'My Games'), false]); } bases.push([local, true], [path.join(cdir(local), 'LocalLow'), true], [roaming, true], [path.join(home, 'Saved Games'), false]);
+      const seenB = new Set();
+      for (const [b, peek] of bases) {
+        if (seenB.has(lc(b))) continue; seenB.add(lc(b)); let subs; try { subs = await fsp.readdir(b, { withFileTypes: true }); } catch (e) { continue; } let peeked = 0;
+        for (const s of subs) {
+          if (!s.isDirectory() || s.isSymbolicLink()) continue; const sn = norm(s.name); if (GENERIC_DIR.has(sn)) continue;
+          if (mt(sn)) { await walkIni(path.join(b, s.name), 4, add('named'), bud()); continue; }
+          if (peek && peeked < 200) { peeked++; let inner; try { inner = await fsp.readdir(path.join(b, s.name), { withFileTypes: true }); } catch (e) { continue; } for (const t of inner) if (t.isDirectory() && !t.isSymbolicLink() && mt(norm(t.name))) await walkIni(path.join(b, s.name, t.name), 4, add('named'), bud()); }
+        }
+      }
+      if (g.store === 'steam' && g.appId && cache.libs && cache.libs.steam) for (const r of cache.libs.steam) { let us = []; try { us = await fsp.readdir(path.join(r, 'userdata')); } catch (e) { continue; } for (const u of us.slice(0, 20)) await walkIni(path.join(r, 'userdata', u, String(g.appId).replace(/\W/g, ''), 'remote'), 3, add('userdata'), bud()); }
+      return [...found.values()];
+    }
+    async function ueProjects(dir) {
+      const out = []; let ents = []; try { ents = await fsp.readdir(dir, { withFileTypes: true }); } catch (e) { return out; }
+      for (const e of ents) { if (!e.isDirectory() || e.isSymbolicLink()) continue; const d = path.join(dir, e.name); if ((isDir(path.join(d, 'Binaries', 'Win64')) || isDir(path.join(d, 'Binaries', 'WinGDK'))) && isDir(path.join(d, 'Content'))) out.push(e.name); } return out.slice(0, 4);
+    }
+    /* aday puani: dosya adi + konum + icerik (grafik anahtari sayisi; Unreal GameUserSettings). -99 = aday degil */
+    function scoreCfg(c) {
+      const base = path.basename(c.path).toLowerCase(); if (BAD_CFG.test(base)) return { score: -99 };
+      let s = /^gameusersettings\.ini$/.test(base) ? 6 : /^(graphics|video|display)/.test(base) ? 4 : /^(config|settings|options)/.test(base) ? 3 : 1;
+      s += c.where === 'named' ? 2 : c.where === 'game' ? 1 : c.where === 'userdata' ? 1 : 0;
+      const r = readCfg(c.path); if (r.error) return { score: -99 }; const p = iniParse(r.text); if (!p.entries.length) return { score: -99 };
+      const gk = p.entries.filter((e) => GFX_KEY.test(e.key)).length; s += gk === 0 ? -3 : Math.min(4, Math.floor(gk / 2) + 1);
+      const ue = isUe(p); if (ue) s += 3; return { score: s, kind: ue ? 'ue' : '', keys: p.entries.length };
+    }
+    const candCache = new Map();
+    async function configCandidates(g) {
+      const hit = candCache.get(g.id); if (hit && now() - hit.t < 30000) return hit.list;
+      const raw = await findRaw(g); const list = [];
+      for (const c of raw.slice(0, 60)) { const sc = scoreCfg(c); if (sc.score >= 1) list.push(Object.assign({}, c, { score: sc.score, kind: sc.kind })); }
+      list.sort((a, b) => b.score - a.score || a.path.length - b.path.length); const out = list.slice(0, 12); candCache.set(g.id, { t: now(), list: out }); return out;
+    }
+    async function walkIni(d, depth, add, budget, skip) {
+      if (budget.n <= 0) return; let ents; try { ents = await fsp.readdir(d, { withFileTypes: true }); } catch (e) { return; }
+      for (const e of ents) { if (budget.n-- <= 0) return; const p = path.join(d, e.name); if (e.isDirectory() && !e.isSymbolicLink() && depth > 0) { if (skip && skip.test(e.name)) continue; await walkIni(p, depth - 1, add, budget, skip); } else if (e.isFile() && SETTINGS_NAME.test(e.name)) await add(p); }
+    }
+    function setConfig(s, p, auto) { if (s.config !== p) { s.config = p; s.snaps = {}; s.last = null; s.hist = []; } s.auto = !!auto; const r = readCfg(p); s.kind = !r.error && isUe(iniParse(r.text)) ? 'ue' : ''; }
+    /* tum oyunlar icin ayar dosyasini otomatik bul; net kazanan varsa SEC (dosyaya yazmaz). Kullanicinin elle sectigini degistirmez. */
+    async function detectAll(force) {
+      const c = await scan(false); if (force) candCache.clear(); const out = []; const queue = c.list.slice(); let changed = false;
+      const one = async (g) => {
+        if (g.blocked) { out.push({ id: g.id, name: g.name, status: 'blocked' }); return; } const s = gs(g.id);
+        const have = s.config && isFile(s.config); if (have && !s.auto) { out.push({ id: g.id, name: g.name, status: 'kept', path: s.config, kind: s.kind || '' }); return; }
+        if (have && s.auto && !force) { out.push({ id: g.id, name: g.name, status: 'auto', path: s.config, kind: s.kind || '' }); return; }
+        const cands = await configCandidates(g); s.found = cands.length; const top = cands[0]; const second = cands[1];
+        if (top && top.score >= 4 && (!second || top.score - second.score >= 2)) { setConfig(s, top.path, true); changed = true; out.push({ id: g.id, name: g.name, status: 'auto', path: top.path, kind: s.kind, found: cands.length }); }
+        else { if (s.config && !have) { s.config = null; s.auto = false; s.kind = ''; changed = true; } out.push({ id: g.id, name: g.name, status: cands.length ? 'choose' : 'none', found: cands.length }); }
+      };
+      const workers = Array.from({ length: 4 }, async () => { while (queue.length) await one(queue.shift()); }); await Promise.all(workers); if (changed) saveState();
+      const n = (k) => out.filter((x) => x.status === k).length; out.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+      return { games: out, counts: { total: out.length, auto: n('auto'), kept: n('kept'), choose: n('choose'), none: n('none'), blocked: n('blocked'), ue: out.filter((x) => x.kind === 'ue').length } };
+    }
     function readCfg(p) {
       let st; try { st = fs.statSync(p); } catch (e) { return { error: 'Ayar dosyası okunamadı.' } } if (!st.isFile() || st.size > LIM.cfgBytes || st.size === 0) return { error: 'Ayar dosyası geçersiz (boş ya da çok büyük).' };
       const buf = fs.readFileSync(p); if (buf.includes(0)) return { error: 'Bu dosya UTF-16/ikili görünüyor; yalnızca metin (UTF-8) ayar dosyaları desteklenir.' }; return { text: buf.toString('utf8'), size: st.size };
@@ -1100,7 +1177,7 @@ const GAMEMOD = (() => {
     function learnedOf(id) { return deriveLearned(gs(id).snaps); }
     function buildChanges(id, parsed, req) {
       const ch = new Map(); const notes = []; const L = learnedOf(id);
-      if (req.preset) { if (!L.presets.includes(req.preset)) notes.push('“' + PRESET_TR[req.preset] + '” için kaydedilmiş ayar yok: önce oyunda bu ön ayarı seçip “Kaydet” de.'); else for (const k of L.keys) ch.set(k.id, k.values[req.preset]); if (L.keys.length === 0 && L.presets.length >= 2) notes.push('Kaydettiğin ayarlar arasında fark bulunamadı.'); }
+      if (req.preset) { if (L.presets.includes(req.preset)) { for (const k of L.keys) ch.set(k.id, k.values[req.preset]); if (L.keys.length === 0 && L.presets.length >= 2) notes.push('Kaydettiğin ayarlar arasında fark bulunamadı.'); } else if (isUe(parsed)) { for (const [k, v] of ueChanges(parsed, req.preset)) ch.set(k, v); notes.push('Unreal Engine ölçeği kullanıldı (0=Düşük, 1=Orta, 2=Yüksek, 3=Epic); oyun menüsü adları farklı eşleyebilir. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.'); } else notes.push('“' + PRESET_TR[req.preset] + '” için kaydedilmiş ayar yok: önce oyunda bu ön ayarı seçip “Kaydet” de.'); }
       if (req.resolution) { const d = findResolution(parsed); if (!d.length) notes.push('Bu ayar dosyasında çözünürlük anahtarı bulunamadı; çözünürlüğü oyunun içinden ayarla.'); else for (const [k, v] of resChanges(d, req.resolution.w, req.resolution.h)) { const e = parsed.byId.get(k); ch.set(k, typeof v === 'object' ? v.fn(e.value) : v); } }
       return { ch, notes };
     }
@@ -1145,16 +1222,17 @@ const GAMEMOD = (() => {
       } catch (e) { job.state = 'failed'; job.error = String(e && e.message || e); } finally { if (job.state === 'running') job.state = 'failed'; job.endedAt = now(); }
     }
 
-    const pubGame = (g) => { const s = Object.prototype.hasOwnProperty.call(state.games, g.id) ? state.games[g.id] : null; const L = s ? deriveLearned(s.snaps) : { presets: [], keys: [] }; return { id: g.id, store: g.store, name: g.name, dir: g.dir, blocked: g.blocked, anticheat: g.anticheat, reEngine: g.reEngine, config: s && s.config ? s.config : null, learned: L.presets, keys: L.keys.length, target: s ? s.target : 60, last: s ? s.last : null }; };
+    const pubGame = (g) => { const s = Object.prototype.hasOwnProperty.call(state.games, g.id) ? state.games[g.id] : null; const L = s ? deriveLearned(s.snaps) : { presets: [], keys: [] }; return { id: g.id, store: g.store, name: g.name, dir: g.dir, blocked: g.blocked, anticheat: g.anticheat, reEngine: g.reEngine, config: s && s.config ? s.config : null, kind: s && s.kind ? s.kind : '', auto: !!(s && s.auto), found: s && s.found !== undefined ? s.found : null, learned: L.presets, keys: L.keys.length, target: s ? s.target : 60, last: s ? s.last : null }; };
     const handlers = {
       'game:scan': async (_e, force) => { try { const c = await scan(force === true); return { games: c.list.map(pubGame), libs: c.libs, platform: plat(), windows: winMode(), note: winMode() ? '' : 'Oyun kütüphaneleri yalnızca Windows’ta aranır.' }; } catch (e) { return errE(String(e && e.message || e)); } },
       'game:running': async () => { try { return { running: await running() }; } catch (e) { return errE(String(e && e.message || e)); } },
       'game:config': async (_e, id) => {
-        try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const s = gs(g.id); const cands = await configCandidates(g); let info = null; if (s.config) { const r = readCfg(s.config); if (r.error) info = { error: r.error }; else { const p = iniParse(r.text); const res = findResolution(p); info = { keys: p.entries.length, resolution: res.length ? { w: res[0].w, h: res[0].h, count: res.length } : null, size: r.size }; } }
-          const L = deriveLearned(s.snaps); return { game: pubGame(g), candidates: cands, config: s.config, info, presets: PRESETS.map((p) => ({ id: p, label: PRESET_TR[p], saved: !!s.snaps[p] })), learned: { presets: L.presets, keys: L.keys.slice(0, 200).map((k) => ({ id: k.id, values: k.values })), skipped: L.skipped.slice(0, 100) }, res: s.res || null, backups: backDir ? indexOf(g.id).map((x) => ({ file: x.file, time: x.time, orig: !!x.orig, reason: x.reason })) : [] }; } catch (e) { return errE(String(e && e.message || e)); }
+        try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const s = gs(g.id); const cands = await configCandidates(g); let info = null; let ue = null; if (s.config) { const r = readCfg(s.config); if (r.error) info = { error: r.error }; else { const p = iniParse(r.text); if (isUe(p)) ue = { kind: 'ue', keys: ueChanges(p, 'low').size }; const res = findResolution(p); info = { keys: p.entries.length, resolution: res.length ? { w: res[0].w, h: res[0].h, count: res.length } : null, size: r.size }; } }
+          const L = deriveLearned(s.snaps); return { game: pubGame(g), candidates: cands, config: s.config, auto: !!s.auto, builtin: ue, info, presets: PRESETS.map((p) => ({ id: p, label: PRESET_TR[p], saved: !!s.snaps[p], builtin: !!ue })), learned: { presets: L.presets, keys: L.keys.slice(0, 200).map((k) => ({ id: k.id, values: k.values })), skipped: L.skipped.slice(0, 100) }, res: s.res || null, backups: backDir ? indexOf(g.id).map((x) => ({ file: x.file, time: x.time, orig: !!x.orig, reason: x.reason })) : [] }; } catch (e) { return errE(String(e && e.message || e)); }
       },
-      'game:useConfig': async (_e, id, idx) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const cands = await configCandidates(g); const c = cands[Math.floor(Number(idx))]; if (!c) return errE('Aday bulunamadı.'); const r = readCfg(c.path); if (r.error) return errE(r.error); const s = gs(g.id); if (s.config !== c.path) { s.config = c.path; s.snaps = {}; s.last = null; s.hist = []; } saveState(); return { ok: true, path: c.path }; } catch (e) { return errE(String(e && e.message || e)); } },
-      'game:chooseConfig': async (_e, id) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; if (!deps.chooseConfig) return errE('Dosya seçimi yok.'); const f = await deps.chooseConfig(g.name); if (!f) return { canceled: true }; const bad = validPick(f); if (bad) return errE(bad); const r = readCfg(f); if (r.error) return errE(r.error); const s = gs(g.id); if (s.config !== f) { s.config = f; s.snaps = {}; s.last = null; s.hist = []; } saveState(); return { ok: true, path: f }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:detectAll': async (_e, force) => { try { return await detectAll(force === true); } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:useConfig': async (_e, id, idx) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const cands = await configCandidates(g); const c = cands[Math.floor(Number(idx))]; if (!c) return errE('Aday bulunamadı.'); const r = readCfg(c.path); if (r.error) return errE(r.error); const s = gs(g.id); setConfig(s, c.path, false); saveState(); return { ok: true, path: c.path }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:chooseConfig': async (_e, id) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; if (!deps.chooseConfig) return errE('Dosya seçimi yok.'); const f = await deps.chooseConfig(g.name); if (!f) return { canceled: true }; const bad = validPick(f); if (bad) return errE(bad); const r = readCfg(f); if (r.error) return errE(r.error); const s = gs(g.id); setConfig(s, f, false); saveState(); return { ok: true, path: f }; } catch (e) { return errE(String(e && e.message || e)); } },
       'game:snap': async (_e, id, preset) => {
         try { if (!PRESETS.includes(preset)) return errE('Geçersiz ön ayar.'); const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const s = gs(g.id); if (!s.config) return errE('Önce ayar dosyasını seç.'); const r = readCfg(s.config); if (r.error) return errE(r.error); const p = iniParse(r.text); if (!p.entries.length) return errE('Dosyada “anahtar=değer” satırı bulunamadı; bu biçim desteklenmiyor.'); s.snaps[preset] = snapOf(p); const res = findResolution(p); if (res.length && !(s.res && s.res.native)) s.res = Object.assign({ allow: false }, s.res, { native: { w: res[0].w, h: res[0].h } }); saveState(); const L = deriveLearned(s.snaps); return { ok: true, saved: PRESETS.filter((x) => s.snaps[x]), keys: L.keys.length, skipped: L.skipped.length }; } catch (e) { return errE(String(e && e.message || e)); }
       },
@@ -1196,7 +1274,7 @@ const GAMEMOD = (() => {
     };
     return { handlers, _scan: scan, _state: () => state };
   }
-  return { createGameHost, detectAntiCheat, parseVdf, iniParse, iniApply, findResolution, resChanges, resLadder, deriveLearned, tuneStep, estimatePreset, gpuPerf, FrameParser, frameStats, findPresentMon, PRESETS, LIM, AC_PROCS, _setPlatform: (p) => { platOverride = p; } };
+  return { createGameHost, isUe, ueChanges, detectAntiCheat, parseVdf, iniParse, iniApply, findResolution, resChanges, resLadder, deriveLearned, tuneStep, estimatePreset, gpuPerf, FrameParser, frameStats, findPresentMon, PRESETS, LIM, AC_PROCS, _setPlatform: (p) => { platOverride = p; } };
 })();
 
 /* --- RAM Analizi (Volatility 3 koprusu; Kovan 'ramanaliz' v0.0.1) ---

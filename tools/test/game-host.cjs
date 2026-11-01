@@ -185,6 +185,48 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if
   ok((await h3.handlers['game:snapClear'](null, reId, 'all')).ok && (await h3.handlers['game:config'](null, reId)).learned.presets.length === 0, 'öğrenilenleri temizle çalışır');
   // salt okunur / utf16 korumasi
   const ucfg = path.join(tmp, 'u16.ini'); fs.writeFileSync(ucfg, Buffer.from('\ufeff[A]\nB=1\n', 'utf16le')); dialogs.cfg = ucfg; ok(/UTF-16|ikili/.test((await h3.handlers['game:chooseConfig'](null, cozyId)).message || ''), 'koruma: UTF-16/ikili dosya reddedilir (bozmamak için)');
+  // ---------- otomatik ayar dosyasi bulma (tum oyunlar) ----------
+  {
+    const t2 = fs.mkdtempSync(path.join(os.tmpdir(), 'kovan-detect-')); const st2 = path.join(t2, 'Steam'); const docs2 = path.join(t2, 'Docs'); const loc2 = path.join(t2, 'Local'); const data2 = path.join(t2, 'data');
+    const acf2 = (id, n) => '"AppState"\n{\n "appid" "' + id + '"\n "name" "' + n + '"\n "installdir" "' + n + '"\n}\n'; const com = (n) => path.join(st2, 'steamapps', 'common', n);
+    W(path.join(st2, 'steamapps', 'libraryfolders.vdf'), '"libraryfolders" { "0" { "path" "' + st2.replace(/\\/g, '\\\\') + '" } }');
+    for (const [id, n] of [[10, 'Hollow Realms'], [11, 'Pixel Tavern'], [555, 'Mystery Kart'], [13, 'Lonely Game'], [14, 'Twin Config'], [15, 'Shooter Zero'], [16, 'Stranger Things']]) { W(path.join(st2, 'steamapps', 'appmanifest_' + id + '.acf'), acf2(id, n)); fs.mkdirSync(com(n), { recursive: true }); }
+    fs.mkdirSync(path.join(com('Shooter Zero'), 'EasyAntiCheat'), { recursive: true });
+    // A) Unreal: proje klasoru HollowProj, ayar LocalAppData\HollowProj\Saved\Config\Windows\ icinde (oyun adiyla ESLESMEZ)
+    fs.mkdirSync(path.join(com('Hollow Realms'), 'HollowProj', 'Binaries', 'Win64'), { recursive: true }); fs.mkdirSync(path.join(com('Hollow Realms'), 'HollowProj', 'Content'), { recursive: true });
+    const ueFile = path.join(loc2, 'HollowProj', 'Saved', 'Config', 'Windows', 'GameUserSettings.ini'); const ueTxt = '[ScalabilityGroups]\nsg.ResolutionQuality=100.000000\nsg.ViewDistanceQuality=3\nsg.AntiAliasingQuality=3\nsg.ShadowQuality=3\nsg.PostProcessQuality=3\nsg.TextureQuality=3\nsg.EffectsQuality=3\n\n[/Script/Engine.GameUserSettings]\nResolutionSizeX=2560\nResolutionSizeY=1440\nFullscreenMode=1\n'; W(ueFile, ueTxt);
+    // B) Documents\My Games\<oyun adi>
+    const myg = path.join(docs2, 'My Games', 'Pixel Tavern', 'settings.ini'); W(myg, '[Video]\nQuality=2\nShadowQuality=1\nTextureQuality=1\nResolution=1920x1080\n');
+    // C) Steam bulut: userdata\<id>\<appid>\remote\graphics.cfg
+    const cloud = path.join(st2, 'userdata', '777', '555', 'remote', 'graphics.cfg'); W(cloud, '[G]\nShadowQuality=2\nTextureQuality=2\nAntiAliasing=1\nVSync=1\n');
+    // E) iki esit aday: belirsiz
+    W(path.join(com('Twin Config'), 'config.ini'), '[A]\nShadowQuality=1\nTextureQuality=1\n'); W(path.join(com('Twin Config'), 'settings.ini'), '[A]\nShadowQuality=2\nTextureQuality=2\n');
+    // G) alakasiz klasor: oyun adina ('Stranger Things') benzemeyen dosya alinmaz
+    W(path.join(docs2, 'Pictures Archive', 'config.ini'), '[A]\nShadowQuality=1\nTextureQuality=1\n'); W(path.join(com('Lonely Game'), 'input.ini'), '[Keys]\nJump=Space\n'); W(path.join(com('Lonely Game'), 'readme.cfg'), 'x\n');
+    const h4 = G.createGameHost({ platform: 'win32', dataDir: data2, steamRoots: [st2], epicManifestDir: path.join(t2, 'noepic'), riotRoots: [], docsDir: docs2, localAppData: loc2, home: t2, listProcs: async () => [], now: () => t, confirm: async () => true, pmDirs: [], run: async () => '' }); const H4 = h4.handlers; await H4['game:scan'](null, true);
+    const da = await H4['game:detectAll'](null, true); const g4 = (n) => da.games.find((x) => x.name === n);
+    ok(da.counts.total === 7 && da.counts.auto === 3 && da.counts.choose === 1 && da.counts.none === 2 && da.counts.blocked === 1, 'otomatik bulma: 7 oyun → 3 otomatik, 1 belirsiz, 2 bulunamadı, 1 engelli (' + JSON.stringify(da.counts) + ')');
+    ok(g4('Hollow Realms').status === 'auto' && g4('Hollow Realms').path === ueFile && g4('Hollow Realms').kind === 'ue', 'Unreal: proje klasöründen LocalAppData\\HollowProj yolu bulundu (oyun adıyla eşleşmese de) ve UE olarak tanındı');
+    ok(g4('Pixel Tavern').status === 'auto' && g4('Pixel Tavern').path === myg, 'Documents\\My Games\\<oyun adı>\\settings.ini otomatik bulundu');
+    ok(g4('Mystery Kart').status === 'auto' && g4('Mystery Kart').path === cloud, 'Steam userdata\\<id>\\<appid>\\remote\\graphics.cfg otomatik bulundu');
+    ok(g4('Twin Config').status === 'choose' && g4('Twin Config').found === 2, 'iki eşit aday varsa tahmin edilmez: kullanıcıya bırakılır');
+    ok(g4('Lonely Game').status === 'none' && g4('Stranger Things').status === 'none', 'bulunamadı: giriş/tuş dosyaları (input.ini) ve alakasız klasörler aday sayılmaz');
+    ok(g4('Shooter Zero').status === 'blocked', 'anti-cheat’li oyun otomatik aramaya da girmez (engelli)');
+    const sc2 = await H4['game:scan'](null, false); const pg = (n) => sc2.games.find((x) => x.name === n); ok(pg('Hollow Realms').config === ueFile && pg('Hollow Realms').auto === true && pg('Hollow Realms').kind === 'ue' && pg('Twin Config').config === null && pg('Twin Config').found === 2, 'liste: otomatik seçilen yol, auto/kind ve aday sayısı arayüze gelir');
+    // yerlesik UE on ayari: kaydetmeye gerek yok; ResolutionQuality dokunulmaz; cozunurluk yazilir
+    const cfg4 = await H4['game:config'](null, pg('Hollow Realms').id); ok(cfg4.builtin && cfg4.builtin.kind === 'ue' && cfg4.presets.every((p) => p.builtin) && cfg4.candidates[0].path === ueFile && cfg4.candidates[0].score >= 10, 'UE: dört ön ayar yerleşik hazır (öğretmeye gerek yok), aday puanı yüksek');
+    const pl4 = await H4['game:plan'](null, pg('Hollow Realms').id, { preset: 'low', resolution: { w: 1920, h: 1080 } }); ok(pl4.total === 8 && pl4.changes.filter((c) => /^sg\./.test(c.key)).length === 6 && !pl4.changes.some((c) => /ResolutionQuality/.test(c.key)) && pl4.notes.some((n) => /Unreal Engine/.test(n)), 'UE planı: 6 sg.* kalite + 2 çözünürlük satırı; sg.ResolutionQuality (yüzde) DOKUNULMAZ; ölçek notu var');
+    const ap4 = await H4['game:apply'](null, pg('Hollow Realms').id, { preset: 'low', resolution: { w: 1920, h: 1080 } }); const t4 = fs.readFileSync(ueFile, 'utf8'); ok(ap4.ok && ap4.applied === 8 && /sg\.ShadowQuality=0/.test(t4) && /sg\.TextureQuality=0/.test(t4) && /sg\.ResolutionQuality=100\.000000/.test(t4) && /ResolutionSizeX=1920/.test(t4) && /ResolutionSizeY=1080/.test(t4) && /FullscreenMode=1/.test(t4), 'UE uygula: sg.* = 0, çözünürlük 1920×1080, diğer satırlar aynen');
+    await H4['game:apply'](null, pg('Hollow Realms').id, { preset: 'ultra' }); ok(/sg\.ShadowQuality=3/.test(fs.readFileSync(ueFile, 'utf8')), 'UE: Ultra → 3 (Epic)');
+    ok((await H4['game:restore'](null, pg('Hollow Realms').id, 'orig')).ok && fs.readFileSync(ueFile, 'utf8') === ueTxt, 'UE geri yükleme: orijinal dosya birebir döndü');
+    // UE olmayan oyunda yerlesik yok -> uyari
+    const pl5 = await H4['game:plan'](null, pg('Pixel Tavern').id, { preset: 'low' }); ok(pl5.total === 0 && /kaydedilmiş ayar yok/.test(pl5.notes[0]), 'UE olmayan oyun: ön ayar uydurulmaz, “önce oyunda kaydet” der');
+    // kullanici secimi korunur, belirsizde elle sec
+    ok((await H4['game:useConfig'](null, pg('Twin Config').id, 0)).ok, 'belirsiz oyunda kullanıcı adayı elle seçer'); const keep = await H4['game:detectAll'](null, true); ok(keep.games.find((x) => x.name === 'Twin Config').status === 'kept', 'yeniden taramada kullanıcının elle seçtiği dosya DEĞİŞTİRİLMEZ');
+    // dosya silinirse yeniden bul
+    fs.rmSync(myg); const re = await H4['game:detectAll'](null, true); ok(re.games.find((x) => x.name === 'Pixel Tavern').status === 'none', 'seçili dosya silinirse otomatik seçim temizlenir');
+    fs.rmSync(t2, { recursive: true, force: true });
+  }
   // windows disi
   const hl = G.createGameHost({ platform: 'linux', dataDir: data, listProcs: async () => [], pmDirs: [] }); const ls = await hl.handlers['game:scan'](null, true); ok(ls.games.length === 0 && /yalnızca Windows/.test(ls.note), 'platform: Windows dışında dürüst not, boş liste');
   fs.rmSync(tmp, { recursive: true, force: true });

@@ -71,6 +71,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   memReport: (id, kind) => call('mem:report', String(id), kind === 'json' ? 'json' : 'md'),
   gameScan: (force) => call('game:scan', force === true),
   gameRunning: () => call('game:running'),
+  gameDetectAll: (force) => call('game:detectAll', force === true),
   gameConfig: (id) => call('game:config', String(id)),
   gameUseConfig: (id, idx) => call('game:useConfig', String(id), Number(idx)),
   gameChooseConfig: (id) => call('game:chooseConfig', String(id)),

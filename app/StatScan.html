@@ -5691,6 +5691,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Ayrıca anti-cheat’li bir süreç var: {0}": "There is also an anti-cheat process: {0}",
       "Bu oyunu seç": "Select this game",
       "oynanıyor": "playing",
+      "Ayar dosyaları aranıyor…": "Searching for settings files…",
+      "Ayar dosyası otomatik arandı: {0} oyunda bulundu ve seçildi, {1} oyunda birden fazla aday var (sen seç), {2} oyunda bulunamadı.": "Settings files searched automatically: found and selected for {0} games, {1} games have several candidates (you choose), not found for {2} games.",
+      "{0} oyun Unreal Engine: ön ayarlar hazır.": "{0} games use Unreal Engine: presets are ready.",
+      "{0} oyun anti-cheat nedeniyle atlandı.": "{0} games skipped because of anti-cheat.",
+      "Ayar dosyalarını yeniden bul": "Find settings files again",
+      "ayar dosyası bulundu · ön ayarlar hazır": "settings file found · presets ready",
+      "ayar dosyası otomatik bulundu": "settings file found automatically",
+      "ayar dosyası seçili": "settings file selected",
+      "ayar dosyası bulunamadı": "settings file not found",
+      "{0} aday — seç": "{0} candidates — choose",
+      "puan": "score",
+      "otomatik bulundu": "found automatically",
+      "Bu oyun Unreal Engine ayar dosyası kullanıyor: dört ön ayar yerleşik ölçekle hazır, kaydetmen gerekmez. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.": "This game uses an Unreal Engine settings file: the four presets are ready with the built-in scale, no need to save. If you save your own preset in the game, yours takes priority.",
       '(adsız)': '(unnamed)'
     };
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
@@ -6343,7 +6356,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     /* ---- iskelet ---- */
     const nowBox = h('div', { class: 'og-now', id: 'og-now', role: 'status' }, KT('Çalışan oyun aranıyor…'));
     const listBox = h('div', { class: 'og-list', id: 'og-list' });
-    const libLine = h('p', { class: 'rm-hint', id: 'og-libline' });
+    const libLine = h('p', { class: 'rm-hint', id: 'og-libline' }); const detectLine = h('p', { class: 'rm-hint', id: 'og-detect', role: 'status' });
     const cfgBox = h('section', { class: 'rm-box', id: 'og-cfg', hidden: true, 'aria-labelledby': 'og-h2' });
     const learnBox = h('section', { class: 'rm-box', id: 'og-learn', hidden: true, 'aria-labelledby': 'og-h3' });
     const applyBox = h('section', { class: 'rm-box', id: 'og-apply', hidden: true, 'aria-labelledby': 'og-h4' });
@@ -6354,7 +6367,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('li', {}, 'Oyunun ayar anahtarlarını uydurmaz: oyunda her ön ayarı seçip “Kaydet” dersin, araç dosyalar arasındaki FARKTAN hangi satırların ne olduğunu öğrenir. Yalnızca metin (.ini/.cfg/.conf) ayar dosyaları ve satırı zaten var olan anahtarlar değiştirilir.'),
         h('li', {}, 'Anti-cheat’li oyunlara (ör. Rocket League, VALORANT, League of Legends) hiç dokunulmaz. Algılama dosya/ad kalıplarına dayanır; liste tam değildir — çevrimiçi bir oyunda şüphen varsa kullanma.'),
         h('li', {}, 'Ayar dosyası oyun KAPALIYKEN değiştirilir. Çoğu oyun ayarı yalnızca açılışta okur: uyguladıktan sonra oyunu yeniden başlat. Oyunu çalıştırmaz, oyuna kod enjekte etmez.'))),
-      h('section', { class: 'rm-box', 'aria-labelledby': 'og-h1' }, h('h2', { id: 'og-h1' }, '1 · Oyun'), nowBox, h('div', { class: 'rm-row' }, btn('og-rescan', 'Yeniden tara', () => load(true))), listBox, libLine),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'og-h1' }, h('h2', { id: 'og-h1' }, '1 · Oyun'), nowBox, h('div', { class: 'rm-row' }, btn('og-rescan', 'Yeniden tara', async () => { await load(true); await detect(true); }), btn('og-redetect', 'Ayar dosyalarını yeniden bul', () => detect(true))), listBox, libLine, detectLine),
       cfgBox, learnBox, applyBox, backBox, live);
 
     /* ---- yukleme ---- */
@@ -6369,9 +6382,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       for (const g of st.games) {
         const on = st.sel === g.id; const run = st.running.some((x) => x.gameId === g.id);
         const b = h('button', { type: 'button', class: 'og-game' + (on ? ' sel' : '') + (g.blocked ? ' blocked' : ''), 'data-id': g.id, 'aria-pressed': on ? 'true' : 'false', disabled: g.blocked ? 'disabled' : null, onclick: () => select(g.id) },
-          h('span', { class: 'og-gname' }, g.name), h('span', { class: 'og-meta' }, pill('low', g.store === 'steam' ? 'Steam' : g.store === 'epic' ? 'Epic' : 'Riot'), run ? pill('mid', 'oynanıyor') : null, g.blocked ? pill('high', 'anti-cheat: ' + g.anticheat.map((a) => a.name).join(', ')) : (g.config ? pill('low', g.learned.length ? g.learned.length + '/4 ön ayar kayıtlı' : 'ayar dosyası seçili') : null)));
+          h('span', { class: 'og-gname' }, g.name), h('span', { class: 'og-meta' }, pill('low', g.store === 'steam' ? 'Steam' : g.store === 'epic' ? 'Epic' : 'Riot'), run ? pill('mid', 'oynanıyor') : null, g.blocked ? pill('high', 'anti-cheat: ' + g.anticheat.map((a) => a.name).join(', ')) : (g.config ? pill('low', g.kind === 'ue' ? 'ayar dosyası bulundu · ön ayarlar hazır' : g.learned.length ? g.learned.length + '/4 ön ayar kayıtlı' : g.auto ? 'ayar dosyası otomatik bulundu' : 'ayar dosyası seçili') : (g.found === 0 ? pill('mid', 'ayar dosyası bulunamadı') : g.found > 1 ? pill('mid', g.found + ' aday — seç') : null))));
         if (g.blocked) b.title = KT('Bu oyunda anti-cheat algılandı; ayar dosyasına dokunulmaz.'); listBox.append(b);
       }
+    }
+    async function detect(force) {
+      detectLine.textContent = KT('Ayar dosyaları aranıyor…'); let r; try { r = await H.gameDetectAll(force === true); } catch (e) { r = { error: 'game', message: String(e && e.message || e) }; }
+      if (!r || r.error) { detectLine.textContent = failMsg(r); return; } st.detect = r; const c = r.counts;
+      detectLine.textContent = KT('Ayar dosyası otomatik arandı: {0} oyunda bulundu ve seçildi, {1} oyunda birden fazla aday var (sen seç), {2} oyunda bulunamadı.', c.auto + c.kept, c.choose, c.none) + (c.ue ? ' ' + KT('{0} oyun Unreal Engine: ön ayarlar hazır.', c.ue) : '') + (c.blocked ? ' ' + KT('{0} oyun anti-cheat nedeniyle atlandı.', c.blocked) : '');
+      let g; try { g = await H.gameScan(false); } catch (e) { g = null; } if (g && !g.error) { st.games = g.games || []; drawList(); if (st.sel) await loadCfg(); }
     }
     async function select(id) { if (st.sel !== id) st.pick = { preset: '', res: '' }; st.sel = id; st.advice = null; st.plan = null; st.stats = null; st.est = null; drawList(); await loadCfg(); }
     async function loadCfg() {
@@ -6384,13 +6403,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     /* ---- 2 · ayar dosyasi ---- */
     function drawCfg() {
       cfgBox.replaceChildren(); const c = st.cfg; cfgBox.hidden = !c; if (!c) return; const g = c.game;
-      const sel = h('select', { id: 'og-cands', 'aria-label': 'Bulunan ayar dosyaları' }); c.candidates.forEach((x, i) => sel.append(h('option', { value: String(i) }, x.path.split(/[\\/]/).slice(-3).join('\\') + ' (' + Math.round(x.size / 102.4) / 10 + ' KB)')));
+      const sel = h('select', { id: 'og-cands', 'aria-label': 'Bulunan ayar dosyaları' }); c.candidates.forEach((x, i) => sel.append(h('option', { value: String(i) }, x.path.split(/[\\/]/).slice(-3).join('\\') + ' (' + Math.round(x.size / 102.4) / 10 + ' KB) · ' + KT('puan') + ' ' + x.score + (x.kind === 'ue' ? ' · UE' : ''))));
       const useB = btn('og-use', 'Bunu kullan', async () => { const r = await H.gameUseConfig(st.sel, +sel.value); if (r.error) say(failMsg(r), true); else say(KT('Ayar dosyası seçildi.')); await loadCfg(); });
       const pickB = btn('og-pick', 'Başka dosya seç…', async () => { const r = await H.gameChooseConfig(st.sel); if (r.canceled) return; if (r.error) say(failMsg(r), true); else say(KT('Ayar dosyası seçildi.')); await loadCfg(); });
       const info = c.info ? (c.info.error ? c.info.error : KT('{0} anahtar okundu.', c.info.keys) + (c.info.resolution ? ' ' + KT('Çözünürlük anahtarı bulundu: {0}', rs(c.info.resolution.w, c.info.resolution.h)) : ' ' + KT('Çözünürlük anahtarı bulunamadı.'))) : '';
       cfgBox.append(h('h2', { id: 'og-h2' }, '2 · Ayar dosyası — ' + g.name),
         g.reEngine ? h('p', { class: 'rm-hint' }, 'Resident Evil (RE Engine) oyunlarında ayarlar genelde oyun klasöründeki config.ini dosyasındadır; aşağıda otomatik aranır.') : null,
-        c.config ? h('p', { class: 'cp-jdk ok', id: 'og-cfgline' }, KT('Seçili: {0}', c.config) + (info ? ' — ' + info : '')) : h('p', { class: 'cp-jdk warn', id: 'og-cfgline' }, KT('Henüz ayar dosyası seçilmedi.')),
+        c.config ? h('p', { class: 'cp-jdk ok', id: 'og-cfgline' }, KT('Seçili: {0}', c.config) + (c.auto ? ' — ' + KT('otomatik bulundu') : '') + (info ? ' — ' + info : '')) : h('p', { class: 'cp-jdk warn', id: 'og-cfgline' }, KT('Henüz ayar dosyası seçilmedi.')),
         c.candidates.length ? h('div', { class: 'rm-row' }, sel, useB, pickB) : h('div', { class: 'rm-row' }, h('span', { class: 'rm-hint' }, 'Otomatik aday bulunamadı.'), pickB),
         h('p', { class: 'rm-hint' }, 'Dosyayı bu uygulama değil, işletim sisteminin dosya penceresi seçer; arayüz dosya yolunu hiçbir yere gönderemez.'));
     }
@@ -6400,7 +6419,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       learnBox.replaceChildren(); const c = st.cfg; learnBox.hidden = !(c && c.config); if (learnBox.hidden) return; const L = c.learned;
       const row = h('div', { class: 'og-presets', role: 'group', 'aria-label': 'Ön ayarı kaydet' });
       for (const [id, label] of PRESETS) { const saved = c.presets.find((p) => p.id === id).saved; row.append(h('button', { type: 'button', class: 'cv-btn' + (saved ? ' og-saved' : ''), 'data-p': id, onclick: async () => { const r = await H.gameSnap(st.sel, id); if (r.error) say(failMsg(r), true); else say(KT('“{0}” kaydedildi. Öğrenilen kalite satırı: {1}', PTR[id], r.keys)); await loadCfg(); } }, (saved ? '✓ ' : '') + KT('{0} olarak kaydet', label))); }
-      learnBox.append(h('h2', { id: 'og-h3' }, '3 · Ön ayarları öğret'),
+      learnBox.append(h('h2', { id: 'og-h3' }, '3 · Ön ayarları öğret'), c.builtin ? h('p', { class: 'cp-jdk ok', id: 'og-builtin' }, KT('Bu oyun Unreal Engine ayar dosyası kullanıyor: dört ön ayar yerleşik ölçekle hazır, kaydetmen gerekmez. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.')) : null,
         h('ol', { class: 'rm-hint og-steps' }, h('li', {}, 'Oyunu aç, grafik ön ayarını ÖNCE “Düşük” yap ve ayarı kaydet/uygula (çıkış gerekebilir).'), h('li', {}, 'Oyun kapalıyken buraya dön, “Düşük olarak kaydet”e bas.'), h('li', {}, 'Aynısını “Ultra” için (tercihen Orta ve Yüksek için de) yap. Yalnız ön ayarı değiştir; başka ayara dokunma.')),
         row,
         L.keys.length ? h('details', { class: 'cv-sec' }, h('summary', {}, KT('Öğrenilen kalite satırları ({0})', L.keys.length)), h('ul', { id: 'og-keys' }, L.keys.slice(0, 60).map((k) => h('li', {}, k.id + ': ' + L.presets.map((p) => PTR[p] + '=' + k.values[p]).join(', '))))) : h('p', { class: 'rm-hint', id: 'og-nokeys' }, L.presets.length < 2 ? 'En az iki ön ayar (örn. Düşük + Ultra) kaydedilince hangi satırların kaliteyi belirlediği öğrenilir.' : 'Kaydedilen ayarlar arasında fark bulunamadı; oyunda gerçekten ön ayarı değiştirdiğinden emin ol.'),
@@ -6409,7 +6428,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
 
     /* ---- 4 · uygula / hedef FPS ---- */
-    const saved = () => (st.cfg ? st.cfg.presets.filter((p) => p.saved).map((p) => p.id) : []);
+    const saved = () => (st.cfg ? st.cfg.presets.filter((p) => p.saved || p.builtin).map((p) => p.id) : []);
     const nearest = (p) => { const s = saved(); if (!s.length) return null; const i = PRESETS.findIndex((x) => x[0] === p); return s.slice().sort((a, b) => Math.abs(PRESETS.findIndex((x) => x[0] === a) - i) - Math.abs(PRESETS.findIndex((x) => x[0] === b) - i))[0]; };
     const nativeRes = () => (st.cfg && st.cfg.res && st.cfg.res.native) || (st.cfg && st.cfg.info && st.cfg.info.resolution) || null;
     function resOptions() { const n = nativeRes(); const out = []; const seen = new Set(); const add = (w, hh) => { const k = w + 'x' + hh; if (!seen.has(k)) { seen.add(k); out.push([w, hh]); } }; if (n) add(n.w, n.h); for (const [w, hh] of RES) add(w, hh); return out; }
@@ -6498,7 +6517,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
     setInterval(() => tickRunning(false), 4000);
     new MutationObserver(() => { if (visible() && !st.loaded) { st.loaded = true; init(); } }).observe(root, { attributes: true, attributeFilter: ['hidden'] });
-    async function init() { st.pm = await H.gamePm(false).catch(() => null); try { st.hw = await H.gameHw(false); } catch (e) { st.hw = null; } await load(false); }
+    async function init() { st.pm = await H.gamePm(false).catch(() => null); try { st.hw = await H.gameHw(false); } catch (e) { st.hw = null; } await load(false); await detect(false); }
     if (visible()) { st.loaded = true; init(); }
   })();
 
