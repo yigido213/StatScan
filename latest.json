@@ -1,6 +1,6 @@
 {
-  "version": "5.0.2",
-  "url": "StatScan-5.0.2.ssu",
-  "sha256": "c58dafbb8affb99d5053f3ed3e4cc55f46c590432c1397d503d5f59f999d3b40",
-  "notes": "5.0.2 — Kovan beta 0.0.9: Oyun Ayarlayıcı artık Steam/Epic'ten kurulu TÜM oyunların ayar dosyasını otomatik bulur (oyun klasörü, Documents/My Games, AppData, Saved Games, Steam bulut), net kazananı seçer, belirsizde sana bırakır; Unreal Engine oyunları için yerleşik Düşük/Orta/Yüksek/Ultra. Gerçek Windows'ta denenmedi."
+  "version": "5.0.3",
+  "url": "StatScan-5.0.3.ssu",
+  "sha256": "49a2ed9a0b3dac2e64c8602c41446f23aee75e557045d531751773f1803f8c67",
+  "notes": "5.0.3 HOTFIX — Kovan beta 0.0.9: Oyun Ayarlayıcı, oyun klasöründe kökte config.ini yokken alt klasörlerdeki ayar dosyasını da bulur (derinlik 6, büyük içerik klasörleri atlanır). Gerçek Windows'ta denenmedi."
 }
