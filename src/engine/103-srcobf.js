@@ -1,6 +1,8 @@
 /* Kovan: cok dilli kaynak obfuscator (yalnizca METIN donusturur; hicbir sey calistirmaz/derlemez).
-   101-srcscan.js'teki ayni sozlesmeye uyar: diller ve dosya turu srcLangOf ile belirlenir (bu dosya onu
-   degistirmez, yalniz okur). Iki katman uretir:
+   101-srcscan.js'teki (Derleyici araci) SRC_LANGS/srcLangOf sozlesmesini kullanir (o dosyaya DOKUNMAZ,
+   yalniz okur) + kendi basina, BAGIMSIZ olarak Python (.py/.pyw/.pyi) dosyalarini da tanir (sobLangOf;
+   bkz. asagida) — Derleyici/Compiler araci (COMPMOD/101-srcscan.js) Python'u HALA bilmez/desteklemez,
+   bu kasitlidir, sadece Obfuscate araci icin eklenmistir. Iki katman uretir:
      1) "temel": yorumlari kaldirir + bos/yalniz-bosluk satirlari siler + dize icermeyen satirlarda
         art arda bosluklari tek bosluga indirir. TUM dillerde (Java dahil) guvenlidir: hicbir token
         veya dize/karakter sabiti DEGISTIRILMEZ, yalnizca yorum ve anlamsiz bosluk kaldirilir.
@@ -23,6 +25,53 @@ function sobCfgJava(keep) {
     custom: (s, i) => { if (s[i] === '"' && s.startsWith('"""', i)) { let q = 3; while (s[i + q] === '"') q++; const close = '"'.repeat(q); const e = s.indexOf(close, i + q); return { end: e < 0 ? s.length : e + q, keep: true }; } return null; } };
 }
 function sobCfgForFree(keep) { return { keepStrings: keep, line: ['!'], quotes: [{ q: "'", dbl: true }, { q: '"', dbl: true }] }; }
+/* ---- Python: ayri, bagimsiz temel katman (SOB_CFG/scStrip genel yoluna DAHIL EDILMEZ) ----
+   Neden ayri: Python girintiye (indentation) dayali bir dildir, satir basi bosluklar ANLAM tasir;
+   genel sobStripBasic satir ici bosluk sadelestirmesi ve "bos satiri sil" mantigi satir basi
+   bosluklara dokunuyor ve coklu-satirli (ucgen tirnakli) dize/docstring icindeki bos satirlari da
+   siliyor (dize icerigini degistirmis olur) — bu Python icin GUVENSIZ. Asagidaki tarayici, bir
+   dize/docstring'in (tek veya ucgen tirnakli, r/b/u/f onekli farketmez) kapladigi HER karakteri
+   isaretler; o karakterlerden herhangi biri bir satirdaysa o satir OLDUGU GIBI (hic dokunulmadan)
+   birakilir — boylece docstring icindeki bos satirlar dahil hicbir dize icerigi degismez. Yalnizca
+   hic dize icermeyen satirlarda '#' yorumu (varsa) satir sonuna kadar kesilir + sondaki bosluk
+   kirpilir (satir BASINDAKI bosluk HICBIR ZAMAN dokunulmaz); kirpma sonrasi tamamen bos kalan
+   satir silinir. */
+function sobPyStringMask(s) {
+  const n = s.length; const isStr = new Array(n).fill(false); let i = 0;
+  while (i < n) {
+    const c = s[i];
+    if (c === '#') { while (i < n && s[i] !== '\n') i++; continue; }
+    if (c === '"' || c === "'") {
+      const triple = s[i + 1] === c && s[i + 2] === c;
+      const start = i;
+      if (triple) { const delim = c + c + c; i += 3; while (i < n) { if (s[i] === '\\') { i += 2; continue; } if (s.startsWith(delim, i)) { i += 3; break; } i++; } }
+      else { i++; while (i < n && s[i] !== c && s[i] !== '\n') { if (s[i] === '\\') { i++; } i++; } if (i < n && s[i] === c) i++; }
+      for (let k = start; k < Math.min(i, n); k++) isStr[k] = true;
+      continue;
+    }
+    i++;
+  }
+  return isStr;
+}
+function sobStripPython(text) {
+  const src = String(text).replace(/\r\n?/g, '\n'); const bytesBefore = new TextEncoder().encode(src).length; const n = src.length;
+  const isStr = sobPyStringMask(src); const lines = src.split('\n'); const out = []; let pos = 0;
+  for (const line of lines) {
+    const start = pos, end = pos + line.length; pos = end + 1;
+    let hasStr = false; for (let k = start; k < end; k++) { if (isStr[k]) { hasStr = true; break; } }
+    /* bos satir (start===end): icinde dogrudan test edilecek karakter yok; dizenin icinde olup olmadigini
+       bu satiri cevreleyen yeni-satir karakterlerinden anla (ucgen tirnakli dize/docstring'teki bos
+       satirlar, ornegin paragraf arasi bosluk, boylece YANLISLIKLA silinmez). */
+    if (!hasStr && start === end) { if (end < n && isStr[end]) hasStr = true; else if (start > 0 && isStr[start - 1]) hasStr = true; }
+    if (hasStr) { out.push(line); continue; } /* dize/docstring'e ait satir: olduğu gibi birakilir */
+    const hashIdx = line.indexOf('#'); const codePart = hashIdx >= 0 ? line.slice(0, hashIdx) : line;
+    const trimmed = codePart.replace(/[ \t]+$/, ''); /* yalnizca SONDAKI bosluk; BASTAKI (girinti) asla kirpilmaz */
+    if (!trimmed.trim()) continue; /* yorum silindikten sonra tamamen bos -> satiri kaldir */
+    out.push(trimmed);
+  }
+  const outText = out.join('\n');
+  return { text: outText, note: 'Python: satır başı boşluklar (girinti) hiçbir zaman değiştirilmez. Üçlü tırnaklı (docstring) dizeler ve içlerindeki boş satırlar dahil hiçbir dize içeriği değişmez; yalnızca dize/docstring içermeyen satırlarda yorumlar ve sondaki boşluk kaldırılır.', bytesBefore, bytesAfter: new TextEncoder().encode(outText).length };
+}
 const SOB_CFG = {
   c: (k) => scCfg(false, k), cpp: (k) => scCfg(true, k), rust: scCfgRust, csharp: scCfgCs, kotlin: scCfgKt,
   pascal: scCfgPas, zig: scCfgZig, go: sobCfgGo, d: sobCfgD, java: sobCfgJava
@@ -39,6 +88,7 @@ function sobStripFixedFortran(text) {
 function sobStripBasic(text, lang) {
   const src = String(text).replace(/\r\n?/g, '\n'); const bytesBefore = new TextEncoder().encode(src).length;
   if (lang === 'fortran-fixed') { const out = sobStripFixedFortran(src); return { text: out, note: 'fixed-bicim Fortran: yalnizca tam-satir yorum (kolon 1: c/C/*/!) ve bos satirlar kaldirildi; kolon konumlarina dokunulmadi.', bytesBefore, bytesAfter: new TextEncoder().encode(out).length }; }
+  if (lang === 'python') return sobStripPython(src);
   const cfgFn = lang === 'fortran' ? sobCfgForFree : SOB_CFG[lang]; if (!cfgFn) return { text: src, note: 'Bu dil icin temel sadelestirme tanimli degil.', bytesBefore, bytesAfter: bytesBefore };
   const keep = scStrip(src, cfgFn(true)); const full = scStrip(src, cfgFn(false));
   const keepLines = keep.split('\n'), fullLines = full.split('\n'); const out = [];
@@ -187,12 +237,15 @@ function sobRenameLocals(text, lang, opts) {
 const SOB_RENAME_LANGS = { c: 1, cpp: 1, java: 1, csharp: 1, go: 1, rust: 1, zig: 1, kotlin: 1, d: 1 };
 const SOB_VERIFIED_LANGS = { c: 1, cpp: 1, java: 1, go: 1, rust: 1 }; /* bu oturumda gercek derleyiciyle (gcc/g++/javac/go/rustc) once-sonra derlenip CIKTISI karsilastirilarak dogrulandi */
 /* Coklu dosya girdisi: files = [{name, text}]. opts: { basic: bool, rename: bool } (ikisi de varsayilan true) */
+const SOB_PY_EXT_RE = /\.(?:py|pyw|pyi)$/i; /* 101-srcscan.js SRC_LANGS'a DOKUNULMAZ (Derleyici araci onu kullanir); Python algilamasi burada bagimsizdir */
+function sobLangOf(name) { const info = srcLangOf(name); if (info) return info; return SOB_PY_EXT_RE.test(String(name || '')) ? { lang: 'python', kind: 'source' } : null; }
 function srcObf(files, opts) {
   const o = Object.assign({ basic: true, rename: true }, opts || {});
   const out = { files: [], notes: [], langs: {} };
   for (const f of files) {
-    const info = srcLangOf(f.name); const lang = info ? info.lang : null;
-    const row = { name: f.name, lang, langName: lang ? srcLangName(lang) : null, supported: !!info, basicApplied: false, renamed: [], renameSupported: false, renameVerified: false, bytesBefore: 0, bytesAfter: 0, text: f.text };
+    const info = sobLangOf(f.name); const lang = info ? info.lang : null;
+    const langName = lang === 'python' ? 'Python' : (lang ? srcLangName(lang) : null);
+    const row = { name: f.name, lang, langName, supported: !!info, basicApplied: false, renamed: [], renameSupported: false, renameVerified: false, bytesBefore: 0, bytesAfter: 0, text: f.text };
     if (!info || info.kind !== 'source') { out.files.push(row); continue; }
     let text = f.text; const isFixedFortran = lang === 'fortran' && /\.(?:f|for|f77|ftn)$/i.test(f.name);
     if (o.basic) { const r = sobStripBasic(text, isFixedFortran ? 'fortran-fixed' : lang); text = r.text; row.basicApplied = true; row.bytesBefore = r.bytesBefore; row.bytesAfter = r.bytesAfter; if (r.note) row.note = r.note; }
@@ -206,6 +259,7 @@ function srcObf(files, opts) {
 }
 function srcObfSupport() {
   const rows = []; for (const L of SRC_LANGS) rows.push({ id: L.id, name: L.name, basic: !!SOB_CFG[L.id] || L.id === 'fortran', rename: !!SOB_RENAME_LANGS[L.id], verified: !!SOB_VERIFIED_LANGS[L.id] });
+  rows.unshift({ id: 'python', name: 'Python', basic: true, rename: false, verified: false });
   rows.unshift({ id: 'java', name: 'Java', basic: true, rename: true, verified: true });
   return rows;
 }

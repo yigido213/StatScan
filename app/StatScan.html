@@ -3127,8 +3127,10 @@ function ramReportText(res, meta) {
 /*#endregion memscan*/
 /*#region srcobf*/
 /* Kovan: cok dilli kaynak obfuscator (yalnizca METIN donusturur; hicbir sey calistirmaz/derlemez).
-   101-srcscan.js'teki ayni sozlesmeye uyar: diller ve dosya turu srcLangOf ile belirlenir (bu dosya onu
-   degistirmez, yalniz okur). Iki katman uretir:
+   101-srcscan.js'teki (Derleyici araci) SRC_LANGS/srcLangOf sozlesmesini kullanir (o dosyaya DOKUNMAZ,
+   yalniz okur) + kendi basina, BAGIMSIZ olarak Python (.py/.pyw/.pyi) dosyalarini da tanir (sobLangOf;
+   bkz. asagida) — Derleyici/Compiler araci (COMPMOD/101-srcscan.js) Python'u HALA bilmez/desteklemez,
+   bu kasitlidir, sadece Obfuscate araci icin eklenmistir. Iki katman uretir:
      1) "temel": yorumlari kaldirir + bos/yalniz-bosluk satirlari siler + dize icermeyen satirlarda
         art arda bosluklari tek bosluga indirir. TUM dillerde (Java dahil) guvenlidir: hicbir token
         veya dize/karakter sabiti DEGISTIRILMEZ, yalnizca yorum ve anlamsiz bosluk kaldirilir.
@@ -3151,6 +3153,53 @@ function sobCfgJava(keep) {
     custom: (s, i) => { if (s[i] === '"' && s.startsWith('"""', i)) { let q = 3; while (s[i + q] === '"') q++; const close = '"'.repeat(q); const e = s.indexOf(close, i + q); return { end: e < 0 ? s.length : e + q, keep: true }; } return null; } };
 }
 function sobCfgForFree(keep) { return { keepStrings: keep, line: ['!'], quotes: [{ q: "'", dbl: true }, { q: '"', dbl: true }] }; }
+/* ---- Python: ayri, bagimsiz temel katman (SOB_CFG/scStrip genel yoluna DAHIL EDILMEZ) ----
+   Neden ayri: Python girintiye (indentation) dayali bir dildir, satir basi bosluklar ANLAM tasir;
+   genel sobStripBasic satir ici bosluk sadelestirmesi ve "bos satiri sil" mantigi satir basi
+   bosluklara dokunuyor ve coklu-satirli (ucgen tirnakli) dize/docstring icindeki bos satirlari da
+   siliyor (dize icerigini degistirmis olur) — bu Python icin GUVENSIZ. Asagidaki tarayici, bir
+   dize/docstring'in (tek veya ucgen tirnakli, r/b/u/f onekli farketmez) kapladigi HER karakteri
+   isaretler; o karakterlerden herhangi biri bir satirdaysa o satir OLDUGU GIBI (hic dokunulmadan)
+   birakilir — boylece docstring icindeki bos satirlar dahil hicbir dize icerigi degismez. Yalnizca
+   hic dize icermeyen satirlarda '#' yorumu (varsa) satir sonuna kadar kesilir + sondaki bosluk
+   kirpilir (satir BASINDAKI bosluk HICBIR ZAMAN dokunulmaz); kirpma sonrasi tamamen bos kalan
+   satir silinir. */
+function sobPyStringMask(s) {
+  const n = s.length; const isStr = new Array(n).fill(false); let i = 0;
+  while (i < n) {
+    const c = s[i];
+    if (c === '#') { while (i < n && s[i] !== '\n') i++; continue; }
+    if (c === '"' || c === "'") {
+      const triple = s[i + 1] === c && s[i + 2] === c;
+      const start = i;
+      if (triple) { const delim = c + c + c; i += 3; while (i < n) { if (s[i] === '\\') { i += 2; continue; } if (s.startsWith(delim, i)) { i += 3; break; } i++; } }
+      else { i++; while (i < n && s[i] !== c && s[i] !== '\n') { if (s[i] === '\\') { i++; } i++; } if (i < n && s[i] === c) i++; }
+      for (let k = start; k < Math.min(i, n); k++) isStr[k] = true;
+      continue;
+    }
+    i++;
+  }
+  return isStr;
+}
+function sobStripPython(text) {
+  const src = String(text).replace(/\r\n?/g, '\n'); const bytesBefore = new TextEncoder().encode(src).length; const n = src.length;
+  const isStr = sobPyStringMask(src); const lines = src.split('\n'); const out = []; let pos = 0;
+  for (const line of lines) {
+    const start = pos, end = pos + line.length; pos = end + 1;
+    let hasStr = false; for (let k = start; k < end; k++) { if (isStr[k]) { hasStr = true; break; } }
+    /* bos satir (start===end): icinde dogrudan test edilecek karakter yok; dizenin icinde olup olmadigini
+       bu satiri cevreleyen yeni-satir karakterlerinden anla (ucgen tirnakli dize/docstring'teki bos
+       satirlar, ornegin paragraf arasi bosluk, boylece YANLISLIKLA silinmez). */
+    if (!hasStr && start === end) { if (end < n && isStr[end]) hasStr = true; else if (start > 0 && isStr[start - 1]) hasStr = true; }
+    if (hasStr) { out.push(line); continue; } /* dize/docstring'e ait satir: olduğu gibi birakilir */
+    const hashIdx = line.indexOf('#'); const codePart = hashIdx >= 0 ? line.slice(0, hashIdx) : line;
+    const trimmed = codePart.replace(/[ \t]+$/, ''); /* yalnizca SONDAKI bosluk; BASTAKI (girinti) asla kirpilmaz */
+    if (!trimmed.trim()) continue; /* yorum silindikten sonra tamamen bos -> satiri kaldir */
+    out.push(trimmed);
+  }
+  const outText = out.join('\n');
+  return { text: outText, note: 'Python: satır başı boşluklar (girinti) hiçbir zaman değiştirilmez. Üçlü tırnaklı (docstring) dizeler ve içlerindeki boş satırlar dahil hiçbir dize içeriği değişmez; yalnızca dize/docstring içermeyen satırlarda yorumlar ve sondaki boşluk kaldırılır.', bytesBefore, bytesAfter: new TextEncoder().encode(outText).length };
+}
 const SOB_CFG = {
   c: (k) => scCfg(false, k), cpp: (k) => scCfg(true, k), rust: scCfgRust, csharp: scCfgCs, kotlin: scCfgKt,
   pascal: scCfgPas, zig: scCfgZig, go: sobCfgGo, d: sobCfgD, java: sobCfgJava
@@ -3167,6 +3216,7 @@ function sobStripFixedFortran(text) {
 function sobStripBasic(text, lang) {
   const src = String(text).replace(/\r\n?/g, '\n'); const bytesBefore = new TextEncoder().encode(src).length;
   if (lang === 'fortran-fixed') { const out = sobStripFixedFortran(src); return { text: out, note: 'fixed-bicim Fortran: yalnizca tam-satir yorum (kolon 1: c/C/*/!) ve bos satirlar kaldirildi; kolon konumlarina dokunulmadi.', bytesBefore, bytesAfter: new TextEncoder().encode(out).length }; }
+  if (lang === 'python') return sobStripPython(src);
   const cfgFn = lang === 'fortran' ? sobCfgForFree : SOB_CFG[lang]; if (!cfgFn) return { text: src, note: 'Bu dil icin temel sadelestirme tanimli degil.', bytesBefore, bytesAfter: bytesBefore };
   const keep = scStrip(src, cfgFn(true)); const full = scStrip(src, cfgFn(false));
   const keepLines = keep.split('\n'), fullLines = full.split('\n'); const out = [];
@@ -3315,12 +3365,15 @@ function sobRenameLocals(text, lang, opts) {
 const SOB_RENAME_LANGS = { c: 1, cpp: 1, java: 1, csharp: 1, go: 1, rust: 1, zig: 1, kotlin: 1, d: 1 };
 const SOB_VERIFIED_LANGS = { c: 1, cpp: 1, java: 1, go: 1, rust: 1 }; /* bu oturumda gercek derleyiciyle (gcc/g++/javac/go/rustc) once-sonra derlenip CIKTISI karsilastirilarak dogrulandi */
 /* Coklu dosya girdisi: files = [{name, text}]. opts: { basic: bool, rename: bool } (ikisi de varsayilan true) */
+const SOB_PY_EXT_RE = /\.(?:py|pyw|pyi)$/i; /* 101-srcscan.js SRC_LANGS'a DOKUNULMAZ (Derleyici araci onu kullanir); Python algilamasi burada bagimsizdir */
+function sobLangOf(name) { const info = srcLangOf(name); if (info) return info; return SOB_PY_EXT_RE.test(String(name || '')) ? { lang: 'python', kind: 'source' } : null; }
 function srcObf(files, opts) {
   const o = Object.assign({ basic: true, rename: true }, opts || {});
   const out = { files: [], notes: [], langs: {} };
   for (const f of files) {
-    const info = srcLangOf(f.name); const lang = info ? info.lang : null;
-    const row = { name: f.name, lang, langName: lang ? srcLangName(lang) : null, supported: !!info, basicApplied: false, renamed: [], renameSupported: false, renameVerified: false, bytesBefore: 0, bytesAfter: 0, text: f.text };
+    const info = sobLangOf(f.name); const lang = info ? info.lang : null;
+    const langName = lang === 'python' ? 'Python' : (lang ? srcLangName(lang) : null);
+    const row = { name: f.name, lang, langName, supported: !!info, basicApplied: false, renamed: [], renameSupported: false, renameVerified: false, bytesBefore: 0, bytesAfter: 0, text: f.text };
     if (!info || info.kind !== 'source') { out.files.push(row); continue; }
     let text = f.text; const isFixedFortran = lang === 'fortran' && /\.(?:f|for|f77|ftn)$/i.test(f.name);
     if (o.basic) { const r = sobStripBasic(text, isFixedFortran ? 'fortran-fixed' : lang); text = r.text; row.basicApplied = true; row.bytesBefore = r.bytesBefore; row.bytesAfter = r.bytesAfter; if (r.note) row.note = r.note; }
@@ -3334,6 +3387,7 @@ function srcObf(files, opts) {
 }
 function srcObfSupport() {
   const rows = []; for (const L of SRC_LANGS) rows.push({ id: L.id, name: L.name, basic: !!SOB_CFG[L.id] || L.id === 'fortran', rename: !!SOB_RENAME_LANGS[L.id], verified: !!SOB_VERIFIED_LANGS[L.id] });
+  rows.unshift({ id: 'python', name: 'Python', basic: true, rename: false, verified: false });
   rows.unshift({ id: 'java', name: 'Java', basic: true, rename: true, verified: true });
   return rows;
 }
@@ -5587,10 +5641,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.': 'Updates a Minecraft Java resource pack’s pack.mcmeta format and vanilla texture names for the version you pick. Does not convert redrawn textures; the report lists them explicitly.',
       'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.': 'Updates the target Minecraft version in a mod/plugin manifest and reports the risk of breakage. Does not convert compiled code; does not guarantee it will work.',
       'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.': 'Automatically detects Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran and D source files, compiles them with the compilers on your computer and saves the output to your Downloads folder. You install the compilers yourself; works only in the desktop app.',
-      'Kaynak kodunu (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) yorumlardan/gereksiz boşluktan arındırır ve desteklenen dillerde yalnızca güvenli olduğu kanıtlanabilen yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Dosyalar hiçbir yere gönderilmez; her şey bu cihazda, tarayıcıda çalışır. Tarayıcıda ve masaüstünde çalışır.': 'Strips comments/unnecessary whitespace from source code (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) and, in supported languages, renames only local (function-scope) variable names that are provably safe to rename to meaningless ones. Files are never sent anywhere; everything runs on this device, in the browser. Works in the browser and in the desktop app.',
+      'Kaynak kodunu (Java, Python, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) yorumlardan/gereksiz boşluktan arındırır ve desteklenen dillerde yalnızca güvenli olduğu kanıtlanabilen yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Dosyalar hiçbir yere gönderilmez; her şey bu cihazda, tarayıcıda çalışır. Tarayıcıda ve masaüstünde çalışır.': 'Strips comments/unnecessary whitespace from source code (Java, Python, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) and, in supported languages, renames only local (function-scope) variable names that are provably safe to rename to meaningless ones. Files are never sent anywhere; everything runs on this device, in the browser. Works in the browser and in the desktop app.',
       'Kaynak kodunu okunması zorlaşsın diye dönüştürür: yorumları ve gereksiz boşluğu kaldırır, desteklenen dillerde yalnızca güvenli olduğu kanıtlanan yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Derlemez, çalıştırmaz; dosyalar bu cihazdan çıkmaz.': 'Transforms source code to make it harder to read: removes comments and unnecessary whitespace, and in supported languages renames only local (function-scope) variable names that are provably safe to rename to meaningless ones. It does not compile or run anything; files never leave this device.',
       'Yalnızca ad alanı/tür gövdesinde (sınıf/struct alanı, üst düzey değişken, fonksiyon/metot adı, parametre adı) HİÇBİR görünümü olmayan, bir fonksiyon/blok gövdesinde yerel olarak tanımlanmış adlar değiştirilir. Belirsiz durumda hiçbir şey değiştirilmez: güvenlik her zaman önceliklidir.': 'Only names that have NO occurrence at all in a type body or file scope (a class/struct field, a top-level variable, a function/method name, a parameter name) and that are locally declared inside a function/block body are renamed. When it’s ambiguous, nothing is changed: safety always comes first.',
-      'Pascal ve Fortran’da yalnızca yorum/boşluk katmanı var; isim karıştırma yok (bu dillerde ad çözümlemesi güvenle ayırt edilemiyor).': 'Pascal and Fortran only get the comment/whitespace layer; there is no name mangling (name resolution can’t be done safely in these languages).',
+      'Pascal, Fortran ve Python’da yalnızca yorum/boşluk katmanı var; isim karıştırma yok (Pascal/Fortran’da ad çözümlemesi güvenle ayırt edilemiyor; Python girintiye dayalı ve dinamik kapsamlı olduğu için süslü-parantez tabanlı kapsam tarayıcısı burada uygulanamıyor). Python’da girintiye (satır başı boşluklara) ve docstring içeriğine hiçbir zaman dokunulmaz.': 'Pascal, Fortran and Python only get the comment/whitespace layer; there is no name mangling (name resolution can’t be done safely in Pascal/Fortran; Python is indentation-based and dynamically scoped, so the brace-based scope scanner used here doesn’t apply). In Python, indentation (leading whitespace) and docstring content are never touched.',
       'Bu, gerçek bir kod koruma (yapısal/kontrol akışı) aracı değildir; yalnızca okumayı zorlaştırır. Dizeler, sabitler ve dışarıdan görünen adlar (API, kütüphane, sınıf/alan adları) hiç değişmez.': 'This is not a true code-protection (structural/control-flow) tool; it only makes reading harder. Strings, constants and externally visible names (API, library, class/field names) never change.',
       'Çıktı derlenebilir olmalıdır, ama her kod kalıbını kapsamayabilir: obfuscate edilmiş dosyayı derleyip test etmeden kullanma.': 'The output should compile, but it may not cover every code pattern: don’t use an obfuscated file without compiling and testing it first.',
       'Yorumları ve gereksiz boşluğu kaldır': 'Remove comments and unnecessary whitespace',
@@ -6161,7 +6215,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
        (tarayicida) calisir, dosya hicbir yere gonderilmez. Cikti: tek dosya ise aynen, birden cok dosya ise .zip. ---- */
     (function obfuscateUI() {
       const root = $('#app-obfuscate'); const { srcObf, srcObfSupport, srcLangOf } = StatScan;
-      const EXTS = '.java,.c,.h,.cpp,.cc,.cxx,.c++,.cp,.hpp,.hh,.hxx,.h++,.inl,.ipp,.tpp,.rs,.cs,.go,.zig,.kt,.pas,.pp,.lpr,.dpr,.inc,.f90,.f95,.f03,.f08,.f18,.f,.for,.f77,.ftn,.d';
+      const PY_EXT_RE = /\.(?:py|pyw|pyi)$/i; const obLangOf = (name) => srcLangOf(name) || (PY_EXT_RE.test(name) ? { lang: 'python', kind: 'source' } : null); /* Python: yalnizca Obfuscate panelinde taninir; Derleyici panelindeki srcLangOf kullanimina DOKUNULMADI */
+      const EXTS = '.java,.c,.h,.cpp,.cc,.cxx,.c++,.cp,.hpp,.hh,.hxx,.h++,.inl,.ipp,.tpp,.rs,.cs,.go,.zig,.kt,.pas,.pp,.lpr,.dpr,.inc,.f90,.f95,.f03,.f08,.f18,.f,.for,.f77,.ftn,.d,.py,.pyw,.pyi';
       const MAXF = 24e6; const st = { files: [], busy: false, result: null };
       const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' });
       const setLive = (x) => { live.textContent = x; };
@@ -6184,7 +6239,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Obfuscate'), h('p', { class: 'cv-lead' }, KT('Kaynak kodunu okunması zorlaşsın diye dönüştürür: yorumları ve gereksiz boşluğu kaldırır, desteklenen dillerde yalnızca güvenli olduğu kanıtlanan yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Derlemez, çalıştırmaz; dosyalar bu cihazdan çıkmaz.'))),
         h('div', { class: 'cv-note' }, h('b', {}, KT('Önce bilmen gerekenler')), h('ul', {}, [
           KT('Yalnızca ad alanı/tür gövdesinde (sınıf/struct alanı, üst düzey değişken, fonksiyon/metot adı, parametre adı) HİÇBİR görünümü olmayan, bir fonksiyon/blok gövdesinde yerel olarak tanımlanmış adlar değiştirilir. Belirsiz durumda hiçbir şey değiştirilmez: güvenlik her zaman önceliklidir.'),
-          KT('Pascal ve Fortran’da yalnızca yorum/boşluk katmanı var; isim karıştırma yok (bu dillerde ad çözümlemesi güvenle ayırt edilemiyor).'),
+          KT('Pascal, Fortran ve Python’da yalnızca yorum/boşluk katmanı var; isim karıştırma yok (Pascal/Fortran’da ad çözümlemesi güvenle ayırt edilemiyor; Python girintiye dayalı ve dinamik kapsamlı olduğu için süslü-parantez tabanlı kapsam tarayıcısı burada uygulanamıyor). Python’da girintiye (satır başı boşluklara) ve docstring içeriğine hiçbir zaman dokunulmaz.'),
           KT('Bu, gerçek bir kod koruma (yapısal/kontrol akışı) aracı değildir; yalnızca okumayı zorlaştırır. Dizeler, sabitler ve dışarıdan görünen adlar (API, kütüphane, sınıf/alan adları) hiç değişmez.'),
           KT('Çıktı derlenebilir olmalıdır, ama her kod kalıbını kapsamayabilir: obfuscate edilmiş dosyayı derleyip test etmeden kullanma.')
         ].map((x) => h('li', {}, x)))),
@@ -6195,7 +6250,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         const rows = []; let okCount = 0;
         const reads = arr.map((f) => new Promise((resolve) => {
           if (f.size > MAXF) { rows.push(h('li', {}, KT('{0}: çok büyük (sınır {1})', f.name, fmt(MAXF)))); resolve(null); return; }
-          const info = srcLangOf(f.name); if (!info || info.kind !== 'source') { rows.push(h('li', {}, KT('{0}: desteklenmeyen dosya türü, atlandı', f.name))); resolve(null); return; }
+          const info = obLangOf(f.name); if (!info || info.kind !== 'source') { rows.push(h('li', {}, KT('{0}: desteklenmeyen dosya türü, atlandı', f.name))); resolve(null); return; }
           const rd = new FileReader(); rd.onload = () => { st.files.push({ name: f.name, text: String(rd.result) }); okCount++; resolve(null); }; rd.onerror = () => { rows.push(h('li', {}, KT('{0}: okunamadı', f.name))); resolve(null); }; rd.readAsText(f);
         }));
         Promise.all(reads).then(() => {
@@ -6879,7 +6934,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'texpack', cat: 'minecraft', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', cat: 'minecraft', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
       { id: 'compiler', cat: 'kodlama', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'obfuscate', cat: 'kodlama', name: 'Obfuscate', icon: 'mask', beta: true, desc: 'Kaynak kodunu (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) yorumlardan/gereksiz boşluktan arındırır ve desteklenen dillerde yalnızca güvenli olduğu kanıtlanabilen yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Dosyalar hiçbir yere gönderilmez; her şey bu cihazda, tarayıcıda çalışır. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
+      { id: 'obfuscate', cat: 'kodlama', name: 'Obfuscate', icon: 'mask', beta: true, desc: 'Kaynak kodunu (Java, Python, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) yorumlardan/gereksiz boşluktan arındırır ve desteklenen dillerde yalnızca güvenli olduğu kanıtlanabilen yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Dosyalar hiçbir yere gönderilmez; her şey bu cihazda, tarayıcıda çalışır. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },

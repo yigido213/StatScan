@@ -40,6 +40,38 @@ const eq = (n, a, b) => ok(n, JSON.stringify(a) === JSON.stringify(b)) || consol
   ok('fortran fixed: kolon-1 yorum kalkar', !r.text.includes('this is a comment'));
   ok('fortran fixed: kolonlara dokunulmaz', r.text.includes('      PROGRAM T'));
 })();
+(() => {
+  // python: girintiye asla dokunulmamali, yorum kalkmali, bos satirlar (dize disi) silinmeli
+  const src = 'def add(a, b):\n    # yorum\n    total = a + b   \n    return total\n\n\nclass Foo:\n    def bar(self):\n        if True:\n            return 1\n';
+  const r = api.sobStripBasic(src, 'python');
+  ok('python: yorum kalkar', !r.text.includes('yorum'));
+  ok('python: 4-boslukluk girinti korunur', r.text.includes('    total = a + b'));
+  ok('python: 8-boslukluk girinti korunur (ic ice blok)', r.text.includes('        if True:'));
+  ok('python: sondaki fazla bosluk kirpilir', !/total = a \+ b\s+$/m.test(r.text));
+  ok('python: ust uste bos satirlar silinir', !/\n\s*\n\s*\n/.test(r.text));
+})();
+(() => {
+  // python: docstring/triple-quote icindeki BOS SATIRLAR dahil hicbir sey degismemeli (kritik guvenlik testi)
+  const src = 'def f():\n    """Ozet.\n\n    Daha uzun aciklama.\n\n    """\n    # bu yorum kalkmali\n    x = 1\n    return x\n';
+  const r = api.sobStripBasic(src, 'python');
+  ok('python: docstring icindeki bos satir SILINMEZ (dize icerigi degismez)', r.text.includes('"""Ozet.\n\n    Daha uzun aciklama.\n\n    """'));
+  ok('python: docstring disindaki yorum kalkar', !r.text.includes('bu yorum kalkmali'));
+})();
+(() => {
+  // python: f-string / raw-string / tek tirnakli dize icerigi hic degismemeli
+  const src = 'name = "world"\n# yorum\ngreeting = f"hello {name}!  "\npattern = r"\\d+  "\nsingle = \'kept  \'\n';
+  const r = api.sobStripBasic(src, 'python');
+  ok('python: f-string icerigi (ic bosluklar dahil) degismez', r.text.includes('f"hello {name}!  "'));
+  ok('python: raw string icerigi degismez', r.text.includes('r"\\d+  "'));
+  ok('python: tek tirnakli dize icerigi degismez', r.text.includes("'kept  '"));
+})();
+(() => {
+  // python: isim karistirma desteklenmemeli (Pascal/Fortran gibi yalnizca temel katman)
+  const sup = api.srcObfSupport().find((x) => x.id === 'python');
+  ok('python: destek tablosunda var, basic:true rename:false', !!sup && sup.basic === true && sup.rename === false);
+  const obf = api.srcObf([{ name: 'a.py', text: 'x = 1\n' }], { basic: true, rename: true });
+  ok('python: srcObf isim karistirmayi atlar (renameSupported:false)', obf.files[0].supported === true && obf.files[0].renameSupported === false);
+})();
 
 /* ---------- 2) isim karistirma guvenlik kurallari (derleyicisiz, saf mantik testleri) ---------- */
 (() => {
@@ -135,6 +167,12 @@ if (which('go')) {
     [['main.go', 'package main\nimport "fmt"\n// yorum\ntype Point struct { X int; Y int }\nfunc add(a int, b int) int { sum := a + b; return sum }\nfunc main() {\n  total := 0\n  for i := 0; i < 5; i++ { tmp := add(i, i); total += tmp }\n  x := 1; y := 2; p := Point{X: x, Y: y}\n  fmt.Println(total, p.X, p.Y)\n}\n']],
     (dir) => { cp.execFileSync('go', ['build', '-o', 'a.out', 'main.go'], { cwd: dir, stdio: 'pipe', env: Object.assign({}, process.env, { GOCACHE: path.join(os.tmpdir(), 'gocache') }) }); return cp.execFileSync('./a.out', [], { cwd: dir }).toString(); });
 } else console.log('ATLANDI (go): go yok');
+const PY_BIN = which('python3') ? 'python3' : (which('python') ? 'python' : null);
+if (PY_BIN) {
+  runCompileCase('temel', 'python',
+    [['main.py', 'import sys\n# yorum\n\n\nclass Counter:\n    """Basit sayac.\n\n    Bos satir docstring icinde.\n    """\n    def __init__(self):\n        self.count = 0\n\n    def inc(self, by):\n        # yerel degisken (Python\'da yeniden adlandirilmaz, yalniz yorum/bosluk katmani test edilir)\n        delta = by\n        self.count += delta\n        return self.count\n\n\ndef main():\n    c = Counter()\n    total = 0\n    for i in range(5):\n        step = i * 2\n        total += c.inc(step)\n    print(total, c.count)\n\n\nif __name__ == "__main__":\n    main()\n']],
+    (dir, names) => cp.execFileSync(PY_BIN, [names[0]], { cwd: dir }).toString());
+} else console.log('ATLANDI (python): python3/python yok');
 
 console.log('\n' + 'TOPLAM: ' + pass + ' gecti, ' + fail + ' basarisiz');
 process.exit(fail ? 1 : 0);
