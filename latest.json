@@ -1,6 +1,6 @@
 {
-  "version": "5.0.1",
-  "url": "StatScan-5.0.1.ssu",
-  "sha256": "a91799097ba67098d54a96725fc26a7b4ec4fdb0f70b2eadc6d7aeeb50ec26a2",
-  "notes": "5.0.1 — Kovan beta 0.0.9: Oyun Ayarlayıcı v0.0.1 (beta; Windows kategorisi). Steam/Epic oyunlarını algılar, anti-cheat'li oyunlara dokunmaz, ayar dosyasını yedekleyerek ön ayar/çözünürlük yazar, PresentMon ile hedef FPS ölçümü. Gerçek Windows'ta denenmedi."
+  "version": "5.0.2",
+  "url": "StatScan-5.0.2.ssu",
+  "sha256": "c58dafbb8affb99d5053f3ed3e4cc55f46c590432c1397d503d5f59f999d3b40",
+  "notes": "5.0.2 — Kovan beta 0.0.9: Oyun Ayarlayıcı artık Steam/Epic'ten kurulu TÜM oyunların ayar dosyasını otomatik bulur (oyun klasörü, Documents/My Games, AppData, Saved Games, Steam bulut), net kazananı seçer, belirsizde sana bırakır; Unreal Engine oyunları için yerleşik Düşük/Orta/Yüksek/Ultra. Gerçek Windows'ta denenmedi."
 }
