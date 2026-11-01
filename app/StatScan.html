@@ -730,6 +730,9 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .rm-fs { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 10px; margin: 0; min-width: 0; } .rm-fs legend { padding: 0 6px; font-weight: 600; font-size: 14px; }
 .rm-layers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 6px 14px; }
 .rm-opt { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; font-size: 14px; } .rm-opt input { margin-top: 3px; flex: none; } .rm-opt span { display: grid; gap: 2px; min-width: 0; } .rm-opt small { color: var(--muted); font-size: 12.5px; } .rm-opt input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.og-now { padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; } .og-now.on { border-color: color-mix(in srgb, var(--s0) 55%, var(--line)); } .og-now.warn { border-color: color-mix(in srgb, var(--s3) 55%, var(--line)); }
+.og-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; } .og-game { display: grid; gap: 6px; text-align: left; font: 14px var(--f-body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; cursor: pointer; min-width: 0; } .og-game:hover:not(:disabled) { border-color: var(--accent); } .og-game.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); } .og-game.blocked { opacity: .6; cursor: not-allowed; } .og-game:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .og-gname { font-weight: 600; overflow-wrap: anywhere; } .og-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.og-presets { display: flex; flex-wrap: wrap; gap: 8px; } .og-saved { border-color: var(--s0); } .og-steps { margin: 0; padding-left: 20px; display: grid; gap: 2px; } .og-hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; width: 100%; } .og-planbox { display: grid; gap: 8px; margin-top: 4px; }
 .rm-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; } .rm-res[hidden] { display: none; }
 .rm-score { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 14px 18px; }
 .rm-big { font: 700 clamp(44px, 9vw, 68px)/1 var(--f-display); letter-spacing: -.02em; } .rm-big small { font-size: .38em; color: var(--muted); font-weight: 500; }
@@ -891,6 +894,7 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 <section id="app-taskmgr" class="kv kv-wide" aria-label="Görev Yöneticisi" hidden></section>
 <section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
 <section id="app-ramanaliz" class="kv kv-wide" aria-label="RAM Analizi" hidden></section>
+<section id="app-oyunayar" class="kv kv-wide" aria-label="Oyun Ayarlayıcı" hidden></section>
 <section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
 <section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
@@ -5843,6 +5847,109 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Gösterilecek katman yok.': 'No layer to show.',
       'Çalışmayan katmanlar': 'Layers that did not run',
       'çıktı kesildi': 'output truncated',
+      "Oyun Ayarlayıcı": "Game Tuner",
+      "Oyun Ayarlayıcı · Kovan": "Game Tuner · Kovan",
+      "Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.": "Finds your Steam and Epic games and detects the one you are playing; writes the graphics preset (Low/Medium/High/Ultra) and resolution to the game’s settings file, or tunes it toward a target FPS. Backs up before every change; never touches games with anti-cheat. Desktop app only.",
+      "Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük / Orta / Yüksek / Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar, ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce ayar dosyasının yedeğini alır.": "Finds your Steam and Epic games and detects the one you are playing; writes the graphics preset (Low / Medium / High / Ultra) and resolution to the game’s settings file, or tunes it toward your target FPS. Backs up the settings file before every change.",
+      "Bu araç oyun kütüphanelerini ve ayar dosyalarını okumak için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.": "This tool needs the desktop app to read game libraries and settings files; it does not work in a browser page.",
+      "Beta v0.0.1 — dürüst sınırlar": "Beta v0.0.1 — honest limits",
+      "Gerçek Windows’ta ve gerçek oyunlarla henüz denenmedi; testler sahte kütüphane ve sahte PresentMon ile yapıldı.": "Not yet tried on real Windows or with real games; tests used a fake library and a fake PresentMon.",
+      "Oyunun ayar anahtarlarını uydurmaz: oyunda her ön ayarı seçip “Kaydet” dersin, araç dosyalar arasındaki FARKTAN hangi satırların ne olduğunu öğrenir. Yalnızca metin (.ini/.cfg/.conf) ayar dosyaları ve satırı zaten var olan anahtarlar değiştirilir.": "It does not invent a game’s setting keys: you pick each preset in the game and press “Save”, and the tool learns which lines matter from the DIFFERENCE between the files. Only text (.ini/.cfg/.conf) settings files and keys that already exist are changed.",
+      "Anti-cheat’li oyunlara (ör. Rocket League, VALORANT, League of Legends) hiç dokunulmaz. Algılama dosya/ad kalıplarına dayanır; liste tam değildir — çevrimiçi bir oyunda şüphen varsa kullanma.": "Games with anti-cheat (e.g. Rocket League, VALORANT, League of Legends) are never touched. Detection relies on file/name patterns and the list is not complete — if in doubt about an online game, do not use it.",
+      "Ayar dosyası oyun KAPALIYKEN değiştirilir. Çoğu oyun ayarı yalnızca açılışta okur: uyguladıktan sonra oyunu yeniden başlat. Oyunu çalıştırmaz, oyuna kod enjekte etmez.": "The settings file is changed only while the game is CLOSED. Most games read settings at launch only: restart the game after applying. It does not launch the game or inject code into it.",
+      "1 · Oyun": "1 · Game",
+      "Yeniden tara": "Rescan",
+      "Çalışan oyun aranıyor…": "Looking for a running game…",
+      "Kütüphaneler taranıyor…": "Scanning libraries…",
+      "{0} oyun bulundu.": "{0} games found.",
+      "Steam kütüphanesi: {0}": "Steam libraries: {0}",
+      "Hiç oyun bulunamadı. Steam/Epic yüklü mü? Epic için “Epic Games Launcher” bir kez açılmış olmalı.": "No games found. Are Steam/Epic installed? For Epic, the Epic Games Launcher must have been opened once.",
+      "Bu oyunda anti-cheat algılandı; ayar dosyasına dokunulmaz.": "Anti-cheat detected in this game; its settings file is not touched.",
+      "2 · Ayar dosyası": "2 · Settings file",
+      "Bunu kullan": "Use this",
+      "Başka dosya seç…": "Choose another file…",
+      "Ayar dosyası seçildi.": "Settings file selected.",
+      "{0} anahtar okundu.": "{0} keys read.",
+      "Çözünürlük anahtarı bulundu: {0}": "Resolution key found: {0}",
+      "Çözünürlük anahtarı bulunamadı.": "No resolution key found.",
+      "Seçili: {0}": "Selected: {0}",
+      "Henüz ayar dosyası seçilmedi.": "No settings file selected yet.",
+      "Otomatik aday bulunamadı.": "No automatic candidate found.",
+      "Dosyayı bu uygulama değil, işletim sisteminin dosya penceresi seçer; arayüz dosya yolunu hiçbir yere gönderemez.": "The operating system’s file dialog picks the file, not this app; the interface cannot send a file path anywhere.",
+      "3 · Ön ayarları öğret": "3 · Teach the presets",
+      "{0} olarak kaydet": "Save as {0}",
+      "“{0}” kaydedildi. Öğrenilen kalite satırı: {1}": "“{0}” saved. Quality lines learned: {1}",
+      "Öğrenilen kalite satırları ({0})": "Learned quality lines ({0})",
+      "Öğrenilenleri temizle": "Clear learned data",
+      "Atlanan {0} satır (çözünürlük, zaman damgası, FOV gibi kaliteyle ilgisiz görünenler).": "Skipped {0} lines (resolution, timestamps, FOV and other lines that look unrelated to quality).",
+      "En az iki ön ayar (örn. Düşük + Ultra) kaydedilince hangi satırların kaliteyi belirlediği öğrenilir.": "Once at least two presets (e.g. Low + Ultra) are saved, the lines that control quality are learned.",
+      "4 · Uygula": "4 · Apply",
+      "Elle seç": "Pick manually",
+      "Hedef FPS": "Target FPS",
+      "Ön ayar": "Preset",
+      "Çözünürlük": "Resolution",
+      "Önizle": "Preview",
+      "Uygula": "Apply",
+      "Uygulanıyor…": "Applying…",
+      "{0} satır değişecek.": "{0} lines will change.",
+      "Anahtar": "Key",
+      "Şimdi": "Now",
+      "Olacak": "Will be",
+      "Ön ayar veya çözünürlük seç.": "Pick a preset or resolution.",
+      "Değişiklik yok.": "No changes.",
+      "Orijinal dosya ayrıca saklandı.": "The original file was also kept.",
+      "Uygulandı: {0} satır yazıldı ve doğrulandı ({1}). Oyunu yeniden başlat; sonra oyun içinde hareket ederken FPS ölç.": "Applied: {0} lines written and verified ({1}). Restart the game, then measure FPS while moving in-game.",
+      "Oyun şu an çalışıyor ({0}). Ayar dosyası oyun kapalıyken değiştirilir; oyunu tamamen kapat.": "The game is running ({0}). The settings file is changed only while the game is closed; close it completely.",
+      "Tahmini ön ayar: {0}": "Estimated preset: {0}",
+      "(emin değil)": "(not sure)",
+      "Donanıma göre öner": "Suggest from hardware",
+      "Gerekirse çözünürlüğü de düşür": "Lower the resolution too if needed",
+      "“{0}” ön ayarını uygula": "Apply the “{0}” preset",
+      "“{0}” kayıtlı olmadığı için en yakın kayıtlı ön ayar kullanılır.": "“{0}” is not saved, so the nearest saved preset is used.",
+      "Önerileri uygulayabilmek için önce 3. adımda ön ayarları kaydet.": "To apply suggestions, first save presets in step 3.",
+      "PresentMon bulundu: {0}": "PresentMon found: {0}",
+      "PresentMon bulunamadı.": "PresentMon not found.",
+      "PresentMon seçildi.": "PresentMon selected.",
+      "Yol seç…": "Choose path…",
+      "Yeniden ara": "Search again",
+      "PresentMon nasıl kurulur?": "How to install PresentMon?",
+      "FPS ölç": "Measure FPS",
+      "İptal et": "Cancel",
+      "Ölçüm süresi (sn)": "Measure duration (s)",
+      "{0} ölçülüyor ({1} sn)… Oyunun içinde hareket etmeye devam et.": "Measuring {0} ({1} s)… Keep moving in the game.",
+      "Ölçüm bitti.": "Measurement finished.",
+      "Ölçüm iptal edildi.": "Measurement canceled.",
+      "Ortalama {0} FPS · %1 düşük {2} FPS · {1} takılma": "Average {0} FPS · 1% low {2} FPS · {1} stutters",
+      "{0} kare, {1} sn, en düşük {2} / en yüksek {3} FPS": "{0} frames, {1} s, min {2} / max {3} FPS",
+      "Öneriyi uygula": "Apply suggestion",
+      "Hedefe uygun": "On target",
+      "Donanım sınırı": "Hardware limit",
+      "Ölçüm kaydedildi": "Measurement saved",
+      "5 · Yedekler": "5 · Backups",
+      "Orijinali geri yükle": "Restore original",
+      "Son yedeği geri yükle": "Restore last backup",
+      "Geri yüklendi: {0}. Oyunu yeniden başlat.": "Restored: {0}. Restart the game.",
+      "Henüz yedek yok; ilk uygulamadan önce otomatik alınır.": "No backup yet; one is taken automatically before the first apply.",
+      "Şu an kütüphanendeki bir oyun çalışmıyor. Oyunu açınca burada otomatik görünür.": "No game from your library is running. It appears here automatically when you launch one.",
+      "Anti-cheat’li oyun algılandı: {0}": "Anti-cheat game detected: {0}",
+      "Bu oyuna dokunulmaz ve ölçüm yapılmaz. ({0})": "This game is not touched and no measurement is made. ({0})",
+      "Oynuyorsun: {0}": "You are playing: {0}",
+      "Ayrıca anti-cheat’li bir süreç var: {0}": "There is also an anti-cheat process: {0}",
+      "Bu oyunu seç": "Select this game",
+      "oynanıyor": "playing",
+      "Ayar dosyaları aranıyor…": "Searching for settings files…",
+      "Ayar dosyası otomatik arandı: {0} oyunda bulundu ve seçildi, {1} oyunda birden fazla aday var (sen seç), {2} oyunda bulunamadı.": "Settings files searched automatically: found and selected for {0} games, {1} games have several candidates (you choose), not found for {2} games.",
+      "{0} oyun Unreal Engine: ön ayarlar hazır.": "{0} games use Unreal Engine: presets are ready.",
+      "{0} oyun anti-cheat nedeniyle atlandı.": "{0} games skipped because of anti-cheat.",
+      "Ayar dosyalarını yeniden bul": "Find settings files again",
+      "ayar dosyası bulundu · ön ayarlar hazır": "settings file found · presets ready",
+      "ayar dosyası otomatik bulundu": "settings file found automatically",
+      "ayar dosyası seçili": "settings file selected",
+      "ayar dosyası bulunamadı": "settings file not found",
+      "{0} aday — seç": "{0} candidates — choose",
+      "puan": "score",
+      "otomatik bulundu": "found automatically",
+      "Bu oyun Unreal Engine ayar dosyası kullanıyor: dört ön ayar yerleşik ölçekle hazır, kaydetmen gerekmez. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.": "This game uses an Unreal Engine settings file: the four presets are ready with the built-in scale, no need to save. If you save your own preset in the game, yours takes priority.",
       '(adsız)': '(unnamed)'
     };
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
@@ -5863,7 +5970,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-ramanaliz, #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-ramanaliz, #app-oyunayar, #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -5873,7 +5980,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.0.8';
+  const KOVAN_VER = 'beta 0.0.9';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -6558,6 +6665,192 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     loadTools(false); sync();
   })();
 
+  /* ---------- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1; host: GAMEMOD) ----------
+     Oyunlari Steam/Epic'ten bulur, calisani otomatik algilar; anti-cheat'li oyunlara dokunmaz. Ayar dosyasini yedekleyerek degistirir.
+     Arayuz dosya yolu GONDEREMEZ; yalniz oyun kimligi + on ayar adi + cozunurluk gonderir. */
+  (function kovanGame() {
+    const root = $('#app-oyunayar'); if (!root) return;
+    const H = window.statscanHost && window.statscanHost.gameScan ? window.statscanHost : null;
+    if (!H) { root.append(h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Oyun Ayarlayıcı'), h('p', { class: 'cv-lead' }, 'Bu araç oyun kütüphanelerini ve ayar dosyalarını okumak için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.'))); return; }
+    const PRESETS = [['low', 'Düşük'], ['medium', 'Orta'], ['high', 'Yüksek'], ['ultra', 'Ultra']]; const PTR = Object.fromEntries(PRESETS);
+    const RES = [[3840, 2160], [2560, 1440], [1920, 1080], [1600, 900], [1280, 720]];
+    const visible = () => !root.hidden && !document.hidden;
+    const st = { pick: { preset: '', res: '' }, games: [], libs: null, platform: '', note: '', sel: null, cfg: null, running: [], pm: null, job: null, timer: 0, advice: null, plan: null, mode: 'manual', est: null, stats: null };
+    const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite', id: 'og-live' });
+    const say = (m, warn) => { live.textContent = m || ''; live.className = 'cv-live' + (warn ? ' warn' : ''); };
+    const rs = (a, b) => (a && b ? a + '×' + b : '');
+    const pill = (cls, t) => h('span', { class: 'sm-pill ' + cls }, t);
+    const btn = (id, label, fn, extra) => h('button', Object.assign({ type: 'button', class: 'cv-btn', id, onclick: fn }, extra || {}), label);
+    const failMsg = (r) => (r && r.message) || 'İşlem başarısız.';
+
+    /* ---- iskelet ---- */
+    const nowBox = h('div', { class: 'og-now', id: 'og-now', role: 'status' }, KT('Çalışan oyun aranıyor…'));
+    const listBox = h('div', { class: 'og-list', id: 'og-list' });
+    const libLine = h('p', { class: 'rm-hint', id: 'og-libline' }); const detectLine = h('p', { class: 'rm-hint', id: 'og-detect', role: 'status' });
+    const cfgBox = h('section', { class: 'rm-box', id: 'og-cfg', hidden: true, 'aria-labelledby': 'og-h2' });
+    const learnBox = h('section', { class: 'rm-box', id: 'og-learn', hidden: true, 'aria-labelledby': 'og-h3' });
+    const applyBox = h('section', { class: 'rm-box', id: 'og-apply', hidden: true, 'aria-labelledby': 'og-h4' });
+    const backBox = h('section', { class: 'rm-box', id: 'og-back', hidden: true, 'aria-labelledby': 'og-h5' });
+    root.append(h('div', { class: 'sm-top' }, h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Oyun Ayarlayıcı'), h('p', { class: 'cv-lead' }, 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük / Orta / Yüksek / Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar, ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce ayar dosyasının yedeğini alır.'))),
+      h('div', { class: 'cv-note', id: 'og-note' }, h('b', {}, 'Beta v0.0.1 — dürüst sınırlar'), h('ul', {},
+        h('li', {}, 'Gerçek Windows’ta ve gerçek oyunlarla henüz denenmedi; testler sahte kütüphane ve sahte PresentMon ile yapıldı.'),
+        h('li', {}, 'Oyunun ayar anahtarlarını uydurmaz: oyunda her ön ayarı seçip “Kaydet” dersin, araç dosyalar arasındaki FARKTAN hangi satırların ne olduğunu öğrenir. Yalnızca metin (.ini/.cfg/.conf) ayar dosyaları ve satırı zaten var olan anahtarlar değiştirilir.'),
+        h('li', {}, 'Anti-cheat’li oyunlara (ör. Rocket League, VALORANT, League of Legends) hiç dokunulmaz. Algılama dosya/ad kalıplarına dayanır; liste tam değildir — çevrimiçi bir oyunda şüphen varsa kullanma.'),
+        h('li', {}, 'Ayar dosyası oyun KAPALIYKEN değiştirilir. Çoğu oyun ayarı yalnızca açılışta okur: uyguladıktan sonra oyunu yeniden başlat. Oyunu çalıştırmaz, oyuna kod enjekte etmez.'))),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'og-h1' }, h('h2', { id: 'og-h1' }, '1 · Oyun'), nowBox, h('div', { class: 'rm-row' }, btn('og-rescan', 'Yeniden tara', async () => { await load(true); await detect(true); }), btn('og-redetect', 'Ayar dosyalarını yeniden bul', () => detect(true))), listBox, libLine, detectLine),
+      cfgBox, learnBox, applyBox, backBox, live);
+
+    /* ---- yukleme ---- */
+    async function load(force) {
+      say(KT('Kütüphaneler taranıyor…')); let r; try { r = await H.gameScan(force === true); } catch (e) { r = { error: 'game', message: String(e && e.message || e) }; }
+      if (!r || r.error) { say(failMsg(r), true); return; } st.games = r.games || []; st.libs = r.libs; st.platform = r.platform; st.note = r.note || ''; say(''); drawList();
+      if (st.sel && !st.games.find((g) => g.id === st.sel)) { st.sel = null; st.cfg = null; } if (st.sel) await loadCfg(); else drawSections(); await tickRunning(true);
+    }
+    function drawList() {
+      listBox.replaceChildren(); libLine.textContent = st.note || KT('{0} oyun bulundu.', st.games.length) + (st.libs && st.libs.steamLibs ? ' ' + KT('Steam kütüphanesi: {0}', st.libs.steamLibs.length) : '');
+      if (!st.games.length && !st.note) listBox.append(h('p', { class: 'rm-hint' }, 'Hiç oyun bulunamadı. Steam/Epic yüklü mü? Epic için “Epic Games Launcher” bir kez açılmış olmalı.'));
+      for (const g of st.games) {
+        const on = st.sel === g.id; const run = st.running.some((x) => x.gameId === g.id);
+        const b = h('button', { type: 'button', class: 'og-game' + (on ? ' sel' : '') + (g.blocked ? ' blocked' : ''), 'data-id': g.id, 'aria-pressed': on ? 'true' : 'false', disabled: g.blocked ? 'disabled' : null, onclick: () => select(g.id) },
+          h('span', { class: 'og-gname' }, g.name), h('span', { class: 'og-meta' }, pill('low', g.store === 'steam' ? 'Steam' : g.store === 'epic' ? 'Epic' : 'Riot'), run ? pill('mid', 'oynanıyor') : null, g.blocked ? pill('high', 'anti-cheat: ' + g.anticheat.map((a) => a.name).join(', ')) : (g.config ? pill('low', g.kind === 'ue' ? 'ayar dosyası bulundu · ön ayarlar hazır' : g.learned.length ? g.learned.length + '/4 ön ayar kayıtlı' : g.auto ? 'ayar dosyası otomatik bulundu' : 'ayar dosyası seçili') : (g.found === 0 ? pill('mid', 'ayar dosyası bulunamadı') : g.found > 1 ? pill('mid', g.found + ' aday — seç') : null))));
+        if (g.blocked) b.title = KT('Bu oyunda anti-cheat algılandı; ayar dosyasına dokunulmaz.'); listBox.append(b);
+      }
+    }
+    async function detect(force) {
+      detectLine.textContent = KT('Ayar dosyaları aranıyor…'); let r; try { r = await H.gameDetectAll(force === true); } catch (e) { r = { error: 'game', message: String(e && e.message || e) }; }
+      if (!r || r.error) { detectLine.textContent = failMsg(r); return; } st.detect = r; const c = r.counts;
+      detectLine.textContent = KT('Ayar dosyası otomatik arandı: {0} oyunda bulundu ve seçildi, {1} oyunda birden fazla aday var (sen seç), {2} oyunda bulunamadı.', c.auto + c.kept, c.choose, c.none) + (c.ue ? ' ' + KT('{0} oyun Unreal Engine: ön ayarlar hazır.', c.ue) : '') + (c.blocked ? ' ' + KT('{0} oyun anti-cheat nedeniyle atlandı.', c.blocked) : '');
+      let g; try { g = await H.gameScan(false); } catch (e) { g = null; } if (g && !g.error) { st.games = g.games || []; drawList(); if (st.sel) await loadCfg(); }
+    }
+    async function select(id) { if (st.sel !== id) st.pick = { preset: '', res: '' }; st.sel = id; st.advice = null; st.plan = null; st.stats = null; st.est = null; drawList(); await loadCfg(); }
+    async function loadCfg() {
+      if (!st.sel) { st.cfg = null; drawSections(); return; } let r; try { r = await H.gameConfig(st.sel); } catch (e) { r = { error: 'game', message: String(e && e.message || e) }; }
+      if (!r || r.error) { say(failMsg(r), true); st.cfg = null; } else st.cfg = r; drawSections();
+    }
+    function drawSections() { drawCfg(); drawLearn(); drawApply(); drawBack(); drawList(); }
+    const cur = () => st.games.find((g) => g.id === st.sel);
+
+    /* ---- 2 · ayar dosyasi ---- */
+    function drawCfg() {
+      cfgBox.replaceChildren(); const c = st.cfg; cfgBox.hidden = !c; if (!c) return; const g = c.game;
+      const sel = h('select', { id: 'og-cands', 'aria-label': 'Bulunan ayar dosyaları' }); c.candidates.forEach((x, i) => sel.append(h('option', { value: String(i) }, x.path.split(/[\\/]/).slice(-3).join('\\') + ' (' + Math.round(x.size / 102.4) / 10 + ' KB) · ' + KT('puan') + ' ' + x.score + (x.kind === 'ue' ? ' · UE' : ''))));
+      const useB = btn('og-use', 'Bunu kullan', async () => { const r = await H.gameUseConfig(st.sel, +sel.value); if (r.error) say(failMsg(r), true); else say(KT('Ayar dosyası seçildi.')); await loadCfg(); });
+      const pickB = btn('og-pick', 'Başka dosya seç…', async () => { const r = await H.gameChooseConfig(st.sel); if (r.canceled) return; if (r.error) say(failMsg(r), true); else say(KT('Ayar dosyası seçildi.')); await loadCfg(); });
+      const info = c.info ? (c.info.error ? c.info.error : KT('{0} anahtar okundu.', c.info.keys) + (c.info.resolution ? ' ' + KT('Çözünürlük anahtarı bulundu: {0}', rs(c.info.resolution.w, c.info.resolution.h)) : ' ' + KT('Çözünürlük anahtarı bulunamadı.'))) : '';
+      cfgBox.append(h('h2', { id: 'og-h2' }, '2 · Ayar dosyası — ' + g.name),
+        g.reEngine ? h('p', { class: 'rm-hint' }, 'Resident Evil (RE Engine) oyunlarında ayarlar genelde oyun klasöründeki config.ini dosyasındadır; aşağıda otomatik aranır.') : null,
+        c.config ? h('p', { class: 'cp-jdk ok', id: 'og-cfgline' }, KT('Seçili: {0}', c.config) + (c.auto ? ' — ' + KT('otomatik bulundu') : '') + (info ? ' — ' + info : '')) : h('p', { class: 'cp-jdk warn', id: 'og-cfgline' }, KT('Henüz ayar dosyası seçilmedi.')),
+        c.candidates.length ? h('div', { class: 'rm-row' }, sel, useB, pickB) : h('div', { class: 'rm-row' }, h('span', { class: 'rm-hint' }, 'Otomatik aday bulunamadı.'), pickB),
+        h('p', { class: 'rm-hint' }, 'Dosyayı bu uygulama değil, işletim sisteminin dosya penceresi seçer; arayüz dosya yolunu hiçbir yere gönderemez.'));
+    }
+
+    /* ---- 3 · on ayarlari ogret ---- */
+    function drawLearn() {
+      learnBox.replaceChildren(); const c = st.cfg; learnBox.hidden = !(c && c.config); if (learnBox.hidden) return; const L = c.learned;
+      const row = h('div', { class: 'og-presets', role: 'group', 'aria-label': 'Ön ayarı kaydet' });
+      for (const [id, label] of PRESETS) { const saved = c.presets.find((p) => p.id === id).saved; row.append(h('button', { type: 'button', class: 'cv-btn' + (saved ? ' og-saved' : ''), 'data-p': id, onclick: async () => { const r = await H.gameSnap(st.sel, id); if (r.error) say(failMsg(r), true); else say(KT('“{0}” kaydedildi. Öğrenilen kalite satırı: {1}', PTR[id], r.keys)); await loadCfg(); } }, (saved ? '✓ ' : '') + KT('{0} olarak kaydet', label))); }
+      learnBox.append(h('h2', { id: 'og-h3' }, '3 · Ön ayarları öğret'), c.builtin ? h('p', { class: 'cp-jdk ok', id: 'og-builtin' }, KT('Bu oyun Unreal Engine ayar dosyası kullanıyor: dört ön ayar yerleşik ölçekle hazır, kaydetmen gerekmez. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.')) : null,
+        h('ol', { class: 'rm-hint og-steps' }, h('li', {}, 'Oyunu aç, grafik ön ayarını ÖNCE “Düşük” yap ve ayarı kaydet/uygula (çıkış gerekebilir).'), h('li', {}, 'Oyun kapalıyken buraya dön, “Düşük olarak kaydet”e bas.'), h('li', {}, 'Aynısını “Ultra” için (tercihen Orta ve Yüksek için de) yap. Yalnız ön ayarı değiştir; başka ayara dokunma.')),
+        row,
+        L.keys.length ? h('details', { class: 'cv-sec' }, h('summary', {}, KT('Öğrenilen kalite satırları ({0})', L.keys.length)), h('ul', { id: 'og-keys' }, L.keys.slice(0, 60).map((k) => h('li', {}, k.id + ': ' + L.presets.map((p) => PTR[p] + '=' + k.values[p]).join(', '))))) : h('p', { class: 'rm-hint', id: 'og-nokeys' }, L.presets.length < 2 ? 'En az iki ön ayar (örn. Düşük + Ultra) kaydedilince hangi satırların kaliteyi belirlediği öğrenilir.' : 'Kaydedilen ayarlar arasında fark bulunamadı; oyunda gerçekten ön ayarı değiştirdiğinden emin ol.'),
+        L.skipped.length ? h('p', { class: 'rm-hint' }, KT('Atlanan {0} satır (çözünürlük, zaman damgası, FOV gibi kaliteyle ilgisiz görünenler).', L.skipped.length)) : null,
+        L.presets.length ? btn('og-clear', 'Öğrenilenleri temizle', async () => { await H.gameSnapClear(st.sel, 'all'); st.plan = null; await loadCfg(); }) : null);
+    }
+
+    /* ---- 4 · uygula / hedef FPS ---- */
+    const saved = () => (st.cfg ? st.cfg.presets.filter((p) => p.saved || p.builtin).map((p) => p.id) : []);
+    const nearest = (p) => { const s = saved(); if (!s.length) return null; const i = PRESETS.findIndex((x) => x[0] === p); return s.slice().sort((a, b) => Math.abs(PRESETS.findIndex((x) => x[0] === a) - i) - Math.abs(PRESETS.findIndex((x) => x[0] === b) - i))[0]; };
+    const nativeRes = () => (st.cfg && st.cfg.res && st.cfg.res.native) || (st.cfg && st.cfg.info && st.cfg.info.resolution) || null;
+    function resOptions() { const n = nativeRes(); const out = []; const seen = new Set(); const add = (w, hh) => { const k = w + 'x' + hh; if (!seen.has(k)) { seen.add(k); out.push([w, hh]); } }; if (n) add(n.w, n.h); for (const [w, hh] of RES) add(w, hh); return out; }
+    function drawApply() {
+      applyBox.replaceChildren(); const c = st.cfg; applyBox.hidden = !(c && c.config); if (applyBox.hidden) return; const have = saved();
+      const seg = h('div', { class: 'sm-seg', role: 'group', 'aria-label': 'Mod' }); for (const [v, l] of [['manual', 'Elle seç'], ['target', 'Hedef FPS']]) seg.append(h('button', { type: 'button', 'data-v': v, 'aria-pressed': st.mode === v ? 'true' : 'false', onclick: () => { st.mode = v; drawApply(); } }, l));
+      applyBox.append(h('h2', { id: 'og-h4' }, '4 · Uygula'), seg); const rn = st.running.find((x) => x.gameId === st.sel);
+      if (rn) applyBox.append(h('p', { class: 'cp-jdk warn', id: 'og-runwarn' }, KT('Oyun şu an çalışıyor ({0}). Ayar dosyası oyun kapalıyken değiştirilir; oyunu tamamen kapat.', rn.exe)));
+      if (st.mode === 'manual') drawManual(have); else drawTarget(have);
+      applyBox.append(h('div', { id: 'og-plan' }, planView()));
+    }
+    function planView() {
+      const p = st.plan; if (!p) return null; const box = h('div', { class: 'og-planbox' });
+      if (p.notes && p.notes.length) for (const n of p.notes) box.append(h('p', { class: 'cp-jdk warn' }, n)); box.append(h('p', { class: 'rm-hint' }, KT('{0} satır değişecek.', p.total)));
+      if (p.changes && p.changes.length) { const tb = h('tbody'); for (const x of p.changes.slice(0, 60)) tb.append(h('tr', {}, h('td', {}, x.key), h('td', { class: 'n' }, x.from), h('td', { class: 'n' }, '→'), h('td', { class: 'n' }, x.to))); box.append(h('div', { class: 'sm-wrap' }, h('table', { class: 'sm-t' }, h('thead', {}, h('tr', {}, h('th', {}, 'Anahtar'), h('th', {}, 'Şimdi'), h('th', {}, ''), h('th', {}, 'Olacak'))), tb))); } return box;
+    }
+    function drawManual(have) {
+      const ps = h('select', { id: 'og-preset', 'aria-label': 'Ön ayar' }); ps.append(h('option', { value: '' }, '— değiştirme —')); for (const [id, l] of PRESETS) ps.append(h('option', { value: id, disabled: have.includes(id) ? null : 'disabled' }, l + (have.includes(id) ? '' : ' (kaydedilmemiş)'))); ps.value = have.includes(st.pick.preset) ? st.pick.preset : ''; ps.addEventListener('change', () => { st.pick.preset = ps.value; });
+      const rsel = h('select', { id: 'og-res', 'aria-label': 'Çözünürlük', disabled: st.cfg.info && st.cfg.info.resolution ? null : 'disabled' }); rsel.append(h('option', { value: '' }, '— değiştirme —')); for (const [w, hh] of resOptions()) rsel.append(h('option', { value: w + 'x' + hh }, w + '×' + hh)); rsel.value = [...rsel.options].some((o) => o.value === st.pick.res) ? st.pick.res : ''; rsel.addEventListener('change', () => { st.pick.res = rsel.value; });
+      const req = () => { const r = {}; if (ps.value) r.preset = ps.value; if (rsel.value) { const [w, hh] = rsel.value.split('x').map(Number); r.resolution = { w, h: hh }; } return r; };
+      applyBox.append(h('div', { class: 'rm-row' }, h('label', { for: 'og-preset' }, 'Ön ayar'), ps, h('label', { for: 'og-res' }, 'Çözünürlük'), rsel),
+        !(st.cfg.info && st.cfg.info.resolution) ? h('p', { class: 'rm-hint' }, 'Bu ayar dosyasında çözünürlük anahtarı bulunamadı; çözünürlüğü oyunun içinden ayarla.') : null,
+        h('div', { class: 'rm-row' }, btn('og-preview', 'Önizle', async () => { const r = req(); if (!r.preset && !r.resolution) { say('Ön ayar veya çözünürlük seç.', true); return; } const p = await H.gamePlan(st.sel, r); if (p.error) { say(failMsg(p), true); return; } st.plan = p; say(''); drawApply(); }),
+          btn('og-doapply', 'Uygula', async () => { const r = req(); if (!r.preset && !r.resolution) { say('Ön ayar veya çözünürlük seç.', true); return; } await doApply(r); }, { class: 'cv-btn cv-primary' })));
+    }
+    async function doApply(r) {
+      say(KT('Uygulanıyor…')); const a = await H.gameApply(st.sel, r); st.plan = null;
+      if (a.error) { say(failMsg(a), a.error !== 'declined'); await loadCfg(); return; }
+      if (a.nothing) { say(a.message || 'Değişiklik yok.'); await loadCfg(); return; }
+      say(KT('Uygulandı: {0} satır yazıldı ve doğrulandı ({1}). Oyunu yeniden başlat; sonra oyun içinde hareket ederken FPS ölç.', a.applied, a.verified + '/' + a.applied) + (a.firstBackup ? ' ' + KT('Orijinal dosya ayrıca saklandı.') : '')); st.advice = null; await loadCfg();
+    }
+    function drawTarget(have) {
+      const g = st.cfg.game; const fps = h('input', { type: 'number', id: 'og-fps', min: '20', max: '360', step: '5', value: String(g.target || 60), inputmode: 'numeric', 'aria-label': 'Hedef FPS' });
+      const allow = h('input', { type: 'checkbox', id: 'og-allowres', checked: st.cfg.res && st.cfg.res.allow ? 'checked' : null, disabled: nativeRes() ? null : 'disabled' });
+      const save = async () => { const r = await H.gameTarget(st.sel, +fps.value, allow.checked); if (r.error) say(failMsg(r), true); return !r.error; };
+      fps.addEventListener('change', save); allow.addEventListener('change', save);
+      const estOut = h('div', { id: 'og-est' }); if (st.est) { estOut.append(h('p', { class: 'cp-jdk ' + (st.est.confident ? 'ok' : 'warn') }, KT('Tahmini ön ayar: {0}', PTR[st.est.preset]) + (st.est.confident ? '' : ' ' + KT('(emin değil)'))), h('ul', { class: 'rm-hint' }, st.est.reasons.map((x) => h('li', {}, x)))); const np = nearest(st.est.preset); if (np) { estOut.append(h('div', { class: 'rm-row' }, btn('og-estapply', KT('“{0}” ön ayarını uygula', PTR[np]), () => doApply({ preset: np }), { class: 'cv-btn cv-primary' }))); if (np !== st.est.preset) estOut.append(h('p', { class: 'rm-hint' }, KT('“{0}” kayıtlı olmadığı için en yakın kayıtlı ön ayar kullanılır.', PTR[st.est.preset]))); } else estOut.append(h('p', { class: 'rm-hint' }, 'Uygulamak için önce en az bir ön ayarı “Kaydet”.')); }
+      applyBox.append(h('div', { class: 'rm-row' }, h('label', { for: 'og-fps' }, 'Hedef FPS'), fps, h('label', { class: 'rm-opt', for: 'og-allowres' }, allow, h('span', {}, 'Gerekirse çözünürlüğü de düşür'))),
+        h('p', { class: 'rm-hint' }, 'Yöntem: (A) donanımına göre kaba bir ön ayar önerilir, (B) PresentMon ile gerçek FPS ölçülür ve hedefe göre bir basamak yukarı/aşağı önerilir. Döngü yarı otomatiktir: her adımda onay istenir ve oyunu sen yeniden başlatırsın.'),
+        h('div', { class: 'rm-row' }, btn('og-est-btn', 'Donanıma göre öner', async () => { if (!(await save())) return; const n = nativeRes() || (st.hw && st.hw.screen) || { w: 1920, h: 1080 }; const r = await H.gameEstimate(+fps.value, n.w, n.h); if (r.error) { say(failMsg(r), true); return; } st.est = r; drawApply(); })), estOut, h('hr', { class: 'og-hr' }), pmView(), measureView());
+      if (!have.length) applyBox.append(h('p', { class: 'rm-hint' }, 'Önerileri uygulayabilmek için önce 3. adımda ön ayarları kaydet.'));
+    }
+    /* ---- FPS olcumu ---- */
+    function pmView() {
+      const p = st.pm; const box = h('div', { id: 'og-pm' }); const line = h('p', { class: 'cp-jdk' + (p && p.found ? ' ok' : ' warn'), id: 'og-pmline' }, !p ? 'PresentMon aranıyor…' : p.found ? KT('PresentMon bulundu: {0}', p.path) : KT('PresentMon bulunamadı.'));
+      box.append(line, h('div', { class: 'rm-row' }, btn('og-pm-rescan', 'Yeniden ara', async () => { st.pm = await H.gamePm(true); drawApply(); }), btn('og-pm-pick', 'Yol seç…', async () => { const r = await H.gameChoosePm(); if (r.canceled) return; if (r.error) say(failMsg(r), true); else say(KT('PresentMon seçildi.')); st.pm = await H.gamePm(true); drawApply(); })));
+      if (p && !p.found) box.append(h('details', { class: 'cv-sec', open: 'open' }, h('summary', {}, 'PresentMon nasıl kurulur?'), h('ul', {}, (p.help || []).map((x) => h('li', {}, x))))); return box;
+    }
+    function measureView() {
+      const box = h('div', { id: 'og-measure' }); const rn = st.running.find((x) => x.gameId === st.sel && !x.blocked); const j = st.job;
+      const sec = h('input', { type: 'number', id: 'og-sec', min: '10', max: '120', step: '5', value: String((j && j.seconds) || 30), inputmode: 'numeric', 'aria-label': 'Ölçüm süresi (sn)' });
+      const startB = btn('og-measure-btn', 'FPS ölç', async () => { const r = await H.gameMeasureStart(+sec.value); if (r.error) { say(failMsg(r), true); return; } st.job = { id: r.id, state: 'running', seconds: r.seconds, game: r.game, started: Date.now() }; st.stats = null; st.advice = null; say(KT('{0} ölçülüyor ({1} sn)… Oyunun içinde hareket etmeye devam et.', r.game, r.seconds)); poll(); drawApply(); }, { class: 'cv-btn cv-primary', disabled: rn && st.pm && st.pm.found && !(j && j.state === 'running') ? null : 'disabled' });
+      box.append(h('div', { class: 'rm-row' }, h('label', { for: 'og-sec' }, 'Ölçüm süresi (sn)'), sec, startB, j && j.state === 'running' ? btn('og-measure-cancel', 'İptal et', async () => { await H.gameMeasureCancel(j.id); }) : null),
+        !rn ? h('p', { class: 'rm-hint', id: 'og-measure-hint' }, 'Ölçmek için bu oyun AÇIK olmalı (oyun içinde hareket ederken ölç; menüde ölçüm yanıltır). Oyun açıkken ayar dosyası değiştirilmez.') : null);
+      if (st.stats) { const s = st.stats; box.append(h('div', { class: 'sm-card', id: 'og-stats' }, h('b', {}, KT('Ortalama {0} FPS · %1 düşük {2} FPS · {1} takılma', Math.round(s.avg), s.stutters, Math.round(s.p1))), h('small', {}, KT('{0} kare, {1} sn, en düşük {2} / en yüksek {3} FPS', s.frames, s.seconds, Math.round(s.min), Math.round(s.max))))); }
+      const a = st.advice; if (a) { const can = ['down', 'up', 'res-down', 'res-up'].includes(a.action); box.append(h('div', { class: 'sm-card', id: 'og-advice' }, h('b', {}, a.action === 'done' ? 'Hedefe uygun' : a.action === 'floor' ? 'Donanım sınırı' : a.action === 'baseline' ? 'Ölçüm kaydedildi' : 'Öneri: ' + PTR[a.preset] + (a.resolution ? ' · ' + rs(a.resolution.w, a.resolution.h) : '')), h('small', {}, a.reason), can ? btn('og-advice-apply', 'Öneriyi uygula', () => doApply({ preset: a.preset, resolution: a.resolution || undefined, resIdx: a.resIdx }), { class: 'cv-btn cv-primary' }) : null)); }
+      return box;
+    }
+    async function poll() {
+      clearTimeout(st.timer); const j = st.job; if (!j || j.state !== 'running') return; let r; try { r = await H.gameMeasureJob(j.id); } catch (e) { r = { error: 'game', message: String(e && e.message || e) }; }
+      if (!r || r.error) { say(failMsg(r), true); st.job = null; drawApply(); return; }
+      if (r.state === 'running') { st.timer = setTimeout(poll, 1000); return; } st.job = Object.assign(j, { state: r.state });
+      if (r.state === 'done') { st.stats = r.result.stats; st.advice = r.result.advice; say(KT('Ölçüm bitti.')); await loadCfg(); } else { say(r.state === 'canceled' ? KT('Ölçüm iptal edildi.') : (r.error || 'Ölçüm başarısız.'), r.state !== 'canceled'); drawApply(); }
+    }
+
+    /* ---- 5 · yedekler ---- */
+    function drawBack() {
+      backBox.replaceChildren(); const c = st.cfg; backBox.hidden = !(c && c.config); if (backBox.hidden) return; const b = c.backups || [];
+      const rest = async (which) => { const r = await H.gameRestore(st.sel, which); if (r.error) say(failMsg(r), r.error !== 'declined'); else say(KT('Geri yüklendi: {0}. Oyunu yeniden başlat.', r.restored)); await loadCfg(); };
+      backBox.append(h('h2', { id: 'og-h5' }, '5 · Yedekler'), b.length ? h('ul', { id: 'og-backlist', class: 'rm-hint' }, b.slice().reverse().slice(0, 12).map((x) => h('li', {}, new Date(x.time).toLocaleString('tr-TR') + (x.orig ? ' — ORİJİNAL' : '') + (x.reason ? ' — ' + x.reason : '')))) : h('p', { class: 'rm-hint', id: 'og-nobackup' }, 'Henüz yedek yok; ilk uygulamadan önce otomatik alınır.'),
+        b.length ? h('div', { class: 'rm-row' }, btn('og-restore-orig', 'Orijinali geri yükle', () => rest('orig')), btn('og-restore-last', 'Son yedeği geri yükle', () => rest('last'))) : null);
+    }
+
+    /* ---- calisan oyun (otomatik) ---- */
+    async function tickRunning(first) {
+      if (!first && !visible()) return; let r; try { r = await H.gameRunning(); } catch (e) { return; } if (!r || r.error) return;
+      const key = JSON.stringify((r.running || []).map((x) => [x.gameId, x.exe, x.blocked])); const changed = key !== st.runKey; st.runKey = key; st.running = r.running || []; drawNow();
+      const ok = st.running.find((x) => x.gameId && !x.blocked); if (ok && !st.sel && st.games.find((g) => g.id === ok.gameId)) { await select(ok.gameId); return; } if (changed) { drawList(); if (st.cfg) { drawApply(); } }
+    }
+    function drawNow() {
+      nowBox.replaceChildren(); const r = st.running; if (!r.length) { nowBox.className = 'og-now'; nowBox.append(KT('Şu an kütüphanendeki bir oyun çalışmıyor. Oyunu açınca burada otomatik görünür.')); return; }
+      const blocked = r.find((x) => x.blocked); const okg = r.find((x) => x.gameId && !x.blocked);
+      if (blocked && !okg) { nowBox.className = 'og-now warn'; nowBox.append(h('b', {}, KT('Anti-cheat’li oyun algılandı: {0}', blocked.name)), ' — ', KT('Bu oyuna dokunulmaz ve ölçüm yapılmaz. ({0})', blocked.anticheat.map((a) => a.name).join(', '))); return; }
+      nowBox.className = 'og-now on'; nowBox.append(h('b', {}, KT('Oynuyorsun: {0}', okg.name)), ' (' + okg.exe + ')'); if (blocked) nowBox.append(' · ' + KT('Ayrıca anti-cheat’li bir süreç var: {0}', blocked.name));
+      if (st.sel !== okg.gameId) nowBox.append(' ', btn('og-pickrun', 'Bu oyunu seç', () => select(okg.gameId)));
+    }
+    setInterval(() => tickRunning(false), 4000);
+    new MutationObserver(() => { if (visible() && !st.loaded) { st.loaded = true; init(); } }).observe(root, { attributes: true, attributeFilter: ['hidden'] });
+    async function init() { st.pm = await H.gamePm(false).catch(() => null); try { st.hw = await H.gameHw(false); } catch (e) { st.hw = null; } await load(false); await detect(false); }
+    if (visible()) { st.loaded = true; init(); }
+  })();
+
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
@@ -6574,6 +6867,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       key: '<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M15.5 7.5l2 2M13.5 9.5l2 2"/>',
       monitor: '<rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M8 20h8M12 16.5V20"/><path d="M6.5 12l2.5-3 2.5 2 2.5-4 2 3"/>',
       radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5.5-5.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>',
+      gamepad: '<path d="M7 8h10a4 4 0 0 1 3.9 4.9l-.7 3.2a2.2 2.2 0 0 1-3.8.9L14.6 15H9.4l-1.8 2a2.2 2.2 0 0 1-3.8-.9l-.7-3.2A4 4 0 0 1 7 8Z"/><path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11.2" r=".7" fill="currentColor"/><circle cx="17.3" cy="12.8" r=".7" fill="currentColor"/>',
       chip: '<rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 3.5v3M12 3.5v3M14.5 3.5v3M9.5 17.5v3M12 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 12h3M3.5 14.5h3M17.5 9.5h3M17.5 12h3M17.5 14.5h3"/>',
       mask: '<path d="M4 9c0-3 3.5-5.5 8-5.5S20 6 20 9v3c0 4.5-3.8 8-8 8s-8-3.5-8-8V9Z"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><path d="M9.5 16c1 .8 4 .8 5 0"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
@@ -6589,6 +6883,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'oyunayar', cat: 'windows', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

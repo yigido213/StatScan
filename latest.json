@@ -1,6 +1,6 @@
 {
-  "version": "5.0.0",
-  "url": "StatScan-5.0.0.ssu",
-  "sha256": "e7126b540c8779670481388f03de6af1097ae89d526afffccef0dec747ee92d5",
-  "notes": "5.0.0 — Kovan beta 0.0.8: RAM Analizi v0.0.1 (Volatility 3 tabanlı bellek dökümü analizi, Windows kategorisi; kendi Volatility kurulumun gerekir) + kategoriler + Görev Yöneticisi + Ağ İzleyici"
+  "version": "5.0.3",
+  "url": "StatScan-5.0.3.ssu",
+  "sha256": "49a2ed9a0b3dac2e64c8602c41446f23aee75e557045d531751773f1803f8c67",
+  "notes": "5.0.3 HOTFIX — Kovan beta 0.0.9: Oyun Ayarlayıcı, oyun klasöründe kökte config.ini yokken alt klasörlerdeki ayar dosyasını da bulur (derinlik 6, büyük içerik klasörleri atlanır). Gerçek Windows'ta denenmedi."
 }

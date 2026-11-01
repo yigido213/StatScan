@@ -828,6 +828,463 @@ const SYSMOD = (() => {
   return { createSysHost, ipClass, isExternal, beaconScore, scoreProc, flagConn, SUSP_PORTS };
 })();
 
+/* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
+ * Steam + Epic kutuphanelerini ve calisan oyunu algilar; anti-cheat'li oyunlara ASLA dokunmaz; bir oyunun metin ayar dosyasini (.ini/.cfg/.conf)
+ * ayar oncesi YEDEKLEYEREK degistirir; FPS'i PresentMon ile olcup hedef FPS'e gore ayar onerir. Oyunu calistirmaz, oyuna kod enjekte etmez, bellegine bakmaz.
+ * Anahtar adlari UYDURULMAZ: "ogrenen profil" — kullanici oyunda Dusuk/Orta/Yuksek/Ultra secip "kaydet" der, ayar dosyalari arasindaki FARK ogrenilir.
+ * Dosya yolunu arayuz GONDEREMEZ (yalniz oyun kimligi + sabit kanallar); ayar dosyasi host tarafinda dialogla secilir. Yalnizca MEVCUT anahtarlar yazilir (yeni anahtar eklenmez).
+ * PresentMon GOMULMEZ/INDIRILMEZ: kullanicinin kendi kurulumu bulunur. Windows hedefli; hesaplama kisimlari saf fonksiyon olarak test edilir. */
+const GAMEMOD = (() => {
+  const fs = require('fs'); const fsp = fs.promises; const path = require('path'); const os = require('os'); const cp = require('child_process'); const crypto = require('crypto');
+  let platOverride = null; const isWin = () => (platOverride || process.platform) === 'win32';
+  const PRESETS = ['low', 'medium', 'high', 'ultra']; const PRESET_TR = { low: 'Düşük', medium: 'Orta', high: 'Yüksek', ultra: 'Ultra' };
+  const LIM = { cfgBytes: 2 * 1024 * 1024, scanEntries: 3000, backups: 30, frames: 400000, minFrames: 120, seconds: [10, 120], defSeconds: 30, fps: [20, 360], games: 500, hist: 20, planRows: 400 };
+  const ID_RE = /^(steam|epic|riot):[\w.\-]{1,100}$/;
+  const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
+  const isDir = (p) => { try { return fs.statSync(p).isDirectory(); } catch (e) { return false; } };
+  const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const lc = (p) => String(p || '').replace(/\//g, '\\').replace(/\\+$/, '').toLowerCase();
+  const errE = (message, extra) => Object.assign({ error: 'game', message }, extra || {});
+
+  /* ---------- anti-cheat algilama (liste TAM DEGILDIR; bilinmeyen anti-cheat'i yakalamayabilir) ---------- */
+  const AC_NAMES = [
+    [/^easyanticheat/i, 'Easy Anti-Cheat'], [/^eac(launcher|_?eos|_?setup|_?client)/i, 'Easy Anti-Cheat'], [/^battleye$/i, 'BattlEye'], [/^be(service|client)/i, 'BattlEye'],
+    [/^(vgc\.exe|vgk\.sys|riot ?vanguard)/i, 'Riot Vanguard'], [/^xigncode/i, 'XIGNCODE3'], [/^(npggnt|npgamemon|gameguard)/i, 'nProtect GameGuard'], [/^(pbsvc|pbsetup|punkbuster|pnkbstr)/i, 'PunkBuster'],
+    [/^faceit/i, 'FACEIT'], [/^ricochet/i, 'Ricochet'], [/^javelin/i, 'Javelin Anti-Cheat'], [/^(mhyprot|hoyoprotect)/i, 'HoYoverse Protect'], [/^anticheatexpert/i, 'AntiCheatExpert'], [/^(anticheat|anti-cheat)/i, 'Anti-cheat']
+  ];
+  const AC_TITLES = [
+    [/valorant/i, 'Riot Vanguard'], [/league of legends/i, 'Riot Vanguard'], [/rocket league/i, 'Easy Anti-Cheat'], [/fortnite/i, 'Easy Anti-Cheat / BattlEye'], [/apex legends/i, 'Easy Anti-Cheat'],
+    [/counter-?strike|\bcs2\b|\bcsgo\b/i, 'VAC'], [/rainbow six/i, 'BattlEye'], [/pubg|battlegrounds/i, 'BattlEye'], [/call of duty|warzone/i, 'Ricochet'], [/destiny 2/i, 'BattlEye'],
+    [/dead by daylight/i, 'Easy Anti-Cheat'], [/^rust$/i, 'Easy Anti-Cheat'], [/the finals/i, 'Easy Anti-Cheat'], [/marvel rivals/i, 'Anti-cheat']
+  ];
+  /* calisan surec adindan (Riot/Epic kutuphanesinde gorunmeyebilir) */
+  const AC_PROCS = { 'valorant-win64-shipping.exe': 'Riot Vanguard', 'league of legends.exe': 'Riot Vanguard', 'leagueclient.exe': 'Riot Vanguard', 'rocketleague.exe': 'Easy Anti-Cheat', 'fortniteclient-win64-shipping.exe': 'Easy Anti-Cheat / BattlEye', 'r5apex.exe': 'Easy Anti-Cheat', 'cs2.exe': 'VAC', 'csgo.exe': 'VAC' };
+  function detectAntiCheat(title, names) {
+    const out = new Map();
+    for (const n of names || []) for (const [re, label] of AC_NAMES) if (re.test(n)) { if (!out.has(label)) out.set(label, 'dosya: ' + n); break; }
+    for (const [re, label] of AC_TITLES) if (re.test(title || '')) { if (!out.has(label)) out.set(label, 'oyun adı'); }
+    return [...out].map(([name, why]) => ({ name, why }));
+  }
+
+  /* ---------- Valve KeyValues (libraryfolders.vdf / appmanifest_*.acf) ---------- */
+  function parseVdf(text) {
+    const re = /"((?:[^"\\]|\\.)*)"|([{}])|\/\/[^\n]*/g; const root = Object.create(null); const st = [root]; let key = null; let m;
+    const un = (s) => s.replace(/\\(.)/g, (_, c) => (c === 'n' ? '\n' : c === 't' ? '\t' : c));
+    while ((m = re.exec(String(text)))) {
+      if (m[2] === '{') { const o = Object.create(null); if (key !== null) st[st.length - 1][key] = o; st.push(o); key = null; } else if (m[2] === '}') { if (st.length > 1) st.pop(); key = null; } else if (m[1] !== undefined) { const s = un(m[1]); if (key === null) key = s; else { st[st.length - 1][key] = s; key = null; } }
+    }
+    return root;
+  }
+  const SKIP_STEAM = /^(steamworks common|steam linux runtime|proton|steamvr|steam controller|wallpaper engine|source sdk)/i;
+
+  /* ---------- INI/CFG: satir koruyan okuma-yazma ---------- */
+  function iniParse(text) {
+    text = String(text); const bom = text.charCodeAt(0) === 0xfeff; const body = bom ? text.slice(1) : text; const eol = body.includes('\r\n') ? '\r\n' : '\n'; const lines = body.split(/\r?\n/); const entries = []; const seen = new Map(); let sec = '';
+    lines.forEach((ln, i) => {
+      const t = ln.trim(); if (!t || t[0] === ';' || t[0] === '#' || t.startsWith('//')) return; const ms = /^\[(.*)\]$/.exec(t); if (ms) { sec = ms[1]; return; }
+      const eq = ln.indexOf('='); if (eq < 1) return; const key = ln.slice(0, eq).trim(); if (!key) return; let id = sec + '/' + key; const n = (seen.get(id) || 0) + 1; seen.set(id, n); if (n > 1) id += '#' + n;
+      entries.push({ i, sec, key, id, value: ln.slice(eq + 1).trim() });
+    });
+    return { lines, eol, bom, entries, byId: new Map(entries.map((e) => [e.id, e])) };
+  }
+  /* changes: Map id -> yeni deger. YALNIZCA var olan anahtarlar yazilir; olmayanlar missing'e gider. */
+  function iniApply(parsed, changes) {
+    const lines = parsed.lines.slice(); const applied = []; const missing = [];
+    for (const [id, to] of changes) {
+      const e = parsed.byId.get(id); if (!e) { missing.push(id); continue; } if (e.value === String(to)) continue;
+      const ln = lines[e.i]; const eq = ln.indexOf('='); const rest = ln.slice(eq + 1); const lead = /^\s*/.exec(rest)[0]; lines[e.i] = ln.slice(0, eq + 1) + lead + String(to); applied.push({ id, key: e.key, sec: e.sec, from: e.value, to: String(to) });
+    }
+    return { text: (parsed.bom ? '\ufeff' : '') + lines.join(parsed.eol), applied, missing };
+  }
+  const snapOf = (parsed) => { const o = {}; for (const e of parsed.entries) o[e.id] = e.value; return o; };
+
+  /* ---------- Unreal Engine yerlesik profil (ScalabilityGroups olcegi: 0 Dusuk, 1 Orta, 2 Yuksek, 3 Epic, 4 Sinematik) ---------- */
+  const UE_KEYS = /^sg\.(ViewDistance|AntiAliasing|Shadow|GlobalIllumination|Reflection|PostProcess|Texture|Effects|Foliage|Shading)Quality$/i;
+  const UE_LEVEL = { low: 0, medium: 1, high: 2, ultra: 3 };
+  const ueScan = (parsed) => parsed.entries.filter((e) => UE_KEYS.test(e.key) && /^[0-4]$/.test(e.value));
+  const isUe = (parsed) => ueScan(parsed).length >= 3;
+  function ueChanges(parsed, preset) { const m = new Map(); for (const e of ueScan(parsed)) m.set(e.id, String(UE_LEVEL[preset])); return m; }
+  /* ---------- cozunurluk ---------- */
+  const RES_RE = /^(\s*)(\d{3,5})(\s*[x×*,\/ ]\s*)(\d{3,5})(\s*)$/;
+  const RES_PAIRS = [['resolutionsizex', 'resolutionsizey'], ['lastuserconfirmedresolutionsizex', 'lastuserconfirmedresolutionsizey'], ['desiredscreenwidth', 'desiredscreenheight'], ['lastuserconfirmeddesiredscreenwidth', 'lastuserconfirmeddesiredscreenheight'], ['resolutionx', 'resolutiony'], ['resolutionwidth', 'resolutionheight'], ['screenwidth', 'screenheight'], ['windowwidth', 'windowheight'], ['displaywidth', 'displayheight'], ['resx', 'resy'], ['sizex', 'sizey'], ['width', 'height']];
+  const okWH = (w, h) => w >= 320 && w <= 16384 && h >= 200 && h <= 16384;
+  function findResolution(parsed) {
+    const out = []; const ents = parsed.entries;
+    for (const e of ents) { const m = RES_RE.exec(e.value); if (m && /res|size|screen|display|window|video|mode/i.test(e.key) && okWH(+m[2], +m[4])) out.push({ kind: 'combined', id: e.id, w: +m[2], h: +m[4] }); }
+    const by = new Map(ents.map((e) => [e.sec + '\u0000' + e.key.toLowerCase(), e])); const secs = [...new Set(ents.map((e) => e.sec))];
+    for (const [a, b] of RES_PAIRS) for (const sec of secs) { const ea = by.get(sec + '\u0000' + a); const eb = by.get(sec + '\u0000' + b); if (ea && eb && /^\d{3,5}$/.test(ea.value) && /^\d{3,5}$/.test(eb.value) && okWH(+ea.value, +eb.value)) out.push({ kind: 'pair', wId: ea.id, hId: eb.id, w: +ea.value, h: +eb.value }); }
+    return out;
+  }
+  function resChanges(descs, w, h) {
+    const ch = new Map();
+    for (const d of descs) { if (d.kind === 'combined') { ch.set(d.id, { fn: (v) => { const m = RES_RE.exec(v); return m ? m[1] + w + m[3] + h + m[5] : v; } }); } else { ch.set(d.wId, String(w)); ch.set(d.hId, String(h)); } }
+    return ch;
+  }
+  const STD_RES = [[3840, 2160], [2560, 1440], [1920, 1080], [1600, 900], [1280, 720], [960, 540]];
+  function resLadder(w, h) {
+    if (Math.abs(w / h - 16 / 9) < 0.02) { const l = STD_RES.filter(([x]) => x <= w); if (!l.length || l[0][0] !== w) l.unshift([w, h]); return l.map(([x, y]) => ({ w: x, h: y })); }
+    return [1, 0.833, 0.667, 0.5].map((f) => ({ w: Math.round((w * f) / 2) * 2, h: Math.round((h * f) / 2) * 2 }));
+  }
+
+  /* ---------- ogrenen profil: snapshot farkindan on-ayar anahtarlari ---------- */
+  const NOISE = /(date|time|stamp|guid|uuid|hash|session|token|lastplayed|playtime|count|seed|version|build|user|name|path|dir|folder|volume|sens|fov|language|locale|bind|key$|mouse|gamepad|subtitle|brightness|gamma)/i;
+  function deriveLearned(snaps) {
+    const have = PRESETS.filter((p) => snaps && snaps[p]); if (have.length < 2) return { presets: have, keys: [], skipped: [] };
+    const ids = new Set(); for (const p of have) for (const id of Object.keys(snaps[p])) ids.add(id); const keys = []; const skipped = [];
+    for (const id of ids) {
+      if (!have.every((p) => id in snaps[p])) continue; const vals = {}; for (const p of have) vals[p] = snaps[p][id]; if (new Set(Object.values(vals)).size < 2) continue;
+      if (Object.values(vals).some((v) => RES_RE.test(v))) { skipped.push({ id, why: 'çözünürlük (ayrı yönetilir)' }); continue; } if (NOISE.test(id.split('/').pop())) { skipped.push({ id, why: 'kalite ayarına benzemiyor' }); continue; }
+      keys.push({ id, values: vals });
+    }
+    return { presets: have, keys, skipped };
+  }
+
+  /* ---------- hedef FPS karar mantigi (saf) ---------- */
+  /* o: { preset, resIdx, avg, p1, target, allowRes, available:[presets], ladderLen, hist:[{preset,resIdx,avg}] } */
+  function tuneStep(o) {
+    const ps = (o.available && o.available.length ? PRESETS.filter((p) => o.available.includes(p)) : PRESETS); let idx = ps.indexOf(o.preset); if (idx < 0) idx = 0; const tol = 0.05; const tgt = o.target; const eff = Math.min(o.avg, (o.p1 || o.avg) * 1.6); const hist = o.hist || []; const lastRes = Math.max(0, (o.ladderLen || 1) - 1);
+    const bad = (p, r) => hist.some((h) => h.preset === p && h.resIdx === r && h.avg < tgt * (1 - tol));
+    if (eff < tgt * (1 - tol)) {
+      if (idx > 0) return { action: 'down', preset: ps[idx - 1], resIdx: o.resIdx, reason: 'Ortalama ' + Math.round(o.avg) + ' FPS (%1 düşük ' + Math.round(o.p1 || 0) + '), hedef ' + tgt + ' altında: bir ön ayar düşürülüyor.' };
+      if (o.allowRes && o.resIdx < lastRes) return { action: 'res-down', preset: ps[idx], resIdx: o.resIdx + 1, reason: 'En düşük ön ayarda bile hedefin altında: çözünürlük bir basamak düşürülüyor.' };
+      return { action: 'floor', preset: ps[idx], resIdx: o.resIdx, reason: 'En düşük ayarda' + (o.allowRes ? ' ve çözünürlükte' : '') + ' hedefe ulaşılamadı; donanım sınırına yakın.' };
+    }
+    if (o.avg > tgt * 1.35) {
+      if (o.allowRes && o.resIdx > 0 && !bad(ps[idx], o.resIdx - 1)) return { action: 'res-up', preset: ps[idx], resIdx: o.resIdx - 1, reason: 'Hedefin rahat üstünde (' + Math.round(o.avg) + ' FPS): çözünürlük bir basamak yükseltiliyor.' };
+      if (idx < ps.length - 1 && !bad(ps[idx + 1], o.resIdx)) return { action: 'up', preset: ps[idx + 1], resIdx: o.resIdx, reason: 'Hedefin rahat üstünde (' + Math.round(o.avg) + ' FPS): bir ön ayar yükseltiliyor.' };
+      return { action: 'done', preset: ps[idx], resIdx: o.resIdx, reason: 'Daha yükseği denendi/yok; mevcut ayar en iyisi.' };
+    }
+    return { action: 'done', preset: ps[idx], resIdx: o.resIdx, reason: 'Hedefe uygun: ortalama ' + Math.round(o.avg) + ' FPS, %1 düşük ' + Math.round(o.p1 || 0) + ' FPS.' };
+  }
+
+  /* ---------- donanima gore KABA on-ayar tahmini (RTX 4060 = 100) ---------- */
+  const GPU_PERF = [
+    [/rtx\s*5090/, 400], [/rtx\s*5080/, 300], [/rtx\s*5070\s*ti/, 270], [/rtx\s*5070/, 215], [/rtx\s*5060\s*ti/, 135], [/rtx\s*5060/, 115], [/rtx\s*4090/, 360], [/rtx\s*4080/, 290], [/rtx\s*4070\s*ti\s*super/, 250], [/rtx\s*4070\s*ti/, 230], [/rtx\s*4070\s*super/, 210], [/rtx\s*4070/, 190], [/rtx\s*4060\s*ti/, 125], [/rtx\s*4060/, 100], [/rtx\s*4050/, 80],
+    [/rtx\s*3090/, 230], [/rtx\s*3080/, 200], [/rtx\s*3070/, 150], [/rtx\s*3060\s*ti/, 135], [/rtx\s*3060/, 100], [/rtx\s*3050/, 70], [/rtx\s*2080/, 125], [/rtx\s*2070/, 105], [/rtx\s*2060/, 78], [/gtx\s*1660/, 60], [/gtx\s*1650/, 42], [/gtx\s*1080/, 85], [/gtx\s*1070/, 68], [/gtx\s*1060/, 50], [/gtx\s*1050/, 32],
+    [/rx\s*9070\s*xt/, 260], [/rx\s*9070/, 235], [/rx\s*9060/, 130], [/rx\s*7900\s*xtx/, 290], [/rx\s*7900/, 250], [/rx\s*7800/, 200], [/rx\s*7700/, 165], [/rx\s*7600/, 105], [/rx\s*6950|rx\s*6900/, 190], [/rx\s*6800/, 170], [/rx\s*6750|rx\s*6700/, 140], [/rx\s*6650|rx\s*6600/, 95], [/rx\s*6500/, 45], [/rx\s*5700/, 85], [/rx\s*5600/, 65], [/rx\s*(580|590)/, 50], [/rx\s*(570|480)/, 42],
+    [/arc\s*b580/, 120], [/arc\s*b570/, 105], [/arc\s*a770/, 110], [/arc\s*a750/, 100], [/arc\s*a580/, 80], [/arc\s*a380/, 35],
+    [/iris\s*xe|uhd\s*graphics|intel\(r\)\s*graphics|hd graphics/, 18], [/radeon\(tm\)\s*graphics|radeon\s*graphics|vega\s*\d/, 25]
+  ];
+  const VIRTUAL_GPU = /(microsoft basic|remote|virtual|parsec|vmware|hyper-v|citrix|displaylink|idd)/i;
+  function gpuPerf(name) { const n = String(name || '').toLowerCase().replace(/nvidia|geforce|amd|radeon(?!\()/g, ' ').replace(/\s+/g, ' '); if (!n.trim() || VIRTUAL_GPU.test(name || '')) return null; for (const [re, v] of GPU_PERF) if (re.test(n)) return /laptop|mobile|max-q/i.test(name) ? Math.round(v * 0.75) : v; return null; }
+  function estimatePreset(hw, target, w, h) {
+    const reasons = []; const perf = hw && hw.gpuPerf; if (perf == null) return { preset: 'medium', confident: false, reasons: ['Ekran kartı tanınmadığı için tahmin yapılamadı; “Orta” ile başlayıp FPS ölçümüyle düzeltmen önerilir.'] };
+    const demand = Math.pow((w * h) / (1920 * 1080), 0.9) * Math.pow(Math.max(20, target) / 60, 0.9); const eff = perf / demand; let preset = eff >= 170 ? 'ultra' : eff >= 100 ? 'high' : eff >= 55 ? 'medium' : 'low';
+    reasons.push('Ekran kartı (' + hw.gpu + ') + ' + w + '×' + h + ' @ ' + target + ' FPS hedefi için kaba skor ' + Math.round(eff) + '.');
+    const capTo = (p, why) => { if (PRESETS.indexOf(preset) > PRESETS.indexOf(p)) { preset = p; reasons.push(why); } };
+    if (hw.cores && hw.cores < 6 && target > 90) capTo('high', 'İşlemci çekirdek sayısı az (' + hw.cores + ') ve hedef yüksek: “Yüksek” ile sınırlandı.'); if (hw.ramGB && hw.ramGB < 12) capTo('medium', 'RAM az (' + hw.ramGB + ' GB): “Orta” ile sınırlandı.');
+    return { preset, confident: true, reasons };
+  }
+
+  /* ---------- FPS olcumu: PresentMon CSV akisi ---------- */
+  class FrameParser {
+    constructor(cap) { this.buf = ''; this.col = -1; this.ms = []; this.cap = cap || LIM.frames; this.headerSeen = false; }
+    feed(chunk) {
+      this.buf += chunk; let i; while ((i = this.buf.indexOf('\n')) >= 0) { const ln = this.buf.slice(0, i).replace(/\r$/, ''); this.buf = this.buf.slice(i + 1); this.line(ln); } if (this.buf.length > 100000) this.buf = '';
+    }
+    line(ln) {
+      if (!ln) return; const f = ln.split(','); if (this.col < 0) { const names = f.map((x) => x.trim().toLowerCase()); let c = names.indexOf('frametime'); if (c < 0) c = names.indexOf('msbetweenpresents'); if (c >= 0) { this.col = c; this.headerSeen = true; } return; }
+      if (f.length <= this.col || this.ms.length >= this.cap) return; const v = parseFloat(f[this.col]); if (v > 0 && v < 2000) this.ms.push(v);
+    }
+    end() { if (this.buf) { this.line(this.buf.replace(/\r$/, '')); this.buf = ''; } }
+  }
+  function frameStats(ms) {
+    const n = ms.length; if (!n) return null; const a = Float64Array.from(ms).sort(); const mean = a.reduce((s, x) => s + x, 0) / n; const med = a[Math.floor((n - 1) / 2)];
+    /* "%1 dusuk": en yavas %1'lik karelerin ortalama FPS'i (en az 1 kare) */
+    const slow = (frac) => { const k = Math.max(1, Math.ceil(n * frac)); let t = 0; for (let i = n - k; i < n; i++) t += a[i]; return 1000 / (t / k); };
+    return { frames: n, avg: 1000 / mean, p1: slow(0.01), p01: slow(0.001), min: 1000 / a[n - 1], max: 1000 / a[0], medianMs: med, stutters: a.filter((x) => x > med * 3).length };
+  }
+
+  /* ---------- PresentMon bulma (kullanicinin kendi kurulumu) ---------- */
+  function findPresentMon(o) {
+    o = o || {}; const cand = []; const seen = new Set(); const add = (p) => { const k = lc(p); if (!seen.has(k) && isFile(p)) { seen.add(k); cand.push(p); } };
+    if (o.userPath && path.isAbsolute(o.userPath)) add(o.userPath);
+    for (const d of o.dirs || []) { let ents = []; try { ents = fs.readdirSync(d); } catch (e) { continue; } ents.sort().reverse(); for (const n of ents) if (/^presentmon/i.test(n) && (!isWin() || /\.exe$/i.test(n))) add(path.join(d, n)); }
+    const tried = [];
+    for (const p of cand) { const r = cp.spawnSync(p, ['--help'], { encoding: 'utf8', timeout: o.probeMs || 10000, windowsHide: true, shell: false, maxBuffer: 2 * 1024 * 1024 }); const txt = String(r.stdout || '') + String(r.stderr || ''); const ok = /presentmon/i.test(txt); tried.push({ path: p, ok }); if (ok) return { found: true, path: p, tried }; }
+    return { found: false, path: '', tried };
+  }
+  const PM_HELP = ['PresentMon bu uygulamayla gelmez (Intel’in açık kaynak aracıdır); kendin indirip kur:', '1) github.com/GameTechDev/PresentMon → Releases bölümünden “PresentMon Console Application” (.exe) dosyasını indir.', '2) Bu sayfada “Yol seç” ile PresentMon .exe dosyasını göster.', '3) Ölçüm için PresentMon ETW izlemesi kullanır: StatScan’i yönetici olarak aç veya kullanıcını “Performance Log Users” grubuna ekle.'];
+
+  /* ---------- host ---------- */
+  function createGameHost(deps) {
+    deps = deps || {}; const plat = () => deps.platform || process.platform; const winMode = () => (deps.platform ? deps.platform === 'win32' : isWin());
+    const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'oyunayar.json') : null; const backDir = dataDir ? path.join(dataDir, 'oyunayar-yedek') : null;
+    const now = deps.now || (() => Date.now()); const run = deps.run || ((cmd, args, ms) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: ms || 20000, windowsHide: true, maxBuffer: 16 * 1024 * 1024, encoding: 'utf8' }, (e, so) => (e && !so ? reject(e) : resolve(String(so || '')))); }));
+    let state = { v: 1, games: {}, pm: null }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object' && o.games && typeof o.games === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
+    const saveState = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
+    const gs = (id) => { if (!Object.prototype.hasOwnProperty.call(state.games, id)) state.games[id] = { config: null, snaps: {}, target: 60, last: null, hist: [], res: null }; return state.games[id]; };
+    let cache = { t: 0, list: [], libs: {} }; let jobSeq = 0; let activeJob = null; const jobs = new Map(); let hwCache = null; let pmCache = null;
+
+    /* --- kutuphane tarama --- */
+    async function steamRoots() {
+      if (deps.steamRoots) return deps.steamRoots.slice(); const out = [];
+      if (winMode()) { for (const [k, v] of [['HKCU\\Software\\Valve\\Steam', 'SteamPath'], ['HKLM\\SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath']]) { try { const o = await run('reg', ['query', k, '/v', v], 8000); const m = new RegExp(v + '\\s+REG_SZ\\s+(.+)$', 'mi').exec(o); if (m) out.push(path.normalize(m[1].trim())); } catch (e) { /* kayit yok */ } } const pf = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'; out.push(path.join(pf, 'Steam')); }
+      return [...new Set(out.filter((d) => isDir(d)))];
+    }
+    async function scanSteam() {
+      const games = []; const roots = await steamRoots(); const libs = new Set();
+      for (const r of roots) { libs.add(r); try { const v = parseVdf(await fsp.readFile(path.join(r, 'steamapps', 'libraryfolders.vdf'), 'utf8')); const lf = v.libraryfolders || v.LibraryFolders || {}; for (const k of Object.keys(lf)) { const e = lf[k]; const p = typeof e === 'string' ? e : e && e.path; if (typeof p === 'string' && /^\d+$/.test(k) && path.isAbsolute(p)) libs.add(path.normalize(p)); } } catch (e) { /* kutuphane listesi yok */ } }
+      for (const lib of libs) { const sa = path.join(lib, 'steamapps'); let ents = []; try { ents = await fsp.readdir(sa); } catch (e) { continue; }
+        for (const f of ents) { if (!/^appmanifest_\d+\.acf$/i.test(f)) continue; try { const a = parseVdf(await fsp.readFile(path.join(sa, f), 'utf8')).AppState; if (!a || !a.appid || !a.name || !a.installdir || SKIP_STEAM.test(a.name)) continue; const dir = path.join(sa, 'common', a.installdir); if (!isDir(dir)) continue; games.push({ id: 'steam:' + String(a.appid).replace(/\W/g, ''), store: 'steam', appId: String(a.appid), name: String(a.name), dir }); } catch (e) { /* bozuk manifest */ } } }
+      return { games, roots, libs: [...libs] };
+    }
+    async function scanEpic() {
+      const games = []; const dir = deps.epicManifestDir || (winMode() ? path.join(process.env.ProgramData || 'C:\\ProgramData', 'Epic', 'EpicGamesLauncher', 'Data', 'Manifests') : null); if (!dir) return { games, dir: null };
+      let ents = []; try { ents = await fsp.readdir(dir); } catch (e) { return { games, dir }; }
+      for (const f of ents) { if (!/\.item$/i.test(f)) continue; try { const j = JSON.parse(await fsp.readFile(path.join(dir, f), 'utf8')); if (!j || !j.DisplayName || !j.InstallLocation || !j.AppName) continue; if (Array.isArray(j.AppCategories) && !j.AppCategories.includes('games')) continue; if (j.MainGameAppName && j.MainGameAppName !== j.AppName) continue; if (!isDir(j.InstallLocation)) continue; games.push({ id: 'epic:' + String(j.AppName).replace(/[^\w.\-]/g, '_').slice(0, 90), store: 'epic', appId: String(j.AppName), name: String(j.DisplayName), dir: path.normalize(j.InstallLocation), exe: typeof j.LaunchExecutable === 'string' ? path.basename(j.LaunchExecutable) : '' }); } catch (e) { /* bozuk manifest */ } }
+      return { games, dir };
+    }
+    async function scanRiot() {
+      const games = []; const roots = deps.riotRoots || (winMode() ? ['C:\\Riot Games'] : []);
+      for (const r of roots) { let ents = []; try { ents = await fsp.readdir(r, { withFileTypes: true }); } catch (e) { continue; } for (const e of ents) if (e.isDirectory() && !/^riot client$/i.test(e.name)) games.push({ id: 'riot:' + e.name.replace(/[^\w.\-]/g, '_').slice(0, 90), store: 'riot', appId: e.name, name: e.name, dir: path.join(r, e.name), forceAc: 'Riot Vanguard' }); }
+      return { games };
+    }
+    async function scan(force) {
+      if (!force && cache.t && now() - cache.t < 20000) return cache;
+      const [st, ep, ri] = await Promise.all([scanSteam().catch(() => ({ games: [], roots: [], libs: [] })), scanEpic().catch(() => ({ games: [], dir: null })), scanRiot().catch(() => ({ games: [] }))]); const seen = new Set(); const list = [];
+      for (const g of [...st.games, ...ep.games, ...ri.games]) { const k = lc(g.dir); if (seen.has(k) || list.length >= LIM.games) continue; seen.add(k); list.push(g); }
+      await Promise.all(list.map(async (g) => { const names = await listNames(g.dir); g.anticheat = detectAntiCheat(g.name, names); if (g.forceAc && !g.anticheat.length) g.anticheat.push({ name: g.forceAc, why: 'Riot oyunu' }); g.blocked = g.anticheat.length > 0; g.reEngine = /resident evil/i.test(g.name); }));
+      list.sort((a, b) => a.name.localeCompare(b.name, 'tr')); cache = { t: now(), list, libs: { steam: st.roots, steamLibs: st.libs, epic: ep.dir } }; return cache;
+    }
+    async function listNames(dir, depth = 2) {
+      const out = []; async function rec(d, k) { if (out.length >= LIM.scanEntries) return; let ents; try { ents = await fsp.readdir(d, { withFileTypes: true }); } catch (e) { return; } for (const e of ents) { if (out.length >= LIM.scanEntries) return; out.push(e.name); if (e.isDirectory() && !e.isSymbolicLink() && k < depth) await rec(path.join(d, e.name), k + 1); } } await rec(dir, 0); return out;
+    }
+    async function getGame(id) { if (typeof id !== 'string' || !ID_RE.test(id)) return null; let c = await scan(false); let g = c.list.find((x) => x.id === id); if (!g && now() - c.t > 3000) { c = await scan(true); g = c.list.find((x) => x.id === id); } return g || null; }
+
+    /* --- calisan oyun --- */
+    async function procList() {
+      if (deps.listProcs) return deps.listProcs();
+      if (winMode()) { const o = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '[Console]::OutputEncoding=[Text.Encoding]::UTF8;$ErrorActionPreference="SilentlyContinue";ConvertTo-Json -InputObject @(Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath) -Compress'], 20000); let v = []; try { v = JSON.parse(String(o).replace(/^\ufeff/, '') || '[]'); } catch (e) { v = []; } return (Array.isArray(v) ? v : [v]).map((r) => ({ pid: +r.ProcessId || 0, name: String(r.Name || ''), path: String(r.ExecutablePath || '') })); }
+      const out = []; try { for (const d of fs.readdirSync('/proc')) { if (!/^\d+$/.test(d)) continue; try { out.push({ pid: +d, name: fs.readFileSync('/proc/' + d + '/comm', 'utf8').trim(), path: fs.readlinkSync('/proc/' + d + '/exe') }); } catch (e) { /* surec bitti */ } } } catch (e) { /* proc yok */ } return out;
+    }
+    let runCache = { t: 0, v: [] };
+    async function running() {
+      if (runCache.t && now() - runCache.t < 1500) return runCache.v; const r = await runningRaw(); runCache = { t: now(), v: r }; return r;
+    }
+    async function runningRaw() {
+      const c = await scan(false); const procs = await procList(); const out = []; const seen = new Set();
+      for (const p of procs) {
+        const nm = String(p.name || '').toLowerCase(); const pp = lc(p.path); let g = null; if (pp) for (const x of c.list) { const d = lc(x.dir) + '\\'; if (pp.startsWith(d) && (!g || d.length > lc(g.dir).length)) g = x; }
+        if (g) { const k = g.id; if (seen.has(k)) continue; if (/(crashhandler|crashreport|unins|setup|launcher|redist|vc_redist|dxsetup|easyanticheat|beservice|overlay|helper)/i.test(nm)) continue; seen.add(k); out.push({ gameId: g.id, name: g.name, exe: p.name, pid: p.pid, blocked: g.blocked, anticheat: g.anticheat }); }
+        else if (AC_PROCS[nm]) { const k = 'ac:' + nm; if (seen.has(k)) continue; seen.add(k); out.push({ gameId: null, name: p.name, exe: p.name, pid: p.pid, blocked: true, anticheat: [{ name: AC_PROCS[nm], why: 'süreç adı' }] }); }
+      }
+      return out;
+    }
+
+    /* --- ayar dosyasi --- */
+    const SETTINGS_NAME = /^(config|settings|graphics|video|gameusersettings|options|engine|display)[\w .\-]*\.(ini|cfg|conf)$/i;
+    /* ---- ayar dosyasi bulma: cok katmanli arama + puanlama (bkz. scoreCfg) ---- */
+    const GENERIC_DIR = new Set(['microsoft', 'windows', 'nvidia', 'nvidiacorporation', 'packages', 'temp', 'crashdumps', 'unitycache', 'google', 'mozilla', 'discord', 'steam', 'epicgameslauncher', 'programs', 'apple', 'adobe', 'intel', 'amd', 'packagecache', 'd3dscache', 'cache', 'logs', 'tempstate', 'connecteddevicesplatform', 'comms', 'publishers', 'virtualstore', 'jetbrains', 'slack', 'spotify', 'riotgames', 'electron']);
+    const SKIP_IN_GAME = /^(engine|content|plugins|redist|_commonredist|paks|movies|localization|shaders?|streamingassets|managed|mono|il2cpp_data|resources|logs?|crashes|\.git|node_modules|natives|streaming|sounds?|audio|videos?|movie|fonts?|dlc|_redist|redistributable|directx|vcredist|dotnet|bink|wwise)$/i;
+    const BAD_CFG = /(input|bind|control|crash|launcher|eos|account|install|manifest|cache|dedicated|server|steam_appid|uninst|telemetry|analytics|plugin)/i;
+    const GFX_KEY = /(shadow|texture|quality|resolution|fullscreen|windowmode|vsync|antialias|anti_alias|\baa\b|graphic|fov|displaymode|screenmode|framerate|fps|ssao|bloom|motionblur|raytrac|upscal|dlss|fsr|gamma|brightness|vegetation|foliage|reflection|lighting)/i;
+    const cdir = (p) => path.dirname(p);
+    let docsCache = null;
+    async function docsDirs() {
+      if (docsCache) return docsCache; const set = new Set(); const home = deps.home || os.homedir();
+      if (deps.docsDir) set.add(deps.docsDir); else {
+        set.add(path.join(home, 'Documents')); if (process.env.OneDrive) set.add(path.join(process.env.OneDrive, 'Documents'));
+        if (winMode()) { try { const o = await run('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders', '/v', 'Personal'], 8000); const m = /Personal\s+REG_(?:EXPAND_)?SZ\s+(.+)$/mi.exec(o); if (m) { const v = m[1].trim().replace(/%([^%]+)%/g, (_, k) => process.env[k] || ''); if (v && path.isAbsolute(v)) set.add(v); } } catch (e) { /* kayit yok */ } }
+      }
+      docsCache = [...set].filter((d) => isDir(d)); return docsCache;
+    }
+    /* yalnizca ayar dosyasi adayi ekler: where = 'named' (oyun adina uyan klasor) > 'game' (kurulum klasoru) > 'userdata' (Steam bulut) */
+    async function findRaw(g) {
+      const found = new Map(); const rank = { named: 3, game: 2, userdata: 1 };
+      const add = (where) => async (p) => { const k = lc(p); try { const st = await fsp.stat(p); if (!(st.isFile() && st.size > 0 && st.size <= LIM.cfgBytes && /\.(ini|cfg|conf)$/i.test(p))) return; const o = found.get(k); if (!o || rank[where] > rank[o.where]) found.set(k, { path: p, where, size: st.size, mtime: st.mtimeMs }); } catch (e) { /* yok */ } };
+      const bud = () => ({ n: 700 });
+      await add('game')(path.join(g.dir, 'config.ini'));
+      await walkIni(g.dir, 6, add('game'), { n: 8000 }, SKIP_IN_GAME, true);
+      const names = new Set(); const exact = new Set(); const addName = (s) => { const n = norm(s); if (n.length >= 5) names.add(n); };
+      addName(g.name); addName(path.basename(g.dir)); addName(String(g.name).replace(/\(.*?\)/g, '')); addName(String(g.name).split(/[:\-–]/)[0]); if (g.exe) addName(String(g.exe).replace(/\.exe$/i, ''));
+      for (const pr of await ueProjects(g.dir)) { const n = norm(pr); if (n.length >= 3) exact.add(n); addName(pr); }
+      const mt = (sn) => { if (exact.has(sn)) return true; if (sn.length < 5) return false; for (const n of names) if (n.includes(sn) || sn.includes(n)) return true; return false; };
+      const home = deps.home || os.homedir(); const local = deps.localAppData || process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'); const roaming = deps.roamingAppData || process.env.APPDATA || path.join(cdir(local), 'Roaming');
+      const bases = []; for (const d of await docsDirs()) { bases.push([d, true]); bases.push([path.join(d, 'My Games'), false]); } bases.push([local, true], [path.join(cdir(local), 'LocalLow'), true], [roaming, true], [path.join(home, 'Saved Games'), false]);
+      const seenB = new Set();
+      for (const [b, peek] of bases) {
+        if (seenB.has(lc(b))) continue; seenB.add(lc(b)); let subs; try { subs = await fsp.readdir(b, { withFileTypes: true }); } catch (e) { continue; } let peeked = 0;
+        for (const s of subs) {
+          if (!s.isDirectory() || s.isSymbolicLink()) continue; const sn = norm(s.name); if (GENERIC_DIR.has(sn)) continue;
+          if (mt(sn)) { await walkIni(path.join(b, s.name), 4, add('named'), bud()); continue; }
+          if (peek && peeked < 200) { peeked++; let inner; try { inner = await fsp.readdir(path.join(b, s.name), { withFileTypes: true }); } catch (e) { continue; } for (const t of inner) if (t.isDirectory() && !t.isSymbolicLink() && mt(norm(t.name))) await walkIni(path.join(b, s.name, t.name), 4, add('named'), bud()); }
+        }
+      }
+      if (g.store === 'steam' && g.appId && cache.libs && cache.libs.steam) for (const r of cache.libs.steam) { let us = []; try { us = await fsp.readdir(path.join(r, 'userdata')); } catch (e) { continue; } for (const u of us.slice(0, 20)) await walkIni(path.join(r, 'userdata', u, String(g.appId).replace(/\W/g, ''), 'remote'), 3, add('userdata'), bud()); }
+      return [...found.values()];
+    }
+    async function ueProjects(dir) {
+      const out = []; let ents = []; try { ents = await fsp.readdir(dir, { withFileTypes: true }); } catch (e) { return out; }
+      for (const e of ents) { if (!e.isDirectory() || e.isSymbolicLink()) continue; const d = path.join(dir, e.name); if ((isDir(path.join(d, 'Binaries', 'Win64')) || isDir(path.join(d, 'Binaries', 'WinGDK'))) && isDir(path.join(d, 'Content'))) out.push(e.name); } return out.slice(0, 4);
+    }
+    /* aday puani: dosya adi + konum + icerik (grafik anahtari sayisi; Unreal GameUserSettings). -99 = aday degil */
+    function scoreCfg(c) {
+      const base = path.basename(c.path).toLowerCase(); if (BAD_CFG.test(base)) return { score: -99 };
+      let s = /^gameusersettings\.ini$/.test(base) ? 6 : /^(graphics|video|display)/.test(base) ? 4 : /^(config|settings|options)/.test(base) ? 3 : 1;
+      s += c.where === 'named' ? 2 : c.where === 'game' ? 1 : c.where === 'userdata' ? 1 : 0;
+      const r = readCfg(c.path); if (r.error) return { score: -99 }; const p = iniParse(r.text); if (!p.entries.length) return { score: -99 };
+      const gk = p.entries.filter((e) => GFX_KEY.test(e.key)).length; s += gk === 0 ? -3 : Math.min(4, Math.floor(gk / 2) + 1);
+      const ue = isUe(p); if (ue) s += 3; return { score: s, kind: ue ? 'ue' : '', keys: p.entries.length };
+    }
+    const candCache = new Map();
+    async function configCandidates(g) {
+      const hit = candCache.get(g.id); if (hit && now() - hit.t < 30000) return hit.list;
+      const raw = await findRaw(g); const list = [];
+      for (const c of raw.slice().sort((x, y) => x.path.split(/[\\/]/).length - y.path.split(/[\\/]/).length).slice(0, 80)) { const sc = scoreCfg(c); if (sc.score >= 1) list.push(Object.assign({}, c, { score: sc.score, kind: sc.kind })); }
+      list.sort((a, b) => b.score - a.score || a.path.length - b.path.length); const out = list.slice(0, 12); candCache.set(g.id, { t: now(), list: out }); return out;
+    }
+    /* genis (BFS) tarama: once yakin klasorler; anyName=true ise oyun klasorunde HER .ini/.cfg/.conf aday (puanlama eler) */
+    async function walkIni(d, depth, add, budget, skip, anyName) {
+      const rx = anyName ? /\.(ini|cfg|conf)$/i : SETTINGS_NAME; let level = [d];
+      for (let lv = 0; lv <= depth && level.length; lv++) {
+        const next = [];
+        for (const dir of level) {
+          if (budget.n <= 0) return; let ents; try { ents = await fsp.readdir(dir, { withFileTypes: true }); } catch (e) { continue; }
+          for (const e of ents) { if (budget.n-- <= 0) return; const p = path.join(dir, e.name); if (e.isDirectory() && !e.isSymbolicLink()) { if (lv < depth && !(skip && skip.test(e.name))) next.push(p); } else if (e.isFile() && rx.test(e.name)) await add(p); }
+        }
+        level = next;
+      }
+    }
+    function setConfig(s, p, auto) { if (s.config !== p) { s.config = p; s.snaps = {}; s.last = null; s.hist = []; } s.auto = !!auto; const r = readCfg(p); s.kind = !r.error && isUe(iniParse(r.text)) ? 'ue' : ''; }
+    /* tum oyunlar icin ayar dosyasini otomatik bul; net kazanan varsa SEC (dosyaya yazmaz). Kullanicinin elle sectigini degistirmez. */
+    async function detectAll(force) {
+      const c = await scan(false); if (force) candCache.clear(); const out = []; const queue = c.list.slice(); let changed = false;
+      const one = async (g) => {
+        if (g.blocked) { out.push({ id: g.id, name: g.name, status: 'blocked' }); return; } const s = gs(g.id);
+        const have = s.config && isFile(s.config); if (have && !s.auto) { out.push({ id: g.id, name: g.name, status: 'kept', path: s.config, kind: s.kind || '' }); return; }
+        if (have && s.auto && !force) { out.push({ id: g.id, name: g.name, status: 'auto', path: s.config, kind: s.kind || '' }); return; }
+        const cands = await configCandidates(g); s.found = cands.length; const top = cands[0]; const second = cands[1];
+        if (top && top.score >= 4 && (!second || top.score - second.score >= 2)) { setConfig(s, top.path, true); changed = true; out.push({ id: g.id, name: g.name, status: 'auto', path: top.path, kind: s.kind, found: cands.length }); }
+        else { if (s.config && !have) { s.config = null; s.auto = false; s.kind = ''; changed = true; } out.push({ id: g.id, name: g.name, status: cands.length ? 'choose' : 'none', found: cands.length }); }
+      };
+      const workers = Array.from({ length: 4 }, async () => { while (queue.length) await one(queue.shift()); }); await Promise.all(workers); if (changed) saveState();
+      const n = (k) => out.filter((x) => x.status === k).length; out.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+      return { games: out, counts: { total: out.length, auto: n('auto'), kept: n('kept'), choose: n('choose'), none: n('none'), blocked: n('blocked'), ue: out.filter((x) => x.kind === 'ue').length } };
+    }
+    function readCfg(p) {
+      let st; try { st = fs.statSync(p); } catch (e) { return { error: 'Ayar dosyası okunamadı.' } } if (!st.isFile() || st.size > LIM.cfgBytes || st.size === 0) return { error: 'Ayar dosyası geçersiz (boş ya da çok büyük).' };
+      const buf = fs.readFileSync(p); if (buf.includes(0)) return { error: 'Bu dosya UTF-16/ikili görünüyor; yalnızca metin (UTF-8) ayar dosyaları desteklenir.' }; return { text: buf.toString('utf8'), size: st.size };
+    }
+    function validPick(p) { if (typeof p !== 'string' || !path.isAbsolute(p)) return 'Geçersiz yol.'; if (!/\.(ini|cfg|conf)$/i.test(p)) return 'Yalnızca .ini / .cfg / .conf dosyaları desteklenir.'; if (winMode() && /^[a-z]:\\windows(\\|$)/i.test(p)) return 'Windows klasöründeki dosyalar seçilemez.'; return ''; }
+    const editable = (g) => (g.blocked ? errE('Bu oyunda anti-cheat algılandı (' + g.anticheat.map((a) => a.name).join(', ') + '). Çevrimiçi/anti-cheat’li oyunların ayar dosyasına dokunulmaz.', { code: 'anticheat', anticheat: g.anticheat }) : null);
+    async function ensureClosed(g) { const r = await running().catch(() => []); const hit = r.find((x) => x.gameId === g.id); return hit ? errE('Oyun şu an çalışıyor (' + hit.exe + '). Ayar dosyası oyun kapalıyken değiştirilir; oyunu tamamen kapatıp tekrar dene.', { code: 'running' }) : null; }
+
+    /* --- yedek --- */
+    const safeId = (id) => id.replace(/[^\w.\-]/g, '_');
+    function indexOf(id) { try { const o = JSON.parse(fs.readFileSync(path.join(backDir, safeId(id), 'index.json'), 'utf8')); return Array.isArray(o) ? o : []; } catch (e) { return []; } }
+    function backup(id, cfgPath, reason) {
+      if (!backDir) return { error: 'Yedek klasörü yok.' }; const d = path.join(backDir, safeId(id)); fs.mkdirSync(d, { recursive: true }); const idx = indexOf(id); const buf = fs.readFileSync(cfgPath); const sha = crypto.createHash('sha256').update(buf).digest('hex'); const base = path.basename(cfgPath);
+      const isFirst = !idx.some((x) => x.orig && lc(x.path) === lc(cfgPath)); const ts = new Date(now()).toISOString().replace(/[:.]/g, '-'); const tag = crypto.createHash('sha1').update(lc(cfgPath)).digest('hex').slice(0, 6); const file = (isFirst ? 'orijinal-' : ts + '-') + tag + '-' + base; fs.writeFileSync(path.join(d, file), buf);
+      idx.push({ file, path: cfgPath, time: now(), sha, reason, orig: isFirst, size: buf.length }); const keep = idx.filter((x) => x.orig).concat(idx.filter((x) => !x.orig).slice(-LIM.backups)); for (const x of idx) if (!keep.includes(x)) { try { fs.unlinkSync(path.join(d, x.file)); } catch (e) { /* silinmis */ } }
+      fs.writeFileSync(path.join(d, 'index.json'), JSON.stringify(keep)); return { ok: true, file, orig: isFirst };
+    }
+    function writeAtomic(p, text) { const t = p + '.kovan-tmp'; try { fs.writeFileSync(t, text, 'utf8'); fs.renameSync(t, p); } catch (e) { try { fs.unlinkSync(t); } catch (e2) { /* yok */ } throw Object.assign(new Error(e.code === 'EPERM' || e.code === 'EACCES' ? 'Dosya salt okunur ya da yazma izni yok; değiştirilmedi.' : String(e.message || e)), { code: e.code }); } }
+
+    /* --- degisiklik plani --- */
+    function learnedOf(id) { return deriveLearned(gs(id).snaps); }
+    function buildChanges(id, parsed, req) {
+      const ch = new Map(); const notes = []; const L = learnedOf(id);
+      if (req.preset) { if (L.presets.includes(req.preset)) { for (const k of L.keys) ch.set(k.id, k.values[req.preset]); if (L.keys.length === 0 && L.presets.length >= 2) notes.push('Kaydettiğin ayarlar arasında fark bulunamadı.'); } else if (isUe(parsed)) { for (const [k, v] of ueChanges(parsed, req.preset)) ch.set(k, v); notes.push('Unreal Engine ölçeği kullanıldı (0=Düşük, 1=Orta, 2=Yüksek, 3=Epic); oyun menüsü adları farklı eşleyebilir. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.'); } else notes.push('“' + PRESET_TR[req.preset] + '” için kaydedilmiş ayar yok: önce oyunda bu ön ayarı seçip “Kaydet” de.'); }
+      if (req.resolution) { const d = findResolution(parsed); if (!d.length) notes.push('Bu ayar dosyasında çözünürlük anahtarı bulunamadı; çözünürlüğü oyunun içinden ayarla.'); else for (const [k, v] of resChanges(d, req.resolution.w, req.resolution.h)) { const e = parsed.byId.get(k); ch.set(k, typeof v === 'object' ? v.fn(e.value) : v); } }
+      return { ch, notes };
+    }
+    function validReq(req) {
+      if (!req || typeof req !== 'object') return { error: 'Geçersiz istek.' }; const o = {}; if (req.preset !== undefined && req.preset !== null) { if (!PRESETS.includes(req.preset)) return { error: 'Geçersiz ön ayar.' }; o.preset = req.preset; }
+      if (req.resolution) { const w = Math.round(+req.resolution.w), h = Math.round(+req.resolution.h); if (!Number.isFinite(w) || !Number.isFinite(h) || w < 640 || w > 7680 || h < 360 || h > 4320) return { error: 'Geçersiz çözünürlük.' }; o.resolution = { w, h }; }
+      if (!o.preset && !o.resolution) return { error: 'Ön ayar veya çözünürlük seç.' }; return { o };
+    }
+
+    /* --- donanim --- */
+    async function hardware(force) {
+      if (hwCache && !force) return hwCache; const hw = { gpu: '', gpus: [], gpuPerf: null, cpu: '', cores: 0, threads: 0, ramGB: Math.round(os.totalmem() / 1073741824), screen: null, platform: plat() };
+      const cpus = os.cpus() || []; hw.cpu = (cpus[0] && cpus[0].model) || ''; hw.threads = cpus.length;
+      if (winMode()) {
+        try { const o = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '[Console]::OutputEncoding=[Text.Encoding]::UTF8;$ErrorActionPreference="SilentlyContinue";ConvertTo-Json -Compress -Depth 3 ([pscustomobject]@{g=@(Get-CimInstance Win32_VideoController|Select-Object Name,AdapterRAM,CurrentHorizontalResolution,CurrentVerticalResolution,CurrentRefreshRate);c=@(Get-CimInstance Win32_Processor|Select-Object Name,NumberOfCores,NumberOfLogicalProcessors)})'], 25000); const j = JSON.parse(String(o).replace(/^\ufeff/, '')); const gl = (Array.isArray(j.g) ? j.g : [j.g]).filter(Boolean); hw.gpus = gl.map((x) => ({ name: String(x.Name || ''), perf: gpuPerf(x.Name), w: +x.CurrentHorizontalResolution || 0, h: +x.CurrentVerticalResolution || 0, hz: +x.CurrentRefreshRate || 0 })).filter((x) => x.name && !VIRTUAL_GPU.test(x.name)); const best = hw.gpus.slice().sort((a, b) => (b.perf || 0) - (a.perf || 0))[0] || hw.gpus[0]; if (best) { hw.gpu = best.name; hw.gpuPerf = best.perf; if (best.w && best.h) hw.screen = { w: best.w, h: best.h, hz: best.hz }; } const cl = (Array.isArray(j.c) ? j.c : [j.c]).filter(Boolean); if (cl[0]) { hw.cpu = String(cl[0].Name || hw.cpu).trim(); hw.cores = +cl[0].NumberOfCores || 0; hw.threads = +cl[0].NumberOfLogicalProcessors || hw.threads; } } catch (e) { hw.error = 'Donanım bilgisi okunamadı.'; }
+      }
+      hwCache = hw; return hw;
+    }
+
+    /* --- PresentMon --- */
+    function pmDirs() { const d = []; for (const x of String(process.env.PATH || '').split(path.delimiter)) if (x && path.isAbsolute(x)) d.push(x); for (const k of ['ProgramFiles', 'ProgramFiles(x86)']) if (process.env[k]) d.push(path.join(process.env[k], 'Intel', 'PresentMon'), path.join(process.env[k], 'PresentMon')); if (dataDir) d.push(path.join(dataDir, 'tools')); return [...new Set(d)]; }
+    function locatePm(force) { if (pmCache && !force) return pmCache; pmCache = findPresentMon({ userPath: state.pm, dirs: deps.pmDirs || pmDirs(), probeMs: deps.probeMs }); return pmCache; }
+    function exec(job, file, args, seconds) {
+      return new Promise((resolve) => {
+        const parser = new FrameParser(); let errs = ''; let done = false; let timer; const fin = (r) => { if (done) return; done = true; clearTimeout(timer); job.child = null; parser.end(); resolve(Object.assign({ parser, err: errs }, r)); };
+        let c; try { c = cp.spawn(file, args, { windowsHide: true, shell: false, stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return fin({ code: -1, err: String(e && e.message || e) }); }
+        job.child = c; c.stdout.setEncoding('utf8'); c.stdout.on('data', (d) => parser.feed(d)); c.stderr.on('data', (d) => { errs += d; if (errs.length > 20000) errs = errs.slice(-10000); });
+        timer = setTimeout(() => { job.timedOut = true; try { c.kill(); } catch (e) { /* bitmis */ } fin({ code: -2 }); }, seconds * 1000 + (deps.graceMs !== undefined ? deps.graceMs : 25000)); c.on('error', (e) => fin({ code: -1, err: errs + String(e && e.message || e) })); c.on('close', (code) => fin({ code }));
+      });
+    }
+    async function measure(job, pm, target, seconds) {
+      try {
+        let r = await exec(job, pm, ['--process_name', target.exe, '--timed', String(seconds), '--terminate_after_timed', '--output_stdout', '--no_console_stats', '--stop_existing_session'], seconds);
+        if (!job.canceled && !job.timedOut && !r.parser.ms.length && !r.parser.headerSeen && /unknown|invalid|unrecogni|usage/i.test(r.err)) r = await exec(job, pm, ['-process_name', target.exe, '-timed', String(seconds), '-terminate_after_timed', '-output_stdout', '-no_top', '-stop_existing_session'], seconds);
+        if (job.canceled) { job.state = 'canceled'; return; }
+        const st = frameStats(r.parser.ms);
+        if (!st || st.frames < LIM.minFrames) { job.state = 'failed'; job.error = /access|denied|administrator|elevat|privilege|performance log/i.test(r.err) ? 'PresentMon yetki istiyor: StatScan’i yönetici olarak aç ya da kullanıcını “Performance Log Users” grubuna ekle.' : (st ? 'Yetersiz örnek (' + st.frames + ' kare): oyun menüde/duraklatılmış olabilir; oyun içinde hareket ederken tekrar ölç.' : 'Hiç kare ölçülemedi. Oyun penceresi gerçekten çalışıyor ve süreç adı doğru mu? ' + String(r.err).trim().split(/\r?\n/).slice(-2).join(' ')); return; }
+        const res = Object.assign({ seconds, exe: target.exe, game: target.name }, st); const g = target.gameId ? gs(target.gameId) : null; let advice = null;
+        if (g) { const L = learnedOf(target.gameId); const ladderBase = g.res && g.res.native ? g.res.native : null; const ladder = ladderBase ? resLadder(ladderBase.w, ladderBase.h) : [null]; const cur = g.last || null;
+          if (cur && cur.preset) { const entry = { preset: cur.preset, resIdx: cur.resIdx || 0, avg: st.avg, t: now() }; g.hist = (g.hist || []).concat([entry]).slice(-LIM.hist); advice = tuneStep({ preset: cur.preset, resIdx: cur.resIdx || 0, avg: st.avg, p1: st.p1, target: g.target || 60, allowRes: !!(g.res && g.res.allow && ladderBase), available: L.presets, ladderLen: ladder.length, hist: g.hist }); if (ladderBase && ladder[advice.resIdx]) advice.resolution = ladder[advice.resIdx]; } else advice = { action: 'baseline', reason: 'Ölçüm kaydedildi. Tavsiye için önce bir ön ayar uygula (“Uygula”); sonra oyunu yeniden başlatıp tekrar ölç.' }; saveState(); }
+        job.result = { stats: res, advice }; job.state = 'done'; if (deps.notify) { try { deps.notify('Kovan Oyun Ayarlayıcı', 'Ölçüm bitti: ' + Math.round(st.avg) + ' FPS ort.'); } catch (e) { /* bildirim yok */ } }
+      } catch (e) { job.state = 'failed'; job.error = String(e && e.message || e); } finally { if (job.state === 'running') job.state = 'failed'; job.endedAt = now(); }
+    }
+
+    const pubGame = (g) => { const s = Object.prototype.hasOwnProperty.call(state.games, g.id) ? state.games[g.id] : null; const L = s ? deriveLearned(s.snaps) : { presets: [], keys: [] }; return { id: g.id, store: g.store, name: g.name, dir: g.dir, blocked: g.blocked, anticheat: g.anticheat, reEngine: g.reEngine, config: s && s.config ? s.config : null, kind: s && s.kind ? s.kind : '', auto: !!(s && s.auto), found: s && s.found !== undefined ? s.found : null, learned: L.presets, keys: L.keys.length, target: s ? s.target : 60, last: s ? s.last : null }; };
+    const handlers = {
+      'game:scan': async (_e, force) => { try { const c = await scan(force === true); return { games: c.list.map(pubGame), libs: c.libs, platform: plat(), windows: winMode(), note: winMode() ? '' : 'Oyun kütüphaneleri yalnızca Windows’ta aranır.' }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:running': async () => { try { return { running: await running() }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:config': async (_e, id) => {
+        try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const s = gs(g.id); const cands = await configCandidates(g); let info = null; let ue = null; if (s.config) { const r = readCfg(s.config); if (r.error) info = { error: r.error }; else { const p = iniParse(r.text); if (isUe(p)) ue = { kind: 'ue', keys: ueChanges(p, 'low').size }; const res = findResolution(p); info = { keys: p.entries.length, resolution: res.length ? { w: res[0].w, h: res[0].h, count: res.length } : null, size: r.size }; } }
+          const L = deriveLearned(s.snaps); return { game: pubGame(g), candidates: cands, config: s.config, auto: !!s.auto, builtin: ue, info, presets: PRESETS.map((p) => ({ id: p, label: PRESET_TR[p], saved: !!s.snaps[p], builtin: !!ue })), learned: { presets: L.presets, keys: L.keys.slice(0, 200).map((k) => ({ id: k.id, values: k.values })), skipped: L.skipped.slice(0, 100) }, res: s.res || null, backups: backDir ? indexOf(g.id).map((x) => ({ file: x.file, time: x.time, orig: !!x.orig, reason: x.reason })) : [] }; } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'game:detectAll': async (_e, force) => { try { return await detectAll(force === true); } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:useConfig': async (_e, id, idx) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const cands = await configCandidates(g); const c = cands[Math.floor(Number(idx))]; if (!c) return errE('Aday bulunamadı.'); const r = readCfg(c.path); if (r.error) return errE(r.error); const s = gs(g.id); setConfig(s, c.path, false); saveState(); return { ok: true, path: c.path }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:chooseConfig': async (_e, id) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; if (!deps.chooseConfig) return errE('Dosya seçimi yok.'); const f = await deps.chooseConfig(g.name); if (!f) return { canceled: true }; const bad = validPick(f); if (bad) return errE(bad); const r = readCfg(f); if (r.error) return errE(r.error); const s = gs(g.id); setConfig(s, f, false); saveState(); return { ok: true, path: f }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:snap': async (_e, id, preset) => {
+        try { if (!PRESETS.includes(preset)) return errE('Geçersiz ön ayar.'); const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const s = gs(g.id); if (!s.config) return errE('Önce ayar dosyasını seç.'); const r = readCfg(s.config); if (r.error) return errE(r.error); const p = iniParse(r.text); if (!p.entries.length) return errE('Dosyada “anahtar=değer” satırı bulunamadı; bu biçim desteklenmiyor.'); s.snaps[preset] = snapOf(p); const res = findResolution(p); if (res.length && !(s.res && s.res.native)) s.res = Object.assign({ allow: false }, s.res, { native: { w: res[0].w, h: res[0].h } }); saveState(); const L = deriveLearned(s.snaps); return { ok: true, saved: PRESETS.filter((x) => s.snaps[x]), keys: L.keys.length, skipped: L.skipped.length }; } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'game:snapClear': async (_e, id, preset) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const s = gs(g.id); if (preset === 'all') s.snaps = {}; else if (PRESETS.includes(preset)) delete s.snaps[preset]; else return errE('Geçersiz ön ayar.'); saveState(); return { ok: true }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:plan': async (_e, id, req) => {
+        try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const v = validReq(req); if (v.error) return errE(v.error); const s = gs(g.id); if (!s.config) return errE('Önce ayar dosyasını seç.'); const r = readCfg(s.config); if (r.error) return errE(r.error); const p = iniParse(r.text); const { ch, notes } = buildChanges(g.id, p, v.o); const out = iniApply(p, ch); return { changes: out.applied.slice(0, LIM.planRows), total: out.applied.length, missing: out.missing.length, notes }; } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'game:apply': async (_e, id, req) => {
+        try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const b = editable(g); if (b) return b; const v = validReq(req); if (v.error) return errE(v.error); const s = gs(g.id); if (!s.config) return errE('Önce ayar dosyasını seç.'); const run1 = await ensureClosed(g); if (run1) return run1;
+          const r = readCfg(s.config); if (r.error) return errE(r.error); const p = iniParse(r.text); const { ch, notes } = buildChanges(g.id, p, v.o); const out = iniApply(p, ch); if (!out.applied.length) { if (!notes.length) { s.last = { preset: v.o.preset || (s.last && s.last.preset) || null, resIdx: s.last ? s.last.resIdx || 0 : 0, res: v.o.resolution || (s.last && s.last.res) || null, time: now() }; saveState(); } return { ok: true, nothing: true, notes, message: notes.length ? notes.join(' ') : 'Ayar dosyası zaten bu değerlerde; değişiklik yok (geçerli ayar olarak kaydedildi).' }; }
+          if (!deps.confirm) return errE('Onay penceresi yok; değişiklik yapılmadı.'); const lines = out.applied.slice(0, 12).map((c) => '• ' + c.key + ': ' + c.from + ' → ' + c.to); const okc = await deps.confirm({ title: 'Oyun ayarları değiştirilsin mi?', message: g.name + '\n' + (v.o.preset ? 'Ön ayar: ' + PRESET_TR[v.o.preset] + '\n' : '') + (v.o.resolution ? 'Çözünürlük: ' + v.o.resolution.w + '×' + v.o.resolution.h + '\n' : '') + '\n' + out.applied.length + ' satır değişecek:\n' + lines.join('\n') + (out.applied.length > 12 ? '\n… (+' + (out.applied.length - 12) + ')' : '') + '\n\nDosya: ' + s.config + '\nDeğiştirmeden önce yedeği alınır; “Geri yükle” ile döndürebilirsin.', ok: 'Uygula', cancel: 'Vazgeç' }); if (!okc) return { error: 'declined', message: 'İptal edildi; hiçbir şey değiştirilmedi.', status: 400 };
+          const bk = backup(g.id, s.config, (v.o.preset ? PRESET_TR[v.o.preset] : '') + (v.o.resolution ? ' ' + v.o.resolution.w + '×' + v.o.resolution.h : '')); if (bk.error) return errE(bk.error);
+          writeAtomic(s.config, out.text); const chk = readCfg(s.config); let stuck = 0; if (!chk.error) { const p2 = iniParse(chk.text); for (const c of out.applied) { const e = p2.byId.get(c.id); if (e && e.value === c.to) stuck++; } }
+          s.last = { preset: v.o.preset || (s.last && s.last.preset) || null, resIdx: s.last ? s.last.resIdx || 0 : 0, res: v.o.resolution || (s.last && s.last.res) || null, time: now() };
+          if (v.o.resolution) { const base = s.res && s.res.native ? s.res.native : null; if (base) { const lad = resLadder(base.w, base.h); const i = lad.findIndex((x) => x.w === v.o.resolution.w && x.h === v.o.resolution.h); s.last.resIdx = i >= 0 ? i : 0; } } else if (req && Number.isInteger(req.resIdx)) s.last.resIdx = Math.max(0, req.resIdx);
+          saveState(); return { ok: true, applied: out.applied.length, verified: stuck, notes, backup: bk.file, firstBackup: bk.orig };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'game:restore': async (_e, id, which) => {
+        try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const run1 = await ensureClosed(g); if (run1) return run1; const idx = indexOf(g.id); if (!idx.length) return errE('Bu oyun için yedek yok.'); const s = gs(g.id); if (!s.config) return errE('Önce ayar dosyasını seç.'); const mine = idx.filter((x) => lc(x.path) === lc(s.config)); const pick = which === 'orig' ? mine.find((x) => x.orig) : mine.filter((x) => !x.orig).slice(-1)[0] || mine.find((x) => x.orig); if (!pick) return errE('Bu ayar dosyası için yedek bulunamadı.'); const src = path.join(backDir, safeId(g.id), pick.file); if (!isFile(src)) return errE('Yedek dosyası bulunamadı.');
+          if (!deps.confirm) return errE('Onay penceresi yok; geri yüklenmedi.'); const okc = await deps.confirm({ title: 'Yedek geri yüklensin mi?', message: g.name + '\n\n' + (pick.orig ? 'ORİJİNAL (ilk) ayar dosyası' : 'Son yedek (' + new Date(pick.time).toLocaleString('tr-TR') + ')') + ' geri yüklenecek.\nŞu anki dosya önce yedeklenir.\n\n' + s.config, ok: 'Geri yükle', cancel: 'Vazgeç' }); if (!okc) return { error: 'declined', message: 'İptal edildi.', status: 400 };
+          const cur = readCfg(s.config); if (!cur.error) backup(g.id, s.config, 'geri yükleme öncesi'); writeAtomic(s.config, fs.readFileSync(src, 'utf8')); s.last = null; saveState(); return { ok: true, restored: pick.orig ? 'orijinal' : 'son yedek' };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'game:target': async (_e, id, fps, allowRes) => { try { const g = await getGame(id); if (!g) return errE('Oyun bulunamadı.'); const n = Math.round(Number(fps)); if (!Number.isFinite(n) || n < LIM.fps[0] || n > LIM.fps[1]) return errE('Hedef FPS ' + LIM.fps[0] + '–' + LIM.fps[1] + ' arasında olmalı.'); const s = gs(g.id); s.target = n; if (typeof allowRes === 'boolean') s.res = Object.assign({ native: null }, s.res, { allow: allowRes }); saveState(); return { ok: true, target: n }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:hw': async (_e, force) => { try { return await hardware(force === true); } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:estimate': async (_e, fps, w, h) => { try { const t = Math.round(Number(fps)); const W = Math.round(Number(w)), H = Math.round(Number(h)); if (!(t >= LIM.fps[0] && t <= LIM.fps[1]) || !(W >= 640 && W <= 7680 && H >= 360 && H <= 4320)) return errE('Geçersiz hedef FPS veya çözünürlük.'); const hw = await hardware(false); return Object.assign({ hw: { gpu: hw.gpu, cpu: hw.cpu, cores: hw.cores, threads: hw.threads, ramGB: hw.ramGB, screen: hw.screen } }, estimatePreset(hw, t, W, H), { ladder: resLadder(W, H) }); } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:pm': async (_e, force) => { try { const r = locatePm(force === true); return { found: r.found, path: r.path, tried: r.tried, help: PM_HELP, windows: winMode() }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:choosePm': async () => { try { if (!deps.choosePm) return errE('Dosya seçimi yok.'); const f = await deps.choosePm(); if (!f) return { canceled: true }; if (typeof f !== 'string' || !path.isAbsolute(f)) return errE('Geçersiz yol.'); state.pm = f; const r = locatePm(true); if (!r.found || lc(r.path) !== lc(f)) { state.pm = null; pmCache = null; return errE('Seçilen dosya PresentMon olarak doğrulanamadı.', { help: PM_HELP }); } saveState(); return { ok: true, path: r.path }; } catch (e) { return errE(String(e && e.message || e)); } },
+      'game:measure:start': async (_e, req) => {
+        try { if (activeJob) return errE('Başka bir ölçüm sürüyor.'); const run1 = await running(); const t = run1.find((x) => x.gameId && !x.blocked); if (!t) { const blocked = run1.find((x) => x.blocked); return errE(blocked ? 'Çalışan oyunda anti-cheat algılandı (' + blocked.anticheat.map((a) => a.name).join(', ') + '); ölçüm yapılmaz.' : 'Kütüphanende çalışan bir oyun bulunamadı. Oyunu başlat ve oyun içinde hareket ederken tekrar dene.'); }
+          const pm = locatePm(false); if (!pm.found) return errE('PresentMon bulunamadı.', { needPm: true, help: PM_HELP }); let sec = Math.round(Number(req && req.seconds)); if (!Number.isFinite(sec)) sec = LIM.defSeconds; sec = Math.min(LIM.seconds[1], Math.max(LIM.seconds[0], sec));
+          const id = String(++jobSeq); const job = { id, state: 'running', startedAt: now(), seconds: sec, game: t.name, exe: t.exe, gameId: t.gameId, result: null, error: null, canceled: false, timedOut: false, child: null }; jobs.set(id, job); activeJob = job; if (jobs.size > 6) { const k = jobs.keys().next().value; if (jobs.get(k) !== job) jobs.delete(k); }
+          measure(job, pm.path, { exe: t.exe, name: t.name, gameId: t.gameId }, sec).finally(() => { activeJob = null; }); return { id, game: t.name, exe: t.exe, seconds: sec };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'game:measure:job': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); return { id: j.id, state: j.state, game: j.game, exe: j.exe, seconds: j.seconds, elapsed: (j.endedAt || now()) - j.startedAt, result: j.result, error: j.error }; },
+      'game:measure:cancel': async (_e, id) => { const j = jobs.get(String(id)); if (!j) return errE('İş bulunamadı.'); j.canceled = true; try { j.child && j.child.kill(); } catch (e) { /* bitmis */ } return { ok: true }; }
+    };
+    return { handlers, _scan: scan, _state: () => state };
+  }
+  return { createGameHost, isUe, ueChanges, detectAntiCheat, parseVdf, iniParse, iniApply, findResolution, resChanges, resLadder, deriveLearned, tuneStep, estimatePreset, gpuPerf, FrameParser, frameStats, findPresentMon, PRESETS, LIM, AC_PROCS, _setPlatform: (p) => { platOverride = p; } };
+})();
+
 /* --- RAM Analizi (Volatility 3 koprusu; Kovan 'ramanaliz' v0.0.1) ---
  * Volatility GOMULMEZ/INDIRILMEZ: kullanicinin kendi kurulumu bulunur (PATH'te vol / vol.py, Python + volatility3, ya da kullanicinin sectigi dosya).
  * Dokum dosyasinin yolunu arayuz GONDEREMEZ: dosya burada dialog ile secilir (deps.chooseDump); dokum yalnizca OKUNUR (Volatility'ye -f ile verilir), asla calistirilmaz/degistirilmez/tasinmaz.
@@ -1072,6 +1529,8 @@ function createHost(deps) {
   if (deps.sys !== false) { const sh = SYSMOD.createSysHost(Object.assign({ confirm: deps.confirm, showItemInFolder: deps.showItemInFolder }, deps.sys || {})); Object.assign(handlers, sh.handlers); }
   /* RAM Analizi: kullanicinin kendi Volatility 3 kurulumu (bkz. MEMMOD); dosya secimi + ag onayi host tarafinda */
   if (deps.mem !== false) { const mh = MEMMOD.createMemHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.mem || {})); Object.assign(handlers, mh.handlers); }
+  /* Oyun Ayarlayici: oyun algilama + anti-cheat filtresi + yedekli ayar dosyasi + FPS olcumu (bkz. GAMEMOD) */
+  if (deps.game !== false) { const gh = GAMEMOD.createGameHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.game || {})); Object.assign(handlers, gh.handlers); }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
@@ -1100,4 +1559,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD };
