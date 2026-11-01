@@ -1,0 +1,34 @@
+// Kovan Obfuscate araci (Playwright) — tamamen istemci tarafi, host koprusu gerekmez.
+import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
+import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
+let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
+const URL = 'file:///home/claude/statscan/app/StatScan.html#/obfuscate'; const wd = fs.mkdtempSync(path.join(os.tmpdir(), 'uob-src-'));
+fs.writeFileSync(wd + '/Main.java', 'class Helper { int count; int add(int a, int b) { int sum = a + b; this.count = sum; return sum; } }\npublic class Main {\n  // yorum\n  public static void main(String[] args) {\n    Helper h = new Helper();\n    int total = 0;\n    System.out.println(total + h.count);\n  }\n}\n');
+fs.writeFileSync(wd + '/second.c', '#include <stdio.h>\n// yorum\nint main(void) {\n  int x = 1;\n  printf("%d\\n", x);\n  return 0;\n}\n');
+fs.writeFileSync(wd + '/note.txt', 'desteklenmeyen dosya turu');
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message));
+await pg.goto(URL); await pg.waitForTimeout(300);
+ok(/Obfuscate/.test(await pg.textContent('#app-obfuscate h1')), 'başlık: Obfuscate');
+const supRows = await pg.$$eval('#app-obfuscate .mtable tbody tr', (rows) => rows.length);
+ok(supRows === 11, 'dil desteği tablosu 11 dil listeliyor (' + supRows + ')');
+await pg.setInputFiles('#ob-file', [wd + '/Main.java', wd + '/second.c', wd + '/note.txt']); await pg.waitForTimeout(300);
+ok(!(await pg.isDisabled('#ob-go')), 'desteklenen dosyalar yüklendikten sonra düğme açık');
+ok(/desteklenmeyen dosya türü/.test(await pg.textContent('#app-obfuscate .cp-probs')), 'desteklenmeyen dosya (txt) uyarıyla listelenir');
+await pg.click('#ob-go'); await pg.waitForTimeout(300);
+const resTxt = await pg.textContent('#app-obfuscate .cv-res');
+ok(/Hazır/.test(resTxt) && /2 dosya işlendi/.test(resTxt), 'dönüştürme bitti: 2 desteklenen dosya işlendi');
+ok(/Obfuscate edilmiş dosyaları indir \(\.zip\)/.test(await pg.textContent('#app-obfuscate .cv-actions')), 'birden çok dosya → zip indirme düğmesi');
+// yalnizca temel katman (isim karistirma kapali) -> ad degismemeli, kontrol icin tek dosya
+await pg.evaluate(() => { location.hash = '#/obfuscate'; });
+await pg.reload(); await pg.waitForTimeout(300);
+await pg.setInputFiles('#ob-file', [wd + '/second.c']); await pg.waitForTimeout(300);
+await pg.uncheck('#ob-rename'); await pg.click('#ob-go'); await pg.waitForTimeout(300);
+const txt2 = await pg.textContent('#app-obfuscate .cv-res');
+ok(/isim karıştırma bu dilde yok/.test(txt2) === false && /1 dosya işlendi/.test(txt2), 'yalnızca temel katman: tek dosya işlendi');
+ok(/Obfuscate edilmiş dosyayı indir/.test(await pg.textContent('#app-obfuscate .cv-actions')), 'tek dosya → doğrudan indirme düğmesi (zip değil)');
+const w = await pg.viewportSize(); await pg.setViewportSize({ width: 390, height: 844 });
+const sw = await pg.evaluate(() => document.documentElement.scrollWidth); const cw = await pg.evaluate(() => document.documentElement.clientWidth);
+ok(sw - cw <= 1, 'telefon genişliğinde yatay taşma yok (' + (sw - cw) + ')');
+ok(errs.length === 0, 'sayfa hatası yok ' + errs.slice(0, 2).join(' | '));
+await b.close(); console.log(bad ? ('BAŞARISIZ ' + bad) : 'TAMAM'); process.exit(bad ? 1 : 0);
