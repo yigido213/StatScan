@@ -733,6 +733,13 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .og-now { padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; } .og-now.on { border-color: color-mix(in srgb, var(--s0) 55%, var(--line)); } .og-now.warn { border-color: color-mix(in srgb, var(--s3) 55%, var(--line)); }
 .og-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; } .og-game { display: grid; gap: 6px; text-align: left; font: 14px var(--f-body); padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; cursor: pointer; min-width: 0; } .og-game:hover:not(:disabled) { border-color: var(--accent); } .og-game.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); } .og-game.blocked { opacity: .6; cursor: not-allowed; } .og-game:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .og-gname { font-weight: 600; overflow-wrap: anywhere; } .og-meta { display: flex; flex-wrap: wrap; gap: 6px; }
 .og-presets { display: flex; flex-wrap: wrap; gap: 8px; } .og-saved { border-color: var(--s0); } .og-steps { margin: 0; padding-left: 20px; display: grid; gap: 2px; } .og-hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; width: 100%; } .og-planbox { display: grid; gap: 8px; margin-top: 4px; }
+.lc-roles { display: flex; flex-wrap: wrap; gap: 8px; } .lc-role[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.lc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .lc-pick { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); min-width: 0; }
+.lc-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; } .lc-rank { font: 600 12px var(--f-mono); color: var(--muted); min-width: 1.6em; } .lc-name { font-size: 16px; overflow-wrap: anywhere; } .lc-score { margin-left: auto; font: 700 18px var(--f-mono); }
+.lc-why { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; display: grid; gap: 2px; } .lc-tips { border-top: 1px solid var(--line); padding-top: 10px; } .lc-tips h3 { margin: 0 0 6px; font-size: 15px; } .lc-tips ul, .lc-hl { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.lc-pool { display: flex; flex-wrap: wrap; gap: 6px; } .lc-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface2); font-size: 14px; } .lc-x { font: 700 14px var(--f-body); border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 99px; width: 24px; height: 24px; } .lc-x:hover { color: var(--ink); } .lc-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lc-win { border-color: color-mix(in srgb, var(--s0) 55%, var(--line)); } .lc-loss { border-color: color-mix(in srgb, var(--s3) 55%, var(--line)); } #lc-enemy, #lc-poolin, #lc-exturl { min-width: 220px; flex: 1 1 220px; max-width: 420px; }
+@media (max-width: 520px) { .lc-score { margin-left: 0; } }
 .rm-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; } .rm-res[hidden] { display: none; }
 .rm-score { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 14px 18px; }
 .rm-big { font: 700 clamp(44px, 9vw, 68px)/1 var(--f-display); letter-spacing: -.02em; } .rm-big small { font-size: .38em; color: var(--muted); font-weight: 500; }
@@ -895,6 +902,7 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 <section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
 <section id="app-ramanaliz" class="kv kv-wide" aria-label="RAM Analizi" hidden></section>
 <section id="app-oyunayar" class="kv kv-wide" aria-label="Oyun Ayarlayıcı" hidden></section>
+<section id="app-lolcounter" class="kv kv-wide" aria-label="Karşı Seçim" hidden></section>
 <section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
 <section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
@@ -5950,6 +5958,94 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "puan": "score",
       "otomatik bulundu": "found automatically",
       "Bu oyun Unreal Engine ayar dosyası kullanıyor: dört ön ayar yerleşik ölçekle hazır, kaydetmen gerekmez. Oyunda kendi ön ayarını kaydedersen o öncelikli olur.": "This game uses an Unreal Engine settings file: the four presets are ready with the built-in scale, no need to save. If you save your own preset in the game, yours takes priority.",
+      "Karşı Seçim": "Counter Picker",
+      "Karşı Seçim · Kovan": "Counter Picker · Kovan",
+      "League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.": "Shows what to pick against your opponent in League of Legends (Blitz-style). Fetches champion data in the background without opening a browser; personalizes by your champion pool and your own match log. Only reads the champion select from the League client; never touches the game. Suggestions are estimates, not statistics. Works only in the desktop app.",
+      "Bu araç şampiyon verisini arka planda çekmek ve League istemcisini okumak için masaüstü uygulaması gerektirir; tarayıcıda çalışmaz.": "This tool needs the desktop app to fetch champion data in the background and read the League client; it does not work in the browser.",
+      "Üst hat": "Top lane",
+      "Orman": "Jungle",
+      "Orta hat": "Mid lane",
+      "Alt hat": "Bot lane",
+      "Destek": "Support",
+      "Rol": "Role",
+      "Rakip şampiyon (ör. Darius)": "Opponent champion (e.g. Darius)",
+      "Rakip şampiyon": "Opponent champion",
+      "Havuza ekle (ör. Garen)": "Add to pool (e.g. Garen)",
+      "Havuza şampiyon ekle": "Add champion to pool",
+      "Dış veri adresi": "External data address",
+      "Rakibi yaz ya da League istemcisinden oku; öneriler burada görünür.": "Type the opponent or read it from the League client; suggestions appear here.",
+      "League of Legends’ta rakibine karşı ne seçeceğini gösterir. Tarayıcı açmaz: veriyi arka planda çeker. Şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir; League istemcisinden şampiyon seçimini okuyabilir.": "Shows what to pick against your opponent in League of Legends. Does not open a browser: it fetches the data in the background. Personalizes by your champion pool and your own match log; can read the champion select from the League client.",
+      "Öneriler TAHMİNDİR: Riot’un resmi şampiyon verisinden (menzil, zırh/büyü direnci, sınıf) hesaplanır; gerçek maç istatistiği değildir. Kendi kayıtların ve (varsa) eklediğin dış veri tahmini ağırlıkla geçer.": "Suggestions are ESTIMATES: calculated from Riot’s official champion data (range, armor/magic resist, class); they are not real match statistics. Your own records and (if added) external data outweigh the estimate.",
+      "Hiçbir istatistik sitesinden veri çekilmez. İstersen kendi güvendiğin bir veri adresini ekleyebilirsin (aşağıda).": "No data is scraped from any stats site. If you want, you can add a data address you trust (below).",
+      "League istemcisi yalnızca OKUNUR (şampiyon seçimi ekranı); oyuna kod enjekte edilmez, bellek okunmaz, istemciye bir şey yazılmaz. Gerçek Windows’ta ve gerçek istemciyle henüz denenmedi.": "The League client is only READ (champion select screen); no code is injected into the game, no memory is read, nothing is written to the client. Not yet tried on real Windows or with a real client.",
+      "İlk kullanımda internet gerekir; şampiyon verisi sonra önbellekten çalışır.": "The first use needs internet; champion data then works from the cache.",
+      "1 · Rol ve rakip": "1 · Role and opponent",
+      "2 · Öneriler": "2 · Suggestions",
+      "3 · Şampiyon havuzum": "3 · My champion pool",
+      "4 · Maç kayıtlarım": "4 · My match log",
+      "Rakip": "Opponent",
+      "Yalnızca havuzumdakiler": "Only my pool",
+      "Öner": "Suggest",
+      "Şampiyon seçimini oku (League)": "Read champion select (League)",
+      "Otomatik izle": "Watch automatically",
+      "Seçili rol için oynadığın şampiyonlar. Öneriler önce bunlara yönelir.": "Champions you play in the selected role. Suggestions favor these first.",
+      "Ekle": "Add",
+      "Kaldır": "Remove",
+      "Kaydet": "Save",
+      "Önerilerdeki “Kazandım / Kaybettim” düğmeleriyle kaydedersin. Kayıtlar yalnızca bu bilgisayarda durur ve sonraki önerileri kişiselleştirir.": "You record matches with the “I won / I lost” buttons in the suggestions. Records stay only on this computer and personalize later suggestions.",
+      "Dış veri adresi (isteğe bağlı, ileri düzey)": "External data address (optional, advanced)",
+      "Kendi güvendiğin bir sunucudan karşı seçim istatistiği almak istersen adresi buraya yaz. Adres https olmalı ve {enemy} (isteğe bağlı {role}) içermeli. Sunucu şu biçimde yanıt vermeli:": "If you want counter-pick statistics from a server you trust, enter its address here. The address must be https and contain {enemy} (optionally {role}). The server must reply in this format:",
+      "Şampiyon verisi alınıyor…": "Fetching champion data…",
+      "Çevrimdışı: önbellekteki şampiyon verisi kullanılıyor (sürüm {0}).": "Offline: using cached champion data (version {0}).",
+      "Şampiyon verisi hazır (sürüm {0}, {1} şampiyon).": "Champion data ready (version {0}, {1} champions).",
+      "“{0}” adlı şampiyon bulunamadı.": "No champion named “{0}” was found.",
+      "Bu rol için havuzun boş. Aşağıdan şampiyon ekle ya da “Yalnızca havuzumdakiler”i kapat.": "Your pool is empty for this role. Add champions below or turn off “Only my pool”.",
+      "{0} için {1} rolünde {2} öneri": "{2} suggestions for {0} in {1}",
+      "dış veri kullanıldı": "external data used",
+      "dış veriye ulaşılamadı": "external data unreachable",
+      "Tahmin": "Estimate",
+      "havuzumda": "in my pool",
+      "Zorluk {0}/10": "Difficulty {0}/10",
+      "Karşı seçim puanı (0–100)": "Counter score (0–100)",
+      "Dış veri: %{0} ({1} maç)": "External data: {0}% ({1} games)",
+      "Kişisel: {0} maçta {1} galibiyet": "Personal: {1} wins in {0} games",
+      "Bu maçta {0} oynadım:": "I played {0} this match:",
+      "Kazandım": "I won",
+      "Kaybettim": "I lost",
+      "{0} için ipuçları": "Tips against {0}",
+      "Kaynak: {0}": "Source: {0}",
+      "Kaydedildi: {0} vs {1} — {2}": "Saved: {0} vs {1} — {2}",
+      "Kaldır: {0}": "Remove: {0}",
+      "Bu rol için havuz boş.": "The pool is empty for this role.",
+      "Henüz maç kaydın yok.": "You have no match records yet.",
+      "{0} maç": "{0} games",
+      "Toplam {0} maç kaydı.": "{0} match records in total.",
+      "Son kaydı geri al": "Undo last record",
+      "Tüm kayıtları sil": "Delete all records",
+      "Ekli sunucu: {0}": "Added server: {0}",
+      "Dış veri adresi eklenmemiş.": "No external data address added.",
+      "Bir adres yaz.": "Enter an address.",
+      "Vazgeçildi.": "Canceled.",
+      "Dış veri adresi eklendi.": "External data address added.",
+      "Dış veri adresi kaldırıldı.": "External data address removed.",
+      "League istemcisi bulunamadı (açık mı?).": "League client not found (is it open?).",
+      "Şampiyon seçimi şu an açık değil.": "Champion select is not open right now.",
+      "Şampiyon seçimi okundu: {0} rakip seçimi görünüyor.": "Champion select read: {0} opponent picks visible.",
+      "Senin seçimin: {0}.": "Your pick: {0}.",
+      "Hangisi hat rakibin?": "Which one is your lane opponent?",
+      "Menzil avantajı: {0} / {1}": "Range advantage: {0} / {1}",
+      "Rakip fiziksel hasar ağırlıklı; zırhın yüksek ({0})": "Opponent deals mostly physical damage; your armor is high ({0})",
+      "Rakip büyü hasarı ağırlıklı; büyü direncin yüksek ({0})": "Opponent deals mostly magic damage; your magic resist is high ({0})",
+      "Suikastçı, dayanıksız rakibe karşı güçlü": "Assassin, strong against a squishy opponent",
+      "Dayanıklı seçim, suikastçıya karşı güçlü": "Durable pick, strong against assassins",
+      "Büyü hasarı çok dayanıklı rakibe karşı iyi": "Magic damage is good against a very durable opponent",
+      "Rakibin menzili daha uzun: {0} / {1}": "Opponent has longer range: {0} / {1}",
+      "Rakip zırhlı ({0}); fiziksel hasarın azalır": "Opponent has armor ({0}); your physical damage is reduced",
+      "Rakibin büyü direnci yüksek ({0}); büyü hasarın azalır": "Opponent has high magic resist ({0}); your magic damage is reduced",
+      "Rakip suikastçı, sen dayanıksızsın": "Opponent is an assassin and you are squishy",
+      "Rakip dayanıklı; suikastçıya karşı güçlü": "Opponent is durable; strong against assassins",
+      "Rakibin büyü hasarı dayanıklı seçimlere karşı iyi": "Opponent’s magic damage is good against durable picks",
+      "Tüm şampiyonlar (rol filtresi yok)": "All champions (no role filter)",
       '(adsız)': '(unnamed)'
     };
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
@@ -5970,7 +6066,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-ramanaliz, #app-oyunayar, #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-ramanaliz, #app-oyunayar, #app-lolcounter, #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -6851,6 +6947,144 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     if (visible()) { st.loaded = true; init(); }
   })();
 
+  /* ---------- Karsi Secim (Kovan 'lolcounter' v0.0.1; host: LOLMOD) ----------
+     League of Legends: rakibe karsi ne secmeli? Veriyi host arka planda ceker (tarayici acilmaz). Oneriler TAHMINDIR (Riot Data Dragon verisinden) + kisisel mac kaydin + sampiyon havuzun.
+     League istemcisinden sampiyon secimini YALNIZCA OKUR; oyuna dokunmaz. Arayuz URL/dosya yolu GONDEREMEZ (dis veri adresi host onayiyla ayarlanir). */
+  (function kovanLol() {
+    const root = $('#app-lolcounter'); if (!root) return;
+    const H = window.statscanHost && window.statscanHost.lolStatus ? window.statscanHost : null;
+    if (!H) { root.append(h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Karşı Seçim'), h('p', { class: 'cv-lead' }, 'Bu araç şampiyon verisini arka planda çekmek ve League istemcisini okumak için masaüstü uygulaması gerektirir; tarayıcıda çalışmaz.'))); return; }
+    const ROLES = [['top', 'Üst hat'], ['jungle', 'Orman'], ['mid', 'Orta hat'], ['bot', 'Alt hat'], ['support', 'Destek']]; const RTR = Object.fromEntries(ROLES);
+    const visible = () => !root.hidden && !document.hidden;
+    const st = { role: 'top', enemy: '', champs: [], byName: new Map(), byId: new Map(), pool: {}, poolOnly: false, seq: 0, auto: false, timer: 0, enemies: [], meta: null, hist: null, res: null };
+    const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite', id: 'lc-live' });
+    const say = (m, warn) => { live.textContent = m || ''; live.className = 'cv-live' + (warn ? ' warn' : ''); };
+    const pill = (cls, t) => h('span', { class: 'sm-pill ' + cls }, t);
+    const btn = (id, label, fn, extra) => h('button', Object.assign({ type: 'button', class: 'cv-btn', id, onclick: fn }, extra || {}), label);
+    const failMsg = (r) => (r && r.message) || 'İşlem başarısız.';
+    const nameOf = (id) => (st.byId.get(id) ? st.byId.get(id).name : id);
+    const call = async (fn, ...a) => { try { return await fn(...a); } catch (e) { return { error: 'lol', message: String(e && e.message || e) }; } };
+
+    const REASON = {
+      pos: { rangeEdge: 'Menzil avantajı: {0} / {1}', armorVsAd: 'Rakip fiziksel hasar ağırlıklı; zırhın yüksek ({0})', mrVsAp: 'Rakip büyü hasarı ağırlıklı; büyü direncin yüksek ({0})', assassinVsSquishy: 'Suikastçı, dayanıksız rakibe karşı güçlü', tankVsAssassin: 'Dayanıklı seçim, suikastçıya karşı güçlü', magicVsTank: 'Büyü hasarı çok dayanıklı rakibe karşı iyi' },
+      neg: { rangeEdge: 'Rakibin menzili daha uzun: {0} / {1}', armorVsAd: 'Rakip zırhlı ({0}); fiziksel hasarın azalır', mrVsAp: 'Rakibin büyü direnci yüksek ({0}); büyü hasarın azalır', assassinVsSquishy: 'Rakip suikastçı, sen dayanıksızsın', tankVsAssassin: 'Rakip dayanıklı; suikastçıya karşı güçlü', magicVsTank: 'Rakibin büyü hasarı dayanıklı seçimlere karşı iyi' }
+    };
+
+    /* ---- iskelet ---- */
+    const dl = h('datalist', { id: 'lc-dl' });
+    const roleBox = h('div', { class: 'lc-roles', role: 'group', 'aria-label': 'Rol' });
+    const enemyIn = h('input', { type: 'text', id: 'lc-enemy', list: 'lc-dl', autocomplete: 'off', spellcheck: 'false', placeholder: 'Rakip şampiyon (ör. Darius)', 'aria-label': 'Rakip şampiyon', maxlength: '40' });
+    const poolOnlyCb = h('input', { type: 'checkbox', id: 'lc-poolonly' }); const anyRoleCb = h('input', { type: 'checkbox', id: 'lc-anyrole' });
+    const lcuLine = h('p', { class: 'rm-hint', id: 'lc-lculine', role: 'status' }); const enemyPick = h('div', { class: 'rm-row', id: 'lc-enemypick', hidden: true });
+    const resBox = h('ol', { class: 'lc-list', id: 'lc-list' }); const resHint = h('p', { class: 'rm-hint', id: 'lc-reshint' }, 'Rakibi yaz ya da League istemcisinden oku; öneriler burada görünür.');
+    const tipsBox = h('div', { class: 'lc-tips', id: 'lc-tips', hidden: true });
+    const poolBox = h('div', { class: 'lc-pool', id: 'lc-pool' }); const poolIn = h('input', { type: 'text', id: 'lc-poolin', list: 'lc-dl', autocomplete: 'off', spellcheck: 'false', placeholder: 'Havuza ekle (ör. Garen)', 'aria-label': 'Havuza şampiyon ekle', maxlength: '40' });
+    const histBox = h('div', { class: 'lc-hist', id: 'lc-hist' });
+    const extIn = h('input', { type: 'url', id: 'lc-exturl', placeholder: 'https://…/{enemy}/{role}', 'aria-label': 'Dış veri adresi', maxlength: '400', autocomplete: 'off', spellcheck: 'false' }); const extLine = h('p', { class: 'rm-hint', id: 'lc-extline' });
+    const autoCb = h('input', { type: 'checkbox', id: 'lc-auto' });
+
+    root.append(h('div', { class: 'sm-top' }, h('div', {}, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Karşı Seçim'), h('p', { class: 'cv-lead' }, 'League of Legends’ta rakibine karşı ne seçeceğini gösterir. Tarayıcı açmaz: veriyi arka planda çeker. Şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir; League istemcisinden şampiyon seçimini okuyabilir.'))),
+      h('div', { class: 'cv-note', id: 'lc-note' }, h('b', {}, 'Beta v0.0.1 — dürüst sınırlar'), h('ul', {},
+        h('li', {}, 'Öneriler TAHMİNDİR: Riot’un resmi şampiyon verisinden (menzil, zırh/büyü direnci, sınıf) hesaplanır; gerçek maç istatistiği değildir. Kendi kayıtların ve (varsa) eklediğin dış veri tahmini ağırlıkla geçer.'),
+        h('li', {}, 'Hiçbir istatistik sitesinden veri çekilmez. İstersen kendi güvendiğin bir veri adresini ekleyebilirsin (aşağıda).'),
+        h('li', {}, 'League istemcisi yalnızca OKUNUR (şampiyon seçimi ekranı); oyuna kod enjekte edilmez, bellek okunmaz, istemciye bir şey yazılmaz. Gerçek Windows’ta ve gerçek istemciyle henüz denenmedi.'),
+        h('li', {}, 'İlk kullanımda internet gerekir; şampiyon verisi sonra önbellekten çalışır.'))),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'lc-h1' }, h('h2', { id: 'lc-h1' }, '1 · Rol ve rakip'), roleBox,
+        h('div', { class: 'rm-row' }, h('label', { for: 'lc-enemy' }, 'Rakip'), enemyIn, h('label', { class: 'fine', style: 'display:inline-flex;gap:6px;align-items:center' }, poolOnlyCb, 'Yalnızca havuzumdakiler'), h('label', { class: 'fine', style: 'display:inline-flex;gap:6px;align-items:center' }, anyRoleCb, 'Tüm şampiyonlar (rol filtresi yok)'), btn('lc-go', 'Öner', () => suggest())),
+        h('div', { class: 'rm-row' }, btn('lc-lcu', 'Şampiyon seçimini oku (League)', () => readLcu(true)), h('label', { class: 'fine', style: 'display:inline-flex;gap:6px;align-items:center' }, autoCb, 'Otomatik izle')), lcuLine, enemyPick, dl),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'lc-h2' }, h('h2', { id: 'lc-h2' }, '2 · Öneriler'), resHint, resBox, tipsBox),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'lc-h3' }, h('h2', { id: 'lc-h3' }, '3 · Şampiyon havuzum'), h('p', { class: 'rm-hint' }, 'Seçili rol için oynadığın şampiyonlar. Öneriler önce bunlara yönelir.'), poolBox, h('div', { class: 'rm-row' }, poolIn, btn('lc-poolad', 'Ekle', addPool))),
+      h('section', { class: 'rm-box', 'aria-labelledby': 'lc-h4' }, h('h2', { id: 'lc-h4' }, '4 · Maç kayıtlarım'), h('p', { class: 'rm-hint' }, 'Önerilerdeki “Kazandım / Kaybettim” düğmeleriyle kaydedersin. Kayıtlar yalnızca bu bilgisayarda durur ve sonraki önerileri kişiselleştirir.'), histBox),
+      h('details', { class: 'rm-box', id: 'lc-ext' }, h('summary', {}, 'Dış veri adresi (isteğe bağlı, ileri düzey)'),
+        h('p', { class: 'rm-hint' }, 'Kendi güvendiğin bir sunucudan karşı seçim istatistiği almak istersen adresi buraya yaz. Adres https olmalı ve {enemy} (isteğe bağlı {role}) içermeli. Sunucu şu biçimde yanıt vermeli:'),
+        h('pre', {}, h('code', {}, '{ "matchups": [ { "champ": "Garen", "wr": 53.2, "games": 1200 } ] }')),
+        h('div', { class: 'rm-row' }, extIn, btn('lc-extsave', 'Kaydet', saveExt), btn('lc-extdel', 'Kaldır', delExt)), extLine),
+      live);
+
+    /* ---- roller ---- */
+    function drawRoles() {
+      roleBox.replaceChildren(...ROLES.map(([id, label]) => h('button', { type: 'button', class: 'cv-btn lc-role', id: 'lc-role-' + id, 'aria-pressed': st.role === id ? 'true' : 'false', onclick: () => { st.role = id; drawRoles(); drawPool(); suggest(); } }, label)));
+    }
+    /* ---- sampiyonlar ---- */
+    const nz = (x) => String(x || '').toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    const resolve = (txt) => { const t = nz(txt); if (!t) return null; for (const c of st.champs) if (nz(c.name) === t || nz(c.id) === t) return c.id; return null; };
+    async function boot() {
+      say(KT('Şampiyon verisi alınıyor…')); const r = await call(H.lolChamps, false);
+      if (!r || r.error) { say(failMsg(r), true); return; } st.champs = r.champs; st.meta = r.meta; st.byName = new Map(r.champs.map((c) => [c.name, c])); st.byId = new Map(r.champs.map((c) => [c.id, c]));
+      dl.replaceChildren(...r.champs.map((c) => h('option', { value: c.name }))); const p = await call(H.lolPool); if (p && p.pool) st.pool = p.pool;
+      drawRoles(); drawPool(); await drawHist(); await drawExt();
+      say(r.meta && r.meta.offline ? KT('Çevrimdışı: önbellekteki şampiyon verisi kullanılıyor (sürüm {0}).', r.meta.version) : KT('Şampiyon verisi hazır (sürüm {0}, {1} şampiyon).', r.meta.version, r.meta.count));
+    }
+
+    /* ---- oneri ---- */
+    async function suggest() {
+      const id = resolve(enemyIn.value); const seq = ++st.seq; tipsBox.hidden = true;
+      if (!id) { resBox.replaceChildren(); resHint.hidden = false; resHint.textContent = enemyIn.value.trim() ? KT('“{0}” adlı şampiyon bulunamadı.', enemyIn.value.trim()) : KT('Rakibi yaz ya da League istemcisinden oku; öneriler burada görünür.'); st.enemy = ''; return; }
+      st.enemy = id; const r = await call(H.lolSuggest, { role: st.role, enemy: id, poolOnly: poolOnlyCb.checked, anyRole: anyRoleCb.checked, limit: anyRoleCb.checked ? 200 : 12 }); if (seq !== st.seq) return;
+      if (!r || r.error) { say(failMsg(r), true); return; } st.res = r; say('');
+      if (r.needPool) { resBox.replaceChildren(); resHint.hidden = false; resHint.textContent = KT('Bu rol için havuzun boş. Aşağıdan şampiyon ekle ya da “Yalnızca havuzumdakiler”i kapat.'); return; }
+      resHint.hidden = false; resHint.textContent = KT('{0} için {1} rolünde {2} öneri', r.enemy.name, KT(RTR[st.role]), r.picks.length) + (r.extUsed ? ' · ' + KT('dış veri kullanıldı') : r.statsConfigured ? ' · ' + KT('dış veriye ulaşılamadı') : '');
+      drawPicks(r); drawTips(id);
+    }
+    function drawPicks(r) {
+      resBox.replaceChildren(...r.picks.map((p, i) => {
+        const why = p.reasons.map((x) => { const t = (REASON[x.side] || {})[x.k]; return t ? KT(t, ...(x.v || [])) : null; }).filter(Boolean);
+        const src = [pill('low', KT('Tahmin'))]; if (p.ext) src.push(pill('mid', KT('Dış veri: %{0} ({1} maç)', p.ext.wr, p.ext.games))); if (p.personal && p.personal.games) src.push(pill('mid', KT('Kişisel: {0} maçta {1} galibiyet', p.personal.games, p.personal.wins)));
+        return h('li', { class: 'lc-pick', 'data-id': p.id },
+          h('div', { class: 'lc-head' }, h('span', { class: 'lc-rank' }, String(i + 1)), h('b', { class: 'lc-name' }, p.name), h('span', { class: 'lc-score', title: KT('Karşı seçim puanı (0–100)') }, String(p.score)), p.inPool ? pill('low', KT('havuzumda')) : null, pill('low', KT('Zorluk {0}/10', p.difficulty))),
+          h('div', { class: 'rm-row' }, ...src), why.length ? h('ul', { class: 'lc-why' }, ...why.map((t) => h('li', {}, t))) : null,
+          h('div', { class: 'rm-row' }, h('span', { class: 'rm-hint' }, KT('Bu maçta {0} oynadım:', p.name)), btn(null, 'Kazandım', () => logMatch(p.id, true), { class: 'cv-btn lc-win' }), btn(null, 'Kaybettim', () => logMatch(p.id, false), { class: 'cv-btn lc-loss' })));
+      }));
+    }
+    async function drawTips(id) {
+      const r = await call(H.lolTips, id); if (st.enemy !== id) return; if (!r || r.error || !r.tips || !r.tips.length) { tipsBox.hidden = true; return; }
+      tipsBox.replaceChildren(h('h3', {}, KT('{0} için ipuçları', r.name)), h('ul', {}, ...r.tips.map((t) => h('li', {}, t))), h('p', { class: 'rm-hint' }, KT('Kaynak: {0}', r.source))); tipsBox.hidden = false;
+    }
+    async function logMatch(me, win) {
+      const enemy = st.enemy; if (!enemy) return; const r = await call(H.lolLog, { role: st.role, me, enemy, win }); if (!r || r.error) { say(failMsg(r), true); return; }
+      await drawHist(); await suggest(); say(KT('Kaydedildi: {0} vs {1} — {2}', nameOf(me), nameOf(enemy), win ? KT('Kazandım') : KT('Kaybettim')));
+    }
+
+    /* ---- havuz ---- */
+    function drawPool() {
+      const ids = st.pool[st.role] || []; poolBox.replaceChildren(...(ids.length ? ids.map((id) => h('span', { class: 'lc-chip' }, nameOf(id), h('button', { type: 'button', class: 'lc-x', 'aria-label': KT('Kaldır: {0}', nameOf(id)), onclick: () => setPool(ids.filter((x) => x !== id)) }, '×'))) : [h('p', { class: 'rm-hint' }, 'Bu rol için havuz boş.')]));
+    }
+    async function setPool(ids) { const r = await call(H.lolPoolSet, st.role, ids); if (!r || r.error) { say(failMsg(r), true); return; } st.pool[st.role] = r.pool; drawPool(); if (st.enemy) suggest(); }
+    async function addPool() { const id = resolve(poolIn.value); if (!id) { say(poolIn.value.trim() ? KT('“{0}” adlı şampiyon bulunamadı.', poolIn.value.trim()) : '', !!poolIn.value.trim()); return; } poolIn.value = ''; const cur = st.pool[st.role] || []; if (!cur.includes(id)) await setPool(cur.concat(id)); }
+    poolIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addPool(); } });
+
+    /* ---- kayitlar ---- */
+    async function drawHist() {
+      const r = await call(H.lolHist); if (!r || r.error) { histBox.replaceChildren(h('p', { class: 'rm-hint' }, failMsg(r))); return; } st.hist = r;
+      if (!r.total) { histBox.replaceChildren(h('p', { class: 'rm-hint' }, 'Henüz maç kaydın yok.')); return; }
+      const rows = r.byChamp.map((x) => h('li', {}, h('b', {}, nameOf(x.me)), ' · ', KT(RTR[x.role]), ' · ', KT('{0} maç', x.games), ' · ', '%' + Math.round((100 * x.wins) / x.games)));
+      histBox.replaceChildren(h('p', {}, KT('Toplam {0} maç kaydı.', r.total)), h('ul', { class: 'lc-hl' }, ...rows), h('div', { class: 'rm-row' }, btn('lc-undo', 'Son kaydı geri al', async () => { const u = await call(H.lolHistUndo); if (u && u.error) say(failMsg(u), true); await drawHist(); suggest(); }), btn('lc-clear', 'Tüm kayıtları sil', async () => { const c = await call(H.lolHistClear); if (c && c.error) say(failMsg(c), true); await drawHist(); suggest(); })));
+    }
+
+    /* ---- dis veri adresi ---- */
+    async function drawExt() { const r = await call(H.lolStatsUrlGet); extLine.textContent = r && r.configured ? KT('Ekli sunucu: {0}', r.host || '?') : KT('Dış veri adresi eklenmemiş.'); }
+    async function saveExt() { const v = extIn.value.trim(); if (!v) { say(KT('Bir adres yaz.'), true); return; } const r = await call(H.lolStatsUrlSet, v); if (r && r.canceled) { say(KT('Vazgeçildi.')); return; } if (!r || r.error) { say(failMsg(r), true); return; } extIn.value = ''; say(KT('Dış veri adresi eklendi.')); await drawExt(); suggest(); }
+    async function delExt() { const r = await call(H.lolStatsUrlSet, null); if (!r || r.error) { say(failMsg(r), true); return; } say(KT('Dış veri adresi kaldırıldı.')); await drawExt(); suggest(); }
+
+    /* ---- League istemcisi (yalniz okuma) ---- */
+    function pickEnemy(id) { enemyIn.value = nameOf(id); enemyPick.hidden = true; suggest(); }
+    async function readLcu(manual) {
+      const r = await call(H.lolLcu); if (!r || r.error) { lcuLine.textContent = failMsg(r); return; }
+      if (r.state === 'noclient') { lcuLine.textContent = KT('League istemcisi bulunamadı (açık mı?).'); enemyPick.hidden = true; return; }
+      if (r.state === 'idle') { lcuLine.textContent = KT('Şampiyon seçimi şu an açık değil.'); enemyPick.hidden = true; return; }
+      if (r.myRole && ROLES.some((x) => x[0] === r.myRole) && r.myRole !== st.role) { st.role = r.myRole; drawRoles(); drawPool(); }
+      const en = r.enemies || []; lcuLine.textContent = KT('Şampiyon seçimi okundu: {0} rakip seçimi görünüyor.', en.length) + (r.myPick ? ' ' + KT('Senin seçimin: {0}.', nameOf(r.myPick)) : '');
+      const lane = en.find((x) => x.role && x.role === (r.myRole || st.role));
+      if (lane) { if (resolve(enemyIn.value) !== lane.id) pickEnemy(lane.id); enemyPick.hidden = true; } else if (en.length === 1) { if (resolve(enemyIn.value) !== en[0].id) pickEnemy(en[0].id); enemyPick.hidden = true; }
+      else if (en.length > 1) { enemyPick.replaceChildren(h('span', { class: 'rm-hint' }, 'Hangisi hat rakibin?'), ...en.map((x) => btn(null, nameOf(x.id), () => pickEnemy(x.id)))); enemyPick.hidden = false; }
+    }
+    function setAuto(on) { st.auto = on; clearInterval(st.timer); st.timer = 0; if (on) { readLcu(false); st.timer = setInterval(() => { if (visible()) readLcu(false); }, 3000); } }
+    autoCb.addEventListener('change', () => setAuto(autoCb.checked));
+    enemyIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); suggest(); } }); enemyIn.addEventListener('change', () => suggest()); poolOnlyCb.addEventListener('change', () => suggest()); anyRoleCb.addEventListener('change', () => suggest());
+    boot();
+  })();
+
+
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
@@ -6870,6 +7104,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       gamepad: '<path d="M7 8h10a4 4 0 0 1 3.9 4.9l-.7 3.2a2.2 2.2 0 0 1-3.8.9L14.6 15H9.4l-1.8 2a2.2 2.2 0 0 1-3.8-.9l-.7-3.2A4 4 0 0 1 7 8Z"/><path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11.2" r=".7" fill="currentColor"/><circle cx="17.3" cy="12.8" r=".7" fill="currentColor"/>',
       chip: '<rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 3.5v3M12 3.5v3M14.5 3.5v3M9.5 17.5v3M12 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 12h3M3.5 14.5h3M17.5 9.5h3M17.5 12h3M17.5 14.5h3"/>',
       mask: '<path d="M4 9c0-3 3.5-5.5 8-5.5S20 6 20 9v3c0 4.5-3.8 8-8 8s-8-3.5-8-8V9Z"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><path d="M9.5 16c1 .8 4 .8 5 0"/>',
+      swords: '<path d="M5 5l9 9M5 5h4M5 5v4M19 5l-9 9M19 5h-4M19 5v4M12 12l-6 6M12 12l6 6M4 20l2-2M20 20l-2-2"/>',
       plus: '<path d="M12 5v14M5 12h14"/>'
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
@@ -6884,6 +7119,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'oyunayar', cat: 'windows', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'windows', name: 'Karşı Seçim', icon: 'swords', beta: true, ver: '0.0.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

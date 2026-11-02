@@ -828,6 +828,185 @@ const SYSMOD = (() => {
   return { createSysHost, ipClass, isExternal, beaconScore, scoreProc, flagConn, SUSP_PORTS };
 })();
 
+/* --- Karsi Secim (Kovan 'lolcounter' v0.0.1) ---
+ * League of Legends icin Blitz tarzi "rakibe karsi ne secmeli" araci. Tarayici ACMAZ: veriyi arka planda host cekip onbellege alir.
+ * Veri katmanlari (dürüst etiketli): (1) Riot Data Dragon (resmi, herkese acik) -> sampiyon istatistikleri + "rakip ipuclari"; bunlardan TAHMINI avantaj hesaplanir,
+ * ISTATISTIK DEGILDIR. (2) Kisisel mac kaydi (kullanici "kazandim/kaybettim" der) -> kisisel kazanma orani, sampiyon havuzuna gore kisisellestirme.
+ * (3) Istege bagli: kullanicinin KENDI verdigi https veri adresi (statsUrl; yalnizca onay penceresiyle). Hicbir ucuncu taraf siteden kazima yapilmaz.
+ * League ISTEMCISI (LCU) yalnizca OKUNUR: sampiyon secimi ekranindaki secimleri 127.0.0.1 yerel API'sinden GET ile okur; oyun surecine enjekte etmez, bellegine bakmaz,
+ * hicbir sey yazmaz/POST etmez. Arayuz URL/dosya yolu GONDEREMEZ (yalniz sampiyon kimligi + rol); statsUrl yalniz host onayi ile ayarlanir. */
+const LOLMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const https = require('https'); const cp = require('child_process');
+  const ROLES = ['top', 'jungle', 'mid', 'bot', 'support'];
+  const LIM = { pool: 40, hist: 3000, body: 8 * 1024 * 1024, statsBody: 5 * 1024 * 1024, ms: 12000, top: 200, defTop: 12, recent: 30, urlLen: 400 };
+  const ID_RE = /^[A-Za-z0-9]{1,32}$/; const DD_HOST = 'ddragon.leagueoflegends.com'; const LOCALES = ['tr_TR', 'en_US'];
+  const LCU_ROLE = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'bot', utility: 'support' };
+  const errE = (message, extra) => Object.assign({ error: 'lol', message }, extra || {});
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+  /* ---------- sampiyon verisi (Data Dragon champion.json ozeti) ---------- */
+  function normChamp(c) {
+    if (!c || typeof c !== 'object' || !ID_RE.test(String(c.id || ''))) return null; const s = c.stats || {}; const i = c.info || {}; const n = (x, d) => (Number.isFinite(Number(x)) ? Number(x) : d);
+    return { id: String(c.id), key: String(c.key || ''), name: String(c.name || c.id), tags: Array.isArray(c.tags) ? c.tags.map(String) : [], attack: n(i.attack, 5), defense: n(i.defense, 5), magic: n(i.magic, 5), difficulty: n(i.difficulty, 5),
+      range: n(s.attackrange, 175), ms: n(s.movespeed, 340), hp: n(s.hp, 600) + 8 * n(s.hpperlevel, 90), armor: n(s.armor, 30) + 8 * n(s.armorperlevel, 4), mr: n(s.spellblock, 32) + 8 * n(s.spellblockperlevel, 1.3) };
+  }
+  function parseChampions(json) { const d = json && json.data; if (!d || typeof d !== 'object') return []; return Object.keys(d).map((k) => normChamp(d[k])).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name)); }
+  function rosterZ(list) {
+    const f = (fn) => { const v = list.map(fn); const m = v.reduce((a, b) => a + b, 0) / (v.length || 1); const sd = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length || 1)) || 1; return (x) => (fn(x) - m) / sd; };
+    return { armor: f((c) => c.armor), mr: f((c) => c.mr), hp: f((c) => c.hp) };
+  }
+  const roleFit = (c, role) => { const t = c.tags; if (role === 'top') return t.includes('Fighter') || t.includes('Tank') || (t.includes('Mage') && c.range <= 550 && c.hp >= 650); if (role === 'jungle') return t.includes('Fighter') || t.includes('Assassin') || t.includes('Tank'); if (role === 'mid') return t.includes('Mage') || t.includes('Assassin') || (t.includes('Fighter') && c.range >= 300); if (role === 'bot') return t.includes('Marksman') || (t.includes('Mage') && c.range >= 550 && c.attack >= 3 && c.defense <= 3); if (role === 'support') return t.includes('Support') || t.includes('Tank') || t.includes('Mage'); return false; };
+
+  /* a'nin b'ye karsi tahmini avantaji (kaba kurallar; gercek maclardan ogrenilmis degildir). Neden kodlari arayuzde cevrilir. */
+  function adv(a, b, role, Z) {
+    let d = 0; const r = []; const rd = a.range - b.range; const w = role === 'jungle' || role === 'support' ? 0.5 : 1;
+    if (rd >= 150) { d += Math.min(10, rd / 60) * w; r.push({ k: 'rangeEdge', v: [a.range, b.range] }); }
+    const phys = b.attack - b.magic;
+    if (phys >= 2 && Z.armor(a) > 0.5) { d += Math.min(8, Z.armor(a) * 4); r.push({ k: 'armorVsAd', v: [Math.round(a.armor)] }); } else if (phys <= -2 && Z.mr(a) > 0.5) { d += Math.min(8, Z.mr(a) * 4); r.push({ k: 'mrVsAp', v: [Math.round(a.mr)] }); }
+    if (a.tags.includes('Assassin') && b.defense <= 3 && Z.hp(b) < -0.3) { d += 6; r.push({ k: 'assassinVsSquishy', v: [] }); }
+    if (b.tags.includes('Assassin') && a.defense >= 6 && Z.hp(a) > 0.5) { d += 5; r.push({ k: 'tankVsAssassin', v: [] }); }
+    if (a.magic >= 7 && b.defense >= 7) { d += 4; r.push({ k: 'magicVsTank', v: [] }); }
+    return { d, r };
+  }
+  function heuristic(c, e, role, Z) { const f = adv(c, e, role, Z); const g = adv(e, c, role, Z); return { delta: clamp(f.d - g.d, -20, 20), pos: f.r, neg: g.r }; }
+
+  /* ---------- kisisel kayit ---------- */
+  const wilson = (w, n) => { if (!n) return 50; const p = w / n; const z = 1; return (100 * (p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n))) / (1 + (z * z) / n); };
+  function personal(hist, me, enemy, role) { let g = 0; let w = 0; for (const h of hist) if (h.me === me && h.enemy === enemy && (!role || h.role === role)) { g++; if (h.win) w++; } return { games: g, wins: w }; }
+  function personalAll(hist, me, role) { let g = 0; let w = 0; for (const h of hist) if (h.me === me && (!role || h.role === role)) { g++; if (h.win) w++; } return { games: g, wins: w }; }
+
+  /* disaridan gelen istatistik: { matchups: [ { champ, wr, games } ] } (statsUrl sablonu {enemy} ve {role} icerir) */
+  function parseStats(json) {
+    const arr = json && Array.isArray(json.matchups) ? json.matchups : null; if (!arr) return null; const out = new Map();
+    for (const x of arr.slice(0, 400)) { if (!x || !ID_RE.test(String(x.champ || ''))) continue; const wr = Number(x.wr); const g = Number(x.games); if (!(wr >= 0 && wr <= 100) || !(g >= 0 && g <= 1e9)) continue; out.set(String(x.champ), { wr, games: Math.round(g) }); }
+    return out;
+  }
+
+  /* ana siralama: tahmin (+ varsa dis veri) + kisisel kayit + havuz. */
+  function rank(roster, enemyId, role, opts) {
+    opts = opts || {}; const enemy = roster.find((c) => c.id === enemyId); if (!enemy) return { error: 'enemy' }; const Z = rosterZ(roster); const hist = opts.hist || []; const pool = opts.pool || []; const ext = opts.ext || null;
+    let cands = roster.filter((c) => c.id !== enemy.id);
+    if (opts.poolOnly) cands = cands.filter((c) => pool.includes(c.id)); else if (opts.anyRole) { /* rol filtresi yok: oyundaki tum sampiyonlar */ } else cands = cands.filter((c) => pool.includes(c.id) || roleFit(c, role) || (ext && ext.has(c.id)) || personal(hist, c.id, enemy.id, role).games > 0);
+    const rows = cands.map((c) => {
+      const h = heuristic(c, enemy, role, Z); let score = 50 + h.delta; const sources = ['est']; const e = ext ? ext.get(c.id) : null; let extInfo = null;
+      if (e) { const conf = Math.min(1, e.games / 300); const x = 50 + (e.wr - 50) * conf; score = 0.7 * x + 0.3 * score; sources.push('ext'); extInfo = { wr: e.wr, games: e.games }; }
+      const p = personal(hist, c.id, enemy.id, role); if (p.games) { const wgt = Math.min(1, p.games / 8) * 0.6; score = (1 - wgt) * score + wgt * wilson(p.wins, p.games); sources.push('personal'); }
+      const inPool = pool.includes(c.id); if (inPool) score += 4;
+      return { id: c.id, name: c.name, tags: c.tags, difficulty: c.difficulty, score: Math.round(clamp(score, 0, 100)), sources, reasons: h.pos.map((x) => Object.assign({ side: 'pos' }, x)).concat(h.neg.map((x) => Object.assign({ side: 'neg' }, x))), personal: p, ext: extInfo, inPool };
+    });
+    rows.sort((a, b) => b.score - a.score || b.personal.games - a.personal.games || a.name.localeCompare(b.name));
+    return { enemy: { id: enemy.id, name: enemy.name, tags: enemy.tags, difficulty: enemy.difficulty }, role, picks: rows.slice(0, clamp(Math.round(opts.limit) || LIM.defTop, 1, LIM.top)), total: rows.length };
+  }
+
+  /* ---------- LCU (League istemcisi) okuma-yalniz yardimcilari ---------- */
+  function parseLcuCmd(text) { const p = /--app-port=(\d{2,5})/.exec(String(text || '')); const t = /--remoting-auth-token=([A-Za-z0-9_\-]{8,128})/.exec(String(text || '')); if (!p || !t) return null; const port = Number(p[1]); if (!(port > 0 && port < 65536)) return null; return { port, token: t[1] }; }
+  function mapSession(s, byKey) {
+    if (!s || typeof s !== 'object') return null; const me = Array.isArray(s.myTeam) ? s.myTeam : []; const th = Array.isArray(s.theirTeam) ? s.theirTeam : []; const cell = s.localPlayerCellId; const mine = me.find((x) => x && x.cellId === cell) || null;
+    const nm = (x) => { const k = String((x && (x.championId || x.championPickIntent)) || 0); return k !== '0' && byKey.has(k) ? byKey.get(k) : null; }; const rl = (x) => LCU_ROLE[String((x && x.assignedPosition) || '').toLowerCase()] || null;
+    return { myRole: mine ? rl(mine) : null, myPick: mine ? nm(mine) : null, allies: me.map((x) => ({ id: nm(x), role: rl(x), me: x === mine })).filter((x) => x.id), enemies: th.map((x) => ({ id: nm(x), role: rl(x) })).filter((x) => x.id) };
+  }
+
+  function createLolHost(deps) {
+    deps = deps || {}; const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'lolcounter.json') : null; const cacheDir = dataDir ? path.join(dataDir, 'lolcounter-cache') : null;
+    const now = deps.now || (() => Date.now());
+    const run = deps.run || ((cmd, args, ms) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: ms || 10000, windowsHide: true, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (e, so) => (e && !so ? reject(e) : resolve(String(so || '')))); }));
+    let state = { v: 1, pool: {}, hist: [], statsUrl: null }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
+    if (!state.pool || typeof state.pool !== 'object') state.pool = {}; if (!Array.isArray(state.hist)) state.hist = [];
+    const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
+
+    /* --- ag: yalniz Data Dragon (sabit sunucu) --- */
+    const httpGet = deps.get || ((host, p, maxBody) => new Promise((resolve, reject) => {
+      const req = https.get({ host, path: p, headers: { 'User-Agent': 'StatScan-Kovan', Accept: 'application/json' }, timeout: LIM.ms }, (res) => {
+        if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); } const parts = []; let n = 0;
+        res.on('data', (d) => { n += d.length; if (n > (maxBody || LIM.body)) { req.destroy(new Error('yanıt çok büyük')); return; } parts.push(d); }); res.on('end', () => resolve(Buffer.concat(parts).toString('utf8'))); res.on('error', reject);
+      }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject);
+    }));
+    let roster = null; let rosterMeta = null; const tipsCache = new Map();
+    const cacheRead = (name) => { if (!cacheDir) return null; try { return JSON.parse(fs.readFileSync(path.join(cacheDir, name), 'utf8')); } catch (e) { return null; } };
+    const cacheWrite = (name, obj) => { if (!cacheDir) return; try { fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(path.join(cacheDir, name), JSON.stringify(obj)); } catch (e) { /* onbellek zorunlu degil */ } };
+    const cacheNewest = (prefix) => { if (!cacheDir) return null; try { const f = fs.readdirSync(cacheDir).filter((x) => x.startsWith(prefix) && x.endsWith('.json')).sort().pop(); return f ? { name: f, json: cacheRead(f) } : null; } catch (e) { return null; } };
+    async function loadRoster(force) {
+      if (roster && !force) return { ok: true, meta: rosterMeta };
+      let ver = null; let list = null; let loc = null; let offline = false; let why = '';
+      try { const v = JSON.parse(await httpGet(DD_HOST, '/api/versions.json', 200000)); ver = Array.isArray(v) && /^\d+\.\d+(\.\d+)?$/.test(String(v[0])) ? String(v[0]) : null; if (!ver) throw new Error('sürüm okunamadı'); } catch (e) { why = String(e && e.message || e); }
+      if (ver) { for (const l of LOCALES) { const nm = 'champions-' + ver + '-' + l + '.json'; let j = cacheRead(nm); if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/' + l + '/champion.json', LIM.body)); cacheWrite(nm, j); } catch (e) { why = String(e && e.message || e); j = null; } } const L = j ? parseChampions(j) : []; if (L.length) { list = L; loc = l; break; } } }
+      if (!list) { for (const l of LOCALES) { const c = cacheNewest('champions-'); if (c && c.json) { const L = parseChampions(c.json); if (L.length) { list = L; offline = true; const m = /^champions-(.+)-([a-z]{2}_[A-Z]{2})\.json$/.exec(c.name); ver = m ? m[1] : ver; loc = m ? m[2] : l; break; } } } }
+      if (!list) return errE('Şampiyon verisi alınamadı' + (why ? ' (' + why + ')' : '') + '. İlk kullanımda internet gerekir; sonra önbellekten çalışır.', { offline: true });
+      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline }; tipsCache.clear(); return { ok: true, meta: rosterMeta };
+    }
+    const byKeyMap = () => new Map(roster.map((c) => [c.key, c.id]));
+    const needRoster = async () => { const r = await loadRoster(false); return r.error ? r : null; };
+    const validRole = (r) => (ROLES.includes(r) ? r : null);
+    const validChamp = (id) => (typeof id === 'string' && ID_RE.test(id) && roster && roster.find((c) => c.id === id) ? id : null);
+
+    /* --- dis veri adresi (kullanicinin kendisi; yalniz https; sabit sablon) --- */
+    function statsTemplateOk(u) { if (typeof u !== 'string' || u.length > LIM.urlLen) return null; let x; try { x = new URL(u.replace('{enemy}', 'E').replace('{role}', 'r')); } catch (e) { return null; } if (x.protocol !== 'https:' || x.username || x.password || !x.hostname.includes('.')) return null; if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[)/i.test(x.hostname)) return null; return x; }
+    async function fetchExt(enemy, role) {
+      if (!state.statsUrl) return null; const x = statsTemplateOk(state.statsUrl); if (!x) return null; const u = new URL(state.statsUrl.replace('{enemy}', encodeURIComponent(enemy)).replace('{role}', encodeURIComponent(role)));
+      try { const txt = await httpGet(u.hostname, u.pathname + u.search, LIM.statsBody); return parseStats(JSON.parse(txt)); } catch (e) { return null; }
+    }
+
+    /* --- LCU --- */
+    const lcuFind = deps.lcu && deps.lcu.find ? deps.lcu.find : async () => { if ((deps.platform || process.platform) !== 'win32') return null; try { return parseLcuCmd(await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', "(Get-CimInstance Win32_Process -Filter \"name='LeagueClientUx.exe'\" | Select-Object -First 1).CommandLine"], 10000)); } catch (e) { return null; } };
+    const lcuGet = deps.lcu && deps.lcu.get ? deps.lcu.get : (info, p) => new Promise((resolve, reject) => {
+      /* yalniz 127.0.0.1, yalniz GET; Riot'un yerel kendinden imzali sertifikasi nedeniyle dogrulama kapali (disari cikmaz) */
+      const req = https.request({ host: '127.0.0.1', port: info.port, path: p, method: 'GET', rejectUnauthorized: false, timeout: 4000, headers: { Authorization: 'Basic ' + Buffer.from('riot:' + info.token).toString('base64'), Accept: 'application/json' } }, (res) => {
+        if (res.statusCode === 404) { res.resume(); return resolve(null); } if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); } const parts = []; let n = 0; res.on('data', (d) => { n += d.length; if (n > 2 * 1024 * 1024) { req.destroy(new Error('büyük')); return; } parts.push(d); });
+        res.on('end', () => { try { resolve(JSON.parse(Buffer.concat(parts).toString('utf8'))); } catch (e) { reject(e); } });
+      }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject); req.end();
+    });
+
+    const handlers = {
+      'lol:status': async () => { const r = await loadRoster(false); return { roles: ROLES, ready: !r.error, meta: r.error ? null : r.meta, error: r.error ? r.message : null, poolCounts: Object.fromEntries(ROLES.map((x) => [x, (state.pool[x] || []).length])), games: state.hist.length, statsUrl: !!state.statsUrl, windows: (deps.platform || process.platform) === 'win32' }; },
+      'lol:champs': async (_e, force) => { const r = await loadRoster(force === true); if (r.error) return r; return { meta: r.meta, champs: roster.map((c) => ({ id: c.id, name: c.name, tags: c.tags, difficulty: c.difficulty })) }; },
+      'lol:pool': async () => ({ pool: Object.fromEntries(ROLES.map((x) => [x, (state.pool[x] || []).slice()])) }),
+      'lol:pool:set': async (_e, role, ids) => {
+        try { const bad = await needRoster(); if (bad) return bad; const r = validRole(role); if (!r) return errE('Rol geçersiz.'); if (!Array.isArray(ids) || ids.length > LIM.pool) return errE('Havuz en fazla ' + LIM.pool + ' şampiyon olabilir.'); const out = []; for (const x of ids) { const c = validChamp(x); if (c && !out.includes(c)) out.push(c); }
+          state.pool[r] = out; save(); return { ok: true, role: r, pool: out };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:suggest': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const role = validRole(req.role); if (!role) return errE('Rol geçersiz.'); const enemy = validChamp(req.enemy); if (!enemy) return errE('Rakip şampiyon bulunamadı.');
+          const pool = state.pool[role] || []; if (req.poolOnly === true && !pool.length) return { needPool: true, role };
+          const ext = await fetchExt(enemy, role); const out = rank(roster, enemy, role, { hist: state.hist, pool, poolOnly: req.poolOnly === true, anyRole: req.anyRole === true, ext, limit: req.limit });
+          if (out.error) return errE('Rakip şampiyon bulunamadı.'); out.extUsed = !!ext; out.statsConfigured = !!state.statsUrl; out.meta = rosterMeta; return out;
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:tips': async (_e, enemy) => {
+        try { const bad = await needRoster(); if (bad) return bad; const id = validChamp(enemy); if (!id) return errE('Şampiyon bulunamadı.'); if (tipsCache.has(id)) return tipsCache.get(id); const nm = 'tips-' + rosterMeta.version + '-' + rosterMeta.locale + '-' + id + '.json'; let j = cacheRead(nm);
+          if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/champion/' + id + '.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('İpuçları alınamadı (' + String(e && e.message || e) + ').'); } }
+          const d = j && j.data && j.data[id]; const tips = d && Array.isArray(d.enemytips) ? d.enemytips.map((x) => String(x).slice(0, 400)).slice(0, 8) : []; const r = { id, name: d ? String(d.name || id) : id, tips, source: 'Riot Data Dragon' }; tipsCache.set(id, r); return r;
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:log': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const role = validRole(req.role); const me = validChamp(req.me); const enemy = validChamp(req.enemy); if (!role || !me || !enemy || typeof req.win !== 'boolean') return errE('Kayıt eksik ya da geçersiz.');
+          state.hist.push({ t: now(), role, me, enemy, win: req.win }); if (state.hist.length > LIM.hist) state.hist.splice(0, state.hist.length - LIM.hist); save(); return { ok: true, total: state.hist.length, pair: personal(state.hist, me, enemy, role) };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:hist': async () => { const rec = state.hist.slice(-LIM.recent).reverse(); const by = new Map(); for (const h of state.hist) { const k = h.role + '|' + h.me; const v = by.get(k) || { role: h.role, me: h.me, games: 0, wins: 0 }; v.games++; if (h.win) v.wins++; by.set(k, v); } return { total: state.hist.length, recent: rec, byChamp: [...by.values()].sort((a, b) => b.games - a.games).slice(0, 20) }; },
+      'lol:hist:undo': async () => { if (!state.hist.length) return errE('Silinecek kayıt yok.'); const x = state.hist.pop(); save(); return { ok: true, removed: x, total: state.hist.length }; },
+      'lol:hist:clear': async () => {
+        try { if (!state.hist.length) return { ok: true, total: 0 }; if (!deps.confirm) return errE('Onay penceresi yok; silinmedi.'); const okc = await deps.confirm({ title: 'Maç kayıtları silinsin mi?', message: state.hist.length + ' maç kaydı silinecek. Bu geri alınamaz.', ok: 'Sil', cancel: 'Vazgeç' }); if (!okc) return { canceled: true }; state.hist = []; save(); return { ok: true, total: 0 };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:statsurl:get': async () => ({ configured: !!state.statsUrl, host: state.statsUrl && statsTemplateOk(state.statsUrl) ? statsTemplateOk(state.statsUrl).hostname : null }),
+      'lol:statsurl:set': async (_e, url) => {
+        try { if (url === null || url === '') { state.statsUrl = null; save(); return { ok: true, configured: false }; } const x = statsTemplateOk(url); if (!x || !String(url).includes('{enemy}')) return errE('Adres geçersiz: https olmalı, genel bir sunucuya gitmeli ve {enemy} (isteğe bağlı {role}) içermeli.');
+          if (!deps.confirm) return errE('Onay penceresi yok; kaydedilmedi.'); const okc = await deps.confirm({ title: 'Dış veri adresi eklensin mi?', message: 'Karşı seçim hesaplanırken bu sunucuya şampiyon adı ve rol gönderilir:\n\n' + x.hostname + '\n\nYalnızca güvendiğin bir kaynağı ekle. Gelen veri yalnızca sayı olarak okunur.', ok: 'Ekle', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
+          state.statsUrl = url; save(); return { ok: true, configured: true, host: x.hostname };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:lcu': async () => {
+        try { const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' }; let s = null; try { s = await lcuGet(info, '/lol-champ-select/v1/session'); } catch (e) { return { state: 'noclient', note: String(e && e.message || e) }; } if (!s) return { state: 'idle' };
+          const m = mapSession(s, byKeyMap()); return m ? Object.assign({ state: 'champselect' }, m) : { state: 'idle' };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      }
+    };
+    return { handlers, _state: () => state, _roster: () => roster };
+  }
+  return { createLolHost, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST };
+})();
+
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
  * Steam + Epic kutuphanelerini ve calisan oyunu algilar; anti-cheat'li oyunlara ASLA dokunmaz; bir oyunun metin ayar dosyasini (.ini/.cfg/.conf)
  * ayar oncesi YEDEKLEYEREK degistirir; FPS'i PresentMon ile olcup hedef FPS'e gore ayar onerir. Oyunu calistirmaz, oyuna kod enjekte etmez, bellegine bakmaz.
@@ -1531,6 +1710,8 @@ function createHost(deps) {
   if (deps.mem !== false) { const mh = MEMMOD.createMemHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.mem || {})); Object.assign(handlers, mh.handlers); }
   /* Oyun Ayarlayici: oyun algilama + anti-cheat filtresi + yedekli ayar dosyasi + FPS olcumu (bkz. GAMEMOD) */
   if (deps.game !== false) { const gh = GAMEMOD.createGameHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.game || {})); Object.assign(handlers, gh.handlers); }
+  /* Karsi Secim (LoL counter): Data Dragon + kisisel kayit + salt-okunur LCU (bkz. LOLMOD) */
+  if (deps.lol !== false) { const lh = LOLMOD.createLolHost(Object.assign({ confirm: deps.confirm }, deps.lol || {})); Object.assign(handlers, lh.handlers); }
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
@@ -1559,4 +1740,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD };
