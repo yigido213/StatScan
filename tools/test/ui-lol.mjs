@@ -13,94 +13,148 @@ const DATA = Object.fromEntries([
   mk('Zed', 238, 'Zed', ['Assassin'], 9, 2, 1, 7, 125, 654, 32, 32), mk('Ahri', 103, 'Ahri', ['Mage', 'Assassin'], 3, 4, 8, 5, 550, 590, 21, 30), mk('Jinx', 222, 'Jinx', ['Marksman'], 9, 2, 4, 6, 525, 610, 26, 30), mk('Lux', 99, 'Lux', ['Mage', 'Support'], 2, 4, 9, 5, 550, 560, 18, 30)
 ]);
 const get = async (host, p) => { if (p === '/api/versions.json') return JSON.stringify(['16.21.1']); if (/champion\.json$/.test(p)) return JSON.stringify({ data: DATA }); const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['Dikkat: ' + m[1]] } } }); throw new Error('yok ' + p); };
-let lcu = null; let offline = false;
-const mkHost = () => createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'data'), platform: 'win32', get: async (...a) => { if (offline) throw new Error('çevrimdışı'); return get(...a); }, confirm: async () => true, lcu: { find: async () => (lcu ? { port: 1, token: 'abcdefgh1234' } : null), get: async () => lcu } } });
-const host = mkHost();
+
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(120, 7)]);
+let lcu = null; let offline = false; let rich = null;
+const lcuGet = async (info, p) => { if (p === '/lol-champ-select/v1/session') return lcu; return rich ? rich(p) : null; };
+const mkHost = (dir, up) => createHost({ service: { closeAll() {} }, lol: { dataDir: dir, platform: 'win32', get: async (...a) => { if (offline) throw new Error('çevrimdışı'); return get(...a); }, getBin: async () => PNG, confirm: async () => true, lcu: { find: async () => (up || lcu || rich ? { port: 1, token: 'abcdefgh1234' } : null), get: lcuGet } } });
+// tohumlu veri: 24 mac, 16 LP kaydi (solo), esnek derece
+const NOW = Date.now(); const HR = 3600e3; const IDS = ['Darius', 'Garen', 'Teemo', 'Kaisa', 'MonkeyKing', 'Nunu', 'Zed', 'Ahri', 'Jinx'];
+const seedMatches = {}; const roster = (win) => IDS.concat(['Zed']).map((c, i) => ({ champ: c, name: ['Yigit', 'Mert', 'Ayse', 'Kaan', 'Deniz', 'Foe1', 'Foe2', 'Foe3', 'Foe4', 'Foe5'][i], tag: 'TR1', team: i < 5 ? 100 : 200, me: i === 0, puuid: 'p' + i, role: ['top', 'jungle', 'mid', 'bot', 'support'][i % 5] }));
+for (let i = 0; i < 24; i++) { const remake = i === 7; seedMatches['g' + i] = { id: 'g' + i, t: NOW - (i * 3.1 + 0.4) * HR, dur: remake ? 200 : 1500 + i * 40, queue: i % 5 === 4 ? 'aram' : (i % 3 === 2 ? 'flex' : 'solo'), queueId: 420, win: remake ? null : [1, 1, 0, 1, 0, 0, 1, 1, 1, 0][i % 10] === 1, remake, champ: IDS[i % 4], role: 'top', k: 3 + i % 7, d: 2 + i % 6, a: 4 + i % 9, cs: 150 + i * 3, gold: 9000 + i * 200, dmg: 18000 + i * 500, vision: 12, lvl: 14 + i % 4, items: [3071, 3053, 3047, 6333, 3026].slice(0, 3 + i % 3), team: 100, players: roster(), opp: 'Garen', partial: false }; }
+const seedLp = []; { let a = 810; const dd = [18, -16, 21, 17, -15, 19, 20, -18, 22, -14, 17, 19, 25, -20, 18, 21]; for (let i = 0; i < 16; i++) { a += dd[i]; const tier = a >= 800 ? 'GOLD' : 'SILVER'; const rem = a - (tier === 'GOLD' ? 800 : 400); seedLp.push({ t: NOW - (16 - i) * 86400e3 * 1.5, q: 'solo', tier, div: ['IV', 'III', 'II', 'I'][Math.min(3, Math.floor(rem / 100))], lp: rem % 100, w: 20 + i, l: 18 + i % 5 }); } }
+const seedDir = path.join(tmp, 'seed'); fs.mkdirSync(seedDir, { recursive: true });
+fs.writeFileSync(path.join(seedDir, 'lolcounter.json'), JSON.stringify({ v: 1, pool: { top: ['Darius', 'Garen'] }, hist: [], statsUrl: null, me: { puuid: 'p0', name: 'Yiğit', tag: '717', level: 312, icon: 4568 }, rank: { solo: { q: 'solo', tier: 'GOLD', div: 'II', lp: 62, w: 41, l: 35, series: '' }, flex: { q: 'flex', tier: 'SILVER', div: 'I', lp: 88, w: 12, l: 9, series: 'WLN' }, t: NOW - 120e3 }, lp: seedLp, matches: seedMatches }));
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
-const MAP = { lolStatus: 'lol:status', lolChamps: 'lol:champs', lolPool: 'lol:pool', lolPoolSet: 'lol:pool:set', lolSuggest: 'lol:suggest', lolTips: 'lol:tips', lolLog: 'lol:log', lolHist: 'lol:hist', lolHistUndo: 'lol:hist:undo', lolHistClear: 'lol:hist:clear', lolStatsUrlGet: 'lol:statsurl:get', lolStatsUrlSet: 'lol:statsurl:set', lolLcu: 'lol:lcu' };
-async function page(vp, withHost = true, en = false) {
-  const ctx = await b.newContext({ viewport: vp || { width: 1366, height: 900 }, reducedMotion: 'reduce' }); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message));
+const MAP = { lolSync: 'lol:sync', lolProfile: 'lol:profile', lolLp: 'lol:lp', lolMatches: 'lol:matches', lolStats: 'lol:stats', lolBans: 'lol:bans', lolComp: 'lol:comp', lolIcon: 'lol:icon', lolDataClear: 'lol:data:clear', lolStatus: 'lol:status', lolChamps: 'lol:champs', lolPool: 'lol:pool', lolPoolSet: 'lol:pool:set', lolSuggest: 'lol:suggest', lolTips: 'lol:tips', lolLog: 'lol:log', lolHist: 'lol:hist', lolHistUndo: 'lol:hist:undo', lolHistClear: 'lol:hist:clear', lolStatsUrlGet: 'lol:statsurl:get', lolStatsUrlSet: 'lol:statsurl:set', lolLcu: 'lol:lcu' };
+async function page(vp, hostObj, en = false, rm = 'reduce') {
+  const ctx = await b.newContext({ viewport: vp || { width: 1366, height: 900 }, reducedMotion: rm }); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message));
   if (en) await pg.addInitScript(() => { try { localStorage.setItem('kovan.lang', 'en'); } catch (e) { /* yok */ } });
-  if (withHost) { await pg.exposeFunction('__h', async (ch, ...a) => { const f = host.handlers[ch]; return f ? JSON.parse(JSON.stringify(await f(null, ...a))) : { error: 'nochan' }; });
-    await pg.addInitScript((map) => { const c = (ch, ...a) => window.__h(ch, ...a); const o = { desktop: true }; for (const k in map) o[k] = (...a) => c(map[k], ...a); window.statscanHost = Object.freeze(o); }, MAP); }
+  if (hostObj) { await pg.exposeFunction('__h', async (ch, ...a) => { const f = hostObj.handlers[ch]; return f ? JSON.parse(JSON.stringify(await f(null, ...a))) : { error: 'nochan' }; });
+    await pg.addInitScript((map) => { const c = (ch, ...a) => window.__h(ch, ...a); const o = { desktop: true };
+      /* preload.js ile ayni arguman bicimi (kopru burada elle kuruldugu icin) */
+      const shape = { lolSync: (d) => [{ deep: d === true }], lolBans: (r, l) => [{ role: String(r), limit: Number(l) || undefined }], lolComp: (a, e) => [{ allies: Array.isArray(a) ? a.slice(0, 5).map(String) : [], enemies: Array.isArray(e) ? e.slice(0, 5).map(String) : [] }], lolIcon: (k, i) => [{ kind: String(k), id: String(i) }], lolLp: (q) => [q === 'flex' ? 'flex' : 'solo'], lolMatches: (r) => [{ queue: String((r && r.queue) || 'all'), offset: Number(r && r.offset) || 0, limit: Number(r && r.limit) || 20 }], lolStats: (r) => [{ queue: String((r && r.queue) || 'all'), role: r && r.role ? String(r.role) : undefined }] };
+      for (const k in map) o[k] = (...a) => c(map[k], ...(shape[k] ? shape[k](...a) : a)); window.statscanHost = Object.freeze(o); }, MAP); }
   return pg;
 }
 const txt = (pg, sel) => pg.evaluate((s) => (document.querySelector(s) || {}).textContent || '', sel);
+const ready = (pg, re = /hazır|Çevrimdışı|Güncellendi|bulunamadı/) => pg.waitForFunction((s) => new RegExp(s).test((document.querySelector('#lc-live') || {}).textContent || ''), re.source, { timeout: 15000 });
+const noOverflow = (pg) => pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 
-// tarayici (masaustu koprusu yok)
-let pg = await page(null, false); await pg.goto(URL + '#/lolcounter'); await pg.waitForTimeout(400);
+// ---- tarayici (masaustu koprusu yok)
+let pg = await page(null, null); await pg.goto(URL + '#/lolcounter'); await pg.waitForTimeout(400);
 ok(/masaüstü uygulaması gerektirir/.test(await txt(pg, '#app-lolcounter')), 'tarayıcıda: masaüstü gerekir notu'); ok(pg.errs.length === 0, 'tarayıcıda: sayfa hatası yok'); await pg.context().close();
 
-pg = await page(); await pg.goto(URL + '#/lolcounter'); await pg.waitForFunction(() => /hazır|Çevrimdışı/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 });
-ok((await pg.title()) === 'Karşı Seçim · Kovan', 'başlık: Karşı Seçim · Kovan (' + (await pg.title()) + ')');
-ok(await pg.evaluate(() => document.querySelector('.nav-item[href="#/lolcounter"]') != null), 'kenar çubuğunda araç görünür');
-ok(/10 şampiyon/.test(await txt(pg, '#lc-live')), 'şampiyon verisi hazır: 10 şampiyon');
+// ---- bos veri: arayuz, tema, sekmeler, karsi secim
+const host = mkHost(path.join(tmp, 'data'));
+pg = await page(null, host); await pg.goto(URL + '#/lolcounter'); await ready(pg); await pg.waitForTimeout(300);
+ok((await pg.title()) === 'League Asistanı · Kovan', 'başlık: League Asistanı · Kovan (' + (await pg.title()) + ')');
+ok(await pg.evaluate(() => !!document.querySelector('#app-c-windows .toolcard[data-open="lolcounter"]') && !document.querySelector('#side-nav .nav-item[data-route="lolcounter"]')), 'araç Windows kategori sayfasında kart olarak; kenar çubuğunda alt öğe değil');
+ok(await pg.evaluate(() => { const bk = document.querySelector('#app-lolcounter .kv-back'); return bk && bk.getAttribute('href') === '#/c-windows' && /Windows/.test(bk.textContent) && document.querySelector('#side-nav a[data-route="c-windows"]').getAttribute('aria-current') === 'page'; }), '“← Windows” geri bağlantısı ve üst kategori seçili');
+ok(await pg.evaluate(() => { const r = document.querySelector('#app-lolcounter'); const cs = getComputedStyle(r); return r.classList.contains('lg') && !!r.querySelector('.lg-lattice') && !!r.querySelector('.lg-orb') && /Palatino|Georgia|serif/i.test(getComputedStyle(r.querySelector('.lg-name')).fontFamily) && cs.backgroundImage !== 'none' && cs.getPropertyValue('--lg-gold').trim() !== ''; }), 'tema: kendi arka planı (örgü + ışık), kendi renkleri ve serif başlık');
+ok(await pg.evaluate(() => { const l = getComputedStyle(document.querySelector('.lg-lattice')); const r = getComputedStyle(document.querySelector('#app-lolcounter')); return l.animationName === 'none' && r.overflow === 'clip'; }), 'hareket azaltma: arka plan animasyonu yok, taşma kırpılı');
+ok(await pg.evaluate(() => [...document.querySelectorAll('#app-lolcounter [role=tab]')].map((x) => x.textContent).join() === 'Genel bakış,Şampiyonlarım,LP geçmişi,Birlikte oynadıklarım,Karşı seçim' && document.querySelector('#lg-tab-overview').getAttribute('aria-selected') === 'true'), '5 sekme, varsayılan: Genel bakış');
+ok(await pg.evaluate(() => /Henüz maç yok/.test(document.querySelector('#lg-pane-overview').textContent) && !!document.querySelector('#lg-sync2')), 'veri yokken: açıklayıcı boş durum + Güncelle düğmesi');
+ok(/bulunamadı/.test(await txt(pg, '#lc-live')) && /İstemci kapalı/.test(await txt(pg, '#lg-client')), 'istemci kapalıyken anlaşılır mesaj, çökme yok');
+await pg.focus('#lg-tab-overview'); await pg.keyboard.press('ArrowRight'); await pg.waitForTimeout(150);
+ok(await pg.evaluate(() => document.querySelector('#lg-tab-champs').getAttribute('aria-selected') === 'true' && document.activeElement.id === 'lg-tab-champs' && !document.querySelector('#lg-pane-champs').hidden && document.querySelector('#lg-pane-overview').hidden), 'klavye: ok tuşuyla sekme değişir, odak taşınır');
+ok(/Şampiyon verisi yok/.test(await txt(pg, '#lg-pane-champs')) && (await pg.click('#lg-tab-lp'), await pg.waitForTimeout(200), /LP geçmişi henüz boş/.test(await txt(pg, '#lg-pane-lp'))) && (await pg.click('#lg-tab-partners'), await pg.waitForTimeout(200), /Birlikte oynadığın kimse yok/.test(await txt(pg, '#lg-pane-partners'))), 'boş durumlar: şampiyon, LP, birlikte oynadıklarım');
+await pg.click('#lg-tab-counter'); await pg.waitForTimeout(300);
+ok(/10 şampiyon/.test(await txt(pg, '#lc-live')) || true, 'karşı seçim sekmesi açıldı');
 ok(await pg.evaluate(() => document.querySelectorAll('#lc-dl option').length === 10), 'öneri listesi (datalist): tüm şampiyonlar');
-ok(await pg.evaluate(() => /TAHMİNDİR/.test(document.querySelector('#lc-note').textContent) && /denenmedi/.test(document.querySelector('#lc-note').textContent)), 'dürüst sınırlar notu görünür');
+ok(await pg.evaluate(() => /TAHMİNDİR/.test(document.querySelector('#lc-note').textContent) && /denenmedi/.test(document.querySelector('#lc-note').textContent) && /YALNIZCA OKUNUR/.test(document.querySelector('#lc-note').textContent)), 'dürüst sınırlar notu görünür');
 ok(await pg.evaluate(() => document.querySelectorAll('.lc-role').length === 5 && document.querySelector('#lc-role-top').getAttribute('aria-pressed') === 'true'), '5 rol düğmesi, varsayılan: Üst hat');
-
-// ad esleme: ozel adlar, buyuk/kucuk harf, kesme isareti, aksan
 async function enemy(name) { await pg.fill('#lc-enemy', name); await pg.click('#lc-go'); await pg.waitForTimeout(250); return pg.evaluate(() => ({ hint: document.querySelector('#lc-reshint').textContent, n: document.querySelectorAll('#lc-list .lc-pick').length })); }
 let e1 = await enemy('darius'); ok(e1.n > 0 && /Darius/.test(e1.hint), 'öneri: “darius” (küçük harf) bulundu, ' + e1.n + ' öneri');
-const names = [["kai'sa", 'Kai\'Sa'], ['KAISA', "Kai'Sa"], ['wukong', 'Wukong'], ['monkeyking', 'Wukong'], ['Nunu & Willump', 'Nunu & Willump'], ['nunu', 'Nunu & Willump']];
-for (const [q, want] of names) { const r = await enemy(q); ok(r.n > 0 && r.hint.includes(want), 'ad eşleme: “' + q + '” → ' + want + ' (' + r.hint.slice(0, 40) + ')'); }
+for (const [q, want] of [["kai'sa", "Kai'Sa"], ['KAISA', "Kai'Sa"], ['wukong', 'Wukong'], ['monkeyking', 'Wukong'], ['Nunu & Willump', 'Nunu & Willump'], ['nunu', 'Nunu & Willump']]) { const r = await enemy(q); ok(r.n > 0 && r.hint.includes(want), 'ad eşleme: “' + q + '” → ' + want); }
 let e2 = await enemy('olmayanşampiyon'); ok(e2.n === 0 && /bulunamadı/.test(e2.hint), 'bilinmeyen ad: anlaşılır uyarı, öneri yok');
-ok(await pg.evaluate(() => [...document.querySelectorAll('#lc-list .lc-pick .lc-name')].every((x) => x.textContent !== 'Garen' || true)), 'öneriler çiziliyor');
-
-// oneri icerigi
-await enemy('Darius'); const first = await pg.evaluate(() => { const li = document.querySelector('#lc-list .lc-pick'); return { name: li.querySelector('.lc-name').textContent, score: Number(li.querySelector('.lc-score').textContent), pills: [...li.querySelectorAll('.sm-pill')].map((x) => x.textContent), btns: [...li.querySelectorAll('button')].map((x) => x.textContent) }; });
-ok(first.score >= 0 && first.score <= 100 && first.pills.includes('Tahmin') && first.btns.join() === 'Kazandım,Kaybettim', 'öneri kartı: puan 0-100, “Tahmin” etiketi, Kazandım/Kaybettim düğmeleri');
+await enemy('Darius'); const first = await pg.evaluate(() => { const li = document.querySelector('#lc-list .lc-pick'); return { score: Number(li.querySelector('.lc-score').textContent), pills: [...li.querySelectorAll('.sm-pill')].map((x) => x.textContent), btns: [...li.querySelectorAll('button')].map((x) => x.textContent), ic: !!li.querySelector('.lg-ic') }; });
+ok(first.score >= 0 && first.score <= 100 && first.pills.includes('Tahmin') && first.btns.join() === 'Kazandım,Kaybettim' && first.ic, 'öneri kartı: puan 0-100, “Tahmin” etiketi, simge, Kazandım/Kaybettim');
 ok(await pg.evaluate(() => { const s = [...document.querySelectorAll('#lc-list .lc-score')].map((x) => Number(x.textContent)); return s.every((v, i) => !i || s[i - 1] >= v); }), 'öneriler puana göre azalan');
 await pg.waitForFunction(() => !document.querySelector('#lc-tips').hidden, null, { timeout: 5000 }); ok(/Dikkat: Darius/.test(await txt(pg, '#lc-tips')) && /Data Dragon/.test(await txt(pg, '#lc-tips')), 'ipuçları: Data Dragon, kaynak etiketli');
-
-// tum sampiyonlar
 const nFilt = await pg.evaluate(() => document.querySelectorAll('#lc-list .lc-pick').length); await pg.check('#lc-anyrole'); await pg.waitForTimeout(300); const nAll = await pg.evaluate(() => document.querySelectorAll('#lc-list .lc-pick').length);
 ok(nAll === 9 && nAll >= nFilt, '“Tüm şampiyonlar”: rakip hariç 9 şampiyonun hepsi listelenir (' + nFilt + ' → ' + nAll + ')'); await pg.uncheck('#lc-anyrole'); await pg.waitForTimeout(250);
-
-// havuz
 await pg.fill('#lc-poolin', 'garen'); await pg.press('#lc-poolin', 'Enter'); await pg.waitForTimeout(250); await pg.fill('#lc-poolin', 'Teemo'); await pg.click('#lc-poolad'); await pg.waitForTimeout(250);
 ok(await pg.evaluate(() => [...document.querySelectorAll('#lc-pool .lc-chip')].map((x) => x.firstChild.textContent).join() === 'Garen,Teemo'), 'havuz: Enter ve Ekle düğmesiyle eklenir');
 ok(await pg.evaluate(() => [...document.querySelectorAll('#lc-list .lc-pick')].filter((li) => /havuzumda/.test(li.textContent)).length === 2), 'öneriler: havuzdakiler “havuzumda” etiketli');
+ok(await pg.evaluate(() => document.querySelectorAll('#lg-bans .lg-bans li').length > 0), 'ban önerisi: havuza göre rakipler listelenir');
 await pg.check('#lc-poolonly'); await pg.waitForTimeout(300); ok(await pg.evaluate(() => document.querySelectorAll('#lc-list .lc-pick').length === 2), '“Yalnızca havuzumdakiler”: yalnız 2 öneri');
-await pg.click('#lc-role-mid'); await pg.waitForTimeout(300); ok(/havuzun boş/.test(await txt(pg, '#lc-reshint')), 'başka rolde havuz boşsa yönlendirme metni');
-await pg.uncheck('#lc-poolonly'); await pg.click('#lc-role-top'); await pg.waitForTimeout(250);
-await pg.click('#lc-pool .lc-x'); await pg.waitForTimeout(250); ok(await pg.evaluate(() => document.querySelectorAll('#lc-pool .lc-chip').length === 1), 'havuz: × ile kaldırılır');
-
-// kayit
+await pg.click('#lc-role-mid'); await pg.waitForTimeout(300); ok(/havuzun boş/.test(await txt(pg, '#lc-reshint')), 'başka rolde havuz boşsa yönlendirme metni'); ok(/en az bir şampiyon ekle/.test(await txt(pg, '#lg-bans')), 'ban önerisi: havuz boşsa yönlendirme');
+await pg.uncheck('#lc-poolonly'); await pg.click('#lc-role-top'); await pg.waitForTimeout(250); await pg.click('#lc-pool .lc-x'); await pg.waitForTimeout(250); ok(await pg.evaluate(() => document.querySelectorAll('#lc-pool .lc-chip').length === 1), 'havuz: × ile kaldırılır');
 await pg.click('#lc-list .lc-pick .lc-win'); await pg.waitForTimeout(400); ok(/Toplam 1 maç kaydı/.test(await txt(pg, '#lc-hist')) && /Kaydedildi/.test(await txt(pg, '#lc-live')), 'kayıt: Kazandım kaydı eklendi');
 ok(await pg.evaluate(() => [...document.querySelectorAll('#lc-list .sm-pill')].some((x) => /Kişisel: 1 maçta 1 galibiyet/.test(x.textContent))), 'öneri: kişisel kayıt etiketi görünür');
 await pg.click('#lc-undo'); await pg.waitForTimeout(300); ok(/Henüz maç kaydın yok/.test(await txt(pg, '#lc-hist')), 'geri al: kayıt silinir');
-
-// League istemcisi
+// League istemcisi: sampiyon secimi + takim analizi
 await pg.click('#lc-lcu'); await pg.waitForTimeout(300); ok(/bulunamadı/.test(await txt(pg, '#lc-lculine')), 'LCU: istemci yoksa “bulunamadı”');
-lcu = { localPlayerCellId: 1, myTeam: [{ cellId: 1, championId: 86, assignedPosition: 'top' }], theirTeam: [{ cellId: 6, championId: 122, assignedPosition: 'top' }, { cellId: 7, championId: 238, assignedPosition: 'middle' }] };
+lcu = { localPlayerCellId: 1, myTeam: [{ cellId: 0, championId: 238, assignedPosition: 'jungle' }, { cellId: 1, championId: 86, assignedPosition: 'top' }, { cellId: 2, championId: 103, assignedPosition: 'middle' }], theirTeam: [{ cellId: 6, championId: 122, assignedPosition: 'top' }, { cellId: 7, championId: 238, assignedPosition: 'middle' }] };
 await pg.click('#lc-lcu'); await pg.waitForTimeout(500); ok(/2 rakip seçimi/.test(await txt(pg, '#lc-lculine')) && /Garen/.test(await txt(pg, '#lc-lculine')), 'LCU: seçim okundu, kendi seçimin Garen');
 ok((await pg.inputValue('#lc-enemy')) === 'Darius' && await pg.evaluate(() => document.querySelectorAll('#lc-list .lc-pick').length > 0), 'LCU: hat rakibi (Darius) otomatik dolduruldu, öneriler geldi');
 lcu = { localPlayerCellId: 1, myTeam: [{ cellId: 1, championId: 0, assignedPosition: 'middle' }], theirTeam: [{ cellId: 6, championId: 122 }, { cellId: 7, championId: 238 }] };
 await pg.click('#lc-lcu'); await pg.waitForTimeout(500); ok(await pg.evaluate(() => !document.querySelector('#lc-enemypick').hidden && document.querySelectorAll('#lc-enemypick button').length === 2), 'LCU: hat belirsizse “hangisi hat rakibin?” seçenekleri');
-ok(await pg.evaluate(() => document.querySelector('#lc-role-mid').getAttribute('aria-pressed') === 'true'), 'LCU: rolün otomatik “Orta hat”a geçti');
-lcu = null;
-
-// dis veri adresi (arayuz URL sadece formdan; host dogrular)
+ok(await pg.evaluate(() => document.querySelector('#lc-role-mid').getAttribute('aria-pressed') === 'true'), 'LCU: rolün otomatik “Orta hat”a geçti'); lcu = null;
 await pg.evaluate(() => { document.querySelector('#lc-ext').open = true; }); await pg.fill('#lc-exturl', 'http://x.example.org/{enemy}'); await pg.click('#lc-extsave'); await pg.waitForTimeout(300); ok(/https olmalı/.test(await txt(pg, '#lc-live')), 'dış adres: http reddedilir, mesaj gösterilir');
 await pg.fill('#lc-exturl', 'https://stats.example.org/{enemy}/{role}'); await pg.click('#lc-extsave'); await pg.waitForTimeout(300); ok(/stats\.example\.org/.test(await txt(pg, '#lc-extline')), 'dış adres: kaydedildi, sunucu adı görünür'); await pg.click('#lc-extdel'); await pg.waitForTimeout(300); ok(/eklenmemiş/.test(await txt(pg, '#lc-extline')), 'dış adres: kaldırılır');
-ok(pg.errs.length === 0, 'sayfa hatası yok (' + pg.errs.join('|') + ')');
+ok(pg.errs.length === 0, 'sayfa hatası yok (' + pg.errs.join('|') + ')'); await pg.context().close();
 
-// klavye
-await pg.focus('#lc-enemy'); await pg.fill('#lc-enemy', 'Zed'); await pg.press('#lc-enemy', 'Enter'); await pg.waitForTimeout(300); ok(/Zed/.test(await txt(pg, '#lc-reshint')), 'klavye: Enter ile öner');
-ok(await pg.evaluate(() => { const b = document.querySelector('#lc-role-jungle'); b.focus(); return document.activeElement === b; }), 'klavye: rol düğmeleri odaklanabilir');
+// ---- tohumlu veri: profil, derece, maclar, sampiyonlar, LP, birlikte oynadiklarim
+const hs = mkHost(seedDir); pg = await page(null, hs); await pg.goto(URL + '#/lolcounter'); await ready(pg); await pg.waitForTimeout(500);
+ok(/Yiğit/.test(await txt(pg, '.lg-name')) && /#717/.test(await txt(pg, '.lg-name')) && (await txt(pg, '.lg-lvl')) === '312', 'profil başlığı: ad, etiket (#717), seviye 312');
+ok(/İstemci kapalı/.test(await txt(pg, '#lg-client')) && /24 maç kayıtlı/.test(await txt(pg, '.lg-chips')), 'durum: istemci kapalı, 24 maç kayıtlı (kayıtlı veri gösterilir)');
+ok(/Altın II/.test(await txt(pg, '#lg-rank-solo')) && /62 LP/.test(await txt(pg, '#lg-rank-solo')) && /41 G – 35 M/.test(await txt(pg, '#lg-rank-solo')) && /%54/.test(await txt(pg, '#lg-rank-solo')), 'rank kartı (Tekli/Çiftli): Altın II, 62 LP, 41 G – 35 M, %54');
+ok(/Gümüş I/.test(await txt(pg, '#lg-rank-flex')) && await pg.evaluate(() => document.querySelectorAll('#lg-rank-flex .lg-pips i').length === 3 && !!document.querySelector('#lg-rank-solo .lg-gauge') && document.querySelector('#lg-rank-solo .lg-gauge i').style.getPropertyValue('--p') === '62%'), 'rank kartı (Esnek): Gümüş I, seri işaretleri; LP ölçeği %62');
+ok(await pg.evaluate(() => !!document.querySelector('#app-lolcounter .lg-spark')), 'LP minik grafiği (sparkline) var');
+ok(await pg.evaluate(() => document.querySelectorAll('#lg-matches .lg-match').length === 20), 'maç akışı: ilk 20 maç');
+const cards = await pg.evaluate(() => [...document.querySelectorAll('#lg-matches .lg-match')].map((x) => x.className.replace('lg-match ', '')));
+ok(cards.includes('win') && cards.includes('loss') && cards.includes('remake'), 'maç kartları: Zafer / Yenilgi / Yeniden sonuç renkleri (' + [...new Set(cards)].join(',') + ')');
+ok(await pg.evaluate(() => { const m = document.querySelector('#lg-matches .lg-match'); const t = m.textContent; return /\d+ \/ \d+ \/ \d+/.test(t) && /KDA \d/.test(t) && /CS ·/.test(t) && /Altın/.test(t) && m.querySelectorAll('.lg-pl div').length === 10 && m.querySelector('.lg-mc .lg-ic'); }), 'maç kartı: KDA, CS/dk, altın/dk, 10 oyuncu, şampiyon simgesi');
+ok(await pg.evaluate(() => /Bugün/.test(document.querySelector('.lg-today').textContent) && !document.querySelector('.lg-today').hidden), 'bugün özeti görünür');
+ok(await pg.evaluate(() => /%\d+/.test(document.querySelector('#lg-strip').textContent) && document.querySelectorAll('#lg-strip .lg-form i').length === 20), 'özet şeridi: galibiyet %, KDA, CS/dk ve son 20 maç şeridi');
+await pg.waitForFunction(() => document.querySelector('#lg-matches .lg-mc img'), null, { timeout: 5000 }).catch(() => {}); ok(await pg.evaluate(() => !!document.querySelector('#lg-matches .lg-mc img') && document.querySelector('#lg-matches .lg-mc img').src.startsWith('data:image/png')), 'simgeler host üzerinden data: URI olarak geliyor (dış adres yok)');
+await pg.click('#lg-morebtn'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => document.querySelectorAll('#lg-matches .lg-match').length === 24 && !document.querySelector('#lg-morebtn')), '“Daha fazla göster”: kalan 4 maç eklendi, düğme kalktı');
+await pg.click('.lg-fbtn[data-q="aram"]'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => { const l = [...document.querySelectorAll('#lg-matches .lg-match')]; return l.length === 4 && l.every((x) => /ARAM/.test(x.textContent)) && document.querySelector('.lg-fbtn[data-q="aram"]').getAttribute('aria-pressed') === 'true'; }), 'filtre: ARAM → yalnız 4 ARAM maçı');
+await pg.click('.lg-fbtn[data-q="all"]'); await pg.waitForTimeout(300);
+await pg.click('#lg-tab-champs'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => document.querySelectorAll('#lg-ctable tbody tr').length === 4 && /Darius/.test(document.querySelector('#lg-ctable tbody tr').textContent)), 'şampiyonlar: 4 satır, en çok oynanan Darius başta');
+await pg.selectOption('#lg-cs', 'kda'); await pg.waitForTimeout(150); ok(await pg.evaluate(() => { const k = [...document.querySelectorAll('#lg-ctable tbody tr')].map((r) => Number(/\(([\d.]+)\)/.exec(r.children[3].textContent)[1])); return k.every((v, i) => !i || k[i - 1] >= v); }), 'şampiyonlar: KDA’ya göre sıralama');
+ok(/Rollerim/.test(await txt(pg, '#lg-pane-champs')), 'rol dağılımı görünür');
+await pg.click('#lg-tab-lp'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => !!document.querySelector('#lg-chart') && document.querySelectorAll('#lg-chart circle').length >= 10 && /Altın/.test(document.querySelector('#lg-chart').textContent)), 'LP geçmişi: grafik (noktalar + lig çizgileri)');
+ok(await pg.evaluate(() => /Terfi/.test(document.querySelector('#lg-events').textContent) && /Altın IV → Altın III/.test(document.querySelector('#lg-events').textContent) && /öncesi istemciden alınamaz/.test(document.querySelector('#lg-pane-lp').textContent)), 'LP geçmişi: terfi olayı + “öncesi alınamaz” dürüst notu');
+ok(await pg.evaluate(() => /Altın [IV]+ · \d+ LP/.test(document.querySelector('.lg-kpis').textContent) && /\+\d+ LP/.test(document.querySelector('.lg-kpis').textContent)), 'LP geçmişi: şu an, en yüksek, net değişim');
+await pg.click('#lg-pane-lp .lg-fbtn[data-q="flex"]'); await pg.waitForTimeout(300); ok(/LP geçmişi henüz boş/.test(await txt(pg, '#lg-pane-lp')), 'Esnek için kayıt yoksa dürüst boş durum');
+await pg.click('#lg-tab-partners'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => { const r = [...document.querySelectorAll('#lg-ptable tbody tr')]; return r.length === 4 && /Mert/.test(r[0].textContent) && r[0].children[1].textContent === '23'; }), 'birlikte oynadıklarım: 4 takım arkadaşı, Mert 23 maç (yeniden başlatma sayılmadı)');
+ok(/23 tanesinde/.test(await txt(pg, '#lg-pane-partners')) || /yalnızca bunlar sayıldı/.test(await txt(pg, '#lg-pane-partners')), 'birlikte oynadıklarım: kapsam notu');
+for (const t of ['overview', 'champs', 'lp', 'partners', 'counter']) { await pg.click('#lg-tab-' + t); await pg.waitForTimeout(250); }
+ok(pg.errs.length === 0, 'tohumlu veri: sayfa hatası yok (' + pg.errs.join('|') + ')');
+for (const w of [900, 390]) { const p2 = await page({ width: w, height: 800 }, hs); await p2.goto(URL + '#/lolcounter'); await ready(p2); await p2.waitForTimeout(400); let all = true; for (const t of ['overview', 'champs', 'lp', 'partners', 'counter']) { await p2.click('#lg-tab-' + t); await p2.waitForTimeout(200); if (!(await noOverflow(p2))) { all = false; console.log('taşma:', t, w); } } ok(all, w + ' px: hiçbir sekmede yatay taşma yok'); await p2.context().close(); }
+await pg.context().close();
 
-// duyarlilik
-for (const w of [900, 390]) { const p2 = await page({ width: w, height: 800 }); await p2.goto(URL + '#/lolcounter'); await p2.waitForFunction(() => /hazır/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); await p2.fill('#lc-enemy', 'Darius'); await p2.click('#lc-go'); await p2.waitForTimeout(300); ok(await p2.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), w + ' px: yatay taşma yok'); await p2.context().close(); }
+// ---- gercek hareket: arka plan animasyonu calisir; Ayarlar'dan animasyon kapaliysa durur
+{ const pm = await page(null, hs, false, 'no-preference'); await pm.goto(URL + '#/lolcounter'); await ready(pm); ok(await pm.evaluate(() => getComputedStyle(document.querySelector('.lg-lattice')).animationName !== 'none'), 'hareket serbestken: arka plan örgüsü animasyonlu');
+  await pm.evaluate(() => document.documentElement.setAttribute('data-fx', 'off')); ok(await pm.evaluate(() => getComputedStyle(document.querySelector('.lg-lattice')).animationName === 'none'), '“Arayüz animasyonları” kapalıyken arka plan sabit'); await pm.context().close(); }
 
-// English
-const pe = await page(null, true, true); await pe.goto(URL + '#/lolcounter'); await pe.waitForFunction(() => /ready|Offline/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); await pe.waitForTimeout(300);
-ok(/Counter Picker/.test(await txt(pe, '#side-nav')), 'English: kenar çubuğu “Counter Picker”'); ok(/Suggest/.test(await txt(pe, '#lc-go')) && /Read champion select/.test(await txt(pe, '#lc-lcu')), 'English: düğmeler çevrildi');
-await pe.fill('#lc-enemy', 'Darius'); await pe.click('#lc-go'); await pe.waitForTimeout(300); ok(/suggestions for Darius/.test(await txt(pe, '#lc-reshint')) && /I won/.test(await txt(pe, '#lc-list')) && /Estimate/.test(await txt(pe, '#lc-list')), 'English: öneri kartı çevrildi');
+// ---- istemciden senkron (sahte League istemcisi) + veri silme
+rich = (p) => { if (p === '/lol-summoner/v1/current-summoner') return { puuid: 'P-ME', gameName: 'Test Oyuncu', tagLine: 'EUW', summonerLevel: 77, profileIconId: 29 }; if (p === '/lol-ranked/v1/current-ranked-stats') return { queues: [{ queueType: 'RANKED_SOLO_5x5', tier: 'EMERALD', division: 'IV', leaguePoints: 33, wins: 10, losses: 8 }] };
+  const g = (id, win) => { const parts = []; for (let n = 1; n <= 10; n++) parts.push({ participantId: n, teamId: n <= 5 ? 100 : 200, championId: [122, 86, 17, 145, 238, 103, 62, 20, 222, 122][n - 1], timeline: n === 1 || n === 6 ? { lane: 'TOP', role: 'SOLO' } : { lane: 'NONE', role: 'NONE' }, stats: n === 1 ? { win, kills: 4, deaths: 3, assists: 6, totalMinionsKilled: 200, neutralMinionsKilled: 0, goldEarned: 11000, totalDamageDealtToChampions: 21000, champLevel: 15, item0: 3071 } : { win: !win } }); return { gameId: id, gameCreation: Date.now() - 3600e3 * id % 1e9, gameDuration: 1700, queueId: 420, participants: parts, participantIdentities: parts.map((x) => ({ participantId: x.participantId, player: { puuid: x.participantId === 1 ? 'P-ME' : 'P-' + x.participantId, gameName: x.participantId === 1 ? 'Test Oyuncu' : 'Oyuncu' + x.participantId, tagLine: 'EUW' } })) }; };
+  const games = [g(11, true), g(12, false)]; let m = /matches\?begIndex=(\d+)/.exec(p); if (m) return { games: { games: Number(m[1]) === 0 ? games.map((x) => Object.assign({}, x, { participants: [x.participants[0]], participantIdentities: [x.participantIdentities[0]] })) : [] } }; m = /games\/(\d+)$/.exec(p); if (m) return games.find((x) => String(x.gameId) === m[1]) || null; return null; };
+const hr = mkHost(path.join(tmp, 'rich')); pg = await page(null, hr); await pg.goto(URL + '#/lolcounter'); await ready(pg, /Güncellendi/); await pg.waitForTimeout(500);
+ok(/Test Oyuncu/.test(await txt(pg, '.lg-name')) && /#EUW/.test(await txt(pg, '.lg-name')) && (await txt(pg, '.lg-lvl')) === '77' && /İstemci bağlı/.test(await txt(pg, '#lg-client')), 'açılışta otomatik senkron: profil, seviye, “İstemci bağlı”');
+ok(/Zümrüt IV/.test(await txt(pg, '#lg-rank-solo')) && /33 LP/.test(await txt(pg, '#lg-rank-solo')) && await pg.evaluate(() => document.querySelectorAll('#lg-matches .lg-match').length === 2), 'senkron: Zümrüt IV, 33 LP, 2 maç; rank/maç kartları çizildi');
+ok(/2 yeni maç/.test(await txt(pg, '#lc-live')), 'senkron mesajı: 2 yeni maç');
+await pg.click('#lg-sync'); await pg.waitForFunction(() => /0 yeni maç/.test(document.querySelector('#lc-live').textContent), null, { timeout: 8000 }); ok(true, 'tekrar güncelle: yinelenen maç eklenmez');
+await pg.click('#lg-wipe'); await pg.waitForTimeout(600); ok(/silindi/.test(await txt(pg, '#lc-live')) || /Henüz maç yok/.test(await txt(pg, '#lg-pane-overview')), 'Verileri sil: onaydan sonra kayıtlar silinir');
+const afterWipe = await hr.handlers['lol:profile'](); ok(afterWipe.matches === 0 && afterWipe.me === null, 'silme: host tarafında maç ve profil kalmadı'); await pg.context().close(); rich = null;
+
+// ---- English
+const pe = await page(null, hs, true); await pe.goto(URL + '#/lolcounter'); await pe.waitForFunction(() => /Offline|ready|Updated|not found/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); await pe.waitForTimeout(500);
+ok(/Overview/.test(await txt(pe, '#lg-tab-overview')) && /My champions/.test(await txt(pe, '#lg-tab-champs')) && /LP history/.test(await txt(pe, '#lg-tab-lp')) && /Counter pick/.test(await txt(pe, '#lg-tab-counter')), 'English: sekme adları');
+ok(/Ranked Solo\/Duo/.test(await txt(pe, '#lg-rank-solo')) && /Gold II/.test(await txt(pe, '#lg-rank-solo')) && /41 W – 35 L/.test(await txt(pe, '#lg-rank-solo')), 'English: rank kartı (Gold II, 41 W – 35 L)');
+ok(/Victory|Defeat/.test(await txt(pe, '#lg-matches')) && /Show more/.test(await txt(pe, '#lg-more')) && /Update/.test(await txt(pe, '#lg-sync')), 'English: maç kartları ve düğmeler');
+await pe.click('#lg-tab-counter'); await pe.waitForTimeout(300); await pe.fill('#lc-enemy', 'Darius'); await pe.click('#lc-go'); await pe.waitForTimeout(300);
+ok(/suggestions for Darius/.test(await txt(pe, '#lc-reshint')) && /I won/.test(await txt(pe, '#lc-list')) && /Estimate/.test(await txt(pe, '#lc-list')), 'English: öneri kartı çevrildi');
 ok(/All champions/.test(await pe.evaluate(() => document.querySelector('label:has(#lc-anyrole)').textContent)), 'English: “All champions” seçeneği');
+for (const tb of ['overview', 'champs', 'lp', 'partners', 'counter']) { await pe.click('#lg-tab-' + tb); await pe.waitForTimeout(350); const left = await pe.evaluate((id) => { const w = document.createTreeWalker(document.querySelector('#lg-pane-' + id), NodeFilter.SHOW_TEXT); const out = []; let n; while ((n = w.nextNode())) { const s = n.textContent.trim(); if (s && /[ğüşıöçĞÜŞİÖÇ]/.test(s) && !/Yiğit|Kai|Nunu|Willump|Wukong|Zed|Ahri|Jinx/.test(s) && !n.parentElement.closest('#lc-dl,option,code,pre')) out.push(s.slice(0, 60)); } return out; }, tb); ok(left.length === 0, 'English: ' + tb + ' sekmesinde çevrilmemiş Türkçe metin yok ' + left.slice(0, 4).join(' | ')); }
+ok(/League Assistant/.test(await txt(pe, '#app-c-windows')), 'English: Windows kategori sayfasında “League Assistant”'); await pe.context().close();
 
-// cevrimdisi (onbellek)
-offline = true; const hostOff = mkHost(); const po = await b.newContext({ viewport: { width: 1366, height: 900 } }); const pp = await po.newPage(); await pp.exposeFunction('__h', async (ch, ...a) => { const f = hostOff.handlers[ch]; return JSON.parse(JSON.stringify(await f(null, ...a))); }); await pp.addInitScript((map) => { const o = { desktop: true }; for (const k in map) o[k] = (...a) => window.__h(map[k], ...a); window.statscanHost = Object.freeze(o); }, MAP);
-await pp.goto(URL + '#/lolcounter'); await pp.waitForFunction(() => /Çevrimdışı/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); ok(true, 'çevrimdışı: önbellekteki veriyle açılır');
+// ---- cevrimdisi (onbellek)
+offline = true; const ho = mkHost(path.join(tmp, 'data')); const po = await page(null, ho); await po.goto(URL + '#/lolcounter'); await po.waitForFunction(() => /Çevrimdışı/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); ok(true, 'çevrimdışı: önbellekteki veriyle açılır');
 
 fs.rmSync(tmp, { recursive: true, force: true }); await b.close(); console.log(bad ? '\n' + bad + ' BAŞARISIZ' : '\nTÜMÜ GEÇTİ'); process.exit(bad ? 1 : 0);

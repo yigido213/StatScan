@@ -42,7 +42,7 @@ let rip = 0; const sb = await pg.locator('#home-search').boundingBox(); await pg
 rip = await pg.evaluate(() => document.querySelectorAll('.kfx-rip').length); await pg.mouse.up(); ok(rip >= 1, 'düğmeye basınca dalga oluştu (' + rip + ')');
 await pg.keyboard.press('Escape'); await pg.waitForTimeout(900); ok(await pg.evaluate(() => document.querySelectorAll('.kfx-rip').length) === 0, 'dalga bitince DOM’dan silindi');
 // sayfa gecisi
-await pg.click('#side-nav a[data-route="statscan"]'); await pg.waitForTimeout(80); ok(/kview/.test(await an(pg, '#app-statscan')), 'araç değişince yeni görünüm kview ile geliyor'); await shot(pg, '05-statscan-gecis');
+await pg.evaluate(() => { location.hash = '#/statscan'; }); await pg.waitForTimeout(80); ok(/kview/.test(await an(pg, '#app-statscan')), 'araç değişince yeni görünüm kview ile geliyor'); await shot(pg, '05-statscan-gecis');
 await pg.click('#tab-info'); await pg.waitForTimeout(60); ok(/kview/.test(await an(pg, '#view-info')), 'StatScan sekme geçişi animasyonlu');
 // tema gecisi
 await pg.click('#side-theme'); ok(await pg.evaluate(() => document.documentElement.classList.contains('kfade')), 'tema değişirken yumuşak geçiş sınıfı (kfade) var'); await pg.waitForTimeout(900);
@@ -83,7 +83,7 @@ for (const wd of [1280, 980, 760, 390]) {
   pg = await page({}, { width: wd, height: 820 }); await pg.goto(URL + '#/home'); let worst = 0;
   for (let i = 0; i < 8; i++) { await pg.waitForTimeout(150); worst = Math.max(worst, await pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)); }
   ok(worst <= 1, wd + 'px: animasyon sırasında yatay taşma yok (' + worst + ')'); if (wd === 390) await shot(pg, '08-telefon');
-  await pg.click('#side-nav a[data-route="statscan"]'); await pg.waitForTimeout(100); ok((await pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 1, wd + 'px: StatScan geçişinde taşma yok');
+  await pg.evaluate(() => { location.hash = '#/statscan'; }); await pg.waitForTimeout(100); ok((await pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 1, wd + 'px: StatScan geçişinde taşma yok');
   ok(pg.errs.length === 0, wd + 'px: konsol hatası yok');
 }
 await b.close(); console.log(bad ? '\n' + bad + ' BAŞARISIZ' : '\nTAMAM'); process.exit(bad ? 1 : 0);

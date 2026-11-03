@@ -838,7 +838,7 @@ const SYSMOD = (() => {
 const LOLMOD = (() => {
   const fs = require('fs'); const path = require('path'); const https = require('https'); const cp = require('child_process');
   const ROLES = ['top', 'jungle', 'mid', 'bot', 'support'];
-  const LIM = { pool: 40, hist: 3000, body: 8 * 1024 * 1024, statsBody: 5 * 1024 * 1024, ms: 12000, top: 200, defTop: 12, recent: 30, urlLen: 400 };
+  const LIM = { pool: 40, hist: 3000, body: 8 * 1024 * 1024, statsBody: 5 * 1024 * 1024, ms: 12000, top: 200, defTop: 12, snaps: 3000, matches: 3000, details: 15, icon: 200 * 1024, recent: 30, urlLen: 400 };
   const ID_RE = /^[A-Za-z0-9]{1,32}$/; const DD_HOST = 'ddragon.leagueoflegends.com'; const LOCALES = ['tr_TR', 'en_US'];
   const LCU_ROLE = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'bot', utility: 'support' };
   const errE = (message, extra) => Object.assign({ error: 'lol', message }, extra || {});
@@ -906,12 +906,102 @@ const LOLMOD = (() => {
     return { myRole: mine ? rl(mine) : null, myPick: mine ? nm(mine) : null, allies: me.map((x) => ({ id: nm(x), role: rl(x), me: x === mine })).filter((x) => x.id), enemies: th.map((x) => ({ id: nm(x), role: rl(x) })).filter((x) => x.id) };
   }
 
+  /* ---------- profil / derece / LP / maclar (League istemcisinden SALT-OKUNUR cekilir, yalniz bu bilgisayarda saklanir) ---------- */
+  const TIERS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']; const DIVN = { I: 3, II: 2, III: 1, IV: 0 };
+  const absLp = (tier, div, lp) => { const i = TIERS.indexOf(String(tier || '').toUpperCase()); const p = Number(lp); if (i < 0 || !Number.isFinite(p)) return null; if (i >= 7) return 2800 + p; return i * 400 + (DIVN[String(div || '').toUpperCase()] || 0) * 100 + p; };
+  const QSTAT = { RANKED_SOLO_5x5: 'solo', RANKED_FLEX_SR: 'flex' };
+  const numOr0 = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
+  function normRank(e) {
+    if (!e || typeof e !== 'object') return null; const q = QSTAT[e.queueType]; if (!q) return null; const tier = String(e.tier || '').toUpperCase();
+    if (!TIERS.includes(tier)) return { q, unranked: true, w: numOr0(e.wins), l: numOr0(e.losses) };
+    return { q, tier, div: TIERS.indexOf(tier) >= 7 ? '' : String(e.division || '').toUpperCase().slice(0, 3), lp: numOr0(e.leaguePoints), w: numOr0(e.wins), l: numOr0(e.losses), series: e.miniSeriesProgress ? String(e.miniSeriesProgress).replace(/[^LWN]/g, '').slice(0, 7) : '' };
+  }
+  function parseRanked(j) { const out = { solo: null, flex: null }; const qs = j && Array.isArray(j.queues) ? j.queues : []; for (const e of qs) { const r = normRank(e); if (r && !out[r.q]) out[r.q] = r; } return out; }
+  function addSnap(list, r, t, cap) {
+    if (!r || r.unranked) return false; let last = null; for (let i = list.length - 1; i >= 0; i--) if (list[i].q === r.q) { last = list[i]; break; }
+    if (last && last.tier === r.tier && last.div === r.div && last.lp === r.lp && last.w === r.w && last.l === r.l) return false;
+    list.push({ t, q: r.q, tier: r.tier, div: r.div, lp: r.lp, w: r.w, l: r.l }); if (list.length > cap) list.splice(0, list.length - cap); return true;
+  }
+  function lpSeries(snaps, q) { return snaps.filter((s) => s.q === q).sort((a, b) => a.t - b.t).map((s) => ({ t: s.t, abs: absLp(s.tier, s.div, s.lp), tier: s.tier, div: s.div, lp: s.lp, w: s.w, l: s.l })).filter((p) => p.abs !== null); }
+  function lpEvents(snaps, q) {
+    const ser = lpSeries(snaps, q); const ev = [];
+    for (let i = 1; i < ser.length; i++) { const a = ser[i - 1]; const b = ser[i]; if (a.tier === b.tier && a.div === b.div) continue; const ab = absLp(a.tier, a.div, 0); const bb = absLp(b.tier, b.div, 0); ev.push({ t: b.t, type: bb > ab ? 'up' : 'down', from: { tier: a.tier, div: a.div }, to: { tier: b.tier, div: b.div } }); }
+    return ev.reverse();
+  }
+  const dayStart = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  function todayLp(snaps, q, t0) {
+    const ser = lpSeries(snaps, q); if (!ser.length) return null; const cur = ser[ser.length - 1]; if (cur.t < t0) return 0; let base = null; for (const p of ser) if (p.t < t0) base = p; if (!base) base = ser.find((p) => p.t >= t0); return base ? cur.abs - base.abs : 0;
+  }
+
+  const QUEUES = { 420: 'solo', 440: 'flex', 400: 'draft', 430: 'blind', 480: 'swift', 490: 'quick', 450: 'aram', 700: 'clash', 1700: 'arena', 900: 'urf', 1900: 'urf', 830: 'coop', 840: 'coop', 850: 'coop', 0: 'custom' };
+  const QG = { ranked: ['solo', 'flex'], normal: ['draft', 'blind', 'quick', 'swift'] }; const FILTERS = ['all', 'ranked', 'solo', 'flex', 'normal', 'aram', 'other'];
+  const mkFilter = (q) => { if (!q || q === 'all') return () => true; if (QG[q]) return (m) => QG[q].includes(m.queue); if (q === 'other') return (m) => !['solo', 'flex', 'draft', 'blind', 'quick', 'swift', 'aram'].includes(m.queue); return (m) => m.queue === q; };
+  const laneRole = (tl) => { if (!tl) return null; const lane = String(tl.lane || '').toUpperCase(); const role = String(tl.role || '').toUpperCase(); if (lane === 'TOP') return 'top'; if (lane === 'JUNGLE') return 'jungle'; if (lane === 'MIDDLE' || lane === 'MID') return 'mid'; if (lane === 'BOTTOM' || lane === 'BOT') return role.includes('SUPPORT') ? 'support' : 'bot'; if (role.includes('SUPPORT')) return 'support'; return null; };
+  function normMatch(g, myPuuid, champOf) {
+    if (!g || typeof g !== 'object' || !Number.isFinite(Number(g.gameId))) return null; const parts = Array.isArray(g.participants) ? g.participants : []; const ids = Array.isArray(g.participantIdentities) ? g.participantIdentities : [];
+    const idOf = new Map(ids.map((x) => [x && x.participantId, (x && x.player) || {}])); let me = null;
+    for (const p of parts) { const pl = idOf.get(p && p.participantId) || {}; if (myPuuid && pl.puuid === myPuuid) { me = p; break; } } if (!me && parts.length === 1) me = parts[0]; if (!me || !me.stats) return null;
+    const s = me.stats; let t = numOr0(g.gameCreation); if (!t && g.gameCreationDate) t = Date.parse(g.gameCreationDate) || 0; const dur = numOr0(g.gameDuration); const remake = !!s.gameEndedInEarlySurrender || (dur > 0 && dur < 240);
+    const win = s.win === true || s.win === 'Win'; const role = laneRole(me.timeline); const full = parts.length >= 2;
+    const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline) }; }) : [];
+    const opp = role && full ? ((players.find((x) => !x.me && x.team !== numOr0(me.teamId) && x.role === role) || {}).champ || null) : null;
+    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full };
+  }
+  const wlOf = (ms) => { const r = ms.filter((m) => !m.remake); const w = r.filter((m) => m.win).length; return { w, l: r.length - w }; };
+  const r1 = (x) => Math.round(x * 10) / 10; const r2 = (x) => Math.round(x * 100) / 100;
+  function overview(ms, now) {
+    const real = ms.filter((m) => !m.remake); const n = real.length; const w = real.filter((m) => m.win).length; const sum = (f) => real.reduce((a, m) => a + f(m), 0); const mins = sum((m) => m.dur) / 60;
+    let streak = null; if (n) { const t = real[0].win; let c = 0; for (const m of real) { if (m.win !== t) break; c++; } streak = { win: t, n: c }; }
+    const roles = {}; for (const m of real) if (m.role) roles[m.role] = (roles[m.role] || 0) + 1; const fav = Object.keys(roles).sort((a, b) => roles[b] - roles[a])[0] || null;
+    const t0 = dayStart(now); const td = real.filter((m) => m.t >= t0); const recent = real.filter((m) => m.t >= now - 4 * 3600e3).slice(0, 3); const l10 = real.slice(0, 10);
+    return { games: n, wins: w, losses: n - w, wr: n ? r1((100 * w) / n) : 0, last10: { w: l10.filter((m) => m.win).length, l: l10.filter((m) => !m.win).length }, last20: real.slice(0, 20).map((m) => !!m.win), streak,
+      kda: n ? r2((sum((m) => m.k) + sum((m) => m.a)) / Math.max(1, sum((m) => m.d))) : 0, k: n ? r1(sum((m) => m.k) / n) : 0, d: n ? r1(sum((m) => m.d) / n) : 0, a: n ? r1(sum((m) => m.a) / n) : 0,
+      csm: mins ? r1(sum((m) => m.cs) / mins) : 0, gpm: mins ? Math.round(sum((m) => m.gold) / mins) : 0, avgMin: n ? Math.round(mins / n) : 0, fav, today: { games: td.length, w: td.filter((m) => m.win).length, l: td.filter((m) => !m.win).length }, tilt: recent.length === 3 && recent.every((m) => !m.win) };
+  }
+  function champStats(ms) {
+    const by = new Map(); for (const m of ms) { if (m.remake || !m.champ) continue; const x = by.get(m.champ) || { champ: m.champ, games: 0, wins: 0, k: 0, d: 0, a: 0, cs: 0, sec: 0, gold: 0, dmg: 0, last: 0 }; x.games++; if (m.win) x.wins++; x.k += m.k; x.d += m.d; x.a += m.a; x.cs += m.cs; x.sec += m.dur; x.gold += m.gold; x.dmg += m.dmg; x.last = Math.max(x.last, m.t); by.set(m.champ, x); }
+    return [...by.values()].map((x) => ({ champ: x.champ, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), kda: r2((x.k + x.a) / Math.max(1, x.d)), k: r1(x.k / x.games), d: r1(x.d / x.games), a: r1(x.a / x.games), csm: x.sec ? r1(x.cs / (x.sec / 60)) : 0, gpm: x.sec ? Math.round(x.gold / (x.sec / 60)) : 0, dmg: Math.round(x.dmg / x.games), last: x.last })).sort((a, b) => b.games - a.games || b.wr - a.wr || a.champ.localeCompare(b.champ));
+  }
+  function roleStats(ms) { const by = {}; for (const m of ms) { if (m.remake || !m.role) continue; const x = by[m.role] || (by[m.role] = { role: m.role, games: 0, wins: 0 }); x.games++; if (m.win) x.wins++; } return Object.values(by).map((x) => Object.assign(x, { wr: r1((100 * x.wins) / x.games) })).sort((a, b) => b.games - a.games); }
+  function partnerStats(ms) {
+    const full = ms.filter((m) => !m.partial && !m.remake); const by = new Map();
+    for (const m of full) for (const p of m.players) { if (p.me || p.team !== m.team) continue; const key = p.puuid || (p.name + '#' + p.tag); if (!key || key === '#') continue; const x = by.get(key) || { key, name: p.name, tag: p.tag, games: 0, wins: 0, last: 0, champs: {} }; x.games++; if (m.win) x.wins++; x.last = Math.max(x.last, m.t); if (p.champ) x.champs[p.champ] = (x.champs[p.champ] || 0) + 1; by.set(key, x); }
+    const rows = [...by.values()].map((x) => ({ name: x.name, tag: x.tag, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), last: x.last, top: Object.keys(x.champs).sort((a, b) => x.champs[b] - x.champs[a]).slice(0, 3) })).sort((a, b) => b.games - a.games || b.last - a.last).slice(0, 60);
+    return { rows, covered: full.length, total: ms.filter((m) => !m.remake).length };
+  }
+  /* LP farki: yalniz maci KESIN olarak cevreleyen iki anlik goruntu varsa ve araya baska ayni-kuyruk maci girmediyse */
+  function attrLp(ms, snaps) {
+    const out = new Map(); const ranked = ms.filter((m) => m.queue === 'solo' || m.queue === 'flex');
+    for (const m of ranked) {
+      if (m.remake) continue; const ser = lpSeries(snaps, m.queue); const end = m.t + m.dur * 1000; let pre = null; let post = null; for (const p of ser) { if (p.t <= m.t) pre = p; else if (p.t >= end && !post) post = p; }
+      if (!pre || !post) continue; const between = ranked.filter((x) => x.queue === m.queue && !x.remake && x.t + x.dur * 1000 > pre.t && x.t < post.t).length; if (between !== 1) continue; out.set(m.id, post.abs - pre.abs);
+    }
+    return out;
+  }
+  function banPicks(roster, pool, role, hist, limit) {
+    const Z = rosterZ(roster); const mine = roster.filter((c) => pool.includes(c.id)); if (!mine.length) return { needPool: true }; const rows = [];
+    for (const e of roster) {
+      if (!roleFit(e, role) && !(hist || []).some((h) => h.enemy === e.id && h.role === role)) continue; let sum = 0; let n = 0; let worst = null;
+      for (const c of mine) { if (c.id === e.id) continue; const h = heuristic(c, e, role, Z); let s = 50 + h.delta; const p = personal(hist || [], c.id, e.id, role); if (p.games) { const w = Math.min(1, p.games / 8) * 0.6; s = (1 - w) * s + w * wilson(p.wins, p.games); } sum += s; n++; if (!worst || s < worst.score) worst = { id: c.id, name: c.name, score: Math.round(s) }; }
+      if (n) rows.push({ id: e.id, name: e.name, tags: e.tags, avg: Math.round(sum / n), worst });
+    }
+    rows.sort((a, b) => a.avg - b.avg || a.name.localeCompare(b.name)); return { role, bans: rows.slice(0, clamp(Math.round(limit) || 8, 1, 20)), pool: mine.map((c) => c.id) };
+  }
+  function teamProfile(list) { let ad = 0; let ap = 0; let tanks = 0; let ranged = 0; let assassins = 0; for (const c of list) { ad += c.attack; ap += c.magic; if (c.tags.includes('Tank') || c.defense >= 7) tanks++; if (c.range >= 500) ranged++; if (c.tags.includes('Assassin')) assassins++; } return { n: list.length, apPct: Math.round((100 * ap) / (ad + ap || 1)), tanks, ranged, assassins }; }
+  function compAnalysis(roster, allies, enemies) {
+    const by = new Map(roster.map((c) => [c.id, c])); const a = teamProfile((allies || []).map((x) => by.get(x)).filter(Boolean)); const e = teamProfile((enemies || []).map((x) => by.get(x)).filter(Boolean)); const notes = [];
+    if (a.n >= 3 && a.apPct <= 22) notes.push({ side: 'ally', k: 'allAD' }); if (a.n >= 3 && a.apPct >= 78) notes.push({ side: 'ally', k: 'allAP' }); if (a.n >= 4 && !a.tanks) notes.push({ side: 'ally', k: 'noTank' }); if (a.n >= 4 && a.ranged === 0) notes.push({ side: 'ally', k: 'noRange' });
+    if (e.n >= 3 && e.apPct <= 22) notes.push({ side: 'enemy', k: 'enemyAD' }); if (e.n >= 3 && e.apPct >= 78) notes.push({ side: 'enemy', k: 'enemyAP' }); if (e.n >= 4 && e.assassins >= 2) notes.push({ side: 'enemy', k: 'enemyAssassins' }); if (e.n >= 4 && !e.tanks) notes.push({ side: 'enemy', k: 'enemyNoTank' });
+    return { ally: a, enemy: e, notes };
+  }
+  const LCU_OK = [/^\/lol-champ-select\/v1\/session$/, /^\/lol-summoner\/v1\/current-summoner$/, /^\/lol-ranked\/v1\/current-ranked-stats$/, /^\/lol-match-history\/v1\/products\/lol\/current-summoner\/matches\?begIndex=\d{1,4}&endIndex=\d{1,4}$/, /^\/lol-match-history\/v1\/games\/\d{1,15}$/];
+
   function createLolHost(deps) {
     deps = deps || {}; const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'lolcounter.json') : null; const cacheDir = dataDir ? path.join(dataDir, 'lolcounter-cache') : null;
     const now = deps.now || (() => Date.now());
     const run = deps.run || ((cmd, args, ms) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: ms || 10000, windowsHide: true, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (e, so) => (e && !so ? reject(e) : resolve(String(so || '')))); }));
-    let state = { v: 1, pool: {}, hist: [], statsUrl: null }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
-    if (!state.pool || typeof state.pool !== 'object') state.pool = {}; if (!Array.isArray(state.hist)) state.hist = [];
+    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], matches: {} }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
+    if (!state.pool || typeof state.pool !== 'object') state.pool = {}; if (!Array.isArray(state.hist)) state.hist = []; if (!Array.isArray(state.lp)) state.lp = []; if (!state.matches || typeof state.matches !== 'object' || Array.isArray(state.matches)) state.matches = {};
     const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
 
     /* --- ag: yalniz Data Dragon (sabit sunucu) --- */
@@ -921,6 +1011,14 @@ const LOLMOD = (() => {
         res.on('data', (d) => { n += d.length; if (n > (maxBody || LIM.body)) { req.destroy(new Error('yanıt çok büyük')); return; } parts.push(d); }); res.on('end', () => resolve(Buffer.concat(parts).toString('utf8'))); res.on('error', reject);
       }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject);
     }));
+    const httpBin = deps.getBin || ((host, p, maxBody) => new Promise((resolve, reject) => {
+      const req = https.get({ host, path: p, headers: { 'User-Agent': 'StatScan-Kovan' }, timeout: LIM.ms }, (res) => {
+        if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); } const parts = []; let n = 0;
+        res.on('data', (d) => { n += d.length; if (n > (maxBody || LIM.icon)) { req.destroy(new Error('yanıt çok büyük')); return; } parts.push(d); }); res.on('end', () => resolve(Buffer.concat(parts))); res.on('error', reject);
+      }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject);
+    }));
+    let iconActive = 0; const iconWait = []; const iconMem = new Map();
+    const iconSlot = (fn) => new Promise((res, rej) => { const go = () => { iconActive++; Promise.resolve().then(fn).then(res, rej).finally(() => { iconActive--; const nx = iconWait.shift(); if (nx) nx(); }); }; if (iconActive < 6) go(); else iconWait.push(go); });
     let roster = null; let rosterMeta = null; const tipsCache = new Map();
     const cacheRead = (name) => { if (!cacheDir) return null; try { return JSON.parse(fs.readFileSync(path.join(cacheDir, name), 'utf8')); } catch (e) { return null; } };
     const cacheWrite = (name, obj) => { if (!cacheDir) return; try { fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(path.join(cacheDir, name), JSON.stringify(obj)); } catch (e) { /* onbellek zorunlu degil */ } };
@@ -956,6 +1054,10 @@ const LOLMOD = (() => {
       }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject); req.end();
     });
 
+    /* LCU: yalniz beyaz listedeki GET uc noktalari (yazma/degistirme yok) */
+    const lcuRead = async (info, p) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p); };
+    const champOf = () => { const m = byKeyMap(); return (k) => m.get(String(k)) || null; };
+    const autoHist = () => Object.values(state.matches).filter((m) => !m.remake && m.opp && m.role && m.champ).map((m) => ({ role: m.role, me: m.champ, enemy: m.opp, win: !!m.win }));
     const handlers = {
       'lol:status': async () => { const r = await loadRoster(false); return { roles: ROLES, ready: !r.error, meta: r.error ? null : r.meta, error: r.error ? r.message : null, poolCounts: Object.fromEntries(ROLES.map((x) => [x, (state.pool[x] || []).length])), games: state.hist.length, statsUrl: !!state.statsUrl, windows: (deps.platform || process.platform) === 'win32' }; },
       'lol:champs': async (_e, force) => { const r = await loadRoster(force === true); if (r.error) return r; return { meta: r.meta, champs: roster.map((c) => ({ id: c.id, name: c.name, tags: c.tags, difficulty: c.difficulty })) }; },
@@ -968,7 +1070,7 @@ const LOLMOD = (() => {
       'lol:suggest': async (_e, req) => {
         try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const role = validRole(req.role); if (!role) return errE('Rol geçersiz.'); const enemy = validChamp(req.enemy); if (!enemy) return errE('Rakip şampiyon bulunamadı.');
           const pool = state.pool[role] || []; if (req.poolOnly === true && !pool.length) return { needPool: true, role };
-          const ext = await fetchExt(enemy, role); const out = rank(roster, enemy, role, { hist: state.hist, pool, poolOnly: req.poolOnly === true, anyRole: req.anyRole === true, ext, limit: req.limit });
+          const ext = await fetchExt(enemy, role); const out = rank(roster, enemy, role, { hist: state.hist.concat(autoHist()), pool, poolOnly: req.poolOnly === true, anyRole: req.anyRole === true, ext, limit: req.limit });
           if (out.error) return errE('Rakip şampiyon bulunamadı.'); out.extUsed = !!ext; out.statsConfigured = !!state.statsUrl; out.meta = rosterMeta; return out;
         } catch (e) { return errE(String(e && e.message || e)); }
       },
@@ -996,15 +1098,89 @@ const LOLMOD = (() => {
           state.statsUrl = url; save(); return { ok: true, configured: true, host: x.hostname };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
+      'lol:sync': async (_e, req) => {
+        try {
+          const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' };
+          const notes = []; const t = now(); const co = champOf(); const msg = (e) => String(e && e.message || e).slice(0, 80);
+          let sum = null; try { sum = await lcuRead(info, '/lol-summoner/v1/current-summoner'); } catch (e) { notes.push('profil: ' + msg(e)); }
+          if (sum && typeof sum === 'object' && sum.puuid) state.me = { puuid: String(sum.puuid).slice(0, 90), name: String(sum.gameName || sum.displayName || sum.summonerName || '').slice(0, 40), tag: String(sum.tagLine || '').slice(0, 10), level: Math.round(Number(sum.summonerLevel)) || 0, icon: Math.round(Number(sum.profileIconId)) || 0 };
+          let snaps = 0; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/current-ranked-stats')); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { notes.push('derece: ' + msg(e)); }
+          let added = 0; const me = state.me; const want = req && req.deep === true ? 100 : 20;
+          if (me) {
+            let budget = LIM.details;
+            for (let beg = 0; beg < want; beg += 20) {
+              let list = null; try { const j = await lcuRead(info, '/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=' + beg + '&endIndex=' + (beg + 20)); list = j && j.games && Array.isArray(j.games.games) ? j.games.games : []; } catch (e) { notes.push('maçlar: ' + msg(e)); break; }
+              for (const g of list) {
+                const id = String(Math.round(Number(g && g.gameId))); const old = state.matches[id]; if (old && !old.partial) continue; let m = normMatch(g, me.puuid, co); if (!m) continue;
+                if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); if (m2) m = m2; } catch (e) { /* ayrinti alinamadi */ } }
+                if (!old) added++; state.matches[id] = m;
+              }
+              if (list.length < 20) break;
+            }
+            const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
+          }
+          save(); return { state: 'ok', me: state.me, added, snaps, notes, total: Object.keys(state.matches).length };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:profile': async () => {
+        try {
+          const t = now(); const t0 = dayStart(t); const all = Object.values(state.matches).sort((a, b) => b.t - a.t); const o = overview(all, t); const rk = state.rank || null;
+          return { me: state.me, rank: rk ? { solo: rk.solo, flex: rk.flex } : null, lastSync: rk ? rk.t : null, matches: all.length, snaps: state.lp.length, today: { games: o.today.games, w: o.today.w, l: o.today.l, lp: { solo: todayLp(state.lp, 'solo', t0), flex: todayLp(state.lp, 'flex', t0) } }, tilt: o.tilt, streak: o.streak,
+            aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), spark: { solo: lpSeries(state.lp, 'solo').slice(-30), flex: lpSeries(state.lp, 'flex').slice(-30) } };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:lp': async (_e, q) => {
+        try {
+          const qq = q === 'flex' ? 'flex' : 'solo'; const ser = lpSeries(state.lp, qq); let peak = null; for (const p of ser) if (!peak || p.abs > peak.abs) peak = p;
+          return { queue: qq, points: ser.slice(-600), events: lpEvents(state.lp, qq).slice(0, 40), peak, current: ser.length ? ser[ser.length - 1] : null, count: ser.length, since: ser.length ? ser[0].t : null };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:matches': async (_e, req) => {
+        try {
+          req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const off = clamp(Math.round(Number(req.offset)) || 0, 0, 5000); const lim = clamp(Math.round(Number(req.limit)) || 20, 1, 50);
+          const all = Object.values(state.matches).sort((a, b) => b.t - a.t); const delta = attrLp(all, state.lp); const f = all.filter(mkFilter(q));
+          return { total: f.length, rows: f.slice(off, off + lim).map((m) => Object.assign({}, m, { lpDelta: delta.has(m.id) ? delta.get(m.id) : null })) };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:stats': async (_e, req) => {
+        try {
+          req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const role = ROLES.includes(req.role) ? req.role : null; const all = Object.values(state.matches).sort((a, b) => b.t - a.t).filter(mkFilter(q)); const f = role ? all.filter((m) => m.role === role) : all;
+          return { queue: q, role, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), partners: partnerStats(all) };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:bans': async (_e, req) => {
+        try {
+          const bad = await needRoster(); if (bad) return bad; const role = validRole(req && req.role); if (!role) return errE('Rol geçersiz.'); const out = banPicks(roster, state.pool[role] || [], role, state.hist.concat(autoHist()), req && req.limit); if (out.needPool) return { needPool: true, role }; return out;
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:comp': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; const ok = (l) => (Array.isArray(l) ? l.slice(0, 5).map((x) => validChamp(x)).filter(Boolean) : []); return compAnalysis(roster, ok(req && req.allies), ok(req && req.enemies)); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:icon': async (_e, req) => {
+        try {
+          const bad = await needRoster(); if (bad) return bad; req = req || {}; const kind = req.kind; const id = String(req.id); let p;
+          if (kind === 'champion') { if (!validChamp(id)) return errE('Şampiyon bulunamadı.'); p = 'champion/' + id + '.png'; } else if (kind === 'item') { if (!/^\d{3,6}$/.test(id)) return errE('Eşya geçersiz.'); p = 'item/' + id + '.png'; } else if (kind === 'profile') { if (!/^\d{1,6}$/.test(id)) return errE('Simge geçersiz.'); p = 'profileicon/' + id + '.png'; } else return errE('Simge türü geçersiz.');
+          const key = kind + '-' + id + '-' + rosterMeta.version; if (iconMem.has(key)) return { data: iconMem.get(key) };
+          const isPng = (b) => Buffer.isBuffer(b) && b.length >= 64 && b[0] === 0x89 && b[1] === 0x50; const file = cacheDir ? path.join(cacheDir, 'icons', key + '.png') : null; let buf = null; if (file) { try { buf = fs.readFileSync(file); } catch (e) { buf = null; } if (!isPng(buf)) buf = null; }
+          if (!buf) { buf = await iconSlot(() => httpBin(DD_HOST, '/cdn/' + rosterMeta.version + '/img/' + p, LIM.icon)); if (!isPng(buf)) return errE('Simge alınamadı.'); if (file) { try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, buf); } catch (e) { /* onbellek zorunlu degil */ } } }
+          const d = 'data:image/png;base64,' + buf.toString('base64'); if (iconMem.size > 800) iconMem.clear(); iconMem.set(key, d); return { data: d };
+        } catch (e) { return errE('Simge alınamadı (' + String(e && e.message || e).slice(0, 60) + ').'); }
+      },
+      'lol:data:clear': async () => {
+        try {
+          if (!deps.confirm) return errE('Onay penceresi yok; silinmedi.'); const n = Object.keys(state.matches).length; const okc = await deps.confirm({ title: 'League verileri silinsin mi?', message: 'Bu bilgisayarda saklanan ' + n + ' maç, LP geçmişi ve profil bilgisi silinecek. Şampiyon havuzun ve elle girdiğin maç kayıtların silinmez. Bu geri alınamaz.', ok: 'Sil', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
+          state.me = null; state.lp = []; state.matches = {}; state.rank = null; save(); return { ok: true };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
       'lol:lcu': async () => {
-        try { const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' }; let s = null; try { s = await lcuGet(info, '/lol-champ-select/v1/session'); } catch (e) { return { state: 'noclient', note: String(e && e.message || e) }; } if (!s) return { state: 'idle' };
+        try { const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' }; let s = null; try { s = await lcuRead(info, '/lol-champ-select/v1/session'); } catch (e) { return { state: 'noclient', note: String(e && e.message || e) }; } if (!s) return { state: 'idle' };
           const m = mapSession(s, byKeyMap()); return m ? Object.assign({ state: 'champselect' }, m) : { state: 'idle' };
         } catch (e) { return errE(String(e && e.message || e)); }
       }
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
-  return { createLolHost, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST };
+  return { createLolHost, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
 })();
 
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---

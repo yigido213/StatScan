@@ -123,6 +123,80 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   const filt = await HB['lol:suggest']({ role: 'bot', enemy: 'MonkeyKing', limit: 500 }); ok(filt.total < 169 && filt.total > 0, 'rol filtresi açıkken aday sayısı daha az (' + filt.total + ')');
   const tp2 = await HB['lol:tips']('JarvanIV'); ok(!tp2.error || /alınamadı/.test(tp2.message), 'özel kimlikli şampiyon için ipucu çağrısı çökmez');
 
+  // ---- PROFIL / LP / MACLAR (sahte League istemcisi, salt-okunur)
+  const T0 = Date.UTC(2026, 10, 2, 12, 0, 0); let NOW = T0; const MIN = 60000; const HR = 3600e3;
+  const KEY = { Darius: 122, Garen: 86, Teemo: 17, Zed: 238, Ahri: 103, Jinx: 222, Lux: 99, Malphite: 54, Sion: 14, Ornn: 516, Vayne: 67, Kayle: 10 };
+  const ID = (n) => ({ participantId: n, player: { puuid: n === 1 ? 'P-ME' : 'P-' + n, gameName: n === 1 ? 'retired toplane' : (n === 2 ? 'Duoboy' : 'Oyuncu' + n), tagLine: n === 1 ? 'yigit' : 'TR1' } });
+  function game(id, start, durSec, queueId, win, o) {
+    o = o || {}; const champs = o.champs || ['Darius', 'Duo', 'Ahri', 'Jinx', 'Lux', 'Garen', 'Teemo', 'Zed', 'Vayne', 'Sion']; const ck = (n) => (champs[n - 1] === 'Duo' ? KEY.Kayle : KEY[champs[n - 1]]);
+    const parts = []; for (let n = 1; n <= 10; n++) parts.push({ participantId: n, teamId: n <= 5 ? 100 : 200, championId: ck(n), timeline: n === 1 || n === 6 ? { lane: 'TOP', role: 'SOLO' } : { lane: 'NONE', role: 'NONE' },
+      stats: n === 1 ? { win, kills: o.k == null ? 5 : o.k, deaths: o.d == null ? 2 : o.d, assists: o.a == null ? 3 : o.a, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 18, champLevel: 16, item0: 3074, item1: 3053, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3340, gameEndedInEarlySurrender: !!o.remake } : { win: !win, kills: 1, deaths: 1, assists: 1 } });
+    return { gameId: id, gameCreation: start, gameDuration: durSec, queueId, participants: parts, participantIdentities: parts.map((x) => ID(x.participantId)) };
+  }
+  const partialOf = (g) => Object.assign({}, g, { participants: [g.participants[0]], participantIdentities: [g.participantIdentities[0]] });
+  let GAMES = [
+    game(2001, T0 - 26 * HR, 1500, 420, true), game(2002, T0 - 25 * HR, 1600, 420, false, { k: 1, d: 8, a: 2 }), game(2003, T0 - 24 * HR, 1200, 450, true, { champs: ['Garen', 'Duo', 'Ahri', 'Jinx', 'Lux', 'Darius', 'Teemo', 'Zed', 'Vayne', 'Sion'] }), game(2004, T0 - 23 * HR, 200, 400, false, { remake: true })
+  ];
+  let RANK = { queues: [{ queueType: 'RANKED_SOLO_5x5', tier: 'PLATINUM', division: 'III', leaguePoints: 79, wins: 265, losses: 285 }, { queueType: 'RANKED_FLEX_SR', tier: 'SILVER', division: 'IV', leaguePoints: 40, wins: 10, losses: 8 }, { queueType: 'RANKED_TFT', tier: 'GOLD', division: 'I', leaguePoints: 1 }] };
+  let clientUp = true; const lcuCalls = []; const SUM = { puuid: 'P-ME', gameName: 'retired toplane', tagLine: 'yigit', summonerLevel: 108, profileIconId: 29 };
+  const lcuG = async (info, p) => {
+    lcuCalls.push(p); if (p === '/lol-summoner/v1/current-summoner') return SUM; if (p === '/lol-ranked/v1/current-ranked-stats') return RANK;
+    let m = /matches\?begIndex=(\d+)&endIndex=(\d+)/.exec(p); if (m) { const b = Number(m[1]); const sorted = GAMES.slice().sort((x, y) => y.gameCreation - x.gameCreation); return { games: { games: sorted.slice(b, Number(m[2])).map(partialOf) } }; }
+    m = /games\/(\d+)$/.exec(p); if (m) return GAMES.find((g) => String(g.gameId) === m[1]) || null; return null;
+  };
+  const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(120, 7)]); let binCalls = 0; const bins = [];
+  const hp = mkHost({ now: () => NOW, lcu: { find: async () => (clientUp ? { port: 9, token: 'abcdefgh1234' } : null), get: lcuG }, getBin: async (h, p) => { binCalls++; bins.push(p); if (/item\/9999/.test(p)) throw new Error('HTTP 404'); return PNG; } }, path.join(tmp, 'profil')); const HP = hp.handlers;
+  clientUp = false; ok((await HP['lol:sync']()).state === 'noclient', 'sync: istemci kapalıyken noclient, çökme yok'); clientUp = true;
+  let sy = await HP['lol:sync'](); ok(sy.state === 'ok' && sy.added === 4 && sy.snaps === 2 && sy.me.name === 'retired toplane' && sy.me.tag === 'yigit' && sy.me.level === 108, 'sync: profil, 4 maç, 2 derece anlık görüntüsü (solo+flex; TFT yok sayıldı)');
+  ok(lcuCalls.every((p) => L.LCU_OK.some((re) => re.test(p))) && lcuCalls.filter((p) => /games\/\d+$/.test(p)).length === 4, 'sync: yalnız beyaz listedeki GET uç noktaları; kısmi maçlar için ayrıntı çekildi');
+  let pf = await HP['lol:profile'](); ok(pf.rank.solo.tier === 'PLATINUM' && pf.rank.solo.div === 'III' && pf.rank.solo.lp === 79 && pf.rank.flex.tier === 'SILVER' && pf.matches === 4 && pf.snaps === 2, 'profil: solo/flex derece, maç ve anlık görüntü sayıları');
+  sy = await HP['lol:sync'](); ok(sy.added === 0 && sy.snaps === 0 && sy.total === 4, 'sync tekrar: yeni kayıt yok, anlık görüntü tekrarlanmaz');
+  let ms = await HP['lol:matches']({ queue: 'all' }); ok(ms.total === 4 && ms.rows[0].id === '2004' && ms.rows[0].remake === true && ms.rows[0].win === null, 'maçlar: yeni→eski sıralı, yeniden başlatma win=null');
+  const g1 = ms.rows.find((m) => m.id === '2001'); ok(g1.win === true && g1.champ === 'Darius' && g1.role === 'top' && g1.opp === 'Garen' && g1.k === 5 && g1.cs === 190 && g1.items.join() === '3074,3053,3340' && g1.players.length === 10 && g1.partial === false, 'maç normalleştirme: şampiyon, hat, rakip (Garen), CS, eşyalar, 10 oyuncu');
+  ok(g1.players.find((x) => x.me).name === 'retired toplane' && (await HP['lol:matches']({ queue: 'aram' })).total === 1 && (await HP['lol:matches']({ queue: 'ranked' })).total === 2 && (await HP['lol:matches']({ queue: 'normal' })).total === 1 && (await HP['lol:matches']({ queue: 'olmayan' })).total === 4, 'maç filtreleri: aram/ranked/normal; bilinmeyen filtre → tümü');
+  // LP farki: kesin cevreleyen iki goruntu
+  NOW = T0 + 5 * MIN; GAMES.push(game(2005, T0 + 10 * MIN, 1800, 420, true)); RANK.queues[0].leaguePoints = 99; RANK.queues[0].wins = 266; NOW = T0 + 45 * MIN; sy = await HP['lol:sync'](); ok(sy.added === 1 && sy.snaps === 1, 'LP: maç sonrası senkron yeni derece anlık görüntüsü alır');
+  ms = await HP['lol:matches']({ queue: 'solo' }); ok(ms.rows[0].id === '2005' && ms.rows[0].lpDelta === 20 && ms.rows.slice(1).every((m) => m.lpDelta === null), 'LP farkı: kesin çevrelenen maça +20, eski maçlara atanmaz (tahmin yok)');
+  // terfi
+  RANK.queues[0].division = 'II'; RANK.queues[0].leaguePoints = 18; NOW = T0 + 3 * HR; await HP['lol:sync'](); GAMES.push(game(2006, T0 + 100 * MIN, 1500, 440, false)); RANK.queues[1].leaguePoints = 20; NOW = T0 + 5 * HR; await HP['lol:sync']();
+  let lp = await HP['lol:lp']('solo'); ok(lp.count === 3 && lp.current.tier === 'PLATINUM' && lp.current.div === 'II' && lp.events.length === 1 && lp.events[0].type === 'up' && lp.events[0].from.div === 'III' && lp.events[0].to.div === 'II' && lp.peak.lp === 18, 'LP geçmişi: 3 nokta, Platin 3 → 2 terfi olayı, zirve');
+  RANK.queues[0].division = 'III'; RANK.queues[0].leaguePoints = 75; NOW = T0 + 6 * HR; await HP['lol:sync'](); lp = await HP['lol:lp']('solo'); ok(lp.events[0].type === 'down' && lp.events.length === 2, 'LP geçmişi: lige düşme olayı (down)');
+  const lf = await HP['lol:lp']('flex'); ok(lf.queue === 'flex' && lf.count === 2 && lf.current.lp === 20 && (await HP['lol:lp']('x')).queue === 'solo', 'LP geçmişi: flex ayrı, geçersiz kuyruk solo olur');
+  pf = await HP['lol:profile'](); ok(pf.today.games >= 1 && pf.spark.solo.length === 4 && pf.aram.w === 1 && pf.normal.w + pf.normal.l === 0, 'profil: bugün özeti, sparkline, ARAM W/L (yeniden başlatma sayılmaz)');
+  // istatistik
+  const sx = await HP['lol:stats']({ queue: 'all' }); ok(sx.overview.games === 5 && sx.overview.wins === 3 && sx.overview.wr === 60 && sx.overview.losses === 2, 'istatistik: yeniden başlatma hariç 5 maç, 3 galibiyet, %60');
+  ok(sx.overview.kda === 2.19 && sx.overview.k === 4.2 && sx.overview.csm > 5 && sx.overview.gpm > 300 && sx.overview.fav === 'top', 'istatistik: KDA, CS/dk, altın/dk, favori hat');
+  const stRanked = await HP['lol:stats']({ queue: 'ranked' }); ok(stRanked.overview.games === 4 && stRanked.overview.streak.win === false && stRanked.overview.streak.n === 1, 'istatistik: dereceli filtre (solo+flex 4 maç, son maç yenilgi serisi 1)');
+  const dc = sx.champs.find((c) => c.champ === 'Darius'); ok(dc.games === 4 && dc.wins === 2 && dc.wr === 50 && sx.champs[0].champ === 'Darius' && sx.champs.find((c) => c.champ === 'Garen').games === 1, 'şampiyon performansı: Darius 4 maç %50, Garen 1');
+  ok(sx.roles[0].role === 'top' && sx.roles[0].games === 5 && sx.roles[0].wr === 60, 'hat istatistiği: top 5 maç %60');
+  const duo = sx.partners.rows.find((r) => r.name === 'Duoboy'); ok(duo && duo.games === 5 && duo.wins === 3 && duo.wr === 60 && duo.top[0] === 'Kayle' && sx.partners.covered === 5, 'birlikte oynadıklarım: Duoboy 5 maç %60 (ayrıntısı olan maçlar)');
+  ok(sx.partners.rows.every((r) => r.name !== 'retired toplane'), 'birlikte oynadıklarım: kendim listede yok');
+  ok((await HP['lol:stats']({ queue: 'all', role: 'jungle' })).overview.games === 0, 'istatistik: hat filtresi (jungle → 0)');
+  // otomatik kisisel eslesme (maclardan) -> oneri
+  const auto = await HP['lol:suggest']({ role: 'top', enemy: 'Garen', poolOnly: false, limit: 50 }); const dar = auto.picks.find((x) => x.id === 'Darius'); ok(dar && dar.personal.games === 4 && dar.sources.includes('personal'), 'öneri: maç geçmişinden otomatik kişisel eşleşme (Darius vs Garen 4 maç)');
+  // ban + draft analizi
+  ok((await HP['lol:bans']({ role: 'top' })).needPool === true, 'ban önerisi: havuz boşken needPool'); await HP['lol:pool:set']('top', ['Darius', 'Teemo']); const bn = await HP['lol:bans']({ role: 'top', limit: 5 });
+  ok(!bn.error && bn.bans.length > 0 && bn.bans.length <= 5 && bn.bans.every((b, i, a) => !i || a[i - 1].avg <= b.avg) && bn.bans.every((b) => b.worst && ['Darius', 'Teemo'].includes(b.worst.id)), 'ban önerisi: havuza göre en zor rakipler, azalan zorluk, en çok zorlanan seçim belli');
+  const cp = await HP['lol:comp']({ allies: ['Zed', 'Darius', 'Jinx', 'Vayne'], enemies: ['Ahri', 'Lux', 'Malphite', 'Sion'] }); ok(cp.ally.n === 4 && cp.notes.some((n) => n.k === 'allAD' && n.side === 'ally'), 'takım analizi: AD ağırlıklı müttefik uyarısı');
+  const cp2 = await HP['lol:comp']({ allies: ['Zed', 'Jinx', 'Vayne', 'Teemo'], enemies: ['Zed', 'Teemo', 'Ahri', 'Lux'] }); ok(cp2.notes.some((n) => n.k === 'noTank' && n.side === 'ally') && cp2.notes.some((n) => n.k === 'enemyNoTank'), 'takım analizi: tanksız müttefik/rakip uyarısı');
+  ok((await HP['lol:comp']({ allies: ['../x', 'Zed'], enemies: 5 })).ally.n === 1, 'takım analizi: geçersiz kimlikler elenir');
+  // simgeler
+  const ic = await HP['lol:icon']({ kind: 'champion', id: 'Darius' }); ok(/^data:image\/png;base64,/.test(ic.data) && binCalls === 1 && /champion\/Darius\.png$/.test(bins[0]) && /\/cdn\/16\.21\.1\//.test(bins[0]), 'simge: Data Dragon’dan sabit yolla, data: URI olarak döner');
+  await HP['lol:icon']({ kind: 'champion', id: 'Darius' }); ok(binCalls === 1, 'simge: ikinci istek bellekten (ağ yok)'); const hp2 = mkHost({ getBin: async () => { binCalls++; return PNG; } }, path.join(tmp, 'profil')); await hp2.handlers['lol:icon']({ kind: 'champion', id: 'Darius' }); ok(binCalls === 1, 'simge: yeni oturum diskteki önbellekten');
+  ok((await HP['lol:icon']({ kind: 'item', id: '3074' })).data && (await HP['lol:icon']({ kind: 'profile', id: '29' })).data, 'simge: eşya ve profil simgesi');
+  ok((await HP['lol:icon']({ kind: 'item', id: '9999' })).error === 'lol' && (await HP['lol:icon']({ kind: 'champion', id: '../etc' })).error === 'lol' && (await HP['lol:icon']({ kind: 'item', id: '1; rm' })).error === 'lol' && (await HP['lol:icon']({ kind: 'x', id: '1' })).error === 'lol', 'simge: 404 ve geçersiz kimlik/tür reddedilir, yol enjeksiyonu yok');
+  ok(!bins.some((p) => /\.\.|;|\s/.test(p)), 'simge: istenen hiçbir yol şüpheli karakter içermez');
+  // beyaz liste
+  ok(L.LCU_OK.every((re) => !re.test('/lol-chat/v1/me') && !re.test('/lol-champ-select/v1/session/actions/1') && !re.test('/lol-login/v1/session') && !re.test('/lol-lobby/v2/lobby')) && L.LCU_OK.some((re) => re.test('/lol-champ-select/v1/session')), 'LCU beyaz listesi: sohbet/giriş/lobi/eylem uç noktaları kapalı');
+  // veri silme
+  confirmAns = false; ok((await HP['lol:data:clear']()).canceled === true && (await HP['lol:profile']()).matches === 6, 'veri silme: onay reddedilince veri durur'); confirmAns = true;
+  const dcr = await HP['lol:data:clear'](); pf = await HP['lol:profile'](); ok(dcr.ok && pf.matches === 0 && pf.snaps === 0 && pf.me === null && (await HP['lol:pool']()).pool.top.length === 2, 'veri silme: maç/LP/profil silinir, havuz kalır');
+  // saf fonksiyonlar
+  ok(L.absLp('PLATINUM', 'III', 99) === 1799 && L.absLp('MASTER', '', 120) === 2920 && L.absLp('CHALLENGER', '', 0) === 2800 && L.absLp('BOZUK', 'I', 1) === null, 'absLp: kademe/lig/LP birleşik sayı, usta+ ortak ölçek');
+  ok(L.normRank({ queueType: 'RANKED_SOLO_5x5', tier: '', wins: 3, losses: 2 }).unranked === true && L.normRank({ queueType: 'RANKED_TFT', tier: 'GOLD' }) === null && L.parseRanked(null).solo === null, 'derece ayrıştırma: derecesiz, TFT yok sayılır, bozuk girdi güvenli');
+  ok(L.laneRole({ lane: 'BOTTOM', role: 'DUO_SUPPORT' }) === 'support' && L.laneRole({ lane: 'BOTTOM', role: 'DUO_CARRY' }) === 'bot' && L.laneRole({ lane: 'MIDDLE' }) === 'mid' && L.laneRole(null) === null, 'hat çıkarımı: destek/nişancı/orta');
+  ok(L.normMatch({ gameId: 'x' }, 'P', () => null) === null && L.normMatch(null, 'P', () => null) === null && L.normMatch({ gameId: 1, participants: [{ participantId: 1, stats: { win: true } }, { participantId: 2, stats: {} }], participantIdentities: [] }, 'P', () => null) === null, 'maç ayrıştırma: bozuk/benim olmayan veri null');
+
   // ---- host entegrasyonu: kanallar kayıtlı, arayüz yol/URL gönderemez
   const host = createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'entegre'), get } });
   const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu'];

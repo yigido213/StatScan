@@ -12,10 +12,10 @@ ok(await pg.evaluate(() => document.documentElement.lang) === 'en' && await pg.e
 ok(await pg.evaluate(() => document.querySelector('#settings').open) && await pg.inputValue('#st-lang') === 'en', 'yenilemeden sonra Ayarlar yeniden açıldı');
 ok(/Appearance/.test(await pg.textContent('#settings')) && /Start with Windows/.test(await pg.textContent('#settings')), 'Ayarlar İngilizce');
 await pg.keyboard.press('Escape'); await pg.waitForTimeout(100);
-ok(/Settings/.test(await pg.textContent('#side-settings')) && /Security/.test(await pg.textContent('.side')) && /Coding/.test(await pg.textContent('.side')) && /Task Manager/.test(await pg.textContent('.side')), 'kenar çubuğu İngilizce');
-ok(/grouped into categories/.test(await pg.textContent('#app-home .lead')) && /Compiler/.test(await pg.textContent('#toolgrid')), 'Home İngilizce');
+ok(/Settings/.test(await pg.textContent('#side-settings')) && /Security/.test(await pg.textContent('.side')) && /Coding/.test(await pg.textContent('.side')) && /Windows/.test(await pg.textContent('.side')), 'kenar çubuğu İngilizce');
+ok(/grouped into categories/.test(await pg.textContent('#app-home .lead')) && /Build and source code tools/.test(await pg.textContent('#toolgrid')) && /4 tools|2 tools/.test(await pg.textContent('#toolgrid')), 'Home İngilizce');
 ok((await pg.title()).startsWith('Home'), 'başlık');
-ok(/Memory Analysis/.test(await pg.textContent('.side')) && /Memory Analysis/.test(await pg.textContent('#toolgrid')) && /Never declares a dump/.test(await pg.textContent('#toolgrid')) && !/RAM Analizi/.test(await pg.textContent('#toolgrid')), 'RAM Analizi: kenar çubuğu ve Home kartı İngilizce (Memory Analysis)');
+ok(/Memory Analysis/.test(await pg.textContent('#app-c-windows')) && /Never declares a dump/.test(await pg.textContent('#app-c-windows')) && !/RAM Analizi/.test(await pg.textContent('#app-c-windows')), 'RAM Analizi: kenar çubuğu ve Home kartı İngilizce (Memory Analysis)');
 const roots = { texpack: '#app-texpack', modconv: '#app-modconv', compiler: '#app-compiler', obfuscate: '#app-obfuscate', ramanaliz: '#app-ramanaliz', lolcounter: '#app-lolcounter' };
 for (const [id, sel] of Object.entries(roots)) { await pg.evaluate((i) => { location.hash = '#/' + i; }, id); await pg.waitForTimeout(250);
   const left = await pg.evaluate((s) => { const out = []; const w = document.createTreeWalker(document.querySelector(s), NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const t = n.nodeValue.trim(); if (t && /[çğıöşüÇĞİÖŞÜ]/.test(t) && !n.parentElement.closest('pre,textarea,script,style,[hidden]')) out.push(t.slice(0, 80)); } return out; }, sel);

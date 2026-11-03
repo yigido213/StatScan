@@ -25,7 +25,7 @@ ok(/masaüstü uygulaması gerektirir/.test(await pg.textContent('#app-oyunayar'
 
 pg = await page(); await pg.goto(URL + '#/oyunayar'); await pg.waitForSelector('#og-list .og-game', { timeout: 15000 });
 ok((await pg.title()) === 'Oyun Ayarlayıcı · Kovan', 'başlık: Oyun Ayarlayıcı · Kovan');
-ok(await pg.evaluate(() => document.querySelector('.nav-item[href="#/oyunayar"], .nav-item[data-open="oyunayar"]') != null), 'kenar çubuğunda araç görünür');
+ok(await pg.evaluate(() => document.querySelector('#app-c-windows .toolcard[data-open="oyunayar"]') != null), 'Windows kategori sayfasında araç kartı görünür');
 const games = await pg.evaluate(() => [...document.querySelectorAll('#og-list .og-game')].map((x) => ({ n: x.querySelector('.og-gname').textContent, dis: x.disabled, t: x.textContent })));
 ok(games.length === 2 && games.find((g) => g.n === 'Resident Evil Requiem' && !g.dis) && games.find((g) => g.n === 'Rocket League' && g.dis && /anti-cheat/.test(g.t)), 'liste: RE seçilebilir, Rocket League anti-cheat ile devre dışı');
 ok(await pg.evaluate(() => document.querySelector('#og-note').textContent.includes('Anti-cheat’li oyunlara') && document.querySelector('#og-note').textContent.includes('denenmedi')), 'dürüst sınırlar notu görünür');
@@ -69,5 +69,5 @@ ok(pg.errs.length === 0, 'sayfa hatası yok (' + pg.errs.join('|') + ')');
 for (const w of [900, 390]) { const p2 = await page({ width: w, height: 800 }); await p2.goto(URL + '#/oyunayar'); await p2.waitForSelector('#og-list .og-game'); ok(await p2.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), w + ' px: yatay taşma yok'); await p2.context().close(); }
 await pg.focus('#og-list .og-game:not([disabled])'); ok(await pg.evaluate(() => document.activeElement.classList.contains('og-game')), 'klavye: oyun düğmesi odaklanabilir');
 await pg.evaluate(() => localStorage.setItem('kovan.lang', 'en')); const pe = await page(); await pe.addInitScript(() => { try { localStorage.setItem('kovan.lang', 'en'); } catch (e) { /* yok */ } }); await pe.goto(URL + '#/oyunayar'); await pe.waitForSelector('#og-list .og-game'); await pe.waitForTimeout(300);
-ok(/Game Tuner/.test(await pe.textContent('#side-nav')), 'English: kenar çubuğu “Game Tuner”'); ok(/Rescan/.test(await pe.textContent('#og-rescan')) && /Find settings files again/.test(await pe.textContent('#og-redetect')), 'English: düğmeler çevrildi');
+ok(/Game Tuner/.test(await pe.textContent('#app-c-windows')), 'English: Windows kategori sayfasında “Game Tuner”'); ok(/Rescan/.test(await pe.textContent('#og-rescan')) && /Find settings files again/.test(await pe.textContent('#og-redetect')), 'English: düğmeler çevrildi');
 fs.rmSync(tmp, { recursive: true, force: true }); await b.close(); console.log(bad ? '\n' + bad + ' BAŞARISIZ' : '\nTÜMÜ GEÇTİ'); process.exit(bad ? 1 : 0);

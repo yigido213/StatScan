@@ -38,10 +38,10 @@ ok(pg.errs.length === 0, 'tarayıcı modunda konsol hatası yok ' + JSON.stringi
 
 // ---------- 1) kenar çubuğu / Home kaydı ----------
 pg = await page(); await pg.goto(URL); await pg.waitForTimeout(300);
-ok(await pg.evaluate(() => { const a = document.querySelector('#side-nav a[data-route="ramanaliz"]'); return !!a && a.textContent.trim() === 'RAM Analizi' && a.title === 'RAM Analizi'; }), 'kenar çubuğunda “RAM Analizi”');
-ok(await pg.evaluate(() => { const c = document.querySelector('#toolgrid .toolcard[data-open="ramanaliz"]'); return !!c && /Beta · v0\.0\.1/.test(c.textContent); }), 'Home kartı: Beta · v0.0.1');
-ok(await pg.evaluate(() => { let e = document.querySelector('#side-nav a[data-route="ramanaliz"]').previousElementSibling; while (e && !e.classList.contains('side-label')) e = e.previousElementSibling; return e && e.textContent === 'Windows'; }), 'kategori: Windows altında');
-ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid .toolcard.empty').length) === 1, 'yer tutucu kart hâlâ var (sahte araç eklenmedi)'); await pg.context().close();
+ok(await pg.evaluate(() => { const c = document.querySelector('#app-c-windows .toolcard[data-open="ramanaliz"]'); return !!c && c.querySelector('h3').textContent === 'RAM Analizi'; }), 'Windows kategori sayfasında “RAM Analizi” kartı');
+ok(await pg.evaluate(() => { const c = document.querySelector('#app-c-windows .toolcard[data-open="ramanaliz"]'); return !!c && /Beta · v0\.0\.1/.test(c.textContent); }), 'araç kartı: Beta · v0.0.1');
+ok(await pg.evaluate(() => { const s = document.querySelector('#app-ramanaliz .kv-back'); return !!s && s.getAttribute('href') === '#/c-windows'; }), 'kategori: Windows altında (geri bağlantısı #/c-windows)');
+ok(await pg.evaluate(() => document.querySelectorAll('#app-c-windows .toolcard.empty').length) === 0, 'Windows kategorisinde sahte araç yok'); await pg.context().close();
 
 // ---------- 2) boşta durum ----------
 pg = await page(); await pg.goto(URL + '#/ramanaliz'); await pg.waitForSelector('#rm-toolsline.ok', { timeout: 15000 });

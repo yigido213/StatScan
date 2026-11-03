@@ -101,6 +101,15 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolStatsUrlGet: () => call('lol:statsurl:get'),
   lolStatsUrlSet: (url) => call('lol:statsurl:set', url === null ? null : String(url)),
   lolLcu: () => call('lol:lcu'),
+  lolSync: (deep) => call('lol:sync', { deep: deep === true }),
+  lolProfile: () => call('lol:profile'),
+  lolLp: (q) => call('lol:lp', q === 'flex' ? 'flex' : 'solo'),
+  lolMatches: (req) => call('lol:matches', { queue: String((req && req.queue) || 'all'), offset: Number(req && req.offset) || 0, limit: Number(req && req.limit) || 20 }),
+  lolStats: (req) => call('lol:stats', { queue: String((req && req.queue) || 'all'), role: req && req.role ? String(req.role) : undefined }),
+  lolBans: (role, limit) => call('lol:bans', { role: String(role), limit: Number(limit) || undefined }),
+  lolComp: (allies, enemies) => call('lol:comp', { allies: Array.isArray(allies) ? allies.slice(0, 5).map(String) : [], enemies: Array.isArray(enemies) ? enemies.slice(0, 5).map(String) : [] }),
+  lolIcon: (kind, id) => call('lol:icon', { kind: String(kind), id: String(id) }),
+  lolDataClear: () => call('lol:data:clear'),
   storeGet: (k) => call('store:get', String(k)),
   storeSet: (k, v) => call('store:set', String(k), String(v))
 }));

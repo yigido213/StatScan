@@ -13,7 +13,7 @@ await pg.goto('file:///home/claude/statscan/app/StatScan.html'); await pg.waitFo
 ok((await pg.textContent('#side-ver')) === 'beta 0.0.10', 'kenar çubuğu sürümü: beta 0.0.10');
 ok((await pg.textContent('#home-facts')).includes('beta 0.0.10'), 'Home: Kovan beta 0.0.10');
 // doku paketi
-await pg.click('#side-nav a[data-route="texpack"]'); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector("#app-texpack").hidden && document.querySelector("#app-home").hidden), "doku paketi sayfası açıldı");
+await pg.evaluate(() => { location.hash = '#/texpack'; }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector("#app-texpack").hidden && document.querySelector("#app-home").hidden), "doku paketi sayfası açıldı");
 ok((await pg.title()) === 'Doku paketi dönüştürücü · Kovan', 'başlık');
 await pg.setInputFiles('#tp-file', dir + '/bad.zip'); await pg.waitForTimeout(300); ok(/ZIP|zip/.test(await pg.textContent('#app-texpack .cv-live')) && (await pg.isDisabled('#app-texpack .cv-primary')), 'ZIP olmayan dosya: açık hata, buton kapalı');
 await pg.setInputFiles('#tp-file', dir + '/nomc.zip'); await pg.waitForTimeout(300); ok(/pack\.mcmeta/.test(await pg.textContent('#app-texpack .cv-live')), 'pack.mcmeta yok: açık hata');
@@ -23,14 +23,14 @@ const [dl] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-texp
 ok(spawnSync('unzip', ['-t', p1]).status === 0, 'indirilen zip geçerli'); const lst = spawnSync('unzip', ['-Z1', p1]).stdout.toString(); ok(/textures\/block\/dirt\.png/.test(lst) && /textures\/item\/apple\.png/.test(lst) && !/textures\/blocks\//.test(lst), 'dokular yeniden adlandırıldı');
 const [dr] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-texpack .cv-actions .cv-btn:not(.cv-primary)')]); await dr.saveAs(dir + '/r.md'); ok(/1\.11.*1\.21\.4/s.test(fs.readFileSync(dir + '/r.md', 'utf8')), 'rapor indirildi');
 // mod
-await pg.click('#side-nav a[data-route="modconv"]'); await pg.waitForTimeout(150);
+await pg.evaluate(() => { location.hash = '#/modconv'; }); await pg.waitForTimeout(150);
 await pg.setInputFiles('#mc-file', dir + '/mod.jar'); await pg.waitForTimeout(400); ok(/fabric/.test(await pg.textContent('#app-modconv .cv-info')), 'mod algılandı (fabric)');
 await pg.selectOption('#mc-dst', '1.21.4'); await pg.click('#app-modconv .cv-primary:not(.cv-actions *)'); await pg.waitForSelector('#app-modconv .cv-res:not([hidden])', { timeout: 8000 });
 ok(/GARANTİ ETMEZ/.test(await pg.textContent('#app-modconv .cv-res')), 'mod: çalışma garantisi yok uyarısı sonuçta görünür (risk bölümü)');
 const [dm] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-modconv .cv-actions .cv-primary')]); const p2 = dir + '/' + dm.suggestedFilename(); await dm.saveAs(p2); ok(dm.suggestedFilename() === 'mod-1.21.4.jar' && spawnSync('unzip', ['-p', p2, 'fabric.mod.json']).stdout.toString().includes('>=1.21.4'), 'mod jar indirildi ve bildirim güncel');
 // dar ekran taşma
 await pg.setViewportSize({ width: 380, height: 800 }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'dar ekranda yatay taşma yok');
-await pg.click('#side-nav a[data-route="texpack"]').catch(() => {});
+await pg.evaluate(() => { location.hash = '#/texpack'; }).catch(() => {});
 // palet
 await pg.setViewportSize({ width: 1200, height: 900 }); await pg.keyboard.press('Control+k'); await pg.keyboard.type('mod'); await pg.waitForTimeout(150); ok(/Mod sürüm ayarlayıcı/.test(await pg.textContent('#pal')), 'komut paletinde araç görünür');
 ok(errs.length === 0, 'konsol/sayfa hatası yok ' + errs.slice(0, 2).join('|'));
