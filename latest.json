@@ -1,6 +1,6 @@
 {
-  "version": "5.0.4",
-  "url": "StatScan-5.0.4.ssu",
-  "sha256": "a275ef1c07837f08132d340bd13a312498139266efe9042999541b116efc47c7",
-  "notes": "5.0.4 — Kovan beta 0.0.10: Obfuscate aracı (Kodlama kategorisi; çok dilli kaynak obfuscator — Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D; tamamen istemci tarafında, yorum/boşluk temizliği + desteklenen dillerde güvenliği kanıtlanabilir yerel değişken adı karıştırma) birleştirildi. 5.0.1–5.0.3'teki Oyun Ayarlayıcı (Steam/Epic algılama, grafik ön ayarı/çözünürlük, hedef FPS, iç içe ayar dosyası bulma) de dahildir."
+  "version": "5.0.5",
+  "url": "StatScan-5.0.5.ssu",
+  "sha256": "b1af5117bb5c672108e99b7b6ba244f0e56554876a304b753a06f0a35c106f10",
+  "notes": "5.0.5 — Kovan beta 0.1.1: League Asistanı (profil, derece ve LP geçmişi, maç kartları, şampiyon ve takım arkadaşı istatistikleri, karşı seçim; kendi teması) + kategori sayfaları (kenar çubuğunda yalnız Home ve 4 kategori; araçlar kategori sayfasında). Veriyi League istemcisinden yalnızca okur, bu bilgisayarda saklar. Windows'ta ve gerçek istemciyle denenmedi."
 }
