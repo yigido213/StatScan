@@ -112,6 +112,8 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolCpGet: () => call('lol:cp:get'),
   lolCpSet: (on) => call('lol:cp:set', on === true),
   lolRunes: () => call('lol:runes'),
+  lolRuneSuggest: (o) => call('lol:runes:suggest', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || '') }),
+  lolRunesApply: (o) => call('lol:runes:apply', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), perks: o && Array.isArray(o.perks) ? o.perks.slice(0, 9).map(Number) : [] }),
   lolIcon: (kind, id) => call('lol:icon', { kind: String(kind), id: String(id) }),
   lolDataClear: () => call('lol:data:clear'),
   storeGet: (k) => call('store:get', String(k)),

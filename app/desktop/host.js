@@ -1023,7 +1023,10 @@ const LOLMOD = (() => {
     if (e.n >= 3 && e.apPct <= 22) notes.push({ side: 'enemy', k: 'enemyAD' }); if (e.n >= 3 && e.apPct >= 78) notes.push({ side: 'enemy', k: 'enemyAP' }); if (e.n >= 4 && e.assassins >= 2) notes.push({ side: 'enemy', k: 'enemyAssassins' }); if (e.n >= 4 && !e.tanks) notes.push({ side: 'enemy', k: 'enemyNoTank' });
     return { ally: a, enemy: e, notes };
   }
-  const LCU_OK = [/^\/lol-champ-select\/v1\/session$/, /^\/lol-summoner\/v1\/current-summoner$/, /^\/lol-ranked\/v1\/current-ranked-stats$/, /^\/lol-match-history\/v1\/products\/lol\/current-summoner\/matches\?begIndex=\d{1,4}&endIndex=\d{1,4}$/, /^\/lol-match-history\/v1\/games\/\d{1,15}$/];
+  const LCU_OK = [/^\/lol-champ-select\/v1\/session$/, /^\/lol-summoner\/v1\/current-summoner$/, /^\/lol-ranked\/v1\/current-ranked-stats$/, /^\/lol-match-history\/v1\/products\/lol\/current-summoner\/matches\?begIndex=\d{1,4}&endIndex=\d{1,4}$/, /^\/lol-match-history\/v1\/games\/\d{1,15}$/, /^\/lol-perks\/v1\/pages$/, /^\/lol-perks\/v1\/currentpage$/];
+  /* LCU-WRITE-BEGIN: League istemcisine TEK yazma türü — kendi 'Kovan' rün sayfamız (oluştur/sil). Başka uç nokta yazılamaz. */
+  const LCU_WRITE_OK = [['POST', /^\/lol-perks\/v1\/pages$/], ['DELETE', /^\/lol-perks\/v1\/pages\/\d{1,12}$/]];
+  /* LCU-WRITE-END */
 
 
   /* ---------- CANLI MAC (Riot'un yerel Live Client Data API'si: 127.0.0.1:2999, yalniz GET, yalniz okuma) ---------- */
@@ -1069,6 +1072,11 @@ const LOLMOD = (() => {
     return { mode: parsed.mode, time: parsed.time, classic, me: me ? { champ: me.champ, name: me.name, role: me.role, conf: me.conf, level: me.level } : null, allies, enemies, lane: lane ? lane.champ : null };
   }
 
+  /* rün sayfası yapısı: perk0 = anahtar taş (ağaç A, slot 0), perk1-3 = A'nın 1,2,3. slotları, perk4-5 = ağaç B (≠A) farklı iki slot (1-3) */
+  function validateRunePage(p, idx) {
+    if (!Array.isArray(p) || p.length !== 6 || !idx) return null; const x = p.map((id) => idx[id]); if (x.some((e) => !e)) return null; const A = x[0].t; if (x[0].s !== 0 || x[1].t !== A || x[2].t !== A || x[3].t !== A || x[1].s !== 1 || x[2].s !== 2 || x[3].s !== 3) return null;
+    const B = x[4].t; if (B === A || x[5].t !== B || x[4].s < 1 || x[5].s < 1 || x[4].s === x[5].s) return null; return { primary: A, sub: B };
+  }
   function createLolHost(deps) {
     deps = deps || {}; const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'lolcounter.json') : null; const cacheDir = dataDir ? path.join(dataDir, 'lolcounter-cache') : null;
     const now = deps.now || (() => Date.now());
@@ -1153,8 +1161,20 @@ const LOLMOD = (() => {
     });
     const liveRead = async (p) => { if (!LIVE_OK.test(p)) throw new Error('izin verilmeyen uç nokta'); return liveGet(p); };
     let runeMap = null;
+    async function loadRunes() {
+      if (runeMap) return runeMap; const nm = 'runes-' + rosterMeta.version + '-' + rosterMeta.locale + '.json'; let j = cacheRead(nm);
+      if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/runesReforged.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('Rün verisi alınamadı (' + String(e && e.message || e) + ').'); } }
+      const m = { perks: {}, trees: {}, idx: {} }; for (const tr of Array.isArray(j) ? j : []) { if (!tr || !Number.isInteger(tr.id)) continue; m.trees[tr.id] = String(tr.name || '').slice(0, 30); (tr.slots || []).forEach((sl, si) => { for (const r of sl.runes || []) if (r && Number.isInteger(r.id)) { m.perks[r.id] = String(r.name || '').slice(0, 40); m.idx[r.id] = { t: tr.id, s: si }; } }); }
+      runeMap = m; return m;
+    }
     /* LCU: yalniz beyaz listedeki GET uc noktalari (yazma/degistirme yok) */
     const lcuRead = async (info, p) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p); };
+    const lcuSend = deps.lcu && deps.lcu.write ? deps.lcu.write : (info, method, p, body) => new Promise((resolve, reject) => {
+      const data = body === undefined ? null : Buffer.from(JSON.stringify(body)); const headers = { Authorization: 'Basic ' + Buffer.from('riot:' + info.token).toString('base64'), Accept: 'application/json' }; if (data) { headers['Content-Type'] = 'application/json'; headers['Content-Length'] = data.length; }
+      const req = https.request({ host: '127.0.0.1', port: info.port, path: p, method, rejectUnauthorized: false, timeout: 5000, headers }, (res) => { const parts = []; res.on('data', (d) => { if (parts.length < 64) parts.push(d); }); res.on('end', () => { if (res.statusCode >= 300) return reject(new Error('HTTP ' + res.statusCode)); try { resolve(parts.length ? JSON.parse(Buffer.concat(parts).toString('utf8')) : null); } catch (e) { resolve(null); } }); });
+      req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject); if (data) req.write(data); req.end();
+    });
+    const lcuWrite = async (info, method, p, body) => { if (!LCU_WRITE_OK.some(([m, re]) => m === method && re.test(p))) throw new Error('izin verilmeyen yazma'); return lcuSend(info, method, p, body); };
     const champOf = () => { const m = byKeyMap(); return (k) => m.get(String(k)) || null; };
     const autoHist = () => Object.values(state.matches).filter((m) => !m.remake && m.opp && m.role && m.champ).map((m) => ({ role: m.role, me: m.champ, enemy: m.opp, win: !!m.win }));
     const handlers = {
@@ -1296,12 +1316,30 @@ const LOLMOD = (() => {
           return out;
         } catch (e) { return errE(String(e && e.message || e)); }
       },
-      'lol:runes': async () => {
+      'lol:runes': async () => { try { const bad = await needRoster(); if (bad) return bad; return await loadRunes(); } catch (e) { return errE(String(e && e.message || e)); } },
+      /* şampiyon seçiminde: bu eşleşme için rün önerisi (yalnız dış veri/counterpick açıkken) */
+      'lol:runes:suggest': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); const enemy = validChamp(req.enemy); const role = validRole(req.role); if (!me || !enemy || !role) return errE('İstek geçersiz.');
+          const ext = await fetchExt(enemy, role, me); const e = ext ? ext.get(me) : null; return { me, enemy, role, wr: e ? e.wr : null, games: e ? e.games : 0, runes: e && e.runes ? e.runes : null, statsConfigured: !!(state.statsUrl || state.cp), cp: !!state.cp };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      /* rünleri League istemcisine yaz: YALNIZ 'Kovan …' adlı kendi sayfamız; diğer sayfalara dokunulmaz; onay penceresi; yapı doğrulanamazsa yazılmaz */
+      'lol:runes:apply': async (_e, req) => {
         try {
-          const bad = await needRoster(); if (bad) return bad; if (runeMap) return runeMap; const nm = 'runes-' + rosterMeta.version + '-' + rosterMeta.locale + '.json'; let j = cacheRead(nm);
-          if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/runesReforged.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('Rün verisi alınamadı (' + String(e && e.message || e) + ').'); } }
-          const m = { perks: {}, trees: {} }; for (const tr of Array.isArray(j) ? j : []) { if (!tr || !Number.isInteger(tr.id)) continue; m.trees[tr.id] = String(tr.name || '').slice(0, 30); for (const sl of tr.slots || []) for (const r of sl.runes || []) if (r && Number.isInteger(r.id)) m.perks[r.id] = String(r.name || '').slice(0, 40); }
-          runeMap = m; return m;
+          const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); const enemy = validChamp(req.enemy); const perks = Array.isArray(req.perks) ? req.perks.slice(0, 9).map(Number) : [];
+          if (!me || !enemy || perks.length !== 6 || perks.some((n) => !Number.isInteger(n))) return errE('Rün verisi geçersiz.');
+          const R = await loadRunes(); if (R.error) return R; const v = validateRunePage(perks, R.idx); if (!v) return errE('Rün sırası/ağaçları doğrulanamadı; League’e yazılmadı.');
+          if (!deps.confirm) return errE('Onay penceresi yok; yazılmadı.'); const nameE = (roster.find((c) => c.id === enemy) || {}).name || enemy; const nameM = (roster.find((c) => c.id === me) || {}).name || me;
+          const okc = await deps.confirm({ title: 'Rünler League’e yazılsın mı?', message: nameM + ' → ' + nameE + ' karşısında:\n\n' + perks.map((id) => R.perks[id] || id).join(' · ') + '\n\nİstemcide “Kovan …” adlı bir rün sayfası oluşturulur/yenilenir ve etkin yapılır. Diğer sayfalarına dokunulmaz. Şarj parçaları şu anki sayfandan alınır.', ok: 'Yaz', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
+          const info = await lcuFind(); if (!info) return { error: 'lol', state: 'noclient', message: 'League istemcisi bulunamadı (açık mı?).' };
+          let cur; let pages; try { cur = await lcuRead(info, '/lol-perks/v1/currentpage'); pages = await lcuRead(info, '/lol-perks/v1/pages'); } catch (e) { return errE('Rün sayfaları okunamadı (' + String(e && e.message || e) + ').'); }
+          const shards = cur && Array.isArray(cur.selectedPerkIds) && cur.selectedPerkIds.length === 9 ? cur.selectedPerkIds.slice(6).map(Number) : null; if (!shards || shards.some((n) => !Number.isInteger(n) || n < 5000 || n > 5999)) return errE('Şarj parçaları şu anki sayfandan okunamadı; yazılmadı. Önce istemcide bir rün sayfası seç.');
+          const list = Array.isArray(pages) ? pages : []; const name = ('Kovan vs ' + nameE).slice(0, 24);
+          try { for (const pg of list.filter((x) => x && /^Kovan/.test(String(x.name)) && Number.isInteger(x.id) && x.isDeletable !== false)) await lcuWrite(info, 'DELETE', '/lol-perks/v1/pages/' + pg.id);
+            await lcuWrite(info, 'POST', '/lol-perks/v1/pages', { name, primaryStyleId: v.primary, subStyleId: v.sub, selectedPerkIds: perks.concat(shards), current: true });
+          } catch (e) { return errE('Rün sayfası yazılamadı (' + String(e && e.message || e) + '). Sayfa sınırı dolmuş ya da seçim ekranı kapalı olabilir.'); }
+          let okRead = false; try { const after = await lcuRead(info, '/lol-perks/v1/pages'); okRead = Array.isArray(after) && after.some((x) => x && x.name === name && Array.isArray(x.selectedPerkIds) && x.selectedPerkIds.slice(0, 6).join() === perks.join()); } catch (e) { okRead = false; }
+          return { ok: true, name, verified: okRead };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:lcu': async () => {
@@ -1318,7 +1356,7 @@ const LOLMOD = (() => {
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
-  return { createLolHost, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
+  return { createLolHost, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
 })();
 
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---

@@ -5849,7 +5849,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Maç": "Games",
       "Maç sayısı": "Games played",
       "Galibiyet oranı": "Win rate",
-      "Profil, derece, LP ve maçlar League istemcisinden YALNIZCA OKUNUR ve yalnızca bu bilgisayarda saklanır; oyuna kod enjekte edilmez, bellek okunmaz, istemciye bir şey yazılmaz.": "Profile, rank, LP and matches are only READ from the League client and stored on this computer only; no code is injected into the game, no memory is read, nothing is written to the client.",
+      "Profil, derece, LP ve maçlar League istemcisinden YALNIZCA OKUNUR ve yalnızca bu bilgisayarda saklanır; oyuna kod enjekte edilmez, bellek okunmaz. İstemciye tek yazma: “Rünleri League’e uygula”ya basınca, onayınla, “Kovan …” adlı rün sayfası.": "Profile, rank, LP and matches are only READ from the League client and stored on this computer only; no code is injected into the game, no memory is read. The only write to the client: when you press “Apply runes to League”, with your confirmation, a rune page named “Kovan …”.",
       "LP geçmişi bu aracı ilk kullandığın andan başlar; öncesini istemci vermez. Maç başına LP farkı yalnızca kesin hesaplanabildiğinde gösterilir.": "LP history starts the moment you first use this tool; the client does not provide earlier history. Per-match LP change is shown only when it can be computed exactly.",
       "Karşı seçim önerileri TAHMİNDİR (Riot’un resmi şampiyon verisinden); gerçek maç istatistiği değildir. Gerçek Windows ve gerçek istemciyle henüz denenmedi.": "Counter-pick suggestions are ESTIMATES (from Riot’s official champion data), not real match statistics. Not yet tested on real Windows or a real client.",
       "Demir": "Iron",
@@ -5929,6 +5929,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Rakip hatları TAHMİNDİR (yalnız şampiyon türünden; büyü bilgisi seçimde yok). Oyun başlayınca Canlı maç daha iyi tahmin verir.": "Enemy lanes are ESTIMATES (from champion class only; no spell info during select). Once the game starts, Live match gives a better guess.",
       "{0} hattında olası rakip: {1}": "Likely opponent in {0}: {1}",
       "Tahmin; hat rakibi kesinleşince değişebilir.": "Estimate; may change once the lane opponent is certain.",
+      "{0} karşısında %{1}": "{1}% against {0}",
+      "Rünleri League’e uygula": "Apply runes to League",
+      "Rün sayfası yazıldı: {0}": "Rune page written: {0}",
+      "okunarak doğrulanamadı": "could not be verified by reading back",
+      "İstemcide yalnızca “Kovan …” adlı bir rün sayfası oluşturulur/yenilenir; diğer sayfalarına dokunulmaz. Şarj parçaları şu anki sayfandan alınır. League’in istemci arayüzü resmî olarak belgelenmemiştir; denenmedi.": "Only a rune page named “Kovan …” is created/refreshed in the client; your other pages are not touched. Stat shards are taken from your current page. League’s client interface is not officially documented; untested.",
+      "Bu eşleşme için rün verisi bulunamadı.": "No rune data found for this matchup.",
+      "Eşleşmeye özel rün önerisi için “Karşı seçim” sekmesinde counterpick.lol’u aç ya da bir dış veri adresi ekle.": "For matchup-specific rune suggestions, turn on counterpick.lol or add an external data address in the “Counter pick” tab.",
+      "Rün önerisi: {0} → {1}": "Rune suggestion: {0} → {1}",
       "LP geçmişi": "LP history",
       "Şu an": "Now",
       'Yeni araçlar için yer ayrıldı': 'Room for new tools', 'Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.': 'No other tools added yet. When added, they appear here and in the sidebar.',
@@ -6281,7 +6289,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "League of Legends’ta rakibine karşı ne seçeceğini gösterir. Tarayıcı açmaz: veriyi arka planda çeker. Şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir; League istemcisinden şampiyon seçimini okuyabilir.": "Shows what to pick against your opponent in League of Legends. Does not open a browser: it fetches the data in the background. Personalizes by your champion pool and your own match log; can read the champion select from the League client.",
       "Öneriler TAHMİNDİR: Riot’un resmi şampiyon verisinden (menzil, zırh/büyü direnci, sınıf) hesaplanır; gerçek maç istatistiği değildir. Kendi kayıtların ve (varsa) eklediğin dış veri tahmini ağırlıkla geçer.": "Suggestions are ESTIMATES: calculated from Riot’s official champion data (range, armor/magic resist, class); they are not real match statistics. Your own records and (if added) external data outweigh the estimate.",
       "Hiçbir istatistik sitesinden veri çekilmez. İstersen kendi güvendiğin bir veri adresini ekleyebilirsin (aşağıda).": "No data is scraped from any stats site. If you want, you can add a data address you trust (below).",
-      "League istemcisi yalnızca OKUNUR (şampiyon seçimi ekranı); oyuna kod enjekte edilmez, bellek okunmaz, istemciye bir şey yazılmaz. Gerçek Windows’ta ve gerçek istemciyle henüz denenmedi.": "The League client is only READ (champion select screen); no code is injected into the game, no memory is read, nothing is written to the client. Not yet tried on real Windows or with a real client.",
       "İlk kullanımda internet gerekir; şampiyon verisi sonra önbellekten çalışır.": "The first use needs internet; champion data then works from the cache.",
       "1 · Rol ve rakip": "1 · Role and opponent",
       "2 · Öneriler": "2 · Suggestions",
@@ -7347,7 +7354,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     for (const [id] of TABS) panes[id] = h('div', { class: 'lg-pane', id: 'lg-pane-' + id, role: 'tabpanel', 'aria-labelledby': 'lg-tab-' + id, hidden: true });
     root.append(h('div', { class: 'lg-bg', 'aria-hidden': 'true' }, h('div', { class: 'lg-lattice' }), h('div', { class: 'lg-orb a' }), h('div', { class: 'lg-orb b' })),
       h('div', { class: 'lg-wrap' }, hero, h('div', { class: 'cv-note', id: 'lc-note' }, h('b', {}, 'Beta v0.0.1 — dürüst sınırlar'), h('ul', {},
-        h('li', {}, 'Profil, derece, LP ve maçlar League istemcisinden YALNIZCA OKUNUR ve yalnızca bu bilgisayarda saklanır; oyuna kod enjekte edilmez, bellek okunmaz, istemciye bir şey yazılmaz.'),
+        h('li', {}, 'Profil, derece, LP ve maçlar League istemcisinden YALNIZCA OKUNUR ve yalnızca bu bilgisayarda saklanır; oyuna kod enjekte edilmez, bellek okunmaz. İstemciye tek yazma: “Rünleri League’e uygula”ya basınca, onayınla, “Kovan …” adlı rün sayfası.'),
         h('li', {}, 'LP geçmişi bu aracı ilk kullandığın andan başlar; öncesini istemci vermez. Maç başına LP farkı yalnızca kesin hesaplanabildiğinde gösterilir.'),
         h('li', {}, 'Karşı seçim önerileri TAHMİNDİR (Riot’un resmi şampiyon verisinden); gerçek maç istatistiği değildir. Gerçek Windows ve gerçek istemciyle henüz denenmedi.'))),
         tabsEl, ...TABS.map(([id]) => panes[id]), live));
@@ -7453,6 +7460,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const opp = en.find((x) => (x.role || (x.guess && x.guess.role)) === myRole);
       if (opp) { const r = await call(H.lolSuggest, { role: myRole, enemy: opp.id, poolOnly: false, anyRole: false, limit: 6 });
         if (r && !r.error && r.picks && r.picks.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-best' }, h('h2', { class: 'lg-h' }, KT('{0} hattında olası rakip: {1}', KT(RTR[myRole]), nameOf(opp.id))), h('ol', { class: 'lg-bestl' }, ...r.picks.map((p) => h('li', { class: p.id === lc.myPick ? 'me' : '' }, champIc(p.id), h('b', {}, p.name), p.inPool ? pill('low', KT('havuzumda')) : null, p.ext ? pill('mid', '%' + p.ext.wr) : null, h('span', { class: 'lc-score' }, String(p.score))))), h('p', { class: 'rm-hint' }, KT('Tahmin; hat rakibi kesinleşince değişebilir.')))); }
+      if (lc.myPick && opp) { const rs = await call(H.lolRuneSuggest, { me: lc.myPick, enemy: opp.id, role: myRole });
+        if (rs && !rs.error) { const R = await getRunes(); const main = rs.runes ? rs.runes.perks.filter((n) => n >= 8000 && n % 100 !== 0).slice(0, 6) : [];
+          const res = h('p', { class: 'lg-sub', id: 'lg-rune-res', role: 'status' });
+          const body = main.length === 6 ? [h('p', {}, main.map((id) => R.perks[id] || String(id)).join(' · ') + (rs.runes.primary && R.trees[rs.runes.primary] ? ' — ' + R.trees[rs.runes.primary] + (rs.runes.secondary && R.trees[rs.runes.secondary] ? ' + ' + R.trees[rs.runes.secondary] : '') : '')), rs.wr != null ? h('p', { class: 'lg-sub' }, KT('{0} karşısında %{1}', nameOf(opp.id), rs.wr) + (rs.games ? ' · ' + KT('{0} maç', rs.games) : '')) : null,
+            h('div', { class: 'rm-row' }, btn('lg-rune-apply', 'Rünleri League’e uygula', async () => { const r = await call(H.lolRunesApply, { me: lc.myPick, enemy: opp.id, perks: main }); if (r && r.canceled) res.textContent = KT('Vazgeçildi.'); else if (!r || r.error) { res.textContent = failMsg(r); res.className = 'lg-sub warn'; } else { res.className = 'lg-sub'; res.textContent = KT('Rün sayfası yazıldı: {0}', r.name) + (r.verified ? '' : ' · ' + KT('okunarak doğrulanamadı')); } }, { class: 'cv-btn lg-primary' })), res,
+            h('p', { class: 'rm-hint' }, KT('İstemcide yalnızca “Kovan …” adlı bir rün sayfası oluşturulur/yenilenir; diğer sayfalarına dokunulmaz. Şarj parçaları şu anki sayfandan alınır. League’in istemci arayüzü resmî olarak belgelenmemiştir; denenmedi.'))] : [h('p', { class: 'rm-hint' }, rs.statsConfigured ? KT('Bu eşleşme için rün verisi bulunamadı.') : KT('Eşleşmeye özel rün önerisi için “Karşı seçim” sekmesinde counterpick.lol’u aç ya da bir dış veri adresi ekle.')), cpToggle()];
+          kids.push(h('section', { class: 'lg-card', id: 'lg-sel-runes' }, h('h2', { class: 'lg-h' }, KT('Rün önerisi: {0} → {1}', nameOf(lc.myPick), nameOf(opp.id))), ...body)); } }
       const bn = await call(H.lolBans, myRole, 5); if (bn && !bn.error && !bn.needPool && bn.bans && bn.bans.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-bans' }, h('h2', { class: 'lg-h' }, KT('Ban önerisi')), h('ul', { class: 'lg-bans' }, ...bn.bans.map((b) => h('li', {}, champIc(b.id), h('div', {}, h('b', {}, b.name), h('small', {}, KT('Ortalama {0} · en zoru: {1}', b.avg, b.worst ? b.worst.name : '—'))))))));
       const cc = await compCard(al.map((x) => x.id), en.map((x) => x.id)); if (cc) kids.push(cc);
       if (st.tab === 'live') put(panes.live, ...kids);
