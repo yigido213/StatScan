@@ -1306,7 +1306,13 @@ const LOLMOD = (() => {
       },
       'lol:lcu': async () => {
         try { const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' }; let s = null; try { s = await lcuRead(info, '/lol-champ-select/v1/session'); } catch (e) { return { state: 'noclient', note: String(e && e.message || e) }; } if (!s) return { state: 'idle' };
-          const m = mapSession(s, byKeyMap()); return m ? Object.assign({ state: 'champselect' }, m) : { state: 'idle' };
+          const m = mapSession(s, byKeyMap()); if (!m) return { state: 'idle' };
+          /* şampiyon seçiminde hat tahmini: 5 kişi tamamsa 120 atamayla, değilse kişi başına en olası hat (KABA; büyü/konum bilgisi yok) */
+          const by = new Map(roster.map((c) => [c.id, c])); const guess = (list) => { const L = list.map((x) => Object.assign({}, x)); const open = L.filter((x) => !x.role);
+            if (L.length === 5 && open.length === 5) { const a = assignRoles(L.map((x) => roleWeights(by.get(x.id) || null, null))); if (a) L.forEach((x, i) => { x.guess = { role: a[i].role, conf: a[i].conf, full: true }; }); }
+            else for (const x of open) { const w = roleWeights(by.get(x.id) || null, null); const tot = ROLE_ORDER.reduce((s2, r) => s2 + w[r], 0); const br = ROLE_ORDER.reduce((b, r) => (w[r] > w[b] ? r : b), 'top'); x.guess = { role: br, conf: Math.round((1000 * w[br]) / tot) / 1000, full: false }; }
+            return L; };
+          return Object.assign({ state: 'champselect' }, m, { allies: guess(m.allies), enemies: guess(m.enemies) });
         } catch (e) { return errE(String(e && e.message || e)); }
       }
     };

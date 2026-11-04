@@ -837,12 +837,13 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg-dd-opt, .lg-ac-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 8px; color: var(--ink); font-size: 14px; cursor: pointer; white-space: nowrap; } .lg-ac-opt { justify-content: flex-start; }
 .lg-dd-opt:hover, .lg-dd-opt.act, .lg-ac-opt:hover, .lg-ac-opt.act { background: var(--accent-soft); color: var(--lg-gold2); } .lg-dd-opt.sel { color: var(--lg-gold2); font-weight: 700; } .lg-dd-opt b { color: var(--lg-teal); } .lg-ac-opt .lg-ic { width: 28px; height: 28px; border-radius: 8px; flex: none; }
 .lg-livehead .lg-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--lg-loss); margin-right: 10px; box-shadow: 0 0 10px var(--lg-loss); } .lg-live2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .lg-h3 { font-size: 15px; color: var(--lg-gold2); margin: 8px 0; }
-.lg-lpl, .lg-bestl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-lp { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: rgba(5,8,16,.45); } .lg-lp.me { border-color: var(--lg-teal); } .lg-lp.en { border-color: color-mix(in srgb, var(--lg-loss) 35%, var(--line)); }
-.lg-lp .lg-ic { width: 40px; height: 40px; border-radius: 10px; } .lg-lpn b, .lg-lpn small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lg-lpn small { color: var(--muted); font-size: 12px; }
+.lg-lpl, .lg-bestl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-lv { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: rgba(5,8,16,.45); } .lg-lv.me { border-color: var(--lg-teal); } .lg-lv.en { border-color: color-mix(in srgb, var(--lg-loss) 35%, var(--line)); }
+.lg-lv .lg-ic { width: 40px; height: 40px; border-radius: 10px; } .lg-lpn b, .lg-lpn small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lg-lpn small { color: var(--muted); font-size: 12px; }
 .lg-rolebadge { display: inline-flex; flex-direction: column; align-items: flex-end; font-size: 12.5px; color: var(--muted); } .lg-rolebadge.sure { color: var(--lg-teal); } .lg-rolebadge i { font-style: normal; font-size: 11px; opacity: .85; } .lg-sp { grid-column: 2 / 4; display: flex; gap: 6px; flex-wrap: wrap; } .lg-sp em { font-style: normal; font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 8px; }
 .lg-vs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; } .lg-vs > div { display: flex; align-items: center; gap: 10px; } .lg-vs .lg-ic { width: 52px; height: 52px; border-radius: 12px; } .lg-vs span { color: var(--lg-gold); font: 700 14px var(--f-display); }
 .lg-bestl li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-bestl li.me { border-color: var(--lg-teal); } .lg-bestl .lg-ic { width: 34px; height: 34px; border-radius: 9px; } .lg-bestl .lc-score { margin-left: auto; } .lg-table tr.me td { background: var(--accent-soft); }
 .lc-abil { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .lc-abil li { font-size: 13.5px; color: var(--muted); } .lc-abil b { color: var(--lg-gold2); } .lc-abil small { color: var(--muted); }
+.lg-goal { margin: 4px 0 0; }
 .lg-chip.live { cursor: pointer; font: inherit; font-size: 13px; color: var(--lg-gold2); border-color: var(--lg-loss); } .lg-chip.live i { background: var(--lg-loss); }
 @media (max-width: 720px) { .lg-live2 { grid-template-columns: 1fr; } }
 .lg .lg-card { position: relative; } .lg .lg-card:focus-within, .lg .lg-card:has(.lg-dd-list:not([hidden])) { z-index: 25; }
@@ -5919,6 +5920,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "counterpick.lol açıldı.": "counterpick.lol turned on.",
       "counterpick.lol kapatıldı.": "counterpick.lol turned off.",
       "Dış veri: %{0}": "External data: {0}%",
+      "{0} için {1} LP kaldı": "{1} LP to {0}",
+      "{0} için {1} LP": "{1} LP to {0}",
+      "Şampiyon seçimi sürüyor": "Champion select in progress",
+      "Henüz seçim yok": "No picks yet",
+      "Rakip seçimleri henüz görünmüyor": "Enemy picks not visible yet",
+      "olası: {0}": "likely: {0}",
+      "Rakip hatları TAHMİNDİR (yalnız şampiyon türünden; büyü bilgisi seçimde yok). Oyun başlayınca Canlı maç daha iyi tahmin verir.": "Enemy lanes are ESTIMATES (from champion class only; no spell info during select). Once the game starts, Live match gives a better guess.",
+      "{0} hattında olası rakip: {1}": "Likely opponent in {0}: {1}",
+      "Tahmin; hat rakibi kesinleşince değişebilir.": "Estimate; may change once the lane opponent is certain.",
       "LP geçmişi": "LP history",
       "Şu an": "Now",
       'Yeni araçlar için yer ayrıldı': 'Room for new tools', 'Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.': 'No other tools added yet. When added, they appear here and in the sidebar.',
@@ -7367,12 +7377,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
     /* ---- genel bakis ---- */
     const sideEl = h('div', { class: 'lg-side' }); const feedEl = h('div', { class: 'lg-feed' }); panes.overview.append(h('div', { class: 'lg-cols' }, sideEl, feedEl));
+    function goalText(r) {
+      const keys = Object.keys(TIERN); const i = keys.indexOf(r.tier); if (i < 0 || i >= 7) return null; const divs = ['IV', 'III', 'II', 'I']; const di = divs.indexOf(String(r.div || '').toUpperCase()); if (di < 0) return null; const need = Math.max(0, 100 - r.lp);
+      const nameOf2 = (k, d) => (keys.indexOf(k) >= 7 ? KT(TIERN[k]) : tierName(k, d)); const next = di < 3 ? nameOf2(r.tier, divs[di + 1]) : nameOf2(keys[i + 1], 'IV');
+      return KT('{0} için {1} LP kaldı', next, need) + (di < 3 ? ' · ' + KT('{0} için {1} LP', nameOf2(keys[i + 1], 'IV'), (3 - di) * 100 + need) : '');
+    }
     function rankCard(q, title, r) {
       const card = h('section', { class: 'lg-card lg-rank', 'aria-label': title, id: 'lg-rank-' + q }); card.style.setProperty('--tc', r && r.tier ? TIERC[r.tier] : '#8793a8');
       if (!r || r.unranked) { card.append(h('h2', { class: 'lg-h' }, title), h('div', { class: 'lg-rk' }, emblem(null), h('div', { class: 'lg-rkt' }, h('b', { class: 'lg-tier' }, KT('Derecesiz')), h('span', { class: 'lg-sub' }, r ? KT('{0} G – {1} M', r.w, r.l) : KT('Henüz veri yok'))))); return card; }
       const gauge = h('div', { class: 'lg-gauge', role: 'img', 'aria-label': r.lp + ' LP' }, h('i')); gauge.firstChild.style.setProperty('--p', Math.min(100, r.lp) + '%');
       put(card, h('h2', { class: 'lg-h' }, title), h('div', { class: 'lg-rk' }, emblem(r.tier), h('div', { class: 'lg-rkt' }, h('b', { class: 'lg-tier' }, tierName(r.tier, r.div)), h('span', { class: 'lg-lp' }, r.lp + ' LP'))), gauge,
-        h('div', { class: 'lg-wl' }, h('span', {}, KT('{0} G – {1} M', r.w, r.l)), h('span', {}, KT('%{0} galibiyet', pct(r.w, r.l)))), r.series ? h('div', { class: 'lg-pips', 'aria-label': KT('Terfi serisi') }, ...[...r.series].map((c) => h('i', { class: c === 'W' ? 'w' : c === 'L' ? 'l' : '' }))) : null); return card;
+        goalText(r) ? h('p', { class: 'lg-sub lg-goal' }, goalText(r)) : null, h('div', { class: 'lg-wl' }, h('span', {}, KT('{0} G – {1} M', r.w, r.l)), h('span', {}, KT('%{0} galibiyet', pct(r.w, r.l)))), r.series ? h('div', { class: 'lg-pips', 'aria-label': KT('Terfi serisi') }, ...[...r.series].map((c) => h('i', { class: c === 'W' ? 'w' : c === 'L' ? 'l' : '' }))) : null); return card;
     }
     function sparkCard(p) {
       const ser = (p.spark && p.spark.solo && p.spark.solo.length > 1 ? p.spark.solo : p.spark && p.spark.flex) || []; if (ser.length < 2) return null;
@@ -7422,20 +7437,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       cb.addEventListener('change', async () => { const want = cb.checked; const r = await call(H.lolCpSet, want); if (!r || r.error) { say(failMsg(r), true); cb.checked = st.cp === true; return; } if (r.canceled) { cb.checked = st.cp === true; say(KT('Vazgeçildi.')); return; } st.cp = r.on === true; say(st.cp ? KT('counterpick.lol açıldı.') : KT('counterpick.lol kapatıldı.')); if (st.tab === 'live') drawLive(); else if (st.enemy) suggest(); });
       return h('div', { class: 'lg-cp' }, h('label', { class: 'fine', style: 'display:inline-flex;gap:8px;align-items:center', for: cb.id }, cb, KT('counterpick.lol’dan gerçek oran ve rün al (isteğe bağlı)')), h('p', { class: 'rm-hint' }, KT('Açınca şampiyon adlarıyla www.counterpick.lol sayfaları çekilir (en fazla saniyede 1 istek, 6 saat önbellek). Siteden yalnızca oran, oyun sayısı ve rün kimliği okunur; veri yalnızca ana hattı kapsar. Sitenin kullanım şartlarını kontrol etmek sana aittir.')));
     }
+
+    async function compCard(allies, enemies) {
+      const a = (allies || []).filter(Boolean); const e = (enemies || []).filter(Boolean); if (a.length + e.length < 3) return null; const c = await call(H.lolComp, a, e); if (!c || c.error || !c.notes || !c.notes.length) return null;
+      return h('section', { class: 'lg-card', id: 'lg-livecomp' }, h('h2', { class: 'lg-h' }, KT('Takım analizi')), h('ul', { class: 'lg-notes' }, ...c.notes.map((n) => h('li', { class: n.side }, KT(WHY[n.k] || n.k)))));
+    }
+    const selRole = (x) => (x.role ? h('span', { class: 'lg-rolebadge sure' }, KT(RTR[x.role])) : x.guess ? h('span', { class: 'lg-rolebadge' }, x.guess.full ? KT(RTR[x.guess.role]) : KT('olası: {0}', KT(RTR[x.guess.role])), h('i', {}, KT('tahmin %{0}', Math.round(100 * x.guess.conf)))) : null);
+    const selPlayer = (x, enemy) => h('li', { class: 'lg-lv' + (x.me ? ' me' : '') + (enemy ? ' en' : ''), 'data-champ': x.id }, champIc(x.id), h('div', { class: 'lg-lpn' }, h('b', {}, nameOf(x.id)), h('small', {}, x.me ? KT('sen') : '')), selRole(x));
+    async function drawSelect(lc) {
+      const al = lc.allies || []; const en = lc.enemies || []; const myRole = lc.myRole || st.role;
+      const head = h('section', { class: 'lg-card lg-livehead on', id: 'lg-sel' }, h('h2', { class: 'lg-h' }, h('i', { class: 'lg-dot' }), KT('Şampiyon seçimi sürüyor')),
+        h('div', { class: 'lg-live2' }, h('div', {}, h('h3', { class: 'lg-h3' }, KT('Takımım')), h('ol', { class: 'lg-lpl' }, ...(al.length ? al.map((x) => selPlayer(x, false)) : [h('li', { class: 'rm-hint' }, KT('Henüz seçim yok'))]))), h('div', {}, h('h3', { class: 'lg-h3' }, KT('Rakip takım')), h('ol', { class: 'lg-lpl' }, ...(en.length ? en.map((x) => selPlayer(x, true)) : [h('li', { class: 'rm-hint' }, KT('Rakip seçimleri henüz görünmüyor'))])))),
+        h('p', { class: 'rm-hint' }, KT('Rakip hatları TAHMİNDİR (yalnız şampiyon türünden; büyü bilgisi seçimde yok). Oyun başlayınca Canlı maç daha iyi tahmin verir.')));
+      const kids = [head];
+      const opp = en.find((x) => (x.role || (x.guess && x.guess.role)) === myRole);
+      if (opp) { const r = await call(H.lolSuggest, { role: myRole, enemy: opp.id, poolOnly: false, anyRole: false, limit: 6 });
+        if (r && !r.error && r.picks && r.picks.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-best' }, h('h2', { class: 'lg-h' }, KT('{0} hattında olası rakip: {1}', KT(RTR[myRole]), nameOf(opp.id))), h('ol', { class: 'lg-bestl' }, ...r.picks.map((p) => h('li', { class: p.id === lc.myPick ? 'me' : '' }, champIc(p.id), h('b', {}, p.name), p.inPool ? pill('low', KT('havuzumda')) : null, p.ext ? pill('mid', '%' + p.ext.wr) : null, h('span', { class: 'lc-score' }, String(p.score))))), h('p', { class: 'rm-hint' }, KT('Tahmin; hat rakibi kesinleşince değişebilir.')))); }
+      const bn = await call(H.lolBans, myRole, 5); if (bn && !bn.error && !bn.needPool && bn.bans && bn.bans.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-bans' }, h('h2', { class: 'lg-h' }, KT('Ban önerisi')), h('ul', { class: 'lg-bans' }, ...bn.bans.map((b) => h('li', {}, champIc(b.id), h('div', {}, h('b', {}, b.name), h('small', {}, KT('Ortalama {0} · en zoru: {1}', b.avg, b.worst ? b.worst.name : '—'))))))));
+      const cc = await compCard(al.map((x) => x.id), en.map((x) => x.id)); if (cc) kids.push(cc);
+      if (st.tab === 'live') put(panes.live, ...kids);
+    }
     /* ---- canli mac (Riot'un yerel Live Client Data API'si; yalniz okunur) ---- */
     const ROLE_ORD = ['top', 'jungle', 'mid', 'bot', 'support']; const SPN = { smite: 'Çarp', teleport: 'Işınlan', flash: 'Sıçra', heal: 'İyileştir', barrier: 'Bariyer', exhaust: 'Bitkinlik', ignite: 'Tutuştur', ghost: 'Hayalet', cleanse: 'Arındır', other: '' };
     let runeNames = null; const getRunes = async () => { if (runeNames) return runeNames; const r = await call(H.lolRunes); runeNames = r && r.perks ? r : { perks: {}, trees: {} }; return runeNames; };
     const clock = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     function livePlayer(x, enemy) {
       const rp = x.role ? Math.round(100 * (x.conf || 0)) : null; const sure = x.known || rp >= 70;
-      return h('li', { class: 'lg-lp' + (x.me ? ' me' : '') + (enemy ? ' en' : ''), 'data-champ': x.champ || '' }, champIc(x.champ), h('div', { class: 'lg-lpn' }, h('b', {}, x.champ ? nameOf(x.champ) : '?'), h('small', {}, (x.name || '') + (x.me ? ' · ' + KT('sen') : '') + (x.level ? ' · ' + KT('sv. {0}', x.level) : ''))),
+      return h('li', { class: 'lg-lv' + (x.me ? ' me' : '') + (enemy ? ' en' : ''), 'data-champ': x.champ || '' }, champIc(x.champ), h('div', { class: 'lg-lpn' }, h('b', {}, x.champ ? nameOf(x.champ) : '?'), h('small', {}, (x.name || '') + (x.me ? ' · ' + KT('sen') : '') + (x.level ? ' · ' + KT('sv. {0}', x.level) : ''))),
         x.role ? h('span', { class: 'lg-rolebadge' + (sure ? ' sure' : '') }, KT(RTR[x.role]), h('i', {}, x.known ? KT('oyun verdi') : KT('tahmin %{0}', rp))) : null,
         h('span', { class: 'lg-sp' }, ...(x.spells || []).filter((s) => SPN[s]).map((s) => h('em', {}, KT(SPN[s])))));
     }
     async function drawLive(quiet) {
       const r = await call(H.lolLive); if (st.tab !== 'live') return; const was = st.liveOn; st.liveOn = !!(r && r.state === 'ingame'); if (was !== st.liveOn) drawHero();
       if (!r || r.error) { put(panes.live, empty(KT('Canlı maç okunamadı'), failMsg(r))); return; }
-      if (r.state !== 'ingame') { put(panes.live, h('section', { class: 'lg-card lg-livehead off' }, h('h2', { class: 'lg-h' }, KT('Canlı maç')), empty(KT('Şu an bir maçta değilsin'), KT('Maç yüklenince burada otomatik görünür: rakip takım, hat tahminleri ve hat rakibine karşı seçimin. League açıkken her birkaç saniyede bir yerel olarak okunur; oyuna dokunulmaz.')))); return; }
+      if (r.state !== 'ingame') { const lc = await call(H.lolLcu); if (st.tab !== 'live') return; if (lc && lc.state === 'champselect') { await drawSelect(lc); return; } put(panes.live, h('section', { class: 'lg-card lg-livehead off' }, h('h2', { class: 'lg-h' }, KT('Canlı maç')), empty(KT('Şu an bir maçta değilsin'), KT('Maç yüklenince burada otomatik görünür: rakip takım, hat tahminleri ve hat rakibine karşı seçimin. League açıkken her birkaç saniyede bir yerel olarak okunur; oyuna dokunulmaz.')))); return; }
       const mk = (list, enemy) => h('ol', { class: 'lg-lpl' }, ...list.slice().sort((a, b) => (ROLE_ORD.indexOf(a.role) + 9) % 9 - (ROLE_ORD.indexOf(b.role) + 9) % 9).map((x) => livePlayer(x, enemy)));
       const head = h('section', { class: 'lg-card lg-livehead on' }, h('h2', { class: 'lg-h' }, h('i', { class: 'lg-dot' }), KT('Canlı maç'), h('span', { class: 'lg-sub', style: 'margin-left:10px' }, r.mode + ' · ' + clock(r.time))),
         r.classic ? null : h('p', { class: 'rm-hint' }, KT('Bu mod Summoner’s Rift (Klasik) değil; hat tahmini yapılmaz.')), !r.me ? h('p', { class: 'rm-hint' }, KT('Kendi oyuncun belirlenemedi; hat rakibi bulunamadı.')) : null,
@@ -7456,7 +7491,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         kids.push(best, h('details', { class: 'lg-card', id: 'lg-mu-all' }, h('summary', {}, KT('Tüm şampiyonlar: {0} karşısında oranlar', nameOf(m.enemy))), h('div', { class: 'lg-tblw' }, h('table', { class: 'lg-table' }, h('thead', {}, h('tr', {}, ...['Şampiyon', 'Puan', 'Galibiyet', 'Maç', 'Havuz'].map((x) => h('th', { scope: 'col' }, KT(x))))), h('tbody', {}, ...rows)))));
         if (mine && mine.ext && mine.ext.runes) getRunes().then((R) => { const box = $('#lg-mu-runes'); if (!box) return; const rn = mine.ext.runes; const nm = (id) => R.perks[id] || null; const names = rn.perks.map(nm).filter(Boolean); if (!names.length) return; put(box, h('h3', { class: 'lg-h3' }, KT('Rün önerisi (dış veri)')), h('p', {}, (rn.primary && R.trees[rn.primary] ? R.trees[rn.primary] + ' · ' : '') + names.join(' · ') + (rn.secondary && R.trees[rn.secondary] ? ' — ' + R.trees[rn.secondary] : ''))); });
       }
-      put(panes.live, ...kids);
+      if (r.classic !== false) { const cc = await compCard((r.allies || []).map((x) => x.champ), (r.enemies || []).map((x) => x.champ)); if (cc) kids.splice(1, 0, cc); }
+      if (st.tab === 'live') put(panes.live, ...kids);
     }
     setInterval(() => { if (visible() && st.tab === 'live') drawLive(true); }, 4000);
     setInterval(async () => { if (!visible() || st.tab === 'live') return; const r = await call(H.lolLive); const on = !!(r && r.state === 'ingame'); if (on !== st.liveOn) { st.liveOn = on; drawHero(); } }, 15000);
