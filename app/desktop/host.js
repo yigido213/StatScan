@@ -1136,7 +1136,10 @@ const LOLMOD = (() => {
       'lol:tips': async (_e, enemy) => {
         try { const bad = await needRoster(); if (bad) return bad; const id = validChamp(enemy); if (!id) return errE('Şampiyon bulunamadı.'); if (tipsCache.has(id)) return tipsCache.get(id); const nm = 'tips-' + rosterMeta.version + '-' + rosterMeta.locale + '-' + id + '.json'; let j = cacheRead(nm);
           if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/champion/' + id + '.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('İpuçları alınamadı (' + String(e && e.message || e) + ').'); } }
-          const d = j && j.data && j.data[id]; const tips = d && Array.isArray(d.enemytips) ? d.enemytips.map((x) => String(x).slice(0, 400)).slice(0, 8) : []; const r = { id, name: d ? String(d.name || id) : id, tips, source: 'Riot Data Dragon' }; tipsCache.set(id, r); return r;
+          /* NOT: Data Dragon'daki 'enemytips' Riot tarafindan guncellenmiyor (ornegin eski Aatrox R dirilisi) → KULLANILMAZ. Yerine ayni yamanin guncel yetenek metinleri gosterilir. */
+          const d = j && j.data && j.data[id]; const clean = (s, n) => String(s == null ? '' : s).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
+          const abilities = []; if (d && d.passive) abilities.push({ key: 'P', name: clean(d.passive.name, 60), cd: '', desc: clean(d.passive.description, 320) }); if (d && Array.isArray(d.spells)) d.spells.slice(0, 4).forEach((s, i) => abilities.push({ key: 'QWER'[i], name: clean(s.name, 60), cd: clean(s.cooldownBurn, 40), desc: clean(s.description, 320) }));
+          const r = { id, name: d ? String(d.name || id) : id, tips: [], abilities, patch: rosterMeta.version, source: 'Riot Data Dragon (yama ' + rosterMeta.version + ')' }; tipsCache.set(id, r); return r;
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:log': async (_e, req) => {

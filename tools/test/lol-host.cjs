@@ -18,7 +18,7 @@ const get = async (host, p) => {
   if (host === 'ddragon.leagueoflegends.com') {
     if (p === '/api/versions.json') return JSON.stringify(['16.21.1', '16.20.1']); if (/\/data\/tr_TR\/champion\.json$/.test(p)) return JSON.stringify(champJson);
     if (/\/data\/tr_TR\/runesReforged\.json$/.test(p)) return JSON.stringify([{ id: 8000, name: 'İlham', slots: [{ runes: [{ id: 8010, name: 'Fatih' }, { id: 9111, name: 'Zafer' }] }] }, { id: 8400, name: 'Direniş', slots: [{ runes: [{ id: 8444, name: 'Şahlanış' }] }] }]);
-    const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['İpucu 1 ' + m[1], 'İpucu 2'] } } });
+    const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['ESKI IPUCU ' + m[1]], passive: { name: 'Pasif', description: 'Pasif <b>metin</b><br>' + m[1] }, spells: ['Q', 'W', 'E', 'R'].map((k) => ({ name: k + ' yeteneği', cooldownBurn: '8/7/6', description: k + ' <i>güncel</i> açıklama' })) } } });
   }
   if (host === 'stats.example.org') { if (extBody === 'fail') throw new Error('HTTP 500'); return JSON.stringify(extBody); }
   throw new Error('beklenmeyen: ' + host + p);
@@ -76,7 +76,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   confirmAns = true; const c1 = await H['lol:hist:clear'](); ok(c1.ok && (await H['lol:hist']()).total === 0, 'silme: onayla tüm kayıtlar silinir');
 
   // ---- ipuçları
-  const tp = await H['lol:tips']('Darius'); ok(tp.tips.length === 2 && /Darius/.test(tp.tips[0]) && tp.source === 'Riot Data Dragon', 'ipuçları: Data Dragon’dan, kaynak etiketli');
+  const tp = await H['lol:tips']('Darius'); ok(tp.abilities.length === 5 && tp.abilities[0].desc === 'Pasif metin Darius' && tp.abilities[4].key === 'R' && tp.abilities[4].cd === '8/7/6' && /yama 16\.21\.1/.test(tp.source) && tp.tips.length === 0 && !JSON.stringify(tp).includes('ESKI IPUCU'), 'ipuçları: eski enemytips KULLANILMAZ; aynı yamanın güncel yetenek metinleri (HTML temizlenmiş), yama etiketli');
   const n2 = calls.length; await H['lol:tips']('Darius'); ok(calls.length === n2, 'ipuçları: önbellekten');
   ok((await H['lol:tips']('../x')).error === 'lol', 'ipuçları: geçersiz kimlik reddedilir');
 
