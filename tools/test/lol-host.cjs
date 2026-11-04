@@ -12,7 +12,7 @@ const DATA = Object.fromEntries([
   mk('Sion', 14, ['Tank', 'Fighter'], 5, 9, 3, 5, 175, 655, 36, 32), mk('Ornn', 516, ['Tank', 'Fighter'], 5, 9, 3, 5, 175, 660, 33, 28), mk('Vayne', 67, ['Marksman', 'Assassin'], 10, 1, 1, 8, 550, 550, 23, 30)
 ]);
 const champJson = { data: DATA };
-let calls = []; let offline = false; let extBody = null;
+let calls = []; let offline = false; let extBody = null; const cpCalls = []; let cpPages = {};
 const get = async (host, p) => {
   calls.push(host + p); if (offline) throw new Error('çevrimdışı');
   if (host === 'ddragon.leagueoflegends.com') {
@@ -20,6 +20,7 @@ const get = async (host, p) => {
     if (/\/data\/tr_TR\/runesReforged\.json$/.test(p)) return JSON.stringify([{ id: 8000, name: 'İlham', slots: [{ runes: [{ id: 8010, name: 'Fatih' }, { id: 9111, name: 'Zafer' }] }] }, { id: 8400, name: 'Direniş', slots: [{ runes: [{ id: 8444, name: 'Şahlanış' }] }] }]);
     const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['ESKI IPUCU ' + m[1]], passive: { name: 'Pasif', description: 'Pasif <b>metin</b><br>' + m[1] }, spells: ['Q', 'W', 'E', 'R'].map((k) => ({ name: k + ' yeteneği', cooldownBurn: '8/7/6', description: k + ' <i>güncel</i> açıklama' })) } } });
   }
+  if (host === 'www.counterpick.lol') { cpCalls.push(p); if (cpPages[p] === undefined) throw new Error('HTTP 404'); return cpPages[p]; }
   if (host === 'stats.example.org') { if (extBody === 'fail') throw new Error('HTTP 500'); return JSON.stringify(extBody); }
   throw new Error('beklenmeyen: ' + host + p);
 };
@@ -207,6 +208,25 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   liveJson = { allPlayers: 'x' }; ok((await HV['lol:live']()).state === 'nogame', 'canlı: bozuk veri → nogame');
   const hvOff = mkHost({ platform: 'win32', live: { get: async () => { throw new Error('ECONNREFUSED'); } } }, path.join(tmp, 'live2')); ok((await hvOff.handlers['lol:live']()).state === 'nogame', 'canlı: bağlantı reddedilince nogame (oyun yok)');
   ok(L.LIVE_OK.test('/liveclientdata/allgamedata') && !L.LIVE_OK.test('/liveclientdata/allgamedata/x') && !L.LIVE_OK.test('/lol-summoner/v1/current-summoner') && !L.LIVE_OK.test('http://evil/liveclientdata/allgamedata'), 'canlı: beyaz liste yalnızca allgamedata');
+  // ---- counterpick.lol (isteğe bağlı; sentetik HTML, gerçek siteyle DENENMEDİ)
+  const MU = '<html><body><h1>Darius vs Garen</h1><div class="vs">VS <b>53.6%</b> <span>994 games</span> B+</div><section><h2>Runes</h2><img src="/wp-content/uploads/lol/rune/8100.webp"><img src="/wp-content/uploads/lol/rune/8010.webp"><img src="/wp-content/uploads/lol/rune/9111.webp"><img src="/wp-content/uploads/lol/rune/9104.webp"><img src="/wp-content/uploads/lol/rune/8299.webp"><img src="/wp-content/uploads/lol/rune/8300.webp"><img src="/wp-content/uploads/lol/rune/8444.webp"><img src="/wp-content/uploads/lol/rune/8473.webp"><img src="/wp-content/uploads/lol/rune/5008.webp"></section><script>var x="VS 1% 5 games"</script></body></html>';
+  const row = (a, b, v) => '<li><a href="https://www.counterpick.lol/champion/' + b + '/"><img src="x.png"></a> ' + b + ' <a href="https://www.counterpick.lol/matchup/' + a + '-vs-' + b + '/">Matchup detail</a> <span>' + v + '% WR</span> <em>+1.0%</em></li>';
+  const CT = '<html><h2>Best Counters Against Garen</h2><ul>' + row('garen', 'teemo', '45.0') + row('garen', 'zed', '47.5') + '</ul><h2>Garen is Strong Against</h2><ul>' + row('garen', 'sion', '52.0') + row('garen', 'notachamp', '60.0') + row('darius', 'vayne', '60.0') + '</ul></html>';
+  ok(L.parseCpMatchup(MU).wr === 53.6 && L.parseCpMatchup(MU).games === 994 && L.parseCpMatchup(MU).runes.perks.join() === '8010,9111,9104,8299,8444,8473' && L.parseCpMatchup(MU).runes.primary === 8100 && L.parseCpMatchup(MU).runes.secondary === 8300, 'cp ayrıştırıcı: oran, oyun sayısı, rün kimlikleri (ağaç/şarj ayrıldı; script içeriği yok sayıldı)');
+  ok(L.parseCpMatchup('<p>VS 153% 5 games</p>') === null && L.parseCpMatchup('<p>nothing</p>') === null && L.parseCpMatchup('<p>VS 50% 10 games</p><img src="/lol/rune/8010.webp">').runes === null, 'cp ayrıştırıcı: saçma/eksik veri → null, az rün → rün yok');
+  { const rows = L.parseCpCounters(CT, 'garen'); ok(rows.length === 4 && rows[0].slug === 'teemo' && rows[0].wr === 55 && rows.find((x) => x.slug === 'sion').wr === 48 && !rows.find((x) => x.slug === 'vayne'), 'cp counters: rakip oranı = 100 − konu oranı, başka konu satırı alınmaz'); }
+  ok(L.cpKebab("Kai'Sa") === 'kaisa' && L.cpKebab('Jarvan IV') === 'jarvan-iv' && L.cpKebab('Nunu & Willump') === 'nunu-willump', 'cp: adres adı (kebab) üretimi');
+  { cpCalls.length = 0; confirmAns = true; cpPages = { '/matchup/darius-vs-garen/': MU, '/champion/garen/counters/': CT };
+    const hc = mkHost({ cpDelay: 0, live: { get: async () => mkLive() } }, path.join(tmp, 'cp')); const HC = hc.handlers;
+    ok((await HC['lol:cp:get']()).on === false, 'cp: varsayılan KAPALI');
+    let rr = await HC['lol:live'](); ok(cpCalls.length === 0 && rr.matchup.extUsed === false, 'cp kapalıyken siteye HİÇ istek gitmez');
+    confirmAns = false; ok((await HC['lol:cp:set'](true)).canceled === true && (await HC['lol:cp:get']()).on === false, 'cp: onay reddedilince açılmaz'); confirmAns = true; const c0 = confirms.length; ok((await HC['lol:cp:set'](true)).on === true && /counterpick\.lol/.test(confirms[c0].message) && /kullanım şartlarını/.test(confirms[c0].message), 'cp: onay penceresi sunucuyu ve şart uyarısını gösterir');
+    rr = await HC['lol:live'](); const mu = rr.matchup; ok(mu.extUsed && mu.cp && mu.mine.ext.wr === 53.6 && mu.mine.ext.games === 994 && mu.mine.ext.runes.perks.length === 6, 'cp canlı: kendi şampiyonum için gerçek oran + oyun sayısı + rün kimlikleri');
+    const tm = mu.list.find((x) => x.id === 'Teemo'); ok(tm && tm.wr === 55 && mu.list.find((x) => x.id === 'Sion').wr === 48 && !mu.list.find((x) => x.id === 'Vayne').wr, 'cp canlı: counters sayfasındaki şampiyonlar tabloya oranla girer (Teemo %55), diğerleri tahmin');
+    const n1 = cpCalls.length; await HC['lol:live'](); ok(cpCalls.length === n1 && cpCalls.every((p) => /^\/(matchup|champion)\//.test(p)) && new Set(cpCalls).size === cpCalls.length, 'cp: ikinci çağrı önbellekten (ağ yok), yalnız /matchup ve /champion yolları');
+    const sg = await HC['lol:suggest']({ role: 'top', enemy: 'Garen', anyRole: true, limit: 50 }); ok(sg.extUsed && sg.picks.find((x) => x.id === 'Teemo').ext.wr === 55 && sg.picks.find((x) => x.id === 'Teemo').ext.approx === true, 'cp: Karşı seçim sekmesi de counters oranlarını kullanır (oyun sayısı bilinmez → approx)');
+    cpPages = {}; const hd = mkHost({ cpDelay: 0, live: { get: async () => mkLive() } }, path.join(tmp, 'cp2')); await hd.handlers['lol:cp:set'](true); rr = await hd.handlers['lol:live'](); ok(rr.state === 'ingame' && rr.matchup.extUsed === false && rr.matchup.statsConfigured === true, 'cp: site 404/ulaşılamaz → sessizce tahmine düşer, çökmez');
+    ok((await HC['lol:cp:set'](false)).on === false && (await HC['lol:cp:get']()).on === false, 'cp: kapatılabilir'); }
   // dis veri run onerisi (yalniz sayilar)
   ok(L.parseRunes({ perks: [8010, 9111, '8444', 'x', 12, 99999], primary: 8000, secondary: 8400 }).perks.join() === '8010,9111,8444' && L.parseRunes({ perks: ['<script>'] }) === null && L.parseRunes({ perks: [8010], primary: 'x' }).primary === null && L.parseRunes(null) === null, 'run verisi: yalnızca tam sayı kimlikleri alınır, metin/uç değerler elenir');
   { const hx = mkHost({ live: { get: async () => mkLive() } }, path.join(tmp, 'live3')); confirmAns = true; await hx.handlers['lol:statsurl:set']('https://stats.example.org/{enemy}/{role}');

@@ -5914,6 +5914,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "bekleme": "cooldown",
       "sn": "s",
       "Eski “karşı oynama ipuçları” Riot tarafından güncellenmediği için gösterilmez.": "Old “playing against” tips are not shown because Riot does not keep them up to date.",
+      "counterpick.lol’dan gerçek oran ve rün al (isteğe bağlı)": "Get real win rates and runes from counterpick.lol (optional)",
+      "Açınca şampiyon adlarıyla www.counterpick.lol sayfaları çekilir (en fazla saniyede 1 istek, 6 saat önbellek). Siteden yalnızca oran, oyun sayısı ve rün kimliği okunur; veri yalnızca ana hattı kapsar. Sitenin kullanım şartlarını kontrol etmek sana aittir.": "When on, www.counterpick.lol pages are fetched using champion names (at most 1 request per second, 6-hour cache). Only win rate, game count and rune IDs are read; data covers the main lane only. Checking the site's terms of use is up to you.",
+      "counterpick.lol açıldı.": "counterpick.lol turned on.",
+      "counterpick.lol kapatıldı.": "counterpick.lol turned off.",
+      "Dış veri: %{0}": "External data: {0}%",
       "LP geçmişi": "LP history",
       "Şu an": "Now",
       'Yeni araçlar için yer ayrıldı': 'Room for new tools', 'Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.': 'No other tools added yet. When added, they appear here and in the sidebar.',
@@ -7255,7 +7260,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       neg: { rangeEdge: 'Rakibin menzili daha uzun: {0} / {1}', armorVsAd: 'Rakip zırhlı ({0}); fiziksel hasarın azalır', mrVsAp: 'Rakibin büyü direnci yüksek ({0}); büyü hasarın azalır', assassinVsSquishy: 'Rakip suikastçı, sen dayanıksızsın', tankVsAssassin: 'Rakip dayanıklı; suikastçıya karşı güçlü', magicVsTank: 'Rakibin büyü hasarı dayanıklı seçimlere karşı iyi' }
     };
     const visible = () => !root.hidden && !document.hidden;
-    const st = { tab: 'overview', role: 'top', enemy: '', champs: [], byName: new Map(), byId: new Map(), pool: {}, seq: 0, auto: false, timer: 0, meta: null, prof: null, filt: 'all', off: 0, total: 0, lpq: 'solo', client: null, busy: false, sync: 0, sortBy: 'games', lcu: null };
+    const st = { tab: 'overview', role: 'top', enemy: '', champs: [], byName: new Map(), byId: new Map(), pool: {}, seq: 0, auto: false, timer: 0, meta: null, prof: null, filt: 'all', off: 0, total: 0, lpq: 'solo', cp: false, cpn: 0, client: null, busy: false, sync: 0, sortBy: 'games', lcu: null };
     const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite', id: 'lc-live' });
     const say = (m, warn) => { live.textContent = m || ''; live.className = 'cv-live' + (warn ? ' warn' : ''); };
     const pill = (cls, t) => h('span', { class: 'sm-pill ' + cls }, t);
@@ -7410,6 +7415,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
 
 
+
+    /* ---- counterpick.lol anahtari (isteğe bağlı; host onay penceresi gösterir) ---- */
+    function cpToggle() {
+      const cb = h('input', { type: 'checkbox', class: 'lg-cpcb', checked: st.cp === true || undefined, id: 'lg-cp-' + (++st.cpn) });
+      cb.addEventListener('change', async () => { const want = cb.checked; const r = await call(H.lolCpSet, want); if (!r || r.error) { say(failMsg(r), true); cb.checked = st.cp === true; return; } if (r.canceled) { cb.checked = st.cp === true; say(KT('Vazgeçildi.')); return; } st.cp = r.on === true; say(st.cp ? KT('counterpick.lol açıldı.') : KT('counterpick.lol kapatıldı.')); if (st.tab === 'live') drawLive(); else if (st.enemy) suggest(); });
+      return h('div', { class: 'lg-cp' }, h('label', { class: 'fine', style: 'display:inline-flex;gap:8px;align-items:center', for: cb.id }, cb, KT('counterpick.lol’dan gerçek oran ve rün al (isteğe bağlı)')), h('p', { class: 'rm-hint' }, KT('Açınca şampiyon adlarıyla www.counterpick.lol sayfaları çekilir (en fazla saniyede 1 istek, 6 saat önbellek). Siteden yalnızca oran, oyun sayısı ve rün kimliği okunur; veri yalnızca ana hattı kapsar. Sitenin kullanım şartlarını kontrol etmek sana aittir.')));
+    }
     /* ---- canli mac (Riot'un yerel Live Client Data API'si; yalniz okunur) ---- */
     const ROLE_ORD = ['top', 'jungle', 'mid', 'bot', 'support']; const SPN = { smite: 'Çarp', teleport: 'Işınlan', flash: 'Sıçra', heal: 'İyileştir', barrier: 'Bariyer', exhaust: 'Bitkinlik', ignite: 'Tutuştur', ghost: 'Hayalet', cleanse: 'Arındır', other: '' };
     let runeNames = null; const getRunes = async () => { if (runeNames) return runeNames; const r = await call(H.lolRunes); runeNames = r && r.perks ? r : { perks: {}, trees: {} }; return runeNames; };
@@ -7431,13 +7443,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         r.classic ? h('p', { class: 'rm-hint' }, KT('Hatlar TAHMİNDİR: oyunun verdiği hat varsa o kullanılır; yoksa şampiyon türü ve büyüler (ör. Çarp = Orman) ile hesaplanır. Meta verisiyle kalibre değildir.')) : null);
       const kids = [head]; const m = r.matchup;
       if (m) {
-        const wrTxt = (x) => (x && x.wr != null ? '%' + x.wr + ' (' + x.games + ' ' + KT('maç') + ')' : null); const mine = m.mine;
+        const wrTxt = (x) => (x && x.wr != null ? '%' + x.wr + (x.games ? ' (' + x.games + ' ' + KT('maç') + ')' : '') : null); const mine = m.mine;
         const mcard = h('section', { class: 'lg-card', id: 'lg-mu' }, h('h2', { class: 'lg-h' }, KT('Hat eşleşmesi')),
           h('div', { class: 'lg-vs' }, h('div', {}, champIc(r.me.champ), h('b', {}, nameOf(r.me.champ))), h('span', {}, 'vs'), h('div', {}, champIc(m.enemy), h('b', {}, nameOf(m.enemy)))),
           h('p', { class: 'lg-sub' }, KT('{0} hattında (tahmini rakip).', KT(RTR[m.role]))),
           mine ? h('div', { class: 'rm-row' }, pill('low', KT('Tahmin')), h('b', {}, KT('Puan {0}/100', mine.score)), h('span', { class: 'rm-hint' }, KT('{0} şampiyon içinde {1}. sıra', m.total, m.pos)), mine.ext ? pill('mid', KT('Dış veri: {0}', wrTxt(mine.ext))) : null) : h('p', { class: 'rm-hint' }, KT('Seçtiğin şampiyon bu hat için listede yok.')),
           mine && mine.reasons && mine.reasons.length ? h('ul', { class: 'lc-why' }, ...mine.reasons.map((x) => { const tx = (REASON[x.side] || {})[x.k]; return tx ? h('li', {}, KT(tx, ...(x.v || []))) : null; }).filter(Boolean)) : null,
-          h('div', { id: 'lg-mu-runes' }), !m.extUsed ? h('p', { class: 'rm-hint' }, m.statsConfigured ? KT('Dış veri adresine ulaşılamadı; yalnızca tahmin gösteriliyor.') : KT('Gerçek galibiyet oranı ve rün önerisi için “Karşı seçim” sekmesinde güvendiğin bir dış veri adresi ekleyebilirsin. Şimdilik yalnızca tahmin ve kendi maçların kullanılıyor.')) : null);
+          h('div', { id: 'lg-mu-runes' }), cpToggle(), !m.extUsed ? h('p', { class: 'rm-hint' }, m.statsConfigured ? KT('Dış veri adresine ulaşılamadı; yalnızca tahmin gösteriliyor.') : KT('Gerçek galibiyet oranı ve rün önerisi için “Karşı seçim” sekmesinde güvendiğin bir dış veri adresi ekleyebilirsin. Şimdilik yalnızca tahmin ve kendi maçların kullanılıyor.')) : null);
         kids.push(mcard);
         const best = h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Bu rakibe karşı en iyi seçimler')), h('ol', { class: 'lg-bestl' }, ...(m.best || []).map((p) => h('li', { class: p.id === r.me.champ ? 'me' : '' }, champIc(p.id), h('b', {}, p.name), p.inPool ? pill('low', KT('havuzumda')) : null, p.ext ? pill('mid', '%' + p.ext.wr) : null, h('span', { class: 'lc-score' }, String(p.score))))));
         const rows = (m.list || []).map((p) => h('tr', { class: p.id === r.me.champ ? 'me' : '' }, h('td', {}, h('div', { class: 'lg-who' }, champIc(p.id), h('b', {}, p.name))), h('td', {}, String(p.score)), h('td', {}, p.wr != null ? '%' + p.wr : '—'), h('td', {}, p.games ? String(p.games) : '—'), h('td', {}, p.inPool ? '✓' : '')));
@@ -7499,14 +7511,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       box('lc-h2', KT('Öneriler'), resHint, resBox, tipsBox), box('lg-h-ban', KT('Ban önerisi'), h('p', { class: 'rm-hint' }, KT('Havuzundaki şampiyonlara karşı ortalaması en kötü olan rakipler (tahmin + kendi maçların).')), banBox),
       box('lc-h3', KT('Şampiyon havuzum'), h('p', { class: 'rm-hint' }, KT('Seçili rol için oynadığın şampiyonlar. Öneriler önce bunlara yönelir.')), poolBox, h('div', { class: 'rm-row' }, acWrap(poolIn), btn('lc-poolad', 'Ekle', addPool))),
       box('lc-h4', KT('Maç kayıtlarım'), h('p', { class: 'rm-hint' }, KT('Önerilerdeki “Kazandım / Kaybettim” düğmeleriyle kaydedersin. League’den okunan maçlar da otomatik sayılır. Kayıtlar yalnızca bu bilgisayarda durur.')), histBox),
-      h('details', { class: 'lg-card', id: 'lc-ext' }, h('summary', {}, KT('Dış veri adresi (isteğe bağlı, ileri düzey)')), h('p', { class: 'rm-hint' }, KT('Kendi güvendiğin bir sunucudan karşı seçim istatistiği almak istersen adresi buraya yaz. Adres https olmalı ve {enemy} (isteğe bağlı {role}) içermeli. Sunucu şu biçimde yanıt vermeli:')), h('pre', {}, h('code', {}, '{ "matchups": [ { "champ": "Garen", "wr": 53.2, "games": 1200 } ] }')), h('div', { class: 'rm-row' }, extIn, btn('lc-extsave', 'Kaydet', saveExt), btn('lc-extdel', 'Kaldır', delExt)), extLine)));
+      h('details', { class: 'lg-card', id: 'lc-ext' }, h('summary', {}, KT('Dış veri adresi (isteğe bağlı, ileri düzey)')), cpToggle(), h('p', { class: 'rm-hint' }, KT('Kendi güvendiğin bir sunucudan karşı seçim istatistiği almak istersen adresi buraya yaz. Adres https olmalı ve {enemy} (isteğe bağlı {role}) içermeli. Sunucu şu biçimde yanıt vermeli:')), h('pre', {}, h('code', {}, '{ "matchups": [ { "champ": "Garen", "wr": 53.2, "games": 1200 } ] }')), h('div', { class: 'rm-row' }, extIn, btn('lc-extsave', 'Kaydet', saveExt), btn('lc-extdel', 'Kaldır', delExt)), extLine)));
     function drawRoles() { put(roleBox, ...ROLES.map(([id, label]) => h('button', { type: 'button', class: 'cv-btn lc-role', id: 'lc-role-' + id, 'aria-pressed': st.role === id ? 'true' : 'false', onclick: () => { st.role = id; drawRoles(); drawPool(); drawBans(); suggest(); } }, label))); }
     const nz = (x) => String(x || '').toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
     const resolve = (txt) => { const t = nz(txt); if (!t) return null; for (const c of st.champs) if (nz(c.name) === t || nz(c.id) === t) return c.id; return null; };
     async function boot() {
       say(KT('Şampiyon verisi alınıyor…')); const r = await call(H.lolChamps, false);
       if (!r || r.error) { say(failMsg(r), true); } else { st.champs = r.champs; st.meta = r.meta; st.byName = new Map(r.champs.map((c) => [c.name, c])); st.byId = new Map(r.champs.map((c) => [c.id, c])); say(r.meta && r.meta.offline ? KT('Çevrimdışı: önbellekteki şampiyon verisi kullanılıyor (sürüm {0}).', r.meta.version) : KT('Şampiyon verisi hazır (sürüm {0}, {1} şampiyon).', r.meta.version, r.meta.count)); }
-      const p = await call(H.lolPool); if (p && p.pool) st.pool = p.pool; drawRoles(); drawPool(); await drawHist(); await drawExt(); await refreshProf(); setTab(st.tab); doSync(false);
+      const cpr = await call(H.lolCpGet); st.cp = !!(cpr && cpr.on); const p = await call(H.lolPool); if (p && p.pool) st.pool = p.pool; drawRoles(); drawPool(); await drawHist(); await drawExt(); await refreshProf(); setTab(st.tab); doSync(false);
     }
     function drawCounter() { drawBans(); }
     async function suggest() {
@@ -7519,7 +7531,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
     function drawPicks(r) {
       put(resBox, ...r.picks.map((p, i) => {
-        const why = p.reasons.map((x) => { const t = (REASON[x.side] || {})[x.k]; return t ? KT(t, ...(x.v || [])) : null; }).filter(Boolean); const src = [pill('low', KT('Tahmin'))]; if (p.ext) src.push(pill('mid', KT('Dış veri: %{0} ({1} maç)', p.ext.wr, p.ext.games))); if (p.personal && p.personal.games) src.push(pill('mid', KT('Kişisel: {0} maçta {1} galibiyet', p.personal.games, p.personal.wins)));
+        const why = p.reasons.map((x) => { const t = (REASON[x.side] || {})[x.k]; return t ? KT(t, ...(x.v || [])) : null; }).filter(Boolean); const src = [pill('low', KT('Tahmin'))]; if (p.ext) src.push(pill('mid', p.ext.games ? KT('Dış veri: %{0} ({1} maç)', p.ext.wr, p.ext.games) : KT('Dış veri: %{0}', p.ext.wr))); if (p.personal && p.personal.games) src.push(pill('mid', KT('Kişisel: {0} maçta {1} galibiyet', p.personal.games, p.personal.wins)));
         return h('li', { class: 'lc-pick', 'data-id': p.id }, h('div', { class: 'lc-head' }, h('span', { class: 'lc-rank' }, String(i + 1)), champIc(p.id), h('b', { class: 'lc-name' }, p.name), p.inPool ? pill('low', KT('havuzumda')) : null, pill('low', KT('Zorluk {0}/10', p.difficulty)), h('span', { class: 'lc-score', title: KT('Karşı seçim puanı (0–100)') }, String(p.score))),
           h('div', { class: 'rm-row' }, ...src), why.length ? h('ul', { class: 'lc-why' }, ...why.map((t) => h('li', {}, t))) : null,
           h('div', { class: 'rm-row' }, h('span', { class: 'rm-hint' }, KT('Bu maçta {0} oynadım:', p.name)), btn(null, 'Kazandım', () => logMatch(p.id, true), { class: 'cv-btn lc-win' }), btn(null, 'Kaybettim', () => logMatch(p.id, false), { class: 'cv-btn lc-loss' })));
