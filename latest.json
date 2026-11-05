@@ -1,6 +1,6 @@
 {
-  "version": "5.0.6",
-  "url": "StatScan-5.0.6.ssu",
-  "sha256": "10850915a6f88fe575d3079ff06fa7a20c22b29afb48c2540a1d570d91e51956",
-  "notes": "5.0.6 — Kovan beta 0.1.2: League Asistanı genişledi (canlı maç + takım analizi, şampiyon seçimi paneli, hat tahmini, LP hedefi, gerçek derece amblemleri, temalı liste/otomatik tamamlama, isteğe bağlı counterpick.lol verisi, eşleşmeye özel rün önerisi ve 'Kovan' rün sayfasını League'e yazma — her yazmada onay). Güncel yetenek metinleri (eski ipuçları kalktı). 'Dürüst sınırlar' bilgi kutuları kaldırıldı. Windows'ta ve gerçek League istemcisiyle denenmedi."
+  "version": "5.0.7",
+  "url": "StatScan-5.0.7.ssu",
+  "sha256": "1eb44a72a9e61a697206b8867f8077f9289798240b2ac409aaa5f5d509998839",
+  "notes": "5.0.7 — HOTFIX (Kovan beta 0.1.2): League Asistanı artık her hatta yalnız o hattın şampiyonlarını öneriyor (gerçek hat verisi; Bard üst hatta çıkmıyor; ban, canlı maç ve hat tahmini de buna bağlı). Derece amblemleri büyütüldü (boş kenarlar kırpılıyor). Windows'ta ve gerçek League istemcisiyle denenmedi."
 }
