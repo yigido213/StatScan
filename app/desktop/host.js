@@ -840,6 +840,7 @@ const LOLMOD = (() => {
   const ROLES = ['top', 'jungle', 'mid', 'bot', 'support'];
   const LIM = { pool: 40, hist: 3000, body: 8 * 1024 * 1024, statsBody: 5 * 1024 * 1024, ms: 12000, top: 200, defTop: 12, snaps: 3000, matches: 3000, details: 15, icon: 200 * 1024, rank: 900 * 1024, recent: 30, urlLen: 400 };
   const ID_RE = /^[A-Za-z0-9]{1,32}$/; const DD_HOST = 'ddragon.leagueoflegends.com'; const CD_HOST = 'raw.communitydragon.org'; const CD_RANK = '/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/'; const LOCALES = ['tr_TR', 'en_US'];
+  const ROLE_HOST = 'cdn.merakianalytics.com'; const ROLE_PATH = '/riot/lol/resources/latest/en-US/champions.json'; const ROLE_MAX = 16 * 1024 * 1024; const ROLE_TTL = 7 * 24 * 3600 * 1000; const MERAKI_POS = { TOP: 'top', JUNGLE: 'jungle', MIDDLE: 'mid', BOTTOM: 'bot', SUPPORT: 'support' };
   const LCU_ROLE = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'bot', utility: 'support' };
   const errE = (message, extra) => Object.assign({ error: 'lol', message }, extra || {});
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -851,11 +852,27 @@ const LOLMOD = (() => {
       range: n(s.attackrange, 175), ms: n(s.movespeed, 340), hp: n(s.hp, 600) + 8 * n(s.hpperlevel, 90), armor: n(s.armor, 30) + 8 * n(s.armorperlevel, 4), mr: n(s.spellblock, 32) + 8 * n(s.spellblockperlevel, 1.3) };
   }
   function parseChampions(json) { const d = json && json.data; if (!d || typeof d !== 'object') return []; return Object.keys(d).map((k) => normChamp(d[k])).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name)); }
+  /* Meraki Analytics champions.json -> { "<sayisal anahtar>": ['top',...] } (yalniz hat listesi; lore/yetenek/kostum atilir) */
+  function parseRoles(json) {
+    if (!json || typeof json !== 'object') return null; const out = {}; let n = 0;
+    for (const k of Object.keys(json)) { const v = json[k]; if (!v || typeof v !== 'object' || !Number.isFinite(Number(v.id))) continue; n++; const pos = Array.isArray(v.positions) ? v.positions.map((x) => MERAKI_POS[String(x).toUpperCase()]).filter(Boolean) : []; const u = pos.filter((x, i) => pos.indexOf(x) === i); if (u.length) out[String(Math.round(Number(v.id)))] = u; }
+    return n >= 50 && Object.keys(out).length >= 50 ? out : null;
+  }
   function rosterZ(list) {
     const f = (fn) => { const v = list.map(fn); const m = v.reduce((a, b) => a + b, 0) / (v.length || 1); const sd = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length || 1)) || 1; return (x) => (fn(x) - m) / sd; };
     return { armor: f((c) => c.armor), mr: f((c) => c.mr), hp: f((c) => c.hp) };
   }
-  const roleFit = (c, role) => { const t = c.tags; if (role === 'top') return t.includes('Fighter') || t.includes('Tank') || (t.includes('Mage') && c.range <= 550 && c.hp >= 650); if (role === 'jungle') return t.includes('Fighter') || t.includes('Assassin') || t.includes('Tank'); if (role === 'mid') return t.includes('Mage') || t.includes('Assassin') || (t.includes('Fighter') && c.range >= 300); if (role === 'bot') return t.includes('Marksman') || (t.includes('Mage') && c.range >= 550 && c.attack >= 3 && c.defense <= 3); if (role === 'support') return t.includes('Support') || t.includes('Tank') || t.includes('Mage'); return false; };
+  /* Hat uyumu: gercek hat verisi (Meraki `positions`, c.pos) varsa YALNIZ ona bakar; yoksa (yeni sampiyon / veri alinamadi) ana siniftan kaba tahmin. */
+  const roleFit = (c, role) => {
+    if (Array.isArray(c.pos) && c.pos.length) return c.pos.includes(role);
+    const t = c.tags; const p0 = t[0];
+    if (role === 'top') return p0 === 'Fighter' || p0 === 'Tank' || (t.includes('Fighter') && p0 !== 'Support' && p0 !== 'Marksman');
+    if (role === 'jungle') return (p0 === 'Fighter' || p0 === 'Assassin' || p0 === 'Tank') && p0 !== 'Support';
+    if (role === 'mid') return p0 === 'Mage' || p0 === 'Assassin' || (t.includes('Fighter') && c.range >= 300 && p0 !== 'Support');
+    if (role === 'bot') return p0 === 'Marksman' || t.includes('Marksman');
+    if (role === 'support') return t.includes('Support') || (p0 === 'Tank' && c.range >= 300);
+    return false;
+  };
 
   /* a'nin b'ye karsi tahmini avantaji (kaba kurallar; gercek maclardan ogrenilmis degildir). Neden kodlari arayuzde cevrilir. */
   function adv(a, b, role, Z) {
@@ -1040,6 +1057,7 @@ const LOLMOD = (() => {
       if (t.includes('Fighter')) { w.top += 0.9; w.jungle += 0.5; } if (t.includes('Tank')) { w.top += 0.6; w.jungle += 0.5; w.support += 0.2; } if (t.includes('Mage')) { w.mid += 0.9; if (c.range <= 550 && c.hp >= 650) w.top += 0.4; if (c.range >= 550) w.bot += 0.1; w.support += t.includes('Support') ? 0 : 0.1; }
       if (t.includes('Assassin')) { w.mid += 0.8; w.jungle += 0.6; w.top += 0.2; } if (t.includes('Marksman')) { w.bot += 1.3; w.mid += 0.1; } if (t.includes('Support')) { w.support += 1.2; } if (t.includes('Fighter') && c.range >= 300) w.mid += 0.3; }
     const mul = (r, k) => { w[r] *= k; };
+    if (c && Array.isArray(c.pos) && c.pos.length) { for (const r of Object.keys(w)) mul(r, c.pos.includes(r) ? 8 : 0.1); }
     if (hasSpell(p, /Smite/i)) { for (const r of Object.keys(w)) mul(r, r === 'jungle' ? 40 : 0.02); }
     if (hasSpell(p, /Teleport/i)) { mul('top', 2); mul('mid', 1.5); mul('bot', 0.3); mul('support', 0.2); mul('jungle', 0.3); }
     if (hasSpell(p, /Heal|Barrier/i)) { mul('bot', 2.5); mul('mid', 1.3); mul('support', 0.7); }
@@ -1104,6 +1122,12 @@ const LOLMOD = (() => {
     const cacheRead = (name) => { if (!cacheDir) return null; try { return JSON.parse(fs.readFileSync(path.join(cacheDir, name), 'utf8')); } catch (e) { return null; } };
     const cacheWrite = (name, obj) => { if (!cacheDir) return; try { fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(path.join(cacheDir, name), JSON.stringify(obj)); } catch (e) { /* onbellek zorunlu degil */ } };
     const cacheNewest = (prefix) => { if (!cacheDir) return null; try { const f = fs.readdirSync(cacheDir).filter((x) => x.startsWith(prefix) && x.endsWith('.json')).sort().pop(); return f ? { name: f, json: cacheRead(f) } : null; } catch (e) { return null; } };
+    /* hat verisi: haftada bir indirilir (yalniz sabit sunucu), onbellekte kucuk ozet olarak saklanir; olmazsa eski onbellek, o da yoksa etiket tahmini */
+    async function loadRoles() {
+      let c = cacheRead('roles.json'); const fresh = c && c.map && Number(c.t) > 0 && now() - Number(c.t) < ROLE_TTL;
+      if (!fresh) { try { const m = parseRoles(JSON.parse(await httpGet(ROLE_HOST, ROLE_PATH, ROLE_MAX))); if (m) { c = { t: now(), map: m }; cacheWrite('roles.json', c); } } catch (e) { /* eski onbellek ya da etiket tahmini */ } }
+      return c && c.map && typeof c.map === 'object' ? c.map : null;
+    }
     async function loadRoster(force) {
       if (roster && !force) return { ok: true, meta: rosterMeta };
       let ver = null; let list = null; let loc = null; let offline = false; let why = '';
@@ -1111,7 +1135,8 @@ const LOLMOD = (() => {
       if (ver) { for (const l of LOCALES) { const nm = 'champions-' + ver + '-' + l + '.json'; let j = cacheRead(nm); if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/' + l + '/champion.json', LIM.body)); cacheWrite(nm, j); } catch (e) { why = String(e && e.message || e); j = null; } } const L = j ? parseChampions(j) : []; if (L.length) { list = L; loc = l; break; } } }
       if (!list) { for (const l of LOCALES) { const c = cacheNewest('champions-'); if (c && c.json) { const L = parseChampions(c.json); if (L.length) { list = L; offline = true; const m = /^champions-(.+)-([a-z]{2}_[A-Z]{2})\.json$/.exec(c.name); ver = m ? m[1] : ver; loc = m ? m[2] : l; break; } } } }
       if (!list) return errE('Şampiyon verisi alınamadı' + (why ? ' (' + why + ')' : '') + '. İlk kullanımda internet gerekir; sonra önbellekten çalışır.', { offline: true });
-      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline }; tipsCache.clear(); return { ok: true, meta: rosterMeta };
+      let rm = null; try { rm = await loadRoles(); } catch (e) { rm = null; } let withPos = 0; if (rm) for (const c of list) { const p = rm[c.key]; if (Array.isArray(p) && p.length) { c.pos = p.slice(); withPos++; } }
+      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline, roles: withPos }; tipsCache.clear(); return { ok: true, meta: rosterMeta };
     }
     const byKeyMap = () => new Map(roster.map((c) => [c.key, c.id]));
     const needRoster = async () => { const r = await loadRoster(false); return r.error ? r : null; };
@@ -1179,7 +1204,7 @@ const LOLMOD = (() => {
     const autoHist = () => Object.values(state.matches).filter((m) => !m.remake && m.opp && m.role && m.champ).map((m) => ({ role: m.role, me: m.champ, enemy: m.opp, win: !!m.win }));
     const handlers = {
       'lol:status': async () => { const r = await loadRoster(false); return { roles: ROLES, ready: !r.error, meta: r.error ? null : r.meta, error: r.error ? r.message : null, poolCounts: Object.fromEntries(ROLES.map((x) => [x, (state.pool[x] || []).length])), games: state.hist.length, statsUrl: !!state.statsUrl, windows: (deps.platform || process.platform) === 'win32' }; },
-      'lol:champs': async (_e, force) => { const r = await loadRoster(force === true); if (r.error) return r; return { meta: r.meta, champs: roster.map((c) => ({ id: c.id, name: c.name, tags: c.tags, difficulty: c.difficulty })) }; },
+      'lol:champs': async (_e, force) => { const r = await loadRoster(force === true); if (r.error) return r; return { meta: r.meta, champs: roster.map((c) => ({ id: c.id, name: c.name, tags: c.tags, difficulty: c.difficulty, pos: c.pos || null })) }; },
       'lol:pool': async () => ({ pool: Object.fromEntries(ROLES.map((x) => [x, (state.pool[x] || []).slice()])) }),
       'lol:pool:set': async (_e, role, ids) => {
         try { const bad = await needRoster(); if (bad) return bad; const r = validRole(role); if (!r) return errE('Rol geçersiz.'); if (!Array.isArray(ids) || ids.length > LIM.pool) return errE('Havuz en fazla ' + LIM.pool + ' şampiyon olabilir.'); const out = []; for (const x of ids) { const c = validChamp(x); if (c && !out.includes(c)) out.push(c); }
@@ -1309,7 +1334,7 @@ const LOLMOD = (() => {
           const a = analyzeLive(parsed, roster); const out = Object.assign({ state: 'ingame' }, a); const myChamp = a.me && validChamp(a.me.champ); const opp = a.lane && validChamp(a.lane);
           if (myChamp && opp && a.me.role) {
             const role = a.me.role; const hist = state.hist.concat(autoHist()); const ext = await fetchExt(opp, role, myChamp); const pool = state.pool[role] || [];
-            const all = rank(roster, opp, role, { hist, pool, anyRole: true, ext, limit: 500 }); const fit = rank(roster, opp, role, { hist, pool, ext, limit: 8 });
+            const all = rank(roster, opp, role, { hist, pool, ext, limit: 500 }); const fit = rank(roster, opp, role, { hist, pool, ext, limit: 8 });
             const mine = all.picks ? all.picks.find((x) => x.id === myChamp) : null; const pos = mine ? 1 + all.picks.filter((x) => x.score > mine.score).length : null;
             out.matchup = { role, enemy: opp, mine: mine || null, pos, total: all.total, best: fit.picks || [], list: (all.picks || []).slice(0, 200).map((x) => ({ id: x.id, name: x.name, score: x.score, wr: x.ext ? x.ext.wr : null, games: x.ext ? x.ext.games : 0, inPool: !!x.inPool })), extUsed: !!ext, statsConfigured: !!(state.statsUrl || state.cp), cp: !!state.cp };
           }
@@ -1356,7 +1381,7 @@ const LOLMOD = (() => {
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
-  return { createLolHost, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
+  return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
 })();
 
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
