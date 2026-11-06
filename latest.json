@@ -1,6 +1,6 @@
 {
-  "version": "5.0.7",
-  "url": "StatScan-5.0.7.ssu",
-  "sha256": "1eb44a72a9e61a697206b8867f8077f9289798240b2ac409aaa5f5d509998839",
-  "notes": "5.0.7 — HOTFIX (Kovan beta 0.1.2): League Asistanı artık her hatta yalnız o hattın şampiyonlarını öneriyor (gerçek hat verisi; Bard üst hatta çıkmıyor; ban, canlı maç ve hat tahmini de buna bağlı). Derece amblemleri büyütüldü (boş kenarlar kırpılıyor). Windows'ta ve gerçek League istemcisiyle denenmedi."
+  "version": "5.0.8",
+  "url": "StatScan-5.0.8.ssu",
+  "sha256": "f5acc2e69cf3ae4add46cffad8400b24746378e4c479be3d589df549f08fafeb",
+  "notes": "5.0.8 — Kovan beta 0.1.3: League Asistanı'na eşya önerisi eklendi. Canlı maçta ve şampiyon seçiminde rakip takımın hasar dağılımına göre zırh, büyü direnci, yara azaltma, delme ve ayakkabı önerileri gösterilir (Riot Data Dragon eşya verisinden kaba kurallarla; gerçek kazanma oranı değildir). Windows'ta ve gerçek League istemcisiyle denenmedi."
 }
