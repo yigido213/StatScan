@@ -21,9 +21,12 @@ Veri akışı (hepsi arka planda, tarayıcı açmaz; yalnız sabit sunucular):
 - **Kullanıcının kendi https dış veri adresi** (`statsUrl`): onay penceresi, yerel/özel ağ reddedilir, yalnız sayı okunur.
 
 Puanlama: `heuristic()/adv()` (menzil, zırh/BD, sınıf kuralları — kaba, gerçek maçtan öğrenilmemiş), `rank()` (50+delta; dış veri %70/%30 ağırlıkla; kişisel kayıt Wilson alt sınırı ile en çok %60; havuz +4), `banPicks()`, `compAnalysis()`.
+Eşya önerisi (`lol:items`): `parseItems()` Data Dragon `item.json`'dan yalnız Summoner's Rift (harita 11), tamamlanmış (`into` boş) satın alınabilir eşyaları + son kademe ayakkabıları alır (en_US sürümü: `Grievous Wounds`/`Lethality` metni için; yerel dil yalnız ad için, `items-<sürüm>.json` + `itemnames-…` önbelleği). `buildItemAdvice()` rakip takımın hasar dağılımından (`teamProfile`) zırh / büyü direnci / yara azaltma (kısa elle `SUSTAIN` listesi) / delme / ayakkabı bölümleri çıkarır; şampiyonun AD/AP/Tank türüne göre ters hasar eşyalarını eler; destek hattında öneri yok. KABA kural — kazanma oranı değil. Arayüz: `itemsCard()` (kovanLol), canlı maç + şampiyon seçimi panelinde `#lg-items`.
 Canlı/seçim: `parseLive`, `analyzeLive`, `assignRoles` (120 permütasyon, hat tahmini güveni), `roleWeights` (etiket + büyüler + oyunun verdiği position + `c.pos`).
 Handlerlar (`createLolHost(deps).handlers`): `lol:status/champs/pool/suggest/record/hist/tips/lcu/sync/profile/lp/matches/stats/bans/comp/icon/live/runes/runes:suggest/runes:apply/cp:get/cp:set/data:clear`. Durum `lolcounter.json`, önbellek `lolcounter-cache/` (kullanıcının bilgisayarında).
 Arayüz (`kovanLol`): 6 sekme (Genel bakış, Şampiyonlarım, LP geçmişi, Birlikte oynadıklarım, Canlı maç, Karşı seçim); kendi teması `#app-lolcounter.lg` / `.lg-*` CSS; yardımcılar `h() put() icon() champIc() emblem() cropAlpha() dropdown() acWrap() cpToggle() compCard() drawSelect() drawLive() goalText() KT()`.
+Rün önerisi zinciri (`lol:runes:suggest`, sırayla): (1) dış veri adresi / counterpick.lol (`fetchExt`; `cpMatchup` önce ben-vs-rakip, yoksa rakip-vs-ben → oran 100−x, rün YOK, `approx`; rünler `/lol/rune/<id>` görsellerinden, yoksa 'Runes' bölümündeki metinden — ad ya da 'Rune <id>', adlar en_US `runesReforged` → `buildRuneNames`/`cpRunesFromText`), (2) kendi maç geçmişin (`normMatch` artık `runes` saklar, `lol:sync` eski tam maçlara geriye dönük doldurur; `histRunes`: eşleşme ≥2 maç, yoksa şampiyon+hat ≥3, Wilson), (3) istemcinin önerilen rün sayfası (`lcuRecRunes`, LCU_OK'a yalnız GET kalıbı eklendi; uç nokta belgesiz). Yanıtta `src`, `hist`, `tried[{src,state}]`; arayüz kaynak rozeti + 'neden bulunamadı' listesi gösterir (`srcLine`/`why`).
+
 Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşlemesi gerek), diğer kategorilerin kendi teması.
 **Gerçekte hiç denenmedi**: gerçek Windows, gerçek League istemcisi/rün uç noktaları (belgesiz, bellekten), gerçek counterpick.lol HTML'i, gerçek Meraki/CommunityDragon indirmesi (yol WebFetch ile görüldü; sandbox kabuğundan ağ yok).
 
@@ -35,7 +38,7 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: paket 5.0.7, Kovan beta 0.1.2.
+- Mevcut: paket 5.0.9, Kovan beta 0.1.4.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).

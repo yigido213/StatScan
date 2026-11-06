@@ -1,6 +1,6 @@
 {
-  "version": "5.0.7",
-  "url": "StatScan-5.0.7.ssu",
-  "sha256": "1eb44a72a9e61a697206b8867f8077f9289798240b2ac409aaa5f5d509998839",
-  "notes": "5.0.7 — HOTFIX (Kovan beta 0.1.2): League Asistanı artık her hatta yalnız o hattın şampiyonlarını öneriyor (gerçek hat verisi; Bard üst hatta çıkmıyor; ban, canlı maç ve hat tahmini de buna bağlı). Derece amblemleri büyütüldü (boş kenarlar kırpılıyor). Windows'ta ve gerçek League istemcisiyle denenmedi."
+  "version": "5.0.9",
+  "url": "StatScan-5.0.9.ssu",
+  "sha256": "dff01623c50e5bde26575432e0a28df0682509852d0f66556acdadc8cb108e27",
+  "notes": "5.0.9 — Kovan beta 0.1.4: League Asistanı rün önerisi güçlendirildi. counterpick.lol'da eşleşme yalnız ters yönde varsa o da denenir, rünler metinden de okunur; kendi maç geçmişindeki rün seçimlerinden öneri; istemcinin önerdiği rün sayfası yedek; rün bulunamazsa nedeni kartta gösterilir."
 }

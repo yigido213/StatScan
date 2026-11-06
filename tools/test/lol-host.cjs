@@ -12,11 +12,28 @@ const DATA = Object.fromEntries([
   mk('Sion', 14, ['Tank', 'Fighter'], 5, 9, 3, 5, 175, 655, 36, 32), mk('Ornn', 516, ['Tank', 'Fighter'], 5, 9, 3, 5, 175, 660, 33, 28), mk('Vayne', 67, ['Marksman', 'Assassin'], 10, 1, 1, 8, 550, 550, 23, 30)
 ]);
 const champJson = { data: DATA };
+// ---- esya onerisi: sahte item.json (gercek esya adlari/degerleri DEGIL; yalniz sema ve kurallar test edilir)
+const itm = (name, total, tags, stats, extra) => Object.assign({ name, description: '<mainText>' + name + '</mainText>', gold: { base: total, total, sell: total / 2, purchasable: true }, tags, maps: { 11: true, 12: false }, stats: stats || {} }, extra || {});
+const ITEM_EN = { type: 'item', version: '16.21.1', data: {
+  3001: itm('Bruiser Plate', 3000, ['Damage', 'Armor'], { FlatPhysicalDamageMod: 50, FlatArmorMod: 45 }), 3002: itm('Guardian Mail', 3000, ['Damage', 'Armor', 'Health'], { FlatPhysicalDamageMod: 35, FlatArmorMod: 40, FlatHPPoolMod: 100 }),
+  3003: itm('Pure Armor', 2800, ['Armor', 'Health'], { FlatArmorMod: 80, FlatHPPoolMod: 300 }), 3004: itm('Mage Cloak', 3000, ['SpellDamage', 'Armor'], { FlatMagicDamageMod: 90, FlatArmorMod: 40 }),
+  3005: itm('Wizard Veil', 3000, ['SpellDamage', 'SpellBlock'], { FlatMagicDamageMod: 80, FlatSpellBlockMod: 40 }), 3006: itm('Warrior Veil', 3000, ['Damage', 'SpellBlock'], { FlatPhysicalDamageMod: 40, FlatSpellBlockMod: 50 }),
+  3007: itm('Pure MR', 2700, ['SpellBlock', 'Health'], { FlatSpellBlockMod: 80, FlatHPPoolMod: 250 }),
+  3008: itm('Sunder Blade', 3100, ['Damage', 'ArmorPenetration'], { FlatPhysicalDamageMod: 60 }, { description: 'Gives <attention>18</attention> Lethality' }), 3009: itm('Void Rod', 3200, ['SpellDamage', 'MagicPenetration'], { FlatMagicDamageMod: 80 }),
+  3010: itm('Wound Blade', 3000, ['Damage'], { FlatPhysicalDamageMod: 45 }, { description: 'Applies <status>40% Grievous Wounds</status> to champions' }), 3011: itm('Wound Orb', 3000, ['SpellDamage'], { FlatMagicDamageMod: 80 }, { description: 'Applies <status>40% Grievous Wounds</status>' }),
+  3012: itm('Thorn Armor', 2700, ['Armor', 'Health'], { FlatArmorMod: 60, FlatHPPoolMod: 300 }, { description: 'Applies <status>Grievous Wounds</status> if they are a champion.' }),
+  3100: itm('Steel Treads', 1200, ['Armor', 'Boots']), 3101: itm('Mercury Treads', 1100, ['Boots', 'SpellBlock', 'Tenacity']),
+  3102: itm('Plain Boots', 300, ['Boots'], {}, { into: ['3100', '3101'] }), 3200: itm('Health Potion', 50, ['Consumable']), 3201: itm('Ward Trinket', 0, ['Trinket']), 3202: itm('Cheap Component', 800, ['Damage'], { FlatPhysicalDamageMod: 25 }, { into: ['3001'] }),
+  3203: itm('Champion Locked', 3000, ['Armor'], { FlatArmorMod: 90 }, { requiredChampion: 'Viktor' }), 3204: itm('Support Quest', 2200, ['GoldPer', 'Armor'], { FlatArmorMod: 20 }), 3205: itm('Unpurchasable', 3000, ['Armor'], { FlatArmorMod: 99 }, { gold: { total: 3000, purchasable: false } }),
+  223075: itm('Arena Copy', 2500, ['Armor'], { FlatArmorMod: 60 }, { maps: { 11: false, 30: true } }), 3206: itm('No Map Item', 3000, ['Armor'], { FlatArmorMod: 70 }, { maps: {} }) } };
+const ITEM_TR = { data: { 3001: { name: 'Savaşçı Plaka' }, 3101: { name: 'Merkür Çizme' }, 3003: { name: 'Saf Zırh' } } };
+let itemsFail = false;
 let calls = []; let offline = false; let extBody = null; const cpCalls = []; let cpPages = {};
 const get = async (host, p) => {
   calls.push(host + p); if (offline) throw new Error('çevrimdışı');
   if (host === 'ddragon.leagueoflegends.com') {
     if (p === '/api/versions.json') return JSON.stringify(['16.21.1', '16.20.1']); if (/\/data\/tr_TR\/champion\.json$/.test(p)) return JSON.stringify(champJson);
+    if (/\/data\/(en_US|tr_TR)\/item\.json$/.test(p)) { if (itemsFail) throw new Error('HTTP 500'); return JSON.stringify(/en_US/.test(p) ? ITEM_EN : ITEM_TR); }
     if (/\/data\/tr_TR\/runesReforged\.json$/.test(p)) return JSON.stringify([{ id: 8000, name: 'İlham', slots: [{ runes: [{ id: 8010, name: 'Fatih' }] }, { runes: [{ id: 9111, name: 'Zafer' }] }, { runes: [{ id: 9104, name: 'Efsane' }] }, { runes: [{ id: 8299, name: 'Son Direniş' }] }] }, { id: 8400, name: 'Direniş', slots: [{ runes: [{ id: 8437, name: 'Eller' }] }, { runes: [{ id: 8444, name: 'Şahlanış' }] }, { runes: [{ id: 8473, name: 'Kemik' }] }, { runes: [{ id: 8451, name: 'Taşma' }] }] }]);
     const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['ESKI IPUCU ' + m[1]], passive: { name: 'Pasif', description: 'Pasif <b>metin</b><br>' + m[1] }, spells: ['Q', 'W', 'E', 'R'].map((k) => ({ name: k + ' yeteneği', cooldownBurn: '8/7/6', description: k + ' <i>güncel</i> açıklama' })) } } });
   }
@@ -285,9 +302,55 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   ok(L.laneRole({ lane: 'BOTTOM', role: 'DUO_SUPPORT' }) === 'support' && L.laneRole({ lane: 'BOTTOM', role: 'DUO_CARRY' }) === 'bot' && L.laneRole({ lane: 'MIDDLE' }) === 'mid' && L.laneRole(null) === null, 'hat çıkarımı: destek/nişancı/orta');
   ok(L.normMatch({ gameId: 'x' }, 'P', () => null) === null && L.normMatch(null, 'P', () => null) === null && L.normMatch({ gameId: 1, participants: [{ participantId: 1, stats: { win: true } }, { participantId: 2, stats: {} }], participantIdentities: [] }, 'P', () => null) === null, 'maç ayrıştırma: bozuk/benim olmayan veri null');
 
+  // ---- esya onerisi
+  { const items = L.parseItems(ITEM_EN); const ids = items.map((x) => x.id);
+    ok(items.length === 14 && ['3001', '3012', '3100', '3101'].every((i) => ids.includes(i)), 'parseItems: 12 tamamlanmış eşya + 2 ayakkabı (14)');
+    ok(!ids.some((i) => ['3102', '3200', '3201', '3202', '3203', '3204', '3205', '223075', '3206'].includes(i)), 'parseItems: bileşen/tüketilebilir/muska/şampiyona özel/görev/satılmayan/Arena/harita dışı elenir');
+    const byId = new Map(items.map((x) => [x.id, x])); ok(byId.get('3008').penP && !byId.get('3008').gw && byId.get('3009').penM && byId.get('3010').gw && byId.get('3012').gw && byId.get('3101').boots && byId.get('3101').tags.includes('Tenacity'), 'parseItems: delme (Lethality/etiket), yara azaltma, ayakkabı, tenacity işaretleri');
+    ok(byId.get('3001').st.ad === 50 && byId.get('3001').st.armor === 45 && byId.get('3003').st.hp === 300, 'parseItems: yalnız sayısal istatistikler okunur');
+    ok(L.parseItems({}).length === 0 && L.parseItems(null).length === 0 && L.parseItems({ data: { 3001: null, abc: {} } }).length === 0, 'parseItems: bozuk girdide boş liste');
+    const R2 = roster.concat(L.parseChampions({ data: Object.fromEntries([mk('Soraka', 16, ['Support', 'Mage'], 2, 5, 7, 5, 550, 560, 32, 30), mk('Aatrox', 266, ['Fighter', 'Tank'], 8, 4, 3, 4, 175, 650, 38, 32)]) }));
+    const A = (me, en, role) => L.buildItemAdvice(R2, me, en, role, items, null, '16.21.1'); const sec = (r, k) => r.sections.find((x) => x.k === k); const idsOf = (s) => s.items.map((x) => x.id).join();
+    let a = A('Jinx', ['Zed', 'Darius', 'Garen'], 'bot'); ok(a.type === 'ad' && a.profile.apPct <= 11 && sec(a, 'armor').pri === 'high' && !sec(a, 'mr'), 'eşya: fiziksel ağırlıklı rakibe karşı zırh önceliklidir, büyü direnci yok');
+    ok(idsOf(sec(a, 'armor')) === '3001,3002,3003', 'eşya: AD şampiyon önce hasar+zırh eşyalarını, sonra saf zırhı görür (AP eşya çıkmaz)'); ok(idsOf(sec(a, 'boots')) === '3100' && sec(a, 'pen').pri === 'mid' && idsOf(sec(a, 'pen')) === '3008', 'eşya: zırh ayakkabısı; 2 dayanıklı rakipte delme (Lethality) eşyası');
+    ok(a.sections[0].pri === 'high' && a.sections.every((s, i, l) => i === 0 || (s.pri === 'mid') || l[i - 1].pri === 'high'), 'eşya: öncelikli bölümler önce gelir');
+    a = A('Ahri', ['Zed', 'Darius', 'Jinx'], 'mid'); ok(a.type === 'ap' && idsOf(sec(a, 'armor')) === '3004,3003,3012', 'eşya: AP şampiyon AP+zırh eşyasını (Mage Cloak) görür; AD eşya çıkmaz');
+    a = A('Ornn', ['Ahri', 'Lux', 'Teemo'], 'top'); ok(a.type === 'tank' && sec(a, 'mr').pri === 'high' && idsOf(sec(a, 'mr')) === '3007,3006' && !sec(a, 'pen') && idsOf(sec(a, 'boots')) === '3101', 'eşya: tank büyü ağırlıklı rakibe karşı yalnız savunma eşyaları (AP eşya yok), delme yok, Mercury ayakkabısı');
+    a = A('Jinx', ['Ahri', 'Darius'], 'bot'); ok(sec(a, 'armor').pri === 'mid' && sec(a, 'mr').pri === 'mid' && sec(a, 'boots').items.length === 2 && sec(a, 'boots').pri === 'mid' && a.partial === true, 'eşya: karışık hasarda hem zırh hem büyü direnci "olabilir"; az rakip → partial');
+    a = A('Jinx', ['Zed', 'Darius', 'Garen'], 'bot'); ok(a.partial === false, 'eşya: 3 rakipte partial değil');
+    a = A('Jinx', ['Soraka', 'Aatrox', 'Zed'], 'bot'); ok(sec(a, 'antiheal').pri === 'high' && idsOf(sec(a, 'antiheal')) === '3010,3012' && sec(a, 'antiheal').why[0].v[0] === 'Soraka, Aatrox', 'eşya: 2 iyileşmeli rakipte yara azaltma öncelikli, AD için AP eşya yok');
+    a = A('Ahri', ['Soraka', 'Darius', 'Zed'], 'mid'); ok(sec(a, 'antiheal').pri === 'mid' && idsOf(sec(a, 'antiheal')) === '3011,3012', 'eşya: 1 iyileşmeli rakip → "olabilir"; AP şampiyon AP yara azaltma eşyası görür');
+    a = A('Jinx', ['Darius'], 'support'); ok(a.support === true && a.sections.length === 0, 'eşya: destek hattında öneri yok (not döner)');
+    a = A('Jinx', [], 'bot'); ok(a.sections.length === 0 && a.profile.n === 0, 'eşya: rakip yoksa bölüm yok'); ok(A('Yok', ['Zed'], 'bot') === null, 'eşya: bilinmeyen şampiyon → null');
+    const tn = L.buildItemAdvice(R2, 'Jinx', ['Zed', 'Darius', 'Garen'], 'bot', items, { 3001: 'Savaşçı Plaka' }, '16.21.1'); ok(tn.sections[0].items[0].name === 'Savaşçı Plaka' && tn.sections[0].items[1].name === 'Guardian Mail', 'eşya: yerel ad varsa o, yoksa İngilizce ad'); }
+  { const dir = path.join(tmp, 'esya'); calls = []; const hi = mkHost({}, dir); const HI = hi.handlers;
+    let ri = await HI['lol:items']({ me: 'Jinx', role: 'bot', enemies: ['Zed', 'Darius', 'Garen'] });
+    ok(!ri.error && ri.version === '16.21.1' && ri.sections.length >= 2 && ri.sections[0].items[0].name === 'Savaşçı Plaka', 'lol:items: sürüm + yerel (tr_TR) eşya adı');
+    ok(calls.some((c) => /\/data\/en_US\/item\.json$/.test(c)) && calls.some((c) => /\/data\/tr_TR\/item\.json$/.test(c)), 'lol:items: mantık için en_US, ad için yerel dil indirilir');
+    const n0 = calls.length; ri = await HI['lol:items']({ me: 'Ahri', enemies: ['Zed', 'Jinx'] }); ok(!ri.error && calls.length === n0, 'lol:items: ikinci çağrı bellekten (ağ yok)');
+    ok((await HI['lol:items']({ me: '../x', enemies: ['Zed'] })).error === 'lol' && (await HI['lol:items']({ me: 'Jinx', enemies: [] })).error === 'lol' && (await HI['lol:items']({ me: 'Jinx', enemies: 'Zed' })).error === 'lol' && (await HI['lol:items']({ me: 'Jinx', role: 'x', enemies: ['Zed'] })).error === 'lol', 'lol:items: geçersiz şampiyon/rol/boş rakip reddedilir');
+    ri = await HI['lol:items']({ me: 'Jinx', enemies: ['../etc', 'Zed', 'Yok', 'Darius', 'Garen', 'Teemo', 'Ahri', 'Lux'] }); ok(!ri.error && ri.enemies.length <= 5 && ri.enemies.every((x) => /^[A-Za-z0-9]+$/.test(x)), 'lol:items: rakip listesi 5 ile sınırlı, geçersiz kimlikler elenir');
+    offline = true; const hj = mkHost({}, dir); const rj = await hj.handlers['lol:items']({ me: 'Jinx', role: 'bot', enemies: ['Zed', 'Darius', 'Garen'] }); ok(!rj.error && rj.sections.length >= 2 && rj.sections[0].items[0].name === 'Savaşçı Plaka', 'lol:items: çevrimdışıyken önbellekten çalışır (adlar dahil)'); offline = false;
+    const dir2 = path.join(tmp, 'esya-yok'); const hk = mkHost({}, dir2); await hk.handlers['lol:status'](); itemsFail = true; const rk = await hk.handlers['lol:items']({ me: 'Jinx', role: 'bot', enemies: ['Zed'] }); ok(rk.error === 'lol' && /Eşya verisi alınamadı/.test(rk.message), 'lol:items: veri yok + ağ hatası → anlaşılır hata, çökme yok'); itemsFail = false; }
+  // ---- rün kaynakları: metinden rün, ters yön, kendi maç geçmişi (sentetik; gerçek site/istemciyle DENENMEDİ)
+  { const T = L.parseCpMatchup('<p>VS 48.2% 769 games</p><h2>Runes</h2><p>Rune 8010 Rune 9111 Rune 9104 Rune 8299 Rune 8444 Rune 8473</p>'); ok(T && T.wr === 48.2 && T.games === 769 && T.runes && T.runes.perks.join() === '8010,9111,9104,8299,8444,8473', 'cp: rün kimlikleri görsel yoksa “Rune <id>” metninden okunur');
+    ok(L.parseCpMatchup('<p>VS 48.2% 769 games</p><h2>Runes</h2><p>Rune 8010 Rune 9111</p>').runes === null, 'cp: 6’dan az rün metni → rün yok (uydurulmaz)');
+    const mkR = (n) => ({ perks: [8010, 9111, 9104, 8299, 8444, 8473].map((x, i) => (i === 0 ? n : x)), primary: 8000, secondary: 8400 });
+    const mm = {}; const add = (id, champ, opp, win, role, rn) => { mm[id] = { id, champ, opp, win, role, queue: 'solo', remake: false, runes: rn }; };
+    add(1, 'Darius', 'Garen', true, 'top', mkR(8010)); add(2, 'Darius', 'Garen', false, 'top', mkR(8010)); add(3, 'Darius', 'Teemo', true, 'top', mkR(8021)); add(4, 'Darius', 'Zed', true, 'top', mkR(8021));
+    let hr = L.histRunes(mm, 'Darius', 'Garen', 'top'); ok(hr.state === 'ok' && hr.scope === 'vs' && hr.games === 2, 'geçmiş rünü: bu eşleşmede ≥2 maç varsa eşleşmeye özel');
+    hr = L.histRunes(mm, 'Darius', 'Ahri', 'top'); ok(hr.state === 'ok' && hr.scope === 'champ' && hr.total === 4 && hr.runes.perks[0] === 8021, 'geçmiş rünü: yoksa şampiyon+hat, en iyi Wilson alt sınırı');
+    ok(L.histRunes(mm, 'Jinx', 'Zed', 'bot').state === 'none' && L.histRunes({ 9: { champ: 'Jinx', win: true, queue: 'solo' } }, 'Jinx', 'Zed', 'bot').state === 'sync', 'geçmiş rünü: kayıt yok → none; rün alanı hiç yoksa → sync (senkron gerek)');
+    ok(L.histRunes({ 1: mm[1] }, 'Darius', 'Ahri', 'top').state === 'few', 'geçmiş rünü: az maç → few'); }
+  { cpCalls.length = 0; cpPages = { '/matchup/garen-vs-darius/': '<p>VS 46.4% 800 games</p>', '/champion/garen/counters/': '<html></html>' }; confirmAns = true;
+    const hr2 = mkHost({ cpDelay: 0 }, path.join(tmp, 'rev')); const HR = hr2.handlers; await HR['lol:status'](); await HR['lol:cp:set'](true);
+    const sg = await HR['lol:runes:suggest']({ me: 'Darius', enemy: 'Garen', role: 'top' }); ok(!sg.error && sg.runes === null && sg.approx === true && sg.wr === 53.6 && sg.games === 800 && cpCalls.includes('/matchup/darius-vs-garen/') && cpCalls.includes('/matchup/garen-vs-darius/'), 'cp: ben-vs-rakip yoksa rakip-vs-ben denenir; oran 100 − x, rün yok');
+    ok(Array.isArray(sg.tried) && sg.tried.some((x) => x.src === 'cp' && x.state === 'rev') && sg.tried.some((x) => x.src === 'hist') && sg.tried.some((x) => x.src === 'lcu'), 'runes:suggest: denenen kaynaklar ve neden bulunamadığı döner');
+    const nCp = cpCalls.length; const hc2 = mkHost({}, path.join(tmp, 'rev2')); await hc2.handlers['lol:status'](); const sg2 = await hc2.handlers['lol:runes:suggest']({ me: 'Darius', enemy: 'Garen', role: 'top' }); ok(!sg2.error && sg2.runes === null && sg2.tried.find((x) => x.src === 'cp').state === 'off' && cpCalls.length === nCp, 'cp kapalıyken runes:suggest siteye istek göndermez, nedeni “off”'); }
+  ok(L.LCU_OK.some((re) => re.test('/lol-perks/v1/recommended-pages/champion/122/position/top/map/11')) && !L.LCU_OK.some((re) => re.test('/lol-perks/v1/recommended-pages/champion/122/position/top/map/11/x')), 'LCU beyaz liste: yalnız önerilen rün sayfası GET kalıbı eklendi');
   // ---- host entegrasyonu: kanallar kayıtlı, arayüz yol/URL gönderemez
   const host = createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'entegre'), get } });
-  const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu'];
+  const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu', 'lol:items'];
   ok(chans.every((c) => typeof host.handlers[c] === 'function'), 'createHost: tüm lol kanalları kayıtlı');
   const hd = createHost({ service: { closeAll() {} }, lol: false }); ok(!hd.handlers['lol:status'], 'createHost: lol:false ile kanallar kapanır');
   const src = fs.readFileSync(path.join(__dirname, '../../app/desktop/host.js'), 'utf8'); const lolSrc = src.slice(src.indexOf('const LOLMOD'), src.indexOf("/* --- Oyun Ayarlayici (Kovan 'oyunayar'"));

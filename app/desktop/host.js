@@ -906,12 +906,29 @@ const LOLMOD = (() => {
   const cpKey = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const htmlText = (h) => String(h || '').replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#0?39;|&apos;|&rsquo;/g, "'").replace(/\s+/g, ' ').trim();
   const CP_TREES = new Set([8000, 8100, 8200, 8300, 8400]);
-  /* maç sayfası: "VS 53.6% 994 games" + /lol/rune/<id>.webp kimlikleri (yalnız tam sayı; metin alınmaz). Gerçek sitede DENENMEDİ. */
-  function parseCpMatchup(html) {
+  /* maç sayfası: "VS 48.2% 769 games" — oran SAYFADAKİ İLK şampiyonun (Akshan↔Anivia çiftinin iki yönüyle doğrulandı: 45.0 ve 54.2); ters yöndeki sayfa yaklaşık 100 − oran verir.
+     Rünler: önce /lol/rune/<id>.webp kimlikleri; yoksa "Runes" bölümündeki metin sırasıyla (rün adı ya da "Rune <id>"). Yalnız tam sayı kimlikleri alınır; sıra/ağaç yapısı yine validateRunePage ile doğrulanır. */
+  const runeKey = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const escRe = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  /* Data Dragon runesReforged (en_US) -> { byKey: normalleştirilmiş ad -> kimlik, list: adlar (uzun önce) } */
+  function buildRuneNames(json) {
+    const byKey = new Map(); const list = []; for (const tr of Array.isArray(json) ? json : []) for (const sl of (tr && tr.slots) || []) for (const r of (sl && sl.runes) || []) { if (r && Number.isInteger(r.id) && r.name) { byKey.set(runeKey(r.name), r.id); list.push(String(r.name).slice(0, 40)); } }
+    list.sort((a, b) => b.length - a.length); return byKey.size >= 20 ? { byKey, list } : null;
+  }
+  function cpRunesFromText(t, names) {
+    const seg0 = String(t || ''); const a = seg0.search(/\bRunes\b/); const seg = a >= 0 ? seg0.slice(a) : seg0; const parts = []; if (names && names.list.length) parts.push('\\b(?:' + names.list.map(escRe).join('|') + ')(?![A-Za-z])'); parts.push('\\bRune\\s+(\\d{4})\\b');
+    const re = new RegExp(parts.join('|'), 'gi'); const ids = []; let m; while ((m = re.exec(seg)) && ids.length < 6) {
+      let id = null; if (m[1]) id = Number(m[1]); else if (names) id = names.byKey.get(runeKey(m[0])) || null; if (Number.isInteger(id) && id >= 8000 && id <= 9999 && !CP_TREES.has(id) && !ids.includes(id)) ids.push(id);
+    }
+    return ids.length === 6 ? ids : null;
+  }
+  function parseCpMatchup(html, names) {
     const t = htmlText(html); const m = /\bVS\s+(\d{1,2}(?:\.\d+)?)\s*%\s*(\d[\d.,\s]*?)\s*games\b/i.exec(t); if (!m) return null; const wr = Number(m[1]); const games = Number(m[2].replace(/[^\d]/g, '')); if (!(wr >= 0 && wr <= 100) || !(games >= 0 && games <= 1e8)) return null;
     const ids = []; for (const x of String(html).matchAll(/\/lol\/rune\/(\d{4})\.(?:webp|png|jpg)/gi)) { const n = Number(x[1]); if (!ids.includes(n)) ids.push(n); }
     const trees = ids.filter((n) => CP_TREES.has(n)); const perks = ids.filter((n) => n >= 8000 && !CP_TREES.has(n)).slice(0, 6);
-    return { wr, games: Math.round(games), runes: perks.length >= 4 ? parseRunes({ perks, primary: trees[0], secondary: trees[1] }) : null };
+    let runes = perks.length >= 4 ? parseRunes({ perks, primary: trees[0], secondary: trees[1] }) : null;
+    if (!runes || runes.perks.length !== 6) { const tp = cpRunesFromText(t.slice(m.index + m[0].length), names); if (tp) runes = parseRunes({ perks: tp }); }
+    return { wr, games: Math.round(games), runes };
   }
   /* counters sayfası: <a href=".../matchup/<konu>-vs-<rakip>/"> + yakınında "NN.N% WR" (konu şampiyonun oranı) → rakibin oranı = 100 - değer */
   function parseCpCounters(html, subjectSlug) {
@@ -922,9 +939,18 @@ const LOLMOD = (() => {
     }
     return out;
   }
+  /* kendi maç geçmişinden rün önerisi (yalnız bu bilgisayardaki kayıt): önce bu eşleşme (≥2 maç), yoksa aynı şampiyon + hat (≥3 maç); en iyi Wilson alt sınırı */
+  function histRunes(matches, me, enemy, role) {
+    const okQ = ['solo', 'flex', 'draft', 'blind', 'quick', 'swift', 'clash']; const all = Object.values(matches || {}); const anyRunes = all.some((m) => m && m.runes);
+    const ms = all.filter((m) => m && !m.remake && m.win !== null && m.champ === me && m.runes && Array.isArray(m.runes.perks) && m.runes.perks.length === 6 && okQ.includes(m.queue));
+    const best = (list) => { const by = new Map(); for (const m of list) { const k = m.runes.perks.join(','); const x = by.get(k) || { runes: m.runes, games: 0, wins: 0 }; x.games++; if (m.win) x.wins++; by.set(k, x); } let b = null; for (const x of by.values()) { x.low = wilson(x.wins, x.games); if (!b || x.low > b.low || (x.low === b.low && x.games > b.games)) b = x; } return { runes: b.runes, games: b.games, wr: Math.round((1000 * b.wins) / b.games) / 10 }; };
+    const vs = ms.filter((m) => m.opp === enemy); if (vs.length >= 2) return Object.assign({ state: 'ok', scope: 'vs', total: vs.length }, best(vs));
+    const rl = role ? ms.filter((m) => m.role === role) : ms; if (rl.length >= 3) return Object.assign({ state: 'ok', scope: 'champ', total: rl.length }, best(rl));
+    if (!anyRunes) return { state: 'sync' }; if (!ms.length) return { state: 'none' }; return { state: 'few', vs: vs.length, champ: rl.length };
+  }
   function parseStats(json) {
     const arr = json && Array.isArray(json.matchups) ? json.matchups : null; if (!arr) return null; const out = new Map();
-    for (const x of arr.slice(0, 400)) { if (!x || !ID_RE.test(String(x.champ || ''))) continue; const wr = Number(x.wr); const g = Number(x.games); if (!(wr >= 0 && wr <= 100) || !(g >= 0 && g <= 1e9)) continue; out.set(String(x.champ), { wr, games: Math.round(g), runes: parseRunes(x.runes) }); }
+    for (const x of arr.slice(0, 400)) { if (!x || !ID_RE.test(String(x.champ || ''))) continue; const wr = Number(x.wr); const g = Number(x.games); if (!(wr >= 0 && wr <= 100) || !(g >= 0 && g <= 1e9)) continue; out.set(String(x.champ), { wr, games: Math.round(g), runes: parseRunes(x.runes), src: 'url' }); }
     return out;
   }
 
@@ -987,11 +1013,11 @@ const LOLMOD = (() => {
     if (!g || typeof g !== 'object' || !Number.isFinite(Number(g.gameId))) return null; const parts = Array.isArray(g.participants) ? g.participants : []; const ids = Array.isArray(g.participantIdentities) ? g.participantIdentities : [];
     const idOf = new Map(ids.map((x) => [x && x.participantId, (x && x.player) || {}])); let me = null;
     for (const p of parts) { const pl = idOf.get(p && p.participantId) || {}; if (myPuuid && pl.puuid === myPuuid) { me = p; break; } } if (!me && parts.length === 1) me = parts[0]; if (!me || !me.stats) return null;
-    const s = me.stats; let t = numOr0(g.gameCreation); if (!t && g.gameCreationDate) t = Date.parse(g.gameCreationDate) || 0; const dur = numOr0(g.gameDuration); const remake = !!s.gameEndedInEarlySurrender || (dur > 0 && dur < 240);
+    const s = me.stats; const rn = parseRunes({ perks: [0, 1, 2, 3, 4, 5].map((i) => s['perk' + i]), primary: s.perkPrimaryStyle, secondary: s.perkSubStyle }); const runes = rn && rn.perks.length === 6 ? rn : null; let t = numOr0(g.gameCreation); if (!t && g.gameCreationDate) t = Date.parse(g.gameCreationDate) || 0; const dur = numOr0(g.gameDuration); const remake = !!s.gameEndedInEarlySurrender || (dur > 0 && dur < 240);
     const win = s.win === true || s.win === 'Win'; const role = laneRole(me.timeline); const full = parts.length >= 2;
     const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline) }; }) : [];
     const opp = role && full ? ((players.find((x) => !x.me && x.team !== numOr0(me.teamId) && x.role === role) || {}).champ || null) : null;
-    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full };
+    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes };
   }
   const wlOf = (ms) => { const r = ms.filter((m) => !m.remake); const w = r.filter((m) => m.win).length; return { w, l: r.length - w }; };
   const r1 = (x) => Math.round(x * 10) / 10; const r2 = (x) => Math.round(x * 100) / 100;
@@ -1040,7 +1066,44 @@ const LOLMOD = (() => {
     if (e.n >= 3 && e.apPct <= 22) notes.push({ side: 'enemy', k: 'enemyAD' }); if (e.n >= 3 && e.apPct >= 78) notes.push({ side: 'enemy', k: 'enemyAP' }); if (e.n >= 4 && e.assassins >= 2) notes.push({ side: 'enemy', k: 'enemyAssassins' }); if (e.n >= 4 && !e.tanks) notes.push({ side: 'enemy', k: 'enemyNoTank' });
     return { ally: a, enemy: e, notes };
   }
-  const LCU_OK = [/^\/lol-champ-select\/v1\/session$/, /^\/lol-summoner\/v1\/current-summoner$/, /^\/lol-ranked\/v1\/current-ranked-stats$/, /^\/lol-match-history\/v1\/products\/lol\/current-summoner\/matches\?begIndex=\d{1,4}&endIndex=\d{1,4}$/, /^\/lol-match-history\/v1\/games\/\d{1,15}$/, /^\/lol-perks\/v1\/pages$/, /^\/lol-perks\/v1\/currentpage$/];
+  /* ---------- ESYA ONERISI (Data Dragon item.json; KABA kurallar — gercek kazanma verisi DEGIL) ---------- */
+  /* Elle yazilmis KISA liste: yara azaltma (Grievous Wounds) gerekcesi olabilecek yuksek iyilesme/can calan sampiyonlar. Eksik/guncel olmayabilir. */
+  const SUSTAIN = new Set(['Soraka', 'Aatrox', 'Warwick', 'Vladimir', 'DrMundo', 'Swain', 'Yuumi', 'Sona', 'Briar']);
+  /* item.json -> yalniz Summoner's Rift (harita 11) tamamlanmis esyalar + son kademe ayakkabilar; yalniz sayilar/etiketler/ad saklanir */
+  function parseItems(json) {
+    const d = json && json.data; if (!d || typeof d !== 'object') return []; const n = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0); const out = [];
+    for (const id of Object.keys(d)) {
+      if (!/^\d{3,6}$/.test(id) || Number(id) >= 200000) continue; const it = d[id]; if (!it || typeof it !== 'object') continue; const g = it.gold || {};
+      if (g.purchasable === false || it.inStore === false || it.consumed || it.requiredChampion || it.requiredAlly) continue; if (!(it.maps && it.maps['11'] === true)) continue; if (Array.isArray(it.into) && it.into.length) continue;
+      const tags = Array.isArray(it.tags) ? it.tags.map(String) : []; if (tags.some((t) => /^(Consumable|Trinket|Lane|Jungle|Vision|GoldPer)$/.test(t))) continue;
+      const total = n(g.total); const boots = tags.includes('Boots'); if (total < (boots ? 900 : 1600)) continue; const s = it.stats || {}; const desc = String(it.description || '');
+      out.push({ id, name: String(it.name || id).slice(0, 40), gold: total, tags, boots, st: { armor: n(s.FlatArmorMod), mr: n(s.FlatSpellBlockMod), hp: n(s.FlatHPPoolMod), ad: n(s.FlatPhysicalDamageMod), ap: n(s.FlatMagicDamageMod) },
+        gw: /Grievous Wounds/i.test(desc), penP: tags.includes('ArmorPenetration') || /Lethality|Armor Penetration/i.test(desc), penM: tags.includes('MagicPenetration') || /Magic Penetration/i.test(desc) });
+    }
+    return out;
+  }
+  /* Rakip takimin hasar dagilimi/on hat/iyilesme durumuna gore SITUASYONEL esya onerisi. Sampiyonun hasar turu (AD/AP/Tank) bilgisine gore filtrelenir. */
+  function buildItemAdvice(roster, meId, enemyIds, role, items, names, version) {
+    const by = new Map(roster.map((c) => [c.id, c])); const me = by.get(meId); if (!me) return null; const en = (enemyIds || []).map((x) => by.get(x)).filter(Boolean);
+    const T = me.tags[0] === 'Tank' ? 'tank' : me.magic > me.attack ? 'ap' : 'ad'; const base = { me: meId, role: role || null, type: T, version: version || null, enemies: en.map((c) => c.id) };
+    if (role === 'support') return Object.assign(base, { support: true, sections: [] });
+    const p = teamProfile(en); const heal = en.filter((c) => SUSTAIN.has(c.id)); const nm = (it) => (names && names[it.id]) || it.name;
+    const off = (it) => (T === 'ap' ? it.st.ap : T === 'ad' ? it.st.ad : 0); const bad = (it) => (T === 'ap' ? it.st.ad > 0 && !(it.st.ap > 0) : T === 'ad' ? it.st.ap > 0 && !(it.st.ad > 0) : it.st.ap > 0);
+    const card = (it) => ({ id: it.id, name: nm(it), gold: it.gold });
+    const top = (f, sc) => { const c = items.filter((it) => !it.boots && !bad(it) && f(it)); const cmp = (a, b) => sc(b) - sc(a) || a.name.localeCompare(b.name); const pool = T === 'tank' ? c.sort(cmp) : c.filter((it) => off(it) > 0).sort(cmp).concat(c.filter((it) => off(it) <= 0).sort(cmp)); return pool.slice(0, 3).map(card); };
+    const def = (it) => it.st.armor + it.st.mr + 0.08 * it.st.hp; const S = []; const add = (k, pri, why, list) => { if (list.length) S.push({ k, pri, why, items: list }); };
+    const adPri = p.n ? (p.apPct <= 35 ? 'high' : p.apPct <= 60 ? 'mid' : null) : null; const apPri = p.n ? (p.apPct >= 65 ? 'high' : p.apPct >= 40 ? 'mid' : null) : null;
+    const whyDmg = p.apPct <= 35 ? [{ k: 'adHeavy', v: [100 - p.apPct] }] : p.apPct >= 65 ? [{ k: 'apHeavy', v: [p.apPct] }] : [{ k: 'mixedDmg', v: [p.apPct] }];
+    if (adPri) add('armor', adPri, whyDmg, top((it) => it.st.armor > 0, (it) => it.st.armor + 0.08 * it.st.hp + 0.25 * off(it)));
+    if (apPri) add('mr', apPri, whyDmg, top((it) => it.st.mr > 0, (it) => it.st.mr + 0.08 * it.st.hp + 0.25 * off(it)));
+    if (heal.length) add('antiheal', heal.length >= 2 ? 'high' : 'mid', [{ k: 'healers', v: [heal.map((c) => c.name).join(', ')] }], top((it) => it.gw && (T !== 'tank' || def(it) > 0), (it) => off(it) + def(it)));
+    if (T !== 'tank' && p.tanks >= 2) add('pen', p.tanks >= 3 ? 'high' : 'mid', [{ k: 'tanks', v: [p.tanks] }], top((it) => (T === 'ap' ? it.penM : it.penP), (it) => off(it) + 0.08 * it.st.hp));
+    const boots = []; for (const [pri, tag] of [[adPri, 'Armor'], [apPri, 'SpellBlock']]) if (pri) for (const it of items.filter((x) => x.boots && x.tags.includes(tag)).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 2)) if (!boots.some((b) => b.id === it.id)) boots.push(it);
+    if (boots.length) add('boots', adPri === 'high' || apPri === 'high' ? 'high' : 'mid', whyDmg, boots.map(card));
+    const order = { high: 0, mid: 1 }; S.sort((a, b) => order[a.pri] - order[b.pri]);
+    return Object.assign(base, { partial: p.n > 0 && p.n < 3, profile: { n: p.n, apPct: p.apPct, tanks: p.tanks, assassins: p.assassins, healers: heal.map((c) => c.id) }, sections: S });
+  }
+  const LCU_OK = [/^\/lol-champ-select\/v1\/session$/, /^\/lol-summoner\/v1\/current-summoner$/, /^\/lol-ranked\/v1\/current-ranked-stats$/, /^\/lol-match-history\/v1\/products\/lol\/current-summoner\/matches\?begIndex=\d{1,4}&endIndex=\d{1,4}$/, /^\/lol-match-history\/v1\/games\/\d{1,15}$/, /^\/lol-perks\/v1\/pages$/, /^\/lol-perks\/v1\/currentpage$/, /^\/lol-perks\/v1\/recommended-pages\/champion\/\d{1,4}\/position\/(top|jungle|middle|bottom|utility)\/map\/\d{1,3}$/];
   /* LCU-WRITE-BEGIN: League istemcisine TEK yazma türü — kendi 'Kovan' rün sayfamız (oluştur/sil). Başka uç nokta yazılamaz. */
   const LCU_WRITE_OK = [['POST', /^\/lol-perks\/v1\/pages$/], ['DELETE', /^\/lol-perks\/v1\/pages\/\d{1,12}$/]];
   /* LCU-WRITE-END */
@@ -1118,7 +1181,7 @@ const LOLMOD = (() => {
     }));
     let iconActive = 0; const iconWait = []; const iconMem = new Map();
     const iconSlot = (fn) => new Promise((res, rej) => { const go = () => { iconActive++; Promise.resolve().then(fn).then(res, rej).finally(() => { iconActive--; const nx = iconWait.shift(); if (nx) nx(); }); }; if (iconActive < 6) go(); else iconWait.push(go); });
-    let roster = null; let rosterMeta = null; const tipsCache = new Map();
+    let roster = null; let rosterMeta = null; const tipsCache = new Map(); let itemData = null;
     const cacheRead = (name) => { if (!cacheDir) return null; try { return JSON.parse(fs.readFileSync(path.join(cacheDir, name), 'utf8')); } catch (e) { return null; } };
     const cacheWrite = (name, obj) => { if (!cacheDir) return; try { fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(path.join(cacheDir, name), JSON.stringify(obj)); } catch (e) { /* onbellek zorunlu degil */ } };
     const cacheNewest = (prefix) => { if (!cacheDir) return null; try { const f = fs.readdirSync(cacheDir).filter((x) => x.startsWith(prefix) && x.endsWith('.json')).sort().pop(); return f ? { name: f, json: cacheRead(f) } : null; } catch (e) { return null; } };
@@ -1136,7 +1199,7 @@ const LOLMOD = (() => {
       if (!list) { for (const l of LOCALES) { const c = cacheNewest('champions-'); if (c && c.json) { const L = parseChampions(c.json); if (L.length) { list = L; offline = true; const m = /^champions-(.+)-([a-z]{2}_[A-Z]{2})\.json$/.exec(c.name); ver = m ? m[1] : ver; loc = m ? m[2] : l; break; } } } }
       if (!list) return errE('Şampiyon verisi alınamadı' + (why ? ' (' + why + ')' : '') + '. İlk kullanımda internet gerekir; sonra önbellekten çalışır.', { offline: true });
       let rm = null; try { rm = await loadRoles(); } catch (e) { rm = null; } let withPos = 0; if (rm) for (const c of list) { const p = rm[c.key]; if (Array.isArray(p) && p.length) { c.pos = p.slice(); withPos++; } }
-      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline, roles: withPos }; tipsCache.clear(); return { ok: true, meta: rosterMeta };
+      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline, roles: withPos }; tipsCache.clear(); itemData = null; return { ok: true, meta: rosterMeta };
     }
     const byKeyMap = () => new Map(roster.map((c) => [c.key, c.id]));
     const needRoster = async () => { const r = await loadRoster(false); return r.error ? r : null; };
@@ -1147,27 +1210,51 @@ const LOLMOD = (() => {
     function statsTemplateOk(u) { if (typeof u !== 'string' || u.length > LIM.urlLen) return null; let x; try { x = new URL(u.replace('{enemy}', 'E').replace('{role}', 'r')); } catch (e) { return null; } if (x.protocol !== 'https:' || x.username || x.password || !x.hostname.includes('.')) return null; if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[)/i.test(x.hostname)) return null; return x; }
     /* counterpick.lol: yalnız kullanıcı anahtarı açıkken; önbellek 6 sa, istekler arası >=1 sn, honest User-Agent; yalnız GET */
     const cpCache = new Map(); let cpLast = 0; const cpDelay = deps.cpDelay === undefined ? 1000 : deps.cpDelay;
+    const cpErrs = new Map(); let runeNameIdx = null;
     const cpGet = async (p) => {
       if (!state.cp || !/^\/(matchup|champion)\/[a-z0-9\/-]+\/$/.test(p)) return null; const hit = cpCache.get(p); const nowT = Date.now(); if (hit && nowT - hit.t < hit.ttl) return hit.v;
-      const wait = cpLast + cpDelay - nowT; if (wait > 0) await new Promise((r) => setTimeout(r, wait)); cpLast = Date.now(); let v = null; try { v = await httpGet(CP_HOST, p, 2 * 1024 * 1024); } catch (e) { v = null; }
+      const wait = cpLast + cpDelay - nowT; if (wait > 0) await new Promise((r) => setTimeout(r, wait)); cpLast = Date.now(); let v = null; try { v = await httpGet(CP_HOST, p, 2 * 1024 * 1024); cpErrs.delete(p); } catch (e) { v = null; cpErrs.set(p, /HTTP 404/.test(String(e && e.message || e)) ? '404' : 'net'); }
       cpCache.set(p, { t: Date.now(), v, ttl: v ? 6 * 3600e3 : 10 * 60e3 }); return v;
     };
+    /* rün adı → kimlik (en_US runesReforged; counterpick sayfası rünleri ad olarak yazıyor) */
+    async function runeNames() {
+      if (runeNameIdx) return runeNameIdx; if (!rosterMeta) return null; const ver = rosterMeta.version; const nm = 'runes-' + ver + '-en_US.json'; let j = cacheRead(nm);
+      if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/en_US/runesReforged.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return null; } }
+      runeNameIdx = buildRuneNames(j); return runeNameIdx;
+    }
     const cpSlugs = (id) => { const c = roster && roster.find((x) => x.id === id); if (!c) return []; return Array.from(new Set([cpKebab(c.name), cpKebab(c.id)].filter(Boolean))); };
-    async function cpMatchup(me, enemy) { for (const a of cpSlugs(me)) for (const b of cpSlugs(enemy)) { const h = await cpGet('/matchup/' + a + '-vs-' + b + '/'); const r = h ? parseCpMatchup(h) : null; if (r) return r; } return null; }
+    /* eşleşme sayfası: önce ben-vs-rakip; site her çifti tutmadığı ve çoğu çifti tek yönde listelediği için yoksa rakip-vs-ben (oran 100 − x, rün YOK: rünler öbür şampiyonun) */
+    async function cpMatchup(me, enemy, diag) {
+      diag = diag || {}; const names = await runeNames();
+      const tryOrder = async (A, B) => { for (const a of cpSlugs(A)) for (const b of cpSlugs(B)) { const pth = '/matchup/' + a + '-vs-' + b + '/'; const h = await cpGet(pth); if (!h) { if (cpErrs.get(pth) === 'net') diag.net = true; continue; } const r = parseCpMatchup(h, names); if (r) return r; diag.parse = true; } return null; };
+      const d = await tryOrder(me, enemy); if (d) return Object.assign({ dir: 'direct' }, d);
+      const r = await tryOrder(enemy, me); if (r) return { dir: 'rev', wr: Math.round((100 - r.wr) * 10) / 10, games: r.games, runes: null };
+      return null;
+    }
     async function cpCounters(enemy) {
       for (const a of cpSlugs(enemy)) { const h = await cpGet('/champion/' + a + '/counters/'); const rows = h ? parseCpCounters(h, a) : []; if (!rows.length) continue; const keys = new Map(); for (const c of roster) { keys.set(cpKey(c.id), c.id); keys.set(cpKey(c.name), c.id); }
         const m = new Map(); for (const r of rows) { const id = keys.get(cpKey(r.slug)); if (id && id !== enemy) m.set(id, { wr: r.wr, games: 0, approx: true, runes: null }); } if (m.size) return m; }
       return null;
     }
-    async function fetchExt(enemy, role, me) {
-      let map = null;
-      if (state.statsUrl && statsTemplateOk(state.statsUrl)) { const u = new URL(state.statsUrl.replace('{enemy}', encodeURIComponent(enemy)).replace('{role}', encodeURIComponent(role))); try { map = parseStats(JSON.parse(await httpGet(u.hostname, u.pathname + u.search, LIM.statsBody))); } catch (e) { map = null; } }
-      if (state.cp) { try { const cm = await cpCounters(enemy); if (cm) { map = map || new Map(); for (const [k, v] of cm) if (!map.has(k)) map.set(k, v); }
-        if (me) { const mm = await cpMatchup(me, enemy); if (mm) { map = map || new Map(); const prev = map.get(me); if (!prev || !prev.games) map.set(me, { wr: mm.wr, games: mm.games, runes: mm.runes }); } } } catch (e) { /* ağ/ayrıştırma: sessizce tahmine düş */ } }
+    async function fetchExt(enemy, role, me, diag) {
+      diag = diag || {}; let map = null;
+      if (state.statsUrl && statsTemplateOk(state.statsUrl)) { diag.url = 'none'; const u = new URL(state.statsUrl.replace('{enemy}', encodeURIComponent(enemy)).replace('{role}', encodeURIComponent(role))); try { map = parseStats(JSON.parse(await httpGet(u.hostname, u.pathname + u.search, LIM.statsBody))); diag.url = map && map.size ? 'ok' : 'none'; } catch (e) { map = null; diag.url = 'net'; } }
+      if (!state.cp) diag.cp = 'off';
+      else { diag.cp = 'none'; try { const cm = await cpCounters(enemy); if (cm) { map = map || new Map(); for (const [k, v] of cm) if (!map.has(k)) map.set(k, v); }
+        if (me) { const d = {}; const mm = await cpMatchup(me, enemy, d); if (mm) { map = map || new Map(); const prev = map.get(me); if (!prev || !prev.games) map.set(me, { wr: mm.wr, games: mm.games, runes: mm.runes, src: 'cp', approx: mm.dir === 'rev' }); diag.cp = mm.dir === 'rev' ? 'rev' : mm.runes ? 'ok' : 'norunes'; } else diag.cp = d.net ? 'net' : d.parse ? 'norunes' : 'none'; } } catch (e) { diag.cp = 'net'; /* ağ/ayrıştırma: sessizce tahmine düş */ } }
       return map;
     }
 
     /* --- LCU --- */
+    const POS_LCU = { top: 'top', jungle: 'jungle', mid: 'middle', bot: 'bottom', support: 'utility' };
+    /* İstemcinin kendi önerilen rün sayfası (şampiyon + hat; eşleşmeye özel DEĞİL). Uç nokta belgesiz: şekil bellekten, savunmacı okunur; doğrulanamazsa yok sayılır. */
+    async function lcuRecRunes(me, role, R) {
+      const c = roster && roster.find((x) => x.id === me); if (!c || !/^\d{1,4}$/.test(c.key) || !POS_LCU[role]) return { state: 'none' }; const info = await lcuFind(); if (!info) return { state: 'noclient' };
+      let j; try { j = await lcuRead(info, '/lol-perks/v1/recommended-pages/champion/' + c.key + '/position/' + POS_LCU[role] + '/map/11'); } catch (e) { return { state: 'net' }; }
+      const pages = Array.isArray(j) ? j : j && Array.isArray(j.pages) ? j.pages : j && typeof j === 'object' ? [j] : [];
+      for (const pg of pages.slice(0, 8)) { const ids = pg && Array.isArray(pg.selectedPerkIds) ? pg.selectedPerkIds.slice(0, 6).map(Number) : []; const v = validateRunePage(ids, R.idx); if (v) return { state: 'ok', runes: { perks: ids, primary: v.primary, secondary: v.sub } }; }
+      return { state: 'none' };
+    }
     const lcuFind = deps.lcu && deps.lcu.find ? deps.lcu.find : async () => { if ((deps.platform || process.platform) !== 'win32') return null; try { return parseLcuCmd(await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', "(Get-CimInstance Win32_Process -Filter \"name='LeagueClientUx.exe'\" | Select-Object -First 1).CommandLine"], 10000)); } catch (e) { return null; } };
     const lcuGet = deps.lcu && deps.lcu.get ? deps.lcu.get : (info, p) => new Promise((resolve, reject) => {
       /* yalniz 127.0.0.1, yalniz GET; Riot'un yerel kendinden imzali sertifikasi nedeniyle dogrulama kapali (disari cikmaz) */
@@ -1191,6 +1278,15 @@ const LOLMOD = (() => {
       if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/runesReforged.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('Rün verisi alınamadı (' + String(e && e.message || e) + ').'); } }
       const m = { perks: {}, trees: {}, idx: {} }; for (const tr of Array.isArray(j) ? j : []) { if (!tr || !Number.isInteger(tr.id)) continue; m.trees[tr.id] = String(tr.name || '').slice(0, 30); (tr.slots || []).forEach((sl, si) => { for (const r of sl.runes || []) if (r && Number.isInteger(r.id)) { m.perks[r.id] = String(r.name || '').slice(0, 40); m.idx[r.id] = { t: tr.id, s: si }; } }); }
       runeMap = m; return m;
+    }
+    /* esya verisi: mantik icin en_US item.json (aciklama metni 'Grievous Wounds' vb. icin), gorunen adlar icin yerel dil; yalniz kucuk ozet onbellege yazilir */
+    async function loadItems() {
+      if (itemData) return itemData; const ver = rosterMeta.version; const nm = 'items-' + ver + '.json'; let list = null; const c0 = cacheRead(nm); if (c0 && c0.v === 1 && Array.isArray(c0.list) && c0.list.length) list = c0.list;
+      if (!list) { let why = ''; try { list = parseItems(JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/en_US/item.json', LIM.body))); if (list.length) cacheWrite(nm, { v: 1, list }); } catch (e) { why = String(e && e.message || e); list = null; }
+        if (!list || !list.length) { const old = cacheNewest('items-'); list = old && old.json && Array.isArray(old.json.list) && old.json.list.length ? old.json.list : null; if (!list) return errE('Eşya verisi alınamadı' + (why ? ' (' + why + ')' : '') + '. İlk kullanımda internet gerekir; sonra önbellekten çalışır.'); } }
+      let names = {}; const loc = rosterMeta.locale; if (loc && loc !== 'en_US') { const nn = 'itemnames-' + ver + '-' + loc + '.json'; let j = cacheRead(nn);
+        if (!j) { try { const raw = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/' + loc + '/item.json', LIM.body)); j = {}; for (const id of Object.keys((raw && raw.data) || {})) if (/^\d{3,6}$/.test(id) && raw.data[id] && raw.data[id].name) j[id] = String(raw.data[id].name).slice(0, 40); cacheWrite(nn, j); } catch (e) { j = null; } } names = j && typeof j === 'object' ? j : {}; }
+      itemData = { list, names, version: ver }; return itemData;
     }
     /* LCU: yalniz beyaz listedeki GET uc noktalari (yazma/degistirme yok) */
     const lcuRead = async (info, p) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p); };
@@ -1265,7 +1361,9 @@ const LOLMOD = (() => {
             for (let beg = 0; beg < want; beg += 20) {
               let list = null; try { const j = await lcuRead(info, '/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=' + beg + '&endIndex=' + (beg + 20)); list = j && j.games && Array.isArray(j.games.games) ? j.games.games : []; } catch (e) { notes.push('maçlar: ' + msg(e)); break; }
               for (const g of list) {
-                const id = String(Math.round(Number(g && g.gameId))); const old = state.matches[id]; if (old && !old.partial) continue; let m = normMatch(g, me.puuid, co); if (!m) continue;
+                const id = String(Math.round(Number(g && g.gameId))); const old = state.matches[id];
+                if (old && !old.partial) { if (old.runes === undefined) { const mr = normMatch(g, me.puuid, co); let rr = mr ? mr.runes : null; let again = false; if (!rr && budget > 0) { budget--; try { const m3 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); rr = m3 ? m3.runes : null; } catch (e) { again = true; } } else if (!rr) again = true; if (!again) old.runes = rr || null; } continue; }
+                let m = normMatch(g, me.puuid, co); if (!m) continue;
                 if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); if (m2) m = m2; } catch (e) { /* ayrinti alinamadi */ } }
                 if (!old) added++; state.matches[id] = m;
               }
@@ -1310,6 +1408,13 @@ const LOLMOD = (() => {
       'lol:comp': async (_e, req) => {
         try { const bad = await needRoster(); if (bad) return bad; const ok = (l) => (Array.isArray(l) ? l.slice(0, 5).map((x) => validChamp(x)).filter(Boolean) : []); return compAnalysis(roster, ok(req && req.allies), ok(req && req.enemies)); } catch (e) { return errE(String(e && e.message || e)); }
       },
+      /* rakip takimina gore situasyonel esya onerisi (Data Dragon verisinden kaba kurallar; kazanma orani DEGIL) */
+      'lol:items': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); if (!me) return errE('Şampiyon geçersiz.'); const role = req.role ? validRole(req.role) : null; if (req.role && !role) return errE('Rol geçersiz.');
+          const enemies = (Array.isArray(req.enemies) ? req.enemies.slice(0, 5) : []).map((x) => validChamp(x)).filter(Boolean); if (!enemies.length) return errE('Rakip şampiyon yok.');
+          const D = await loadItems(); if (D.error) return D; return buildItemAdvice(roster, me, enemies, role, D.list, D.names, D.version);
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
       'lol:icon': async (_e, req) => {
         try {
           req = req || {}; const kind = req.kind; const id = String(req.id); let p; let host = DD_HOST; let max = LIM.icon; let ver = '';
@@ -1345,7 +1450,18 @@ const LOLMOD = (() => {
       /* şampiyon seçiminde: bu eşleşme için rün önerisi (yalnız dış veri/counterpick açıkken) */
       'lol:runes:suggest': async (_e, req) => {
         try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); const enemy = validChamp(req.enemy); const role = validRole(req.role); if (!me || !enemy || !role) return errE('İstek geçersiz.');
-          const ext = await fetchExt(enemy, role, me); const e = ext ? ext.get(me) : null; return { me, enemy, role, wr: e ? e.wr : null, games: e ? e.games : 0, runes: e && e.runes ? e.runes : null, statsConfigured: !!(state.statsUrl || state.cp), cp: !!state.cp };
+          const R = await loadRunes(); if (R.error) return R; const ok6 = (r) => (r && Array.isArray(r.perks) && r.perks.length === 6 && validateRunePage(r.perks, R.idx) ? r : null); const fill = (r) => { const v = validateRunePage(r.perks, R.idx); return { perks: r.perks.slice(0, 6), primary: v.primary, secondary: v.sub }; };
+          const diag = {}; const ext = await fetchExt(enemy, role, me, diag); const e = ext ? ext.get(me) : null; const tried = []; let runes = null; let src = null; let hist = null;
+          /* 1) dış veri adresi / counterpick.lol (eşleşmeye özel) */
+          if (state.statsUrl) tried.push({ src: 'url', state: diag.url || 'none' });
+          if (e && e.runes && ok6(e.runes)) { runes = fill(e.runes); src = e.src === 'url' ? 'url' : 'cp'; }
+          tried.push({ src: 'cp', state: runes && src === 'cp' ? 'ok' : (diag.cp || 'off') }); if (runes && src === 'url') tried.splice(tried.findIndex((x) => x.src === 'cp'), 1);
+          /* 2) kendi maç geçmişin */
+          const hr = histRunes(state.matches, me, enemy, role); const hv = hr.state === 'ok' ? ok6(hr.runes) : null;
+          if (!runes && hv) { runes = fill(hv); src = 'hist'; hist = { scope: hr.scope, games: hr.games, wr: hr.wr, total: hr.total }; tried.push({ src: 'hist', state: 'ok' }); } else if (!runes) tried.push({ src: 'hist', state: hr.state === 'ok' ? 'none' : hr.state, a: hr.vs, b: hr.champ });
+          /* 3) istemcinin kendi önerisi (hat bazlı) */
+          if (!runes) { const lr = await lcuRecRunes(me, role, R); if (lr.state === 'ok') { runes = fill(lr.runes); src = 'lcu'; } tried.push({ src: 'lcu', state: lr.state }); }
+          return { me, enemy, role, wr: e ? e.wr : null, games: e ? e.games : 0, approx: !!(e && e.approx), runes, src, hist, tried, statsConfigured: !!(state.statsUrl || state.cp), cp: !!state.cp };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       /* rünleri League istemcisine yaz: YALNIZ 'Kovan …' adlı kendi sayfamız; diğer sayfalara dokunulmaz; onay penceresi; yapı doğrulanamazsa yazılmaz */
@@ -1381,7 +1497,7 @@ const LOLMOD = (() => {
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
-  return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
+  return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN };
 })();
 
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
