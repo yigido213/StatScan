@@ -825,6 +825,7 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg .lc-win { border-color: color-mix(in srgb, var(--lg-win) 55%, var(--line)); } .lg .lc-loss { border-color: color-mix(in srgb, var(--lg-loss) 55%, var(--line)); } #lc-enemy, #lc-poolin, #lc-exturl { min-width: 220px; flex: 1 1 220px; max-width: 420px; }
 .lg-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-notes li { padding: 8px 12px; border-radius: 10px; background: rgba(5,8,16,.5); border-left: 3px solid var(--lg-gold); font-size: 14px; } .lg-notes li.enemy { border-left-color: var(--lg-loss); }
 .lg-why { list-style: none; margin: 6px 0 10px; padding: 0; display: grid; gap: 4px; } .lg-why li { color: var(--muted); font-size: 13px; padding-left: 16px; position: relative; } .lg-why li::before { content: '–'; position: absolute; left: 4px; opacity: .7; }
+.lg-plbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .lg-plin { flex: 1 1 240px; min-width: 0; background: rgba(9,15,29,.7); border: 1px solid var(--line); border-radius: 11px; color: var(--ink); padding: 10px 12px; font: 500 15px var(--f-body); } .lg-plin:focus-visible { outline: 2px solid var(--lg-gold); outline-offset: 1px; } .lg-plhead { display: flex; gap: 14px; align-items: center; } .lg-frl { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; max-height: 260px; overflow: auto; } .lg-fr { appearance: none; width: 100%; display: flex; gap: 8px; align-items: center; text-align: left; padding: 7px 10px; border: 1px solid var(--line); border-radius: 11px; background: rgba(9,15,29,.6); color: var(--ink); cursor: pointer; font: 500 14px var(--f-body); } .lg-fr:hover, .lg-fr:focus-visible { border-color: var(--lg-gold); } .lg-fr.on { border-color: var(--lg-teal); } .lg-fr small { color: var(--muted); } .lg-fr .lg-ic { width: 28px; height: 28px; border-radius: 8px; flex: none; }
 .lg-bans { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; list-style: none; margin: 0; padding: 0; } .lg-bans li { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(9,15,29,.6); } .lg-bans .lg-ic { width: 38px; height: 38px; border-radius: 10px; flex: none; } .lg-bans b { display: block; font-family: var(--f-display); font-weight: 600; } .lg-bans small { color: var(--muted); }
 /* temali acilir liste + otomatik tamamlama + canli mac + gercek derece amblemi */
 .lg-emb.real { filter: drop-shadow(0 8px 20px color-mix(in srgb, var(--tc, #d4b176) 50%, transparent)); } .lg-emb.real img { width: 100%; height: 100%; object-fit: contain; display: block; } .lg-emb.real::after { display: none; }
@@ -5956,6 +5957,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "okunarak doğrulanamadı": "could not be verified by reading back",
       "İstemcide yalnızca “Kovan …” adlı bir rün sayfası oluşturulur/yenilenir; diğer sayfalarına dokunulmaz. Şarj parçaları şu anki sayfandan alınır. League’in istemci arayüzü resmî olarak belgelenmemiştir; denenmedi.": "Only a rune page named “Kovan …” is created/refreshed in the client; your other pages are not touched. Stat shards are taken from your current page. League’s client interface is not officially documented; untested.",
       "Bu eşleşme için rün verisi bulunamadı.": "No rune data found for this matchup.",
+      "Oyuncu ara": "Find player", "Ad#ETİKET (ör. Faker#KR1)": "Name#TAG (e.g. Faker#KR1)", "Riot Kimliği": "Riot ID", "Ara": "Search", "Arkadaşlarım": "My friends",
+      "Riot Kimliğini Ad#ETİKET olarak yaz ya da arkadaş listenden seç. Veriler League istemcisinden okunur (yalnız okuma); sonuç yalnızca bellekte tutulur, diske kaydedilmez.": "Type the Riot ID as Name#TAG or pick from your friends list. Data is read from the League client (read-only); the result is kept in memory only and never saved to disk.",
+      "Okunuyor…": "Reading…", "Arkadaş listesi okunamadı.": "Could not read the friends list.", "League istemcisi bulunamadı (açık mı?).": "League client not found (is it open?).", "Arkadaş listesi boş ya da okunamadı.": "The friends list is empty or unreadable.",
+      "Geçerli bir Riot Kimliği yaz (Ad#ETİKET).": "Enter a valid Riot ID (Name#TAG).", "Oyuncu bulunamadı": "Player not found", "Ad ve etiketi kontrol et (büyük/küçük harf fark etmez).": "Check the name and tag (case does not matter).", "Oyuncu okunamadı.": "Could not read the player.",
+      "Sonuç süresi doldu; yeniden ara.": "The result expired; search again.", "{0} maç okundu, {1} tanesinin oyuncu ayrıntısı var.": "{0} matches read, {1} with full player details.", "önbellekten": "from cache", "LP geçmişi başkası için tutulmaz; yalnızca şu anki derece gösterilir.": "LP history is not kept for other players; only the current rank is shown.", "Roller": "Roles",
       "Dış veri adresin": "Your data URL", "Kendi maçların": "Your own matches", "League’in önerisi (hat bazlı)": "League’s recommendation (per role)", "eşleşmeye özel değil": "not matchup-specific", "ters yönden tahmin": "estimated from the reverse matchup",
       "{0} karşısında {1} maç · %{2} kazanma": "{1} games vs {0} · {2}% win", "Bu şampiyonla {1} maç · %{2} kazanma": "{1} games with this champion · {2}% win",
       "Dış veri adresine ulaşılamadı": "Could not reach the data URL", "Dış veri adresinde bu eşleşme yok": "This matchup is not in the data URL", "counterpick.lol’a ulaşılamadı": "Could not reach counterpick.lol", "counterpick.lol’da bu eşleşme listelenmemiş": "counterpick.lol does not list this matchup", "counterpick.lol’da rün listesi okunamadı": "Could not read the rune list on counterpick.lol", "counterpick.lol yalnız ters yönü listeliyor (oran var, rün yok)": "counterpick.lol lists only the reverse direction (win rate, no runes)",
@@ -7383,7 +7389,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const nameEl = h('h1', { class: 'lg-name', 'data-focus': '', tabindex: '-1' }, 'League Asistanı'); const avaBox = h('div', { class: 'lg-ava' }); const chipsEl = h('div', { class: 'lg-chips' }); const todayEl = h('div', { class: 'lg-today', hidden: true }); const tiltEl = h('p', { class: 'lg-tilt', hidden: true });
     const syncBtn = btn('lg-sync', 'Güncelle', () => doSync(false), { class: 'cv-btn lg-primary' }); const deepBtn = btn('lg-deep', 'Geçmişi derin tara', () => doSync(true)); const wipeBtn = btn('lg-wipe', 'Verileri sil', wipe);
     const hero = h('section', { class: 'lg-card lg-hero', 'aria-label': 'Profil' }, avaBox, h('div', {}, nameEl, chipsEl), h('div', { class: 'lg-actions' }, syncBtn, deepBtn, wipeBtn), todayEl, tiltEl);
-    const TABS = [['overview', 'Genel bakış'], ['live', 'Canlı maç'], ['champs', 'Şampiyonlarım'], ['lp', 'LP geçmişi'], ['partners', 'Birlikte oynadıklarım'], ['counter', 'Karşı seçim']]; const panes = {};
+    const TABS = [['overview', 'Genel bakış'], ['live', 'Canlı maç'], ['champs', 'Şampiyonlarım'], ['lp', 'LP geçmişi'], ['partners', 'Birlikte oynadıklarım'], ['player', 'Oyuncu ara'], ['counter', 'Karşı seçim']]; const panes = {};
     const tabsEl = h('div', { class: 'lg-tabs', role: 'tablist', 'aria-label': 'Bölümler' }, ...TABS.map(([id, t]) => h('button', { type: 'button', class: 'lg-tab', role: 'tab', id: 'lg-tab-' + id, 'aria-controls': 'lg-pane-' + id, 'aria-selected': 'false', tabindex: '-1', onclick: () => setTab(id) }, t)));
     tabsEl.addEventListener('keydown', (e) => { const i = TABS.findIndex((x) => x[0] === st.tab); let j = -1; if (e.key === 'ArrowRight') j = (i + 1) % TABS.length; else if (e.key === 'ArrowLeft') j = (i + TABS.length - 1) % TABS.length; else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = TABS.length - 1; if (j >= 0) { e.preventDefault(); setTab(TABS[j][0]); $('#lg-tab-' + TABS[j][0]).focus(); } });
     for (const [id] of TABS) panes[id] = h('div', { class: 'lg-pane', id: 'lg-pane-' + id, role: 'tabpanel', 'aria-labelledby': 'lg-tab-' + id, hidden: true });
@@ -7391,7 +7397,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       h('div', { class: 'lg-wrap' }, hero,
         tabsEl, ...TABS.map(([id]) => panes[id]), live));
     function setTab(id) { st.tab = id; for (const [k] of TABS) { const on = k === id; panes[k].hidden = !on; const b = $('#lg-tab-' + k); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } if (location.hash.startsWith('#/lolcounter')) { /* sekme adresi yok; yalniz iç durum */ } load(id); }
-    const load = (id) => ({ overview: drawOverview, live: drawLive, champs: drawChamps, lp: drawLp, partners: drawPartners, counter: drawCounter }[id] || (() => {}))();
+    const load = (id) => ({ overview: drawOverview, live: drawLive, champs: drawChamps, lp: drawLp, partners: drawPartners, player: drawPlayer, counter: drawCounter }[id] || (() => {}))();
     const empty = (title, text, act) => h('div', { class: 'lg-empty' }, h('b', {}, title), h('p', {}, text), act || null);
 
     /* ---- profil basligi ---- */
@@ -7421,8 +7427,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const nameOf2 = (k, d) => (keys.indexOf(k) >= 7 ? KT(TIERN[k]) : tierName(k, d)); const next = di < 3 ? nameOf2(r.tier, divs[di + 1]) : nameOf2(keys[i + 1], 'IV');
       return KT('{0} için {1} LP kaldı', next, need) + (di < 3 ? ' · ' + KT('{0} için {1} LP', nameOf2(keys[i + 1], 'IV'), (3 - di) * 100 + need) : '');
     }
-    function rankCard(q, title, r) {
-      const card = h('section', { class: 'lg-card lg-rank', 'aria-label': title, id: 'lg-rank-' + q }); card.style.setProperty('--tc', r && r.tier ? TIERC[r.tier] : '#8793a8');
+    function rankCard(q, title, r, idp) {
+      const card = h('section', { class: 'lg-card lg-rank', 'aria-label': title, id: (idp || 'lg-rank-') + q }); card.style.setProperty('--tc', r && r.tier ? TIERC[r.tier] : '#8793a8');
       if (!r || r.unranked) { card.append(h('h2', { class: 'lg-h' }, title), h('div', { class: 'lg-rk' }, emblem(null), h('div', { class: 'lg-rkt' }, h('b', { class: 'lg-tier' }, KT('Derecesiz')), h('span', { class: 'lg-sub' }, r ? KT('{0} G – {1} M', r.w, r.l) : KT('Henüz veri yok'))))); return card; }
       const gauge = h('div', { class: 'lg-gauge', role: 'img', 'aria-label': r.lp + ' LP' }, h('i')); gauge.firstChild.style.setProperty('--p', Math.min(100, r.lp) + '%');
       put(card, h('h2', { class: 'lg-h' }, title), h('div', { class: 'lg-rk' }, emblem(r.tier), h('div', { class: 'lg-rkt' }, h('b', { class: 'lg-tier' }, tierName(r.tier, r.div)), h('span', { class: 'lg-lp' }, r.lp + ' LP'))), gauge,
@@ -7562,6 +7568,51 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
     setInterval(() => { if (visible() && st.tab === 'live') drawLive(true); }, 4000);
     setInterval(async () => { if (!visible() || st.tab === 'live') return; const r = await call(H.lolLive); const on = !!(r && r.state === 'ingame'); if (on !== st.liveOn) { st.liveOn = on; drawHero(); } }, 15000);
+
+
+    /* ---- oyuncu ara: başka sihirdarın herkese açık profili (League istemcisi üzerinden, yalnız okuma; veri yalnız bellekte) ---- */
+    st.pl = { q: '', puuid: null, data: null, view: null, rows: [], filt: 'all', busy: false };
+    function drawPlayer() {
+      const inp = h('input', { type: 'text', id: 'lg-pl-q', class: 'lg-plin', placeholder: KT('Ad#ETİKET (ör. Faker#KR1)'), 'aria-label': KT('Riot Kimliği'), maxlength: '40', autocomplete: 'off', spellcheck: 'false', value: st.pl.q });
+      inp.addEventListener('input', () => { st.pl.q = inp.value; }); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); plSearch({ query: inp.value }); } });
+      put(panes.player, h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Oyuncu ara')), h('div', { class: 'lg-tools lg-plbar' }, inp, btn('lg-pl-go', 'Ara', () => plSearch({ query: inp.value }), { class: 'cv-btn lg-primary' }), btn('lg-pl-friends', 'Arkadaşlarım', plFriends)),
+        h('p', { class: 'rm-hint' }, KT('Riot Kimliğini Ad#ETİKET olarak yaz ya da arkadaş listenden seç. Veriler League istemcisinden okunur (yalnız okuma); sonuç yalnızca bellekte tutulur, diske kaydedilmez.')), h('div', { id: 'lg-pl-fr' })), h('div', { id: 'lg-pl-res', 'aria-live': 'polite' }));
+      if (st.pl.data) drawPlayerRes();
+    }
+    async function plFriends() {
+      const box = $('#lg-pl-fr', panes.player); if (!box) return; put(box, h('p', { class: 'lg-sub' }, KT('Okunuyor…'))); const r = await call(H.lolFriends); if (st.tab !== 'player') return;
+      if (!r || r.error || r.state === 'error') { put(box, h('p', { class: 'lg-sub warn' }, r && r.state === 'error' ? KT('Arkadaş listesi okunamadı.') : failMsg(r))); return; }
+      if (r.state === 'noclient') { put(box, h('p', { class: 'lg-sub warn' }, KT('League istemcisi bulunamadı (açık mı?).'))); return; }
+      if (!r.friends.length) { put(box, h('p', { class: 'lg-sub' }, KT('Arkadaş listesi boş ya da okunamadı.'))); return; }
+      put(box, h('ul', { class: 'lg-frl', id: 'lg-frl' }, ...r.friends.slice(0, 60).map((f) => h('li', {}, h('button', { type: 'button', class: 'lg-fr' + (f.status === 'offline' ? '' : ' on'), 'data-puuid': f.puuid, onclick: () => { st.pl.q = f.name + (f.tag ? '#' + f.tag : ''); const i = $('#lg-pl-q', panes.player); if (i) i.value = st.pl.q; plSearch({ puuid: f.puuid }); } }, icon('profile', f.icon, f.name), h('b', {}, f.name), f.tag ? h('small', {}, '#' + f.tag) : null)))));
+    }
+    async function plSearch(req) {
+      if (st.pl.busy) return; const res = $('#lg-pl-res', panes.player); if (!res) return; st.pl.busy = true; put(res, h('p', { class: 'lg-sub', role: 'status' }, KT('Okunuyor…')));
+      const r = await call(H.lolPlayerSearch, req); st.pl.busy = false; if (st.tab !== 'player') return; const res2 = $('#lg-pl-res', panes.player); if (!res2) return;
+      if (!r || r.error) { put(res2, h('p', { class: 'lg-sub warn' }, failMsg(r))); return; }
+      if (r.state === 'badquery') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Geçerli bir Riot Kimliği yaz (Ad#ETİKET).'))); return; }
+      if (r.state === 'noclient') { put(res2, h('p', { class: 'lg-sub warn' }, KT('League istemcisi bulunamadı (açık mı?).'))); return; }
+      if (r.state === 'notfound') { put(res2, empty(KT('Oyuncu bulunamadı'), KT('Ad ve etiketi kontrol et (büyük/küçük harf fark etmez).'))); return; }
+      if (r.state !== 'ok') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Oyuncu okunamadı.'))); return; }
+      st.pl.data = r; st.pl.puuid = r.player.puuid; st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); st.pl.filt = 'all'; drawPlayerRes();
+    }
+    async function plFilter(q) { st.pl.filt = q; const r = await call(H.lolPlayerView, { puuid: st.pl.puuid, queue: q, offset: 0 }); if (st.tab !== 'player') return; if (!r || r.error || r.state !== 'ok') { const res = $('#lg-pl-res', panes.player); if (res) put(res, h('p', { class: 'lg-sub warn' }, KT('Sonuç süresi doldu; yeniden ara.'))); st.pl.data = null; return; } st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); drawPlayerRes(); }
+    async function plMore() { const r = await call(H.lolPlayerView, { puuid: st.pl.puuid, queue: st.pl.filt, offset: st.pl.rows.length }); if (st.tab !== 'player' || !r || r.state !== 'ok') return; st.pl.rows.push(...r.view.rows); drawPlayerRes(); }
+    function drawPlayerRes() {
+      const res = $('#lg-pl-res', panes.player); if (!res) return; const d = st.pl.data; const v = st.pl.view; if (!d || !v) return; const pl = d.player; const rk = d.rank || {}; const o = v.overview;
+      const head = h('section', { class: 'lg-card lg-plhead', id: 'lg-pl-head' }, h('div', { class: 'lg-ava' }, icon('profile', pl.icon, pl.name || '?'), pl.level ? h('span', { class: 'lg-lvl' }, String(pl.level)) : null), h('div', {}, h('h2', { class: 'lg-h' }, pl.name || '?', pl.tag ? h('span', { class: 'lg-tag' }, '#' + pl.tag) : null), h('p', { class: 'lg-sub' }, KT('{0} maç okundu, {1} tanesinin oyuncu ayrıntısı var.', d.counts.matches, d.counts.details) + (d.cached ? ' · ' + KT('önbellekten') : ''))));
+      const side = h('div', { class: 'lg-side' }, rankCard('solo', KT('Dereceli Tekli/Çiftli'), rk.solo, 'lg-plrank-'), rankCard('flex', KT('Dereceli Esnek'), rk.flex, 'lg-plrank-'),
+        h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Diğer kuyruklar')), h('div', { class: 'lg-qrow' }, h('b', {}, 'ARAM'), h('span', {}, KT('{0} G – {1} M · %{2}', v.aram.w, v.aram.l, pct(v.aram.w, v.aram.l)))), h('div', { class: 'lg-qrow' }, h('b', {}, KT('Normal')), h('span', {}, KT('{0} G – {1} M · %{2}', v.normal.w, v.normal.l, pct(v.normal.w, v.normal.l))))),
+        h('p', { class: 'rm-hint' }, KT('LP geçmişi başkası için tutulmaz; yalnızca şu anki derece gösterilir.')));
+      const strip = h('section', { class: 'lg-card lg-strip', id: 'lg-pl-strip' });
+      if (o && o.games) strip.append(h('div', { class: 'lg-form', 'aria-label': KT('Son 20 maç') }, ...o.last20.slice().reverse().map((w) => h('i', { class: w ? 'w' : '' }))), h('div', { class: 'lg-st' }, h('b', {}, '%' + Math.round(o.wr)), h('small', {}, KT('{0} G – {1} M', o.wins, o.losses))), h('div', { class: 'lg-st' }, h('b', {}, String(o.kda)), h('small', {}, KT('KDA ({0}/{1}/{2})', o.k, o.d, o.a))), h('div', { class: 'lg-st' }, h('b', {}, String(o.csm)), h('small', {}, KT('CS/dk'))), h('div', { class: 'lg-st' }, h('b', {}, num(o.gpm)), h('small', {}, KT('Altın/dk'))));
+      else strip.append(h('p', { class: 'lg-sub' }, KT('Bu filtrede maç yok.')));
+      const filt = h('div', { class: 'lg-filters', role: 'group', 'aria-label': KT('Kuyruk filtresi') }, ...FILT.map(([id, t]) => h('button', { type: 'button', class: 'lg-fbtn', 'aria-pressed': st.pl.filt === id ? 'true' : 'false', 'data-q': id, onclick: () => plFilter(id) }, t)));
+      const ul = h('ul', { class: 'lg-matches', id: 'lg-pl-matches' }, ...st.pl.rows.map((m) => matchCard(m)));
+      const champs = v.champs.length ? h('section', { class: 'lg-card', id: 'lg-pl-champs' }, h('h2', { class: 'lg-h' }, KT('Şampiyon performansı')), h('div', { class: 'lg-tblw' }, h('table', { class: 'lg-table' }, h('thead', {}, h('tr', {}, ...['Şampiyon', 'Maç', 'Galibiyet', 'K / D / A', 'CS/dk'].map((t) => h('th', { scope: 'col' }, KT(t))))), h('tbody', {}, ...v.champs.slice(0, 10).map((c) => h('tr', {}, h('td', {}, h('div', { class: 'lg-who' }, champIc(c.champ), h('b', {}, nameOf(c.champ)))), h('td', {}, String(c.games)), h('td', {}, h('div', { class: 'lg-bar' + (c.wr < 50 ? ' lo' : '') }, h('span', {}, '%' + Math.round(c.wr)), h('i', { style: '--w:' + Math.round(c.wr) + '%' }))), h('td', {}, c.k + ' / ' + c.d + ' / ' + c.a + ' (' + c.kda + ')'), h('td', {}, String(c.csm)))))))) : null;
+      const roles = v.roles && v.roles.length ? h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Roller')), ...v.roles.map((x) => h('div', { class: 'lg-qrow' }, h('b', {}, KT(RTR[x.role] || x.role)), h('span', {}, KT('{0} maç · %{1}', x.games, Math.round(x.wr)))))) : null;
+      put(res, head, h('div', { class: 'lg-cols' }, side, h('div', { class: 'lg-feed' }, strip, champs, roles, filt, ul, h('div', {}, st.pl.rows.length < v.total ? btn('lg-pl-more', 'Daha fazla göster', plMore) : null))));
+    }
 
     /* ---- sampiyonlarim ---- */
     async function drawChamps() {
