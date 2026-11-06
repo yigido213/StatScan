@@ -108,6 +108,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolStats: (req) => call('lol:stats', { queue: String((req && req.queue) || 'all'), role: req && req.role ? String(req.role) : undefined }),
   lolBans: (role, limit) => call('lol:bans', { role: String(role), limit: Number(limit) || undefined }),
   lolComp: (allies, enemies) => call('lol:comp', { allies: Array.isArray(allies) ? allies.slice(0, 5).map(String) : [], enemies: Array.isArray(enemies) ? enemies.slice(0, 5).map(String) : [] }),
+  lolItems: (o) => call('lol:items', { me: String((o && o.me) || ''), role: o && o.role ? String(o.role) : undefined, enemies: o && Array.isArray(o.enemies) ? o.enemies.slice(0, 5).map(String) : [] }),
   lolLive: () => call('lol:live'),
   lolCpGet: () => call('lol:cp:get'),
   lolCpSet: (on) => call('lol:cp:set', on === true),

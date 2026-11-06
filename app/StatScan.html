@@ -841,6 +841,7 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg-lv .lg-ic { width: 40px; height: 40px; border-radius: 10px; } .lg-lpn b, .lg-lpn small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lg-lpn small { color: var(--muted); font-size: 12px; }
 .lg-rolebadge { display: inline-flex; flex-direction: column; align-items: flex-end; font-size: 12.5px; color: var(--muted); } .lg-rolebadge.sure { color: var(--lg-teal); } .lg-rolebadge i { font-style: normal; font-size: 11px; opacity: .85; } .lg-sp { grid-column: 2 / 4; display: flex; gap: 6px; flex-wrap: wrap; } .lg-sp em { font-style: normal; font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 8px; }
 .lg-vs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; } .lg-vs > div { display: flex; align-items: center; gap: 10px; } .lg-vs .lg-ic { width: 52px; height: 52px; border-radius: 12px; } .lg-vs span { color: var(--lg-gold); font: 700 14px var(--f-display); }
+.lg-isec { margin-top: 12px; } .lg-iwhy { list-style: none; margin: 4px 0 8px; padding: 0; font-size: 13.5px; opacity: .85; } .lg-ilist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-ilist li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-ilist .lg-ic { width: 34px; height: 34px; border-radius: 9px; flex: none; } .lg-ilist small { margin-left: auto; opacity: .75; }
 .lg-bestl li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-bestl li.me { border-color: var(--lg-teal); } .lg-bestl .lg-ic { width: 34px; height: 34px; border-radius: 9px; } .lg-bestl .lc-score { margin-left: auto; } .lg-table tr.me td { background: var(--accent-soft); }
 .lc-abil { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .lc-abil li { font-size: 13.5px; color: var(--muted); } .lc-abil b { color: var(--lg-gold2); } .lc-abil small { color: var(--muted); }
 .lg-goal { margin: 4px 0 0; }
@@ -5793,6 +5794,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Son güncelleme: {0}": "Last update: {0}",
       "Sırala": "Sort",
       "Takım analizi": "Team analysis",
+      "Eşya önerisi": "Item suggestions",
+      "Eşya önerisi: {0}": "Item suggestions: {0}",
+      "Zırh eşyaları": "Armor items",
+      "Büyü direnci eşyaları": "Magic resist items",
+      "Yara azaltma (iyileşmeyi keser)": "Grievous Wounds (cuts healing)",
+      "Delme (zırh/büyü direnci aşma)": "Penetration (beats armor/magic resist)",
+      "Ayakkabı": "Boots",
+      "öncelikli": "priority",
+      "olabilir": "situational",
+      "altın": "gold",
+      "Rakip takım fiziksel hasar ağırlıklı (%{0}).": "Enemy team is mostly physical damage ({0}%).",
+      "Rakip takım büyü hasarı ağırlıklı (%{0}).": "Enemy team is mostly magic damage ({0}%).",
+      "Rakip hasarı karışık (%{0} büyü): hem zırh hem büyü direnci düşün.": "Enemy damage is mixed ({0}% magic): consider both armor and magic resist.",
+      "Rakipte yüksek iyileşme: {0}.": "The enemy has strong healing: {0}.",
+      "Rakipte {0} dayanıklı şampiyon var.": "The enemy has {0} durable champions.",
+      "Destek hattı için eşya önerisi yok (görev ve yardımcı eşyalar farklı çalışır).": "No item suggestions for the support role (quest and support items work differently).",
+      "Bu takım için özel bir eşya önerisi çıkmadı.": "No specific item suggestions for this team.",
+      "Rakip takımın yalnızca bir kısmı belli; öneri değişebilir.": "Only part of the enemy team is known; the suggestion may change.",
+      "Tahmin: Riot Data Dragon eşya istatistiklerinden ve rakip takımın hasar dağılımından kaba kurallarla çıkarılır; gerçek kazanma oranı verisi değildir. Eşya seçimi kendi oyun planına bağlıdır.": "Estimate: derived with rough rules from Riot Data Dragon item stats and the enemy team's damage mix; it is not real win-rate data. Item choice depends on your own game plan.",
       "Takım arkadaşlarım": "My teammates",
       "Takımda dayanıklı ön hat yok.": "Your team has no durable front line.",
       "Takımda uzun menzilli seçim yok.": "Your team has no long-range pick.",
@@ -7456,6 +7476,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const a = (allies || []).filter(Boolean); const e = (enemies || []).filter(Boolean); if (a.length + e.length < 3) return null; const c = await call(H.lolComp, a, e); if (!c || c.error || !c.notes || !c.notes.length) return null;
       return h('section', { class: 'lg-card', id: 'lg-livecomp' }, h('h2', { class: 'lg-h' }, KT('Takım analizi')), h('ul', { class: 'lg-notes' }, ...c.notes.map((n) => h('li', { class: n.side }, KT(WHY[n.k] || n.k)))));
     }
+    /* ---- esya onerisi: rakip takimina gore situasyonel esyalar (kaba kurallar; kazanma orani degil) ---- */
+    const IWHY = { adHeavy: 'Rakip takım fiziksel hasar ağırlıklı (%{0}).', apHeavy: 'Rakip takım büyü hasarı ağırlıklı (%{0}).', mixedDmg: 'Rakip hasarı karışık (%{0} büyü): hem zırh hem büyü direnci düşün.', healers: 'Rakipte yüksek iyileşme: {0}.', tanks: 'Rakipte {0} dayanıklı şampiyon var.' };
+    const ISEC = { armor: 'Zırh eşyaları', mr: 'Büyü direnci eşyaları', antiheal: 'Yara azaltma (iyileşmeyi keser)', pen: 'Delme (zırh/büyü direnci aşma)', boots: 'Ayakkabı' };
+    async function itemsCard(me, enemies, role) {
+      const e = (enemies || []).filter(Boolean); if (!me || !e.length) return null; const r = await call(H.lolItems, { me, role, enemies: e });
+      if (!r || r.error) return h('section', { class: 'lg-card', id: 'lg-items' }, h('h2', { class: 'lg-h' }, KT('Eşya önerisi')), h('p', { class: 'rm-hint' }, failMsg(r)));
+      const body = r.support ? [h('p', { class: 'rm-hint' }, KT('Destek hattı için eşya önerisi yok (görev ve yardımcı eşyalar farklı çalışır).'))]
+        : !r.sections.length ? [h('p', { class: 'rm-hint' }, KT('Bu takım için özel bir eşya önerisi çıkmadı.'))]
+        : r.sections.map((s) => h('div', { class: 'lg-isec', 'data-sec': s.k }, h('h3', { class: 'lg-h3' }, KT(ISEC[s.k] || s.k), ' ', pill(s.pri === 'high' ? 'low' : 'mid', KT(s.pri === 'high' ? 'öncelikli' : 'olabilir'))),
+          h('ul', { class: 'lg-iwhy' }, ...s.why.map((w) => h('li', {}, KT(IWHY[w.k] || w.k, ...(w.v || []))))),
+          h('ul', { class: 'lg-ilist' }, ...s.items.map((it) => h('li', {}, icon('item', it.id, it.name), h('b', {}, it.name), h('small', {}, num(it.gold) + ' ' + KT('altın')))))));
+      return h('section', { class: 'lg-card', id: 'lg-items' }, h('h2', { class: 'lg-h' }, KT('Eşya önerisi: {0}', nameOf(me))), ...body, r.partial ? h('p', { class: 'rm-hint' }, KT('Rakip takımın yalnızca bir kısmı belli; öneri değişebilir.')) : null,
+        h('p', { class: 'rm-hint' }, KT('Tahmin: Riot Data Dragon eşya istatistiklerinden ve rakip takımın hasar dağılımından kaba kurallarla çıkarılır; gerçek kazanma oranı verisi değildir. Eşya seçimi kendi oyun planına bağlıdır.')));
+    }
     const selRole = (x) => (x.role ? h('span', { class: 'lg-rolebadge sure' }, KT(RTR[x.role])) : x.guess ? h('span', { class: 'lg-rolebadge' }, x.guess.full ? KT(RTR[x.guess.role]) : KT('olası: {0}', KT(RTR[x.guess.role])), h('i', {}, KT('tahmin %{0}', Math.round(100 * x.guess.conf)))) : null);
     const selPlayer = (x, enemy) => h('li', { class: 'lg-lv' + (x.me ? ' me' : '') + (enemy ? ' en' : ''), 'data-champ': x.id }, champIc(x.id), h('div', { class: 'lg-lpn' }, h('b', {}, nameOf(x.id)), h('small', {}, x.me ? KT('sen') : '')), selRole(x));
     async function drawSelect(lc) {
@@ -7476,6 +7510,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           kids.push(h('section', { class: 'lg-card', id: 'lg-sel-runes' }, h('h2', { class: 'lg-h' }, KT('Rün önerisi: {0} → {1}', nameOf(lc.myPick), nameOf(opp.id))), ...body)); } }
       const bn = await call(H.lolBans, myRole, 5); if (bn && !bn.error && !bn.needPool && bn.bans && bn.bans.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-bans' }, h('h2', { class: 'lg-h' }, KT('Ban önerisi')), h('ul', { class: 'lg-bans' }, ...bn.bans.map((b) => h('li', {}, champIc(b.id), h('div', {}, h('b', {}, b.name), h('small', {}, KT('Ortalama {0} · en zoru: {1}', b.avg, b.worst ? b.worst.name : '—'))))))));
       const cc = await compCard(al.map((x) => x.id), en.map((x) => x.id)); if (cc) kids.push(cc);
+      if (lc.myPick && en.length) { const ic = await itemsCard(lc.myPick, en.map((x) => x.id), myRole); if (ic) kids.push(ic); }
       if (st.tab === 'live') put(panes.live, ...kids);
     }
     /* ---- canli mac (Riot'un yerel Live Client Data API'si; yalniz okunur) ---- */
@@ -7513,6 +7548,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         if (mine && mine.ext && mine.ext.runes) getRunes().then((R) => { const box = $('#lg-mu-runes'); if (!box) return; const rn = mine.ext.runes; const nm = (id) => R.perks[id] || null; const names = rn.perks.map(nm).filter(Boolean); if (!names.length) return; put(box, h('h3', { class: 'lg-h3' }, KT('Rün önerisi (dış veri)')), h('p', {}, (rn.primary && R.trees[rn.primary] ? R.trees[rn.primary] + ' · ' : '') + names.join(' · ') + (rn.secondary && R.trees[rn.secondary] ? ' — ' + R.trees[rn.secondary] : ''))); });
       }
       if (r.classic !== false) { const cc = await compCard((r.allies || []).map((x) => x.champ), (r.enemies || []).map((x) => x.champ)); if (cc) kids.splice(1, 0, cc); }
+      if (r.classic !== false && r.me && r.me.champ) { const ic = await itemsCard(r.me.champ, (r.enemies || []).map((x) => x.champ), r.me.role || null); if (ic) kids.push(ic); }
       if (st.tab === 'live') put(panes.live, ...kids);
     }
     setInterval(() => { if (visible() && st.tab === 'live') drawLive(true); }, 4000);

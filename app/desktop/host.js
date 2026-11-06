@@ -1040,6 +1040,43 @@ const LOLMOD = (() => {
     if (e.n >= 3 && e.apPct <= 22) notes.push({ side: 'enemy', k: 'enemyAD' }); if (e.n >= 3 && e.apPct >= 78) notes.push({ side: 'enemy', k: 'enemyAP' }); if (e.n >= 4 && e.assassins >= 2) notes.push({ side: 'enemy', k: 'enemyAssassins' }); if (e.n >= 4 && !e.tanks) notes.push({ side: 'enemy', k: 'enemyNoTank' });
     return { ally: a, enemy: e, notes };
   }
+  /* ---------- ESYA ONERISI (Data Dragon item.json; KABA kurallar — gercek kazanma verisi DEGIL) ---------- */
+  /* Elle yazilmis KISA liste: yara azaltma (Grievous Wounds) gerekcesi olabilecek yuksek iyilesme/can calan sampiyonlar. Eksik/guncel olmayabilir. */
+  const SUSTAIN = new Set(['Soraka', 'Aatrox', 'Warwick', 'Vladimir', 'DrMundo', 'Swain', 'Yuumi', 'Sona', 'Briar']);
+  /* item.json -> yalniz Summoner's Rift (harita 11) tamamlanmis esyalar + son kademe ayakkabilar; yalniz sayilar/etiketler/ad saklanir */
+  function parseItems(json) {
+    const d = json && json.data; if (!d || typeof d !== 'object') return []; const n = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0); const out = [];
+    for (const id of Object.keys(d)) {
+      if (!/^\d{3,6}$/.test(id) || Number(id) >= 200000) continue; const it = d[id]; if (!it || typeof it !== 'object') continue; const g = it.gold || {};
+      if (g.purchasable === false || it.inStore === false || it.consumed || it.requiredChampion || it.requiredAlly) continue; if (!(it.maps && it.maps['11'] === true)) continue; if (Array.isArray(it.into) && it.into.length) continue;
+      const tags = Array.isArray(it.tags) ? it.tags.map(String) : []; if (tags.some((t) => /^(Consumable|Trinket|Lane|Jungle|Vision|GoldPer)$/.test(t))) continue;
+      const total = n(g.total); const boots = tags.includes('Boots'); if (total < (boots ? 900 : 1600)) continue; const s = it.stats || {}; const desc = String(it.description || '');
+      out.push({ id, name: String(it.name || id).slice(0, 40), gold: total, tags, boots, st: { armor: n(s.FlatArmorMod), mr: n(s.FlatSpellBlockMod), hp: n(s.FlatHPPoolMod), ad: n(s.FlatPhysicalDamageMod), ap: n(s.FlatMagicDamageMod) },
+        gw: /Grievous Wounds/i.test(desc), penP: tags.includes('ArmorPenetration') || /Lethality|Armor Penetration/i.test(desc), penM: tags.includes('MagicPenetration') || /Magic Penetration/i.test(desc) });
+    }
+    return out;
+  }
+  /* Rakip takimin hasar dagilimi/on hat/iyilesme durumuna gore SITUASYONEL esya onerisi. Sampiyonun hasar turu (AD/AP/Tank) bilgisine gore filtrelenir. */
+  function buildItemAdvice(roster, meId, enemyIds, role, items, names, version) {
+    const by = new Map(roster.map((c) => [c.id, c])); const me = by.get(meId); if (!me) return null; const en = (enemyIds || []).map((x) => by.get(x)).filter(Boolean);
+    const T = me.tags[0] === 'Tank' ? 'tank' : me.magic > me.attack ? 'ap' : 'ad'; const base = { me: meId, role: role || null, type: T, version: version || null, enemies: en.map((c) => c.id) };
+    if (role === 'support') return Object.assign(base, { support: true, sections: [] });
+    const p = teamProfile(en); const heal = en.filter((c) => SUSTAIN.has(c.id)); const nm = (it) => (names && names[it.id]) || it.name;
+    const off = (it) => (T === 'ap' ? it.st.ap : T === 'ad' ? it.st.ad : 0); const bad = (it) => (T === 'ap' ? it.st.ad > 0 && !(it.st.ap > 0) : T === 'ad' ? it.st.ap > 0 && !(it.st.ad > 0) : it.st.ap > 0);
+    const card = (it) => ({ id: it.id, name: nm(it), gold: it.gold });
+    const top = (f, sc) => { const c = items.filter((it) => !it.boots && !bad(it) && f(it)); const cmp = (a, b) => sc(b) - sc(a) || a.name.localeCompare(b.name); const pool = T === 'tank' ? c.sort(cmp) : c.filter((it) => off(it) > 0).sort(cmp).concat(c.filter((it) => off(it) <= 0).sort(cmp)); return pool.slice(0, 3).map(card); };
+    const def = (it) => it.st.armor + it.st.mr + 0.08 * it.st.hp; const S = []; const add = (k, pri, why, list) => { if (list.length) S.push({ k, pri, why, items: list }); };
+    const adPri = p.n ? (p.apPct <= 35 ? 'high' : p.apPct <= 60 ? 'mid' : null) : null; const apPri = p.n ? (p.apPct >= 65 ? 'high' : p.apPct >= 40 ? 'mid' : null) : null;
+    const whyDmg = p.apPct <= 35 ? [{ k: 'adHeavy', v: [100 - p.apPct] }] : p.apPct >= 65 ? [{ k: 'apHeavy', v: [p.apPct] }] : [{ k: 'mixedDmg', v: [p.apPct] }];
+    if (adPri) add('armor', adPri, whyDmg, top((it) => it.st.armor > 0, (it) => it.st.armor + 0.08 * it.st.hp + 0.25 * off(it)));
+    if (apPri) add('mr', apPri, whyDmg, top((it) => it.st.mr > 0, (it) => it.st.mr + 0.08 * it.st.hp + 0.25 * off(it)));
+    if (heal.length) add('antiheal', heal.length >= 2 ? 'high' : 'mid', [{ k: 'healers', v: [heal.map((c) => c.name).join(', ')] }], top((it) => it.gw && (T !== 'tank' || def(it) > 0), (it) => off(it) + def(it)));
+    if (T !== 'tank' && p.tanks >= 2) add('pen', p.tanks >= 3 ? 'high' : 'mid', [{ k: 'tanks', v: [p.tanks] }], top((it) => (T === 'ap' ? it.penM : it.penP), (it) => off(it) + 0.08 * it.st.hp));
+    const boots = []; for (const [pri, tag] of [[adPri, 'Armor'], [apPri, 'SpellBlock']]) if (pri) for (const it of items.filter((x) => x.boots && x.tags.includes(tag)).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 2)) if (!boots.some((b) => b.id === it.id)) boots.push(it);
+    if (boots.length) add('boots', adPri === 'high' || apPri === 'high' ? 'high' : 'mid', whyDmg, boots.map(card));
+    const order = { high: 0, mid: 1 }; S.sort((a, b) => order[a.pri] - order[b.pri]);
+    return Object.assign(base, { partial: p.n > 0 && p.n < 3, profile: { n: p.n, apPct: p.apPct, tanks: p.tanks, assassins: p.assassins, healers: heal.map((c) => c.id) }, sections: S });
+  }
   const LCU_OK = [/^\/lol-champ-select\/v1\/session$/, /^\/lol-summoner\/v1\/current-summoner$/, /^\/lol-ranked\/v1\/current-ranked-stats$/, /^\/lol-match-history\/v1\/products\/lol\/current-summoner\/matches\?begIndex=\d{1,4}&endIndex=\d{1,4}$/, /^\/lol-match-history\/v1\/games\/\d{1,15}$/, /^\/lol-perks\/v1\/pages$/, /^\/lol-perks\/v1\/currentpage$/];
   /* LCU-WRITE-BEGIN: League istemcisine TEK yazma türü — kendi 'Kovan' rün sayfamız (oluştur/sil). Başka uç nokta yazılamaz. */
   const LCU_WRITE_OK = [['POST', /^\/lol-perks\/v1\/pages$/], ['DELETE', /^\/lol-perks\/v1\/pages\/\d{1,12}$/]];
@@ -1118,7 +1155,7 @@ const LOLMOD = (() => {
     }));
     let iconActive = 0; const iconWait = []; const iconMem = new Map();
     const iconSlot = (fn) => new Promise((res, rej) => { const go = () => { iconActive++; Promise.resolve().then(fn).then(res, rej).finally(() => { iconActive--; const nx = iconWait.shift(); if (nx) nx(); }); }; if (iconActive < 6) go(); else iconWait.push(go); });
-    let roster = null; let rosterMeta = null; const tipsCache = new Map();
+    let roster = null; let rosterMeta = null; const tipsCache = new Map(); let itemData = null;
     const cacheRead = (name) => { if (!cacheDir) return null; try { return JSON.parse(fs.readFileSync(path.join(cacheDir, name), 'utf8')); } catch (e) { return null; } };
     const cacheWrite = (name, obj) => { if (!cacheDir) return; try { fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(path.join(cacheDir, name), JSON.stringify(obj)); } catch (e) { /* onbellek zorunlu degil */ } };
     const cacheNewest = (prefix) => { if (!cacheDir) return null; try { const f = fs.readdirSync(cacheDir).filter((x) => x.startsWith(prefix) && x.endsWith('.json')).sort().pop(); return f ? { name: f, json: cacheRead(f) } : null; } catch (e) { return null; } };
@@ -1136,7 +1173,7 @@ const LOLMOD = (() => {
       if (!list) { for (const l of LOCALES) { const c = cacheNewest('champions-'); if (c && c.json) { const L = parseChampions(c.json); if (L.length) { list = L; offline = true; const m = /^champions-(.+)-([a-z]{2}_[A-Z]{2})\.json$/.exec(c.name); ver = m ? m[1] : ver; loc = m ? m[2] : l; break; } } } }
       if (!list) return errE('Şampiyon verisi alınamadı' + (why ? ' (' + why + ')' : '') + '. İlk kullanımda internet gerekir; sonra önbellekten çalışır.', { offline: true });
       let rm = null; try { rm = await loadRoles(); } catch (e) { rm = null; } let withPos = 0; if (rm) for (const c of list) { const p = rm[c.key]; if (Array.isArray(p) && p.length) { c.pos = p.slice(); withPos++; } }
-      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline, roles: withPos }; tipsCache.clear(); return { ok: true, meta: rosterMeta };
+      roster = list; rosterMeta = { version: ver, locale: loc, count: list.length, offline, roles: withPos }; tipsCache.clear(); itemData = null; return { ok: true, meta: rosterMeta };
     }
     const byKeyMap = () => new Map(roster.map((c) => [c.key, c.id]));
     const needRoster = async () => { const r = await loadRoster(false); return r.error ? r : null; };
@@ -1191,6 +1228,15 @@ const LOLMOD = (() => {
       if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/runesReforged.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('Rün verisi alınamadı (' + String(e && e.message || e) + ').'); } }
       const m = { perks: {}, trees: {}, idx: {} }; for (const tr of Array.isArray(j) ? j : []) { if (!tr || !Number.isInteger(tr.id)) continue; m.trees[tr.id] = String(tr.name || '').slice(0, 30); (tr.slots || []).forEach((sl, si) => { for (const r of sl.runes || []) if (r && Number.isInteger(r.id)) { m.perks[r.id] = String(r.name || '').slice(0, 40); m.idx[r.id] = { t: tr.id, s: si }; } }); }
       runeMap = m; return m;
+    }
+    /* esya verisi: mantik icin en_US item.json (aciklama metni 'Grievous Wounds' vb. icin), gorunen adlar icin yerel dil; yalniz kucuk ozet onbellege yazilir */
+    async function loadItems() {
+      if (itemData) return itemData; const ver = rosterMeta.version; const nm = 'items-' + ver + '.json'; let list = null; const c0 = cacheRead(nm); if (c0 && c0.v === 1 && Array.isArray(c0.list) && c0.list.length) list = c0.list;
+      if (!list) { let why = ''; try { list = parseItems(JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/en_US/item.json', LIM.body))); if (list.length) cacheWrite(nm, { v: 1, list }); } catch (e) { why = String(e && e.message || e); list = null; }
+        if (!list || !list.length) { const old = cacheNewest('items-'); list = old && old.json && Array.isArray(old.json.list) && old.json.list.length ? old.json.list : null; if (!list) return errE('Eşya verisi alınamadı' + (why ? ' (' + why + ')' : '') + '. İlk kullanımda internet gerekir; sonra önbellekten çalışır.'); } }
+      let names = {}; const loc = rosterMeta.locale; if (loc && loc !== 'en_US') { const nn = 'itemnames-' + ver + '-' + loc + '.json'; let j = cacheRead(nn);
+        if (!j) { try { const raw = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/' + loc + '/item.json', LIM.body)); j = {}; for (const id of Object.keys((raw && raw.data) || {})) if (/^\d{3,6}$/.test(id) && raw.data[id] && raw.data[id].name) j[id] = String(raw.data[id].name).slice(0, 40); cacheWrite(nn, j); } catch (e) { j = null; } } names = j && typeof j === 'object' ? j : {}; }
+      itemData = { list, names, version: ver }; return itemData;
     }
     /* LCU: yalniz beyaz listedeki GET uc noktalari (yazma/degistirme yok) */
     const lcuRead = async (info, p) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p); };
@@ -1310,6 +1356,13 @@ const LOLMOD = (() => {
       'lol:comp': async (_e, req) => {
         try { const bad = await needRoster(); if (bad) return bad; const ok = (l) => (Array.isArray(l) ? l.slice(0, 5).map((x) => validChamp(x)).filter(Boolean) : []); return compAnalysis(roster, ok(req && req.allies), ok(req && req.enemies)); } catch (e) { return errE(String(e && e.message || e)); }
       },
+      /* rakip takimina gore situasyonel esya onerisi (Data Dragon verisinden kaba kurallar; kazanma orani DEGIL) */
+      'lol:items': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); if (!me) return errE('Şampiyon geçersiz.'); const role = req.role ? validRole(req.role) : null; if (req.role && !role) return errE('Rol geçersiz.');
+          const enemies = (Array.isArray(req.enemies) ? req.enemies.slice(0, 5) : []).map((x) => validChamp(x)).filter(Boolean); if (!enemies.length) return errE('Rakip şampiyon yok.');
+          const D = await loadItems(); if (D.error) return D; return buildItemAdvice(roster, me, enemies, role, D.list, D.names, D.version);
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
       'lol:icon': async (_e, req) => {
         try {
           req = req || {}; const kind = req.kind; const id = String(req.id); let p; let host = DD_HOST; let max = LIM.icon; let ver = '';
@@ -1381,7 +1434,7 @@ const LOLMOD = (() => {
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
-  return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK };
+  return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN };
 })();
 
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
