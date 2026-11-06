@@ -27,6 +27,8 @@ Handlerlar (`createLolHost(deps).handlers`): `lol:status/champs/pool/suggest/rec
 Arayüz (`kovanLol`): 6 sekme (Genel bakış, Şampiyonlarım, LP geçmişi, Birlikte oynadıklarım, Canlı maç, Karşı seçim); kendi teması `#app-lolcounter.lg` / `.lg-*` CSS; yardımcılar `h() put() icon() champIc() emblem() cropAlpha() dropdown() acWrap() cpToggle() compCard() drawSelect() drawLive() goalText() KT()`.
 Rün önerisi zinciri (`lol:runes:suggest`, sırayla): (1) dış veri adresi / counterpick.lol (`fetchExt`; `cpMatchup` önce ben-vs-rakip, yoksa rakip-vs-ben → oran 100−x, rün YOK, `approx`; rünler `/lol/rune/<id>` görsellerinden, yoksa 'Runes' bölümündeki metinden — ad ya da 'Rune <id>', adlar en_US `runesReforged` → `buildRuneNames`/`cpRunesFromText`), (2) kendi maç geçmişin (`normMatch` artık `runes` saklar, `lol:sync` eski tam maçlara geriye dönük doldurur; `histRunes`: eşleşme ≥2 maç, yoksa şampiyon+hat ≥3, Wilson), (3) istemcinin önerilen rün sayfası (`lcuRecRunes`, LCU_OK'a yalnız GET kalıbı eklendi; uç nokta belgesiz). Yanıtta `src`, `hist`, `tried[{src,state}]`; arayüz kaynak rozeti + 'neden bulunamadı' listesi gösterir (`srcLine`/`why`).
 
+Oyuncu arama (`lol:player:search` / `lol:player:view` / `lol:friends`, sekme 'Oyuncu ara' = `drawPlayer`): Riot Kimliği (`parsePlayerQuery`, Ad#ETİKET) ya da arkadaş listesinden (`parseFriends`) seçilen puuid için LCU'dan YALNIZ GET: `alias/lookup` (yedek `summoners?name=`), `summoners-by-puuid-cached`, `ranked-stats/<puuid>`, `products/lol/<puuid>/matches` (40 maç, ilk 10 için ayrıntı), `lol-chat/v1/friends` — hepsi `LCU_OK`'ta kesin kalıplarla. Sonuç YALNIZ bellekte (`playerCache`, 10 dk, en çok 6; diske yazılmaz, testle doğrulanır); aynı `overview/champStats/roleStats/partnerStats` hesapları (`playerView`). Başkası için LP geçmişi/LP farkı YOK (istemci geçmiş vermez). Arayüzde `rankCard(…, idp)` kimlik öneki parametresi var (çift id olmasın).
+
 Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşlemesi gerek), diğer kategorilerin kendi teması.
 **Gerçekte hiç denenmedi**: gerçek Windows, gerçek League istemcisi/rün uç noktaları (belgesiz, bellekten), gerçek counterpick.lol HTML'i, gerçek Meraki/CommunityDragon indirmesi (yol WebFetch ile görüldü; sandbox kabuğundan ağ yok).
 
@@ -38,7 +40,7 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: paket 5.0.9, Kovan beta 0.1.4.
+- Mevcut: paket 5.0.10, Kovan beta 0.1.5.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).

@@ -1,6 +1,6 @@
 {
-  "version": "5.0.9",
-  "url": "StatScan-5.0.9.ssu",
-  "sha256": "dff01623c50e5bde26575432e0a28df0682509852d0f66556acdadc8cb108e27",
-  "notes": "5.0.9 — Kovan beta 0.1.4: League Asistanı rün önerisi güçlendirildi. counterpick.lol'da eşleşme yalnız ters yönde varsa o da denenir, rünler metinden de okunur; kendi maç geçmişindeki rün seçimlerinden öneri; istemcinin önerdiği rün sayfası yedek; rün bulunamazsa nedeni kartta gösterilir."
+  "version": "5.0.10",
+  "url": "StatScan-5.0.10.ssu",
+  "sha256": "a3ec4eee2a2b2fd075229159e13a2447434e71724de0dc975bd9bb119e455d52",
+  "notes": "5.0.10 — Kovan beta 0.1.5: League Asistanı'na Oyuncu ara sekmesi eklendi. Ad#ETİKET ile ya da arkadaş listenden bir oyuncu seçip profilini, derecesini, son maçlarını, şampiyon ve rol istatistiklerini görebilirsin (League istemcisi üzerinden, yalnız okuma; sonuç yalnızca bellekte tutulur)."
 }
