@@ -1,6 +1,6 @@
 {
-  "version": "5.0.13",
-  "url": "StatScan-5.0.13.ssu",
-  "sha256": "2377197a70c880a8447b56028648f3c89d908461ee035fb50637583164f355a7",
-  "notes": "5.0.13 — HOTFIX (Kovan beta 0.1.6 kaldı): Uygulama Akışı'nda .lnk kısayolların (Brave, Wispr Flow vb.) genel 'ok işaretli sayfa' simgesi yerine gerçek uygulama simgesi gösterilir."
+  "version": "5.0.14",
+  "url": "StatScan-5.0.14.ssu",
+  "sha256": "56351458b00a373adaa98096765e811d03933c1f7b6049d08eae496c05055cbe",
+  "notes": "5.0.14 — Kovan beta 0.1.7: League Asistanı 'Blitz' oldu, 'Geçmişi derin tara' kaldırıldı, Otomatik yenile (1/2/3 sn) eklendi; yeni 'Oyun' kategorisi (Oyun Ayarlayıcı + Blitz)."
 }
