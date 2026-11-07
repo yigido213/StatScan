@@ -118,6 +118,13 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolRunes: () => call('lol:runes'),
   lolRuneSuggest: (o) => call('lol:runes:suggest', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || '') }),
   lolRunesApply: (o) => call('lol:runes:apply', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), perks: o && Array.isArray(o.perks) ? o.perks.slice(0, 9).map(Number) : [] }),
+  lolMuCfg: () => call('lol:mu:cfg'),
+  lolMuRank: (r) => call('lol:mu:rank', String(r)),
+  lolMuUrlSet: (url) => call('lol:mu:url:set', url === null ? null : String(url)),
+  lolMu: (o) => call('lol:mu', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), rank: o && o.rank ? String(o.rank) : undefined }),
+  lolNoteSet: (o) => call('lol:note:set', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), text: String((o && o.text) || '') }),
+  lolOvGet: () => call('lol:ov:get'),
+  lolOvSet: (o) => call('lol:ov:set', { on: o && typeof o.on === 'boolean' ? o.on : undefined, secs: o && o.secs != null ? Number(o.secs) : undefined }),
   lolIcon: (kind, id) => call('lol:icon', { kind: String(kind), id: String(id) }),
   lolDataClear: () => call('lol:data:clear'),
   /* Uygulama Akisi: yol/komut tasimaz; yalniz kimlik, ad ve https adresi gider (dosya secimi host dialogunda) */

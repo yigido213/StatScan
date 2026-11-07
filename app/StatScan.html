@@ -850,7 +850,7 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg-lv .lg-ic { width: 40px; height: 40px; border-radius: 10px; } .lg-lpn b, .lg-lpn small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lg-lpn small { color: var(--muted); font-size: 12px; }
 .lg-rolebadge { display: inline-flex; flex-direction: column; align-items: flex-end; font-size: 12.5px; color: var(--muted); } .lg-rolebadge.sure { color: var(--lg-teal); } .lg-rolebadge i { font-style: normal; font-size: 11px; opacity: .85; } .lg-sp { grid-column: 2 / 4; display: flex; gap: 6px; flex-wrap: wrap; } .lg-sp em { font-style: normal; font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 8px; }
 .lg-vs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; } .lg-vs > div { display: flex; align-items: center; gap: 10px; } .lg-vs .lg-ic { width: 52px; height: 52px; border-radius: 12px; } .lg-vs span { color: var(--lg-gold); font: 700 14px var(--f-display); }
-.lg-isec { margin-top: 12px; } .lg-iwhy { list-style: none; margin: 4px 0 8px; padding: 0; font-size: 13.5px; opacity: .85; } .lg-ilist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-ilist li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-ilist .lg-ic { width: 34px; height: 34px; border-radius: 9px; flex: none; } .lg-ilist small { margin-left: auto; opacity: .75; }
+.lg-isec { margin-top: 12px; } .lg-iwhy { list-style: none; margin: 4px 0 8px; padding: 0; font-size: 13.5px; opacity: .85; } .lg-ilist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-ilist li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-ilist .lg-ic { width: 34px; height: 34px; border-radius: 9px; flex: none; } .lg-ilist small { margin-left: auto; opacity: .75; } .lg-ilist li.lo { opacity: .6; } .lg-muhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; } .lg-muhead .lg-h { margin: 0; } .lg-notebox { margin-top: 14px; } .lg .lg-note { width: 100%; box-sizing: border-box; min-height: 72px; resize: vertical; background: rgba(5,8,16,.72); color: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; } .lg-ov { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); } .lg-muurl .rm-row { flex-wrap: wrap; } #lg-mu-url { min-width: 240px; flex: 1 1 240px; max-width: 520px; }
 .lg-bestl li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-bestl li.me { border-color: var(--lg-teal); } .lg-bestl .lg-ic { width: 34px; height: 34px; border-radius: 9px; } .lg-bestl .lc-score { margin-left: auto; } .lg-table tr.me td { background: var(--accent-soft); }
 .lc-abil { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .lc-abil li { font-size: 13.5px; color: var(--muted); } .lc-abil b { color: var(--lg-gold2); } .lc-abil small { color: var(--muted); }
 .lg-goal { margin: 4px 0 0; }
@@ -5858,6 +5858,41 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Takım analizi": "Team analysis",
       "Eşya önerisi": "Item suggestions",
       "Eşya önerisi: {0}": "Item suggestions: {0}",
+      "Tüm ranklar (Emerald+)": "All ranks (Emerald+)",
+      "Başlangıç eşyaları": "Starting items",
+      "Çekirdek eşyalar": "Core items",
+      "4. eşya": "4th item",
+      "5. eşya": "5th item",
+      "6. eşya": "6th item",
+      "Bindirme süresi": "Overlay duration",
+      "{0} sn": "{0} s",
+      "Maç bindirmesi açıldı.": "Match overlay turned on.",
+      "Maç bindirmesi kapatıldı.": "Match overlay turned off.",
+      "Maça girince eşleşme bilgisini oyunun üstünde göster": "Show matchup info on top of the game when a match starts",
+      "Maç yüklenince küçük bir pencere açılır ve birkaç saniye sonra kapanır; oyuna dokunmaz, odağı çalmaz. Oyunu “Kenarlıksız” ya da “Pencereli” modda oynuyorsan görünür; “Tam ekran” modda görünmez.": "A small window opens when the match loads and closes after a few seconds; it does not touch the game or steal focus. It is visible in “Borderless” or “Windowed” mode, not in “Fullscreen”.",
+      "Bu eşleşme için kendi ipuçların (ör. Q ile dürt, W’yu sakla, E’yi ona karşı nasıl kullan…)": "Your own tips for this matchup (e.g. poke with Q, save W, how to use E against them…)",
+      "Eşleşme notu": "Matchup note",
+      "Notu kaydet": "Save note",
+      "Not kaydedildi; maça girince bindirmede görünür.": "Note saved; it shows in the overlay when the match starts.",
+      "Not silindi.": "Note deleted.",
+      "Kendi notların": "Your notes",
+      "Eşleşme veri adresi": "Matchup data address",
+      "Adresi ekle": "Add address",
+      "Eşleşme veri adresi eklendi.": "Matchup data address added.",
+      "Adres {me}, {enemy} ve {role} içermeli; yanıt rank kovalarına göre oran ve eşya sayıları vermeli (yalnız sayılar okunur).": "The address must contain {me}, {enemy} and {role}; the response must give win rates and item counts per rank bucket (only numbers are read).",
+      "Az maç: güvenilirlik düşük": "Few games: low reliability",
+      "Rank": "Rank",
+      "Eşleşme verisi: {0} → {1}": "Matchup data: {0} → {1}",
+      "Eşleşme verisi için bir kaynak adresi ekle. Kaynak yokken oran ve eşya TAHMİN EDİLMEZ.": "Add a source address for matchup data. Without a source, win rates and items are NOT guessed.",
+      "Veri kaynağına ulaşılamadı.": "Could not reach the data source.",
+      "Kaynakta bu eşleşme için veri yok.": "The source has no data for this matchup.",
+      "Seçtiğin rankta bu eşleşme için veri yok.": "No data for this matchup at the selected rank.",
+      "Veri olan ranklar: {0}": "Ranks with data: {0}",
+      "yama {0}": "patch {0}",
+      "Kaynak verisi": "Source data",
+      "Emerald, Diamond, Master, Grandmaster ve Challenger toplamı (oyun sayısına göre ağırlıklı).": "Total of Emerald, Diamond, Master, Grandmaster and Challenger (weighted by games).",
+      "Verisi olmayan: {0}": "No data: {0}",
+      "Kaynak bu eşleşme için eşya sayısı vermedi.": "The source gave no item counts for this matchup.",
       "Zırh eşyaları": "Armor items",
       "Büyü direnci eşyaları": "Magic resist items",
       "Yara azaltma (iyileşmeyi keser)": "Grievous Wounds (cuts healing)",
@@ -7600,6 +7635,56 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const a = (allies || []).filter(Boolean); const e = (enemies || []).filter(Boolean); if (a.length + e.length < 3) return null; const c = await call(H.lolComp, a, e); if (!c || c.error || !c.notes || !c.notes.length) return null;
       return h('section', { class: 'lg-card', id: 'lg-livecomp' }, h('h2', { class: 'lg-h' }, KT('Takım analizi')), h('ul', { class: 'lg-notes' }, ...c.notes.map((n) => h('li', { class: n.side }, KT(WHY[n.k] || n.k)))));
     }
+    /* ---- eslesme verisi: rank kovalarindan oran + esya (kaynakta veri yoksa TAHMIN YAPILMAZ) + eslesmeye ozel kisisel not + mac acilis bindirmesi ayari ---- */
+    const MU = { rank: null, cfg: null };
+    const MU_RANKS = [['all', 'Tüm ranklar (Emerald+)'], ['iron', 'Demir'], ['bronze', 'Bronz'], ['silver', 'Gümüş'], ['gold', 'Altın'], ['platinum', 'Platin'], ['emerald', 'Zümrüt'], ['diamond', 'Elmas'], ['master', 'Master'], ['grandmaster', 'Grandmaster'], ['challenger', 'Challenger']];
+    const MU_SLOT = [['start', 'Başlangıç eşyaları'], ['boots', 'Ayakkabı'], ['core', 'Çekirdek eşyalar'], ['slot4', '4. eşya'], ['slot5', '5. eşya'], ['slot6', '6. eşya']];
+    const muRankName = (k) => KT((MU_RANKS.find((x) => x[0] === k) || [0, k])[1]);
+    function ovToggle() {
+      const n = ++st.cpn; const cb = h('input', { type: 'checkbox', class: 'lg-ovcb', id: 'lg-ov-on-' + n }); const secs = h('select', { class: 'lg-ovsecs', id: 'lg-ov-secs-' + n, 'aria-label': KT('Bindirme süresi') }, ...[10, 20, 30, 45, 60].map((x) => h('option', { value: String(x) }, KT('{0} sn', x))));
+      call(H.lolOvGet).then((r) => { if (r && !r.error) { cb.checked = r.on === true; const o = [...secs.options].find((x) => Number(x.value) === r.secs); if (o) secs.value = o.value; } });
+      const push = async () => { const r = await call(H.lolOvSet, { on: cb.checked, secs: Number(secs.value) }); if (!r || r.error) say(failMsg(r), true); else say(r.on ? KT('Maç bindirmesi açıldı.') : KT('Maç bindirmesi kapatıldı.')); };
+      cb.addEventListener('change', push); secs.addEventListener('change', push);
+      return h('div', { class: 'lg-ov', id: 'lg-ov-' + n }, h('label', { class: 'fine', style: 'display:inline-flex;gap:8px;align-items:center', for: cb.id }, cb, KT('Maça girince eşleşme bilgisini oyunun üstünde göster')), ' ', secs,
+        h('p', { class: 'rm-hint' }, KT('Maç yüklenince küçük bir pencere açılır ve birkaç saniye sonra kapanır; oyuna dokunmaz, odağı çalmaz. Oyunu “Kenarlıksız” ya da “Pencereli” modda oynuyorsan görünür; “Tam ekran” modda görünmez.')));
+    }
+    function muNoteBox(me, enemy, role, note) {
+      const ta = h('textarea', { class: 'lg-note', id: 'lg-mu-note', rows: '3', maxlength: '600', placeholder: KT('Bu eşleşme için kendi ipuçların (ör. Q ile dürt, W’yu sakla, E’yi ona karşı nasıl kullan…)'), 'aria-label': KT('Eşleşme notu') }); ta.value = note || '';
+      const msg = h('span', { class: 'lg-sub', role: 'status', id: 'lg-mu-note-msg' }); ta.addEventListener('input', () => { ta.dataset.dirty = '1'; });
+      const save = btn('lg-mu-note-save', 'Notu kaydet', async () => { const r = await call(H.lolNoteSet, { me, enemy, role, text: ta.value }); if (r && !r.error) delete ta.dataset.dirty; msg.textContent = !r || r.error ? failMsg(r) : r.saved ? KT('Not kaydedildi; maça girince bindirmede görünür.') : KT('Not silindi.'); });
+      return h('div', { class: 'lg-notebox' }, h('h3', { class: 'lg-h3' }, KT('Kendi notların')), ta, h('div', { class: 'rm-row' }, save, msg));
+    }
+    function muUrlForm(after) {
+      const inp = h('input', { type: 'url', id: 'lg-mu-url', autocomplete: 'off', spellcheck: 'false', placeholder: 'https://…/{me}/{enemy}/{role}', 'aria-label': KT('Eşleşme veri adresi'), maxlength: '400' });
+      const b = btn('lg-mu-url-set', 'Adresi ekle', async () => { const r = await call(H.lolMuUrlSet, inp.value.trim()); if (!r || r.error) { say(failMsg(r), true); return; } if (r.canceled) { say(KT('Vazgeçildi.')); return; } say(KT('Eşleşme veri adresi eklendi.')); after(); });
+      return h('div', { class: 'lg-muurl' }, h('div', { class: 'rm-row' }, inp, b), h('p', { class: 'rm-hint' }, KT('Adres {me}, {enemy} ve {role} içermeli; yanıt rank kovalarına göre oran ve eşya sayıları vermeli (yalnız sayılar okunur).')));
+    }
+    const muItemRow = (it) => { const lo = it.games < 20; return h('li', { class: lo ? 'lo' : '', title: lo ? KT('Az maç: güvenilirlik düşük') : null }, icon('item', it.id, it.name || '#'), h('b', {}, it.name || '#' + it.id), h('small', {}, '%' + it.wr + ' · ' + KT('{0} maç', it.games))); };
+    /* rank/adres degisince tum canli paneli yeniden ciz: kaynak verisi varsa tahmin karti gizlenir, yoksa yedek olarak geri gelir */
+    const muRedraw = () => { if (st.tab === 'live') drawLive(); };
+    async function muCard(me, enemy, role) {
+      if (!me || !enemy || !role) return null;
+      if (!MU.cfg || MU.cfg.error) MU.cfg = await call(H.lolMuCfg); if (!MU.rank) MU.rank = MU.cfg && MU.cfg.rank ? MU.cfg.rank : 'all';
+      const box = h('section', { class: 'lg-card', id: 'lg-mudata' });
+      async function fill() {
+        const r = await call(H.lolMu, { me, enemy, role, rank: MU.rank }); box.dataset.ok = '';
+        const dd = dropdown('lg-mu-rank', KT('Rank'), MU_RANKS, MU.rank, async (v) => { MU.rank = v; const x = await call(H.lolMuRank, v); if (!x || x.error) say(failMsg(x), true); muRedraw(); });
+        const head = h('div', { class: 'lg-muhead' }, h('h2', { class: 'lg-h' }, KT('Eşleşme verisi: {0} → {1}', nameOf(me), nameOf(enemy))), dd); let body;
+        if (!r || r.error) body = [h('p', { class: 'rm-hint' }, failMsg(r))];
+        else if (r.state === 'off') body = [h('p', { class: 'rm-hint', id: 'lg-mu-off' }, KT('Eşleşme verisi için bir kaynak adresi ekle. Kaynak yokken oran ve eşya TAHMİN EDİLMEZ.')), muUrlForm(muRedraw)];
+        else if (r.state === 'net') body = [h('p', { class: 'rm-hint', id: 'lg-mu-net' }, KT('Veri kaynağına ulaşılamadı.'))];
+        else if (r.state === 'none') body = [h('p', { class: 'rm-hint', id: 'lg-mu-none' }, KT('Kaynakta bu eşleşme için veri yok.'))];
+        else if (r.state === 'norank') body = [h('p', { class: 'rm-hint', id: 'lg-mu-norank' }, KT('Seçtiğin rankta bu eşleşme için veri yok.') + (r.available && r.available.length ? ' ' + KT('Veri olan ranklar: {0}', r.available.map((k) => muRankName(k)).join(', ')) : ''))];
+        else {
+          box.dataset.ok = '1'; const secs = MU_SLOT.filter(([k]) => r.items && r.items[k] && r.items[k].length);
+          body = [h('div', { class: 'rm-row', id: 'lg-mu-sum' }, h('b', {}, '%' + r.wr), h('span', { class: 'rm-hint' }, KT('{0} maç', num(r.games)) + (r.patch ? ' · ' + KT('yama {0}', r.patch) : '')), pill('low', KT('Kaynak verisi'))),
+            r.rank === 'all' ? h('p', { class: 'rm-hint', id: 'lg-mu-ranks' }, KT('Emerald, Diamond, Master, Grandmaster ve Challenger toplamı (oyun sayısına göre ağırlıklı).') + (r.missing && r.missing.length ? ' ' + KT('Verisi olmayan: {0}', r.missing.map((k) => muRankName(k)).join(', ')) : '')) : null,
+            ...(secs.length ? secs.map(([k, t]) => h('div', { class: 'lg-isec', 'data-sec': k }, h('h3', { class: 'lg-h3' }, KT(t)), h('ul', { class: 'lg-ilist' }, ...r.items[k].map(muItemRow)))) : [h('p', { class: 'rm-hint' }, KT('Kaynak bu eşleşme için eşya sayısı vermedi.'))])];
+        }
+        put(box, head, ...body, muNoteBox(me, enemy, role, r && !r.error ? r.note : ''), ovToggle());
+      }
+      await fill(); return box;
+    }
     /* ---- esya onerisi: rakip takimina gore situasyonel esyalar (kaba kurallar; kazanma orani degil) ---- */
     const IWHY = { adHeavy: 'Rakip takım fiziksel hasar ağırlıklı (%{0}).', apHeavy: 'Rakip takım büyü hasarı ağırlıklı (%{0}).', mixedDmg: 'Rakip hasarı karışık (%{0} büyü): hem zırh hem büyü direnci düşün.', healers: 'Rakipte yüksek iyileşme: {0}.', tanks: 'Rakipte {0} dayanıklı şampiyon var.' };
     const ISEC = { armor: 'Zırh eşyaları', mr: 'Büyü direnci eşyaları', antiheal: 'Yara azaltma (iyileşmeyi keser)', pen: 'Delme (zırh/büyü direnci aşma)', boots: 'Ayakkabı' };
@@ -7638,7 +7723,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           kids.push(h('section', { class: 'lg-card', id: 'lg-sel-runes' }, h('h2', { class: 'lg-h' }, KT('Rün önerisi: {0} → {1}', nameOf(lc.myPick), nameOf(opp.id))), ...body)); } }
       const bn = await call(H.lolBans, myRole, 5); if (bn && !bn.error && !bn.needPool && bn.bans && bn.bans.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-bans' }, h('h2', { class: 'lg-h' }, KT('Ban önerisi')), h('ul', { class: 'lg-bans' }, ...bn.bans.map((b) => h('li', {}, champIc(b.id), h('div', {}, h('b', {}, b.name), h('small', {}, KT('Ortalama {0} · en zoru: {1}', b.avg, b.worst ? b.worst.name : '—'))))))));
       const cc = await compCard(al.map((x) => x.id), en.map((x) => x.id)); if (cc) kids.push(cc);
-      if (lc.myPick && en.length) { const ic = await itemsCard(lc.myPick, en.map((x) => x.id), myRole); if (ic) kids.push(ic); }
+      let muOk = false; if (lc.myPick && opp) { const mc = await muCard(lc.myPick, opp.id, myRole); if (mc) { kids.push(mc); muOk = mc.dataset.ok === '1'; } }
+      if (!muOk && lc.myPick && en.length) { const ic = await itemsCard(lc.myPick, en.map((x) => x.id), myRole); if (ic) kids.push(ic); }
       if (st.tab === 'live') put(panes.live, ...kids);
     }
     /* ---- canli mac (Riot'un yerel Live Client Data API'si; yalniz okunur) ---- */
@@ -7651,16 +7737,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         x.role ? h('span', { class: 'lg-rolebadge' + (sure ? ' sure' : '') }, KT(RTR[x.role]), h('i', {}, x.known ? KT('oyun verdi') : KT('tahmin %{0}', rp))) : null,
         h('span', { class: 'lg-sp' }, ...(x.spells || []).filter((s) => SPN[s]).map((s) => h('em', {}, KT(SPN[s])))));
     }
+    /* kullanici not yaziyor / listeyi aciyor: 4 sn'lik yenileme yazdigini silmesin */
+    const muBusy = () => { const t = document.getElementById('lg-mu-note'); const a = document.activeElement; return !!t && (t.dataset.dirty === '1' || (a && a.closest && !!a.closest('#lg-mudata'))); };
     async function drawLive(quiet) {
+      if (quiet && muBusy()) return;
       const r = await call(H.lolLive); if (st.tab !== 'live') return; const was = st.liveOn; st.liveOn = !!(r && r.state === 'ingame'); if (was !== st.liveOn) drawHero();
       if (!r || r.error) { put(panes.live, empty(KT('Canlı maç okunamadı'), failMsg(r))); return; }
-      if (r.state !== 'ingame') { const lc = await call(H.lolLcu); if (st.tab !== 'live') return; if (lc && lc.state === 'champselect') { await drawSelect(lc); return; } put(panes.live, h('section', { class: 'lg-card lg-livehead off' }, h('h2', { class: 'lg-h' }, KT('Canlı maç')), empty(KT('Şu an bir maçta değilsin'), KT('Maç yüklenince burada otomatik görünür: rakip takım, hat tahminleri ve hat rakibine karşı seçimin. League açıkken her birkaç saniyede bir yerel olarak okunur; oyuna dokunulmaz.')))); return; }
+      if (r.state !== 'ingame') { const lc = await call(H.lolLcu); if (st.tab !== 'live') return; if (lc && lc.state === 'champselect') { await drawSelect(lc); return; } put(panes.live, h('section', { class: 'lg-card lg-livehead off' }, h('h2', { class: 'lg-h' }, KT('Canlı maç')), empty(KT('Şu an bir maçta değilsin'), KT('Maç yüklenince burada otomatik görünür: rakip takım, hat tahminleri ve hat rakibine karşı seçimin. League açıkken her birkaç saniyede bir yerel olarak okunur; oyuna dokunulmaz.')), ovToggle())); return; }
       const mk = (list, enemy) => h('ol', { class: 'lg-lpl' }, ...list.slice().sort((a, b) => (ROLE_ORD.indexOf(a.role) + 9) % 9 - (ROLE_ORD.indexOf(b.role) + 9) % 9).map((x) => livePlayer(x, enemy)));
       const head = h('section', { class: 'lg-card lg-livehead on' }, h('h2', { class: 'lg-h' }, h('i', { class: 'lg-dot' }), KT('Canlı maç'), h('span', { class: 'lg-sub', style: 'margin-left:10px' }, r.mode + ' · ' + clock(r.time))),
         r.classic ? null : h('p', { class: 'rm-hint' }, KT('Bu mod Summoner’s Rift (Klasik) değil; hat tahmini yapılmaz.')), !r.me ? h('p', { class: 'rm-hint' }, KT('Kendi oyuncun belirlenemedi; hat rakibi bulunamadı.')) : null,
         h('div', { class: 'lg-live2' }, h('div', {}, h('h3', { class: 'lg-h3' }, KT('Takımım')), mk(r.allies, false)), h('div', {}, h('h3', { class: 'lg-h3' }, KT('Rakip takım')), mk(r.enemies, true))),
         r.classic ? h('p', { class: 'rm-hint' }, KT('Hatlar TAHMİNDİR: oyunun verdiği hat varsa o kullanılır; yoksa şampiyon türü ve büyüler (ör. Çarp = Orman) ile hesaplanır. Meta verisiyle kalibre değildir.')) : null);
-      const kids = [head]; const m = r.matchup;
+      const kids = [head]; const m = r.matchup; let muOk = false;
       if (m) {
         const wrTxt = (x) => (x && x.wr != null ? '%' + x.wr + (x.games ? ' (' + x.games + ' ' + KT('maç') + ')' : '') : null); const mine = m.mine;
         const mcard = h('section', { class: 'lg-card', id: 'lg-mu' }, h('h2', { class: 'lg-h' }, KT('Hat eşleşmesi')),
@@ -7669,14 +7758,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           mine ? h('div', { class: 'rm-row' }, pill('low', KT('Tahmin')), h('b', {}, KT('Puan {0}/100', mine.score)), h('span', { class: 'rm-hint' }, KT('{0} şampiyon içinde {1}. sıra', m.total, m.pos)), mine.ext ? pill('mid', KT('Dış veri: {0}', wrTxt(mine.ext))) : null) : h('p', { class: 'rm-hint' }, KT('Seçtiğin şampiyon bu hat için listede yok.')),
           mine && mine.reasons && mine.reasons.length ? h('ul', { class: 'lc-why' }, ...mine.reasons.map((x) => { const tx = (REASON[x.side] || {})[x.k]; return tx ? h('li', {}, KT(tx, ...(x.v || []))) : null; }).filter(Boolean)) : null,
           h('div', { id: 'lg-mu-runes' }), cpToggle(), !m.extUsed ? h('p', { class: 'rm-hint' }, m.statsConfigured ? KT('Dış veri adresine ulaşılamadı; yalnızca tahmin gösteriliyor.') : KT('Gerçek galibiyet oranı ve rün önerisi için “Karşı seçim” sekmesinde güvendiğin bir dış veri adresi ekleyebilirsin. Şimdilik yalnızca tahmin ve kendi maçların kullanılıyor.')) : null);
-        kids.push(mcard);
+        kids.push(mcard); if (r.me && r.me.champ) { const mc = await muCard(r.me.champ, m.enemy, m.role); if (mc) { kids.push(mc); muOk = mc.dataset.ok === '1'; } }
         const best = h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Bu rakibe karşı en iyi seçimler')), h('ol', { class: 'lg-bestl' }, ...(m.best || []).map((p) => h('li', { class: p.id === r.me.champ ? 'me' : '' }, champIc(p.id), h('b', {}, p.name), p.inPool ? pill('low', KT('havuzumda')) : null, p.ext ? pill('mid', '%' + p.ext.wr) : null, h('span', { class: 'lc-score' }, String(p.score))))));
         const rows = (m.list || []).map((p) => h('tr', { class: p.id === r.me.champ ? 'me' : '' }, h('td', {}, h('div', { class: 'lg-who' }, champIc(p.id), h('b', {}, p.name))), h('td', {}, String(p.score)), h('td', {}, p.wr != null ? '%' + p.wr : '—'), h('td', {}, p.games ? String(p.games) : '—'), h('td', {}, p.inPool ? '✓' : '')));
         kids.push(best, h('details', { class: 'lg-card', id: 'lg-mu-all' }, h('summary', {}, KT('Tüm şampiyonlar: {0} karşısında oranlar', nameOf(m.enemy))), h('div', { class: 'lg-tblw' }, h('table', { class: 'lg-table' }, h('thead', {}, h('tr', {}, ...['Şampiyon', 'Puan', 'Galibiyet', 'Maç', 'Havuz'].map((x) => h('th', { scope: 'col' }, KT(x))))), h('tbody', {}, ...rows)))));
         if (mine && mine.ext && mine.ext.runes) getRunes().then((R) => { const box = $('#lg-mu-runes'); if (!box) return; const rn = mine.ext.runes; const nm = (id) => R.perks[id] || null; const names = rn.perks.map(nm).filter(Boolean); if (!names.length) return; put(box, h('h3', { class: 'lg-h3' }, KT('Rün önerisi (dış veri)')), h('p', {}, (rn.primary && R.trees[rn.primary] ? R.trees[rn.primary] + ' · ' : '') + names.join(' · ') + (rn.secondary && R.trees[rn.secondary] ? ' — ' + R.trees[rn.secondary] : ''))); });
       }
       if (r.classic !== false) { const cc = await compCard((r.allies || []).map((x) => x.champ), (r.enemies || []).map((x) => x.champ)); if (cc) kids.splice(1, 0, cc); }
-      if (r.classic !== false && r.me && r.me.champ) { const ic = await itemsCard(r.me.champ, (r.enemies || []).map((x) => x.champ), r.me.role || null); if (ic) kids.push(ic); }
+      if (!muOk && r.classic !== false && r.me && r.me.champ) { const ic = await itemsCard(r.me.champ, (r.enemies || []).map((x) => x.champ), r.me.role || null); if (ic) kids.push(ic); }
       if (st.tab === 'live') put(panes.live, ...kids);
     }
     setInterval(() => { if (visible() && st.tab === 'live') drawLive(true); }, 4000);
