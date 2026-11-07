@@ -766,6 +766,7 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg-name { margin: 0; font: 700 clamp(26px, 4vw, 38px)/1.1 var(--f-display); color: #fbf5e6; overflow-wrap: anywhere; } .lg-name:focus { outline: none; } .lg-tag { color: var(--muted); font-weight: 400; font-size: .62em; margin-left: .35em; }
 .lg-chips { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 8px; align-items: center; }
 .lg-chip { display: inline-flex; align-items: center; gap: 7px; padding: 3px 11px; border-radius: 99px; background: rgba(5,8,16,.55); border: 1px solid var(--line); color: var(--muted); font-size: 13px; } .lg-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--lg-remake); } .lg-chip.on { color: #bff3ec; border-color: rgba(39,211,193,.4); } .lg-chip.on i { background: var(--lg-win); box-shadow: 0 0 10px var(--lg-win); }
+.lg-auto { display: inline-flex; align-items: center; gap: 8px; } .lg-autolbl { font-size: .8rem; color: var(--muted); }
 .lg-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; }
 .lg .cv-btn { background: rgba(20,32,58,.8); border: 1px solid var(--line); color: var(--ink); border-radius: 11px; } .lg .cv-btn:hover:not(:disabled) { border-color: var(--lg-gold); background: rgba(34,50,86,.85); } .lg .cv-btn:focus-visible, .lg-tab:focus-visible, .lg-pick-btn:focus-visible { outline: 2px solid var(--lg-gold2); outline-offset: 2px; }
 .lg .cv-btn.lg-primary { background: linear-gradient(180deg, #ecd199, #b78f4c); color: #1b1407; border-color: transparent; font-weight: 700; } .lg .cv-btn.lg-primary:hover:not(:disabled) { background: linear-gradient(180deg, #f6dfaa, #c69c55); }
@@ -1078,7 +1079,7 @@ html[data-fx="off"] .flow *, html[data-fx="off"] .flow *::after, html[data-fx="o
 <section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
 <section id="app-ramanaliz" class="kv kv-wide" aria-label="RAM Analizi" hidden></section>
 <section id="app-oyunayar" class="kv kv-wide" aria-label="Oyun Ayarlayıcı" hidden></section>
-<section id="app-lolcounter" class="kv kv-wide" aria-label="League Asistanı" hidden></section>
+<section id="app-lolcounter" class="kv kv-wide" aria-label="Blitz" hidden></section>
 <section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
 <section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
 <section id="app-statscan" aria-label="StatScan" hidden>
@@ -5882,7 +5883,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Takımda uzun menzilli seçim yok.": "Your team has no long-range pick.",
       "Takımın neredeyse tamamen büyü hasarı; rakip büyü direnci alırsa zorlanırsın.": "Your team is almost all magic damage; you will struggle if the enemy builds magic resist.",
       "Takımın neredeyse tamamen fiziksel hasar; rakip zırh alırsa zorlanırsın.": "Your team is almost all physical damage; you will struggle if the enemy builds armor.",
-      "Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür. Derin tarama daha fazla maç ayrıntısı alır.": "Teammates appear here once at least one match with player details has been read. A deep scan reads more match details.",
+      "Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür..": "Teammates appear here once at least one match with player details has been read.",
       "Tekli/Çiftli": "Solo/Duo",
       "Terfi": "Promotion",
       "Terfi serisi": "Promotion series",
@@ -5912,9 +5913,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Şampiyon performansı": "Champion performance",
       "Şampiyon verisi yok": "No champion data",
       "“Güncelle” ile maç geçmişini istemciden oku.": "Press “Update” to read match history from the client.",
-      "League Asistanı": "League Assistant",
       "Güncelle": "Update",
-      "Geçmişi derin tara": "Deep scan history",
+      "Otomatik yenile": "Auto refresh",
+      "Kapalı": "Off",
+      "1 sn": "1 s",
+      "2 sn": "2 s",
+      "3 sn": "3 s",
+      "Oyun": "Games",
+      "Oyun ayarlayıcı ve League asistanı Blitz.": "Game tuner and the League assistant Blitz.",
+      "Sistem izleme ve bellek analizi araçları.": "System monitoring and memory analysis tools.",
       "Verileri sil": "Delete data",
       "Şimdi güncelle": "Update now",
       "Genel bakış": "Overview",
@@ -6029,7 +6036,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Dış veri adresin": "Your data URL", "Kendi maçların": "Your own matches", "League’in önerisi (hat bazlı)": "League’s recommendation (per role)", "eşleşmeye özel değil": "not matchup-specific", "ters yönden tahmin": "estimated from the reverse matchup",
       "{0} karşısında {1} maç · %{2} kazanma": "{1} games vs {0} · {2}% win", "Bu şampiyonla {1} maç · %{2} kazanma": "{1} games with this champion · {2}% win",
       "Dış veri adresine ulaşılamadı": "Could not reach the data URL", "Dış veri adresinde bu eşleşme yok": "This matchup is not in the data URL", "counterpick.lol’a ulaşılamadı": "Could not reach counterpick.lol", "counterpick.lol’da bu eşleşme listelenmemiş": "counterpick.lol does not list this matchup", "counterpick.lol’da rün listesi okunamadı": "Could not read the rune list on counterpick.lol", "counterpick.lol yalnız ters yönü listeliyor (oran var, rün yok)": "counterpick.lol lists only the reverse direction (win rate, no runes)",
-      "Maç geçmişinde rün bilgisi yok — League Asistanı’nda “Senkronize et”": "No rune info in your match history — press “Sync” in League Assistant", "Bu şampiyonla kayıtlı maç yok": "No recorded matches with this champion", "League istemcisi açık değil": "The League client is not running", "İstemcinin önerisi alınamadı": "Could not get the client’s recommendation", "İstemcinin bu hat için önerisi yok": "The client has no recommendation for this role", "Kayıtlı maç yetersiz ({0} bu eşleşmede, {1} bu hatta)": "Not enough recorded matches ({0} in this matchup, {1} in this role)",
+      "Maç geçmişinde rün bilgisi yok — Blitz’te “Güncelle”": "No rune info in your match history — press “Update” in Blitz", "Bu şampiyonla kayıtlı maç yok": "No recorded matches with this champion", "League istemcisi açık değil": "The League client is not running", "İstemcinin önerisi alınamadı": "Could not get the client’s recommendation", "İstemcinin bu hat için önerisi yok": "The client has no recommendation for this role", "Kayıtlı maç yetersiz ({0} bu eşleşmede, {1} bu hatta)": "Not enough recorded matches ({0} in this matchup, {1} in this role)",
       "Eşleşmeye özel rün önerisi için “Karşı seçim” sekmesinde counterpick.lol’u aç ya da bir dış veri adresi ekle.": "For matchup-specific rune suggestions, turn on counterpick.lol or add an external data address in the “Counter pick” tab.",
       "Rün önerisi: {0} → {1}": "Rune suggestion: {0} → {1}",
       "LP geçmişi": "LP history",
@@ -7399,7 +7406,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   (function kovanLol() {
     const root = $('#app-lolcounter'); if (!root) return;
     const H = window.statscanHost && window.statscanHost.lolStatus ? window.statscanHost : null;
-    if (!H) { root.append(h('div', { class: 'lg-wrap' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'League Asistanı'), h('p', { class: 'cv-lead' }, 'Bu araç şampiyon verisini arka planda çekmek ve League istemcisini okumak için masaüstü uygulaması gerektirir; tarayıcıda çalışmaz.'))); return; }
+    if (!H) { root.append(h('div', { class: 'lg-wrap' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Blitz'), h('p', { class: 'cv-lead' }, 'Bu araç şampiyon verisini arka planda çekmek ve League istemcisini okumak için masaüstü uygulaması gerektirir; tarayıcıda çalışmaz.'))); return; }
     root.classList.add('lg');
     const ROLES = [['top', 'Üst hat'], ['jungle', 'Orman'], ['mid', 'Orta hat'], ['bot', 'Alt hat'], ['support', 'Destek']]; const RTR = Object.fromEntries(ROLES);
     const TIERN = { IRON: 'Demir', BRONZE: 'Bronz', SILVER: 'Gümüş', GOLD: 'Altın', PLATINUM: 'Platin', EMERALD: 'Zümrüt', DIAMOND: 'Elmas', MASTER: 'Master', GRANDMASTER: 'Grandmaster', CHALLENGER: 'Challenger' };
@@ -7498,9 +7505,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
 
     /* ---- iskelet ---- */
-    const nameEl = h('h1', { class: 'lg-name', 'data-focus': '', tabindex: '-1' }, 'League Asistanı'); const avaBox = h('div', { class: 'lg-ava' }); const chipsEl = h('div', { class: 'lg-chips' }); const todayEl = h('div', { class: 'lg-today', hidden: true }); const tiltEl = h('p', { class: 'lg-tilt', hidden: true });
-    const syncBtn = btn('lg-sync', 'Güncelle', () => doSync(false), { class: 'cv-btn lg-primary' }); const deepBtn = btn('lg-deep', 'Geçmişi derin tara', () => doSync(true)); const wipeBtn = btn('lg-wipe', 'Verileri sil', wipe);
-    const hero = h('section', { class: 'lg-card lg-hero', 'aria-label': 'Profil' }, avaBox, h('div', {}, nameEl, chipsEl), h('div', { class: 'lg-actions' }, syncBtn, deepBtn, wipeBtn), todayEl, tiltEl);
+    const nameEl = h('h1', { class: 'lg-name', 'data-focus': '', tabindex: '-1' }, 'Blitz'); const avaBox = h('div', { class: 'lg-ava' }); const chipsEl = h('div', { class: 'lg-chips' }); const todayEl = h('div', { class: 'lg-today', hidden: true }); const tiltEl = h('p', { class: 'lg-tilt', hidden: true });
+    const syncBtn = btn('lg-sync', 'Güncelle', () => doSync(false), { class: 'cv-btn lg-primary' }); const AUTO_OPTS = [['0', 'Kapalı'], ['1', '1 sn'], ['2', '2 sn'], ['3', '3 sn']]; let autoV = '3'; try { const sv = localStorage.getItem('kovan.lgauto'); if (sv && AUTO_OPTS.some((o) => o[0] === sv)) autoV = sv; } catch (e) { /* depolama yok */ }
+    const autoDd = dropdown('lg-auto', KT('Otomatik yenile'), AUTO_OPTS, autoV, (v) => { autoV = v; try { localStorage.setItem('kovan.lgauto', v); } catch (e) { /* depolama yok */ } setAutoSync(); }); const autoBox = h('div', { class: 'lg-auto' }, h('span', { class: 'lg-autolbl' }, KT('Otomatik yenile')), autoDd); const wipeBtn = btn('lg-wipe', 'Verileri sil', wipe);
+    const hero = h('section', { class: 'lg-card lg-hero', 'aria-label': 'Profil' }, avaBox, h('div', {}, nameEl, chipsEl), h('div', { class: 'lg-actions' }, syncBtn, autoBox, wipeBtn), todayEl, tiltEl);
     /* ---- oyuncu arama çubuğu (her sekmede üstte; sonuç 'player' panelinde) ---- */
     const plInp = h('input', { type: 'text', id: 'lg-pl-q', class: 'lg-plin', placeholder: KT('Oyuncu ara: Ad#ETİKET (ör. Faker#KR1)'), 'aria-label': KT('Riot Kimliği'), maxlength: '40', autocomplete: 'off', spellcheck: 'false' });
     const psearch = h('section', { class: 'lg-card lg-psearch', role: 'search', 'aria-label': KT('Oyuncu ara') }, h('div', { class: 'lg-plbar' }, h('span', { class: 'lg-plic', 'aria-hidden': 'true' }, icon('', 0, '⌕')), plInp, btn('lg-pl-go', 'Ara', () => plSearch({ query: plInp.value }), { class: 'cv-btn lg-primary' }), btn('lg-pl-friends', 'Arkadaşlarım', plFriends)), h('div', { id: 'lg-pl-fr' }));
@@ -7519,7 +7527,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     /* ---- profil basligi ---- */
     function drawHero() {
       const p = st.prof; const me = p && p.me;
-      put(nameEl, me && me.name ? me.name : 'League Asistanı', me && me.tag ? h('span', { class: 'lg-tag' }, '#' + me.tag) : null);
+      put(nameEl, me && me.name ? me.name : 'Blitz', me && me.tag ? h('span', { class: 'lg-tag' }, '#' + me.tag) : null);
       put(avaBox, icon('profile', me && me.icon, me && me.name || 'L'), me && me.level ? h('span', { class: 'lg-lvl' }, String(me.level)) : null);
       const on = st.client === true;
       put(chipsEl, st.liveOn ? h('button', { type: 'button', class: 'lg-chip on live', id: 'lg-livechip', onclick: () => setTab('live') }, h('i'), KT('Maçtasın')) : null, h('span', { class: 'lg-chip' + (on ? ' on' : ''), id: 'lg-client' }, h('i'), on ? KT('İstemci bağlı') : st.client === false ? KT('İstemci kapalı') : KT('İstemci aranıyor…')), p && p.lastSync ? h('span', { class: 'lg-chip' }, KT('Son güncelleme: {0}', ago(p.lastSync))) : null, p ? h('span', { class: 'lg-chip' }, KT('{0} maç kayıtlı', num(p.matches))) : null);
@@ -7528,11 +7536,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       tiltEl.hidden = !(p && p.tilt); tiltEl.textContent = p && p.tilt ? KT('Üst üste 3 mağlubiyet. Kısa bir mola vermeyi düşün.') : '';
     }
     async function refreshProf() { const r = await call(H.lolProfile); if (r && !r.error) st.prof = r; drawHero(); }
-    async function doSync(deep) {
-      if (st.busy) return; st.busy = true; syncBtn.disabled = deepBtn.disabled = true; say(KT('League istemcisinden okunuyor…'));
-      const r = await call(H.lolSync, deep); st.busy = false; syncBtn.disabled = deepBtn.disabled = false;
-      if (!r || r.error) { say(failMsg(r), true); st.client = null; } else if (r.state === 'noclient') { st.client = false; say(KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.')); } else { st.client = true; say(KT('Güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); }
-      st.sync = Date.now(); await refreshProf(); load(st.tab);
+    async function doSync(quiet) {
+      if (st.busy) return; st.busy = true; syncBtn.disabled = true; if (!quiet) say(KT('League istemcisinden okunuyor…'));
+      const r = await call(H.lolSync, false); st.busy = false; syncBtn.disabled = false;
+      if (!r || r.error) { say(failMsg(r), true); st.client = null; } else if (r.state === 'noclient') { st.client = false; if (!quiet) say(KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.')); } else { st.client = true; if (!quiet || r.added || r.snaps) say(KT('Güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); }
+      st.sync = Date.now(); await refreshProf(); if (!quiet || (r && (r.added || r.snaps))) load(st.tab);
     }
     async function wipe() { const r = await call(H.lolDataClear); if (r && r.canceled) { say(KT('Vazgeçildi.')); return; } if (!r || r.error) { say(failMsg(r), true); return; } say(KT('Kayıtlı League verileri silindi.')); await refreshProf(); load(st.tab); }
 
@@ -7630,7 +7638,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         if (r && !r.error && r.picks && r.picks.length) kids.push(h('section', { class: 'lg-card', id: 'lg-sel-best' }, h('h2', { class: 'lg-h' }, KT('{0} hattında olası rakip: {1}', KT(RTR[myRole]), nameOf(opp.id))), h('ol', { class: 'lg-bestl' }, ...r.picks.map((p) => h('li', { class: p.id === lc.myPick ? 'me' : '' }, champIc(p.id), h('b', {}, p.name), p.inPool ? pill('low', KT('havuzumda')) : null, p.ext ? pill('mid', '%' + p.ext.wr) : null, h('span', { class: 'lc-score' }, String(p.score))))), h('p', { class: 'rm-hint' }, KT('Tahmin; hat rakibi kesinleşince değişebilir.')))); }
       const SRC_TR = { cp: 'counterpick.lol', url: 'Dış veri adresin', hist: 'Kendi maçların', lcu: 'League’in önerisi (hat bazlı)' };
       const srcLine = (rs, op) => rs.src ? h('p', { class: 'lg-sub', id: 'lg-rune-src' }, pill('low', KT(SRC_TR[rs.src])), ' ', rs.src === 'hist' && rs.hist ? KT(rs.hist.scope === 'vs' ? '{0} karşısında {1} maç · %{2} kazanma' : 'Bu şampiyonla {1} maç · %{2} kazanma', nameOf(op.id), rs.hist.games, rs.hist.wr) : rs.src === 'lcu' ? KT('eşleşmeye özel değil') : '') : null;
-      const REASON = { 'url:net': 'Dış veri adresine ulaşılamadı', 'url:none': 'Dış veri adresinde bu eşleşme yok', 'cp:net': 'counterpick.lol’a ulaşılamadı', 'cp:none': 'counterpick.lol’da bu eşleşme listelenmemiş', 'cp:norunes': 'counterpick.lol’da rün listesi okunamadı', 'cp:rev': 'counterpick.lol yalnız ters yönü listeliyor (oran var, rün yok)', 'hist:sync': 'Maç geçmişinde rün bilgisi yok — League Asistanı’nda “Senkronize et”', 'hist:none': 'Bu şampiyonla kayıtlı maç yok', 'lcu:noclient': 'League istemcisi açık değil', 'lcu:net': 'İstemcinin önerisi alınamadı', 'lcu:none': 'İstemcinin bu hat için önerisi yok' };
+      const REASON = { 'url:net': 'Dış veri adresine ulaşılamadı', 'url:none': 'Dış veri adresinde bu eşleşme yok', 'cp:net': 'counterpick.lol’a ulaşılamadı', 'cp:none': 'counterpick.lol’da bu eşleşme listelenmemiş', 'cp:norunes': 'counterpick.lol’da rün listesi okunamadı', 'cp:rev': 'counterpick.lol yalnız ters yönü listeliyor (oran var, rün yok)', 'hist:sync': 'Maç geçmişinde rün bilgisi yok — Blitz’te “Güncelle”', 'hist:none': 'Bu şampiyonla kayıtlı maç yok', 'lcu:noclient': 'League istemcisi açık değil', 'lcu:net': 'İstemcinin önerisi alınamadı', 'lcu:none': 'İstemcinin bu hat için önerisi yok' };
       const why = (rs) => { const items = (rs.tried || []).filter((t) => t.state !== 'off').map((t) => t.src === 'hist' && t.state === 'few' ? KT('Kayıtlı maç yetersiz ({0} bu eşleşmede, {1} bu hatta)', t.a || 0, t.b || 0) : REASON[t.src + ':' + t.state] ? KT(REASON[t.src + ':' + t.state]) : null).filter(Boolean); return items.length ? h('ul', { class: 'lg-why', id: 'lg-rune-why' }, ...items.map((x) => h('li', {}, x))) : null; };
       if (lc.myPick && opp) { const rs = await call(H.lolRuneSuggest, { me: lc.myPick, enemy: opp.id, role: myRole });
         if (rs && !rs.error) { const R = await getRunes(); const main = rs.runes ? rs.runes.perks.filter((n) => n >= 8000 && n % 100 !== 0).slice(0, 6) : [];
@@ -7755,7 +7763,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
     /* ---- birlikte oynadiklarim ---- */
     async function drawPartners() {
-      const r = await call(H.lolStats, { queue: 'all' }); if (st.tab !== 'partners') return; const pr = r && r.partners; if (!pr || !pr.rows.length) { put(panes.partners, empty(KT('Birlikte oynadığın kimse yok'), KT('Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür. Derin tarama daha fazla maç ayrıntısı alır.'), btn('lg-deep2', 'Geçmişi derin tara', () => doSync(true)))); return; }
+      const r = await call(H.lolStats, { queue: 'all' }); if (st.tab !== 'partners') return; const pr = r && r.partners; if (!pr || !pr.rows.length) { put(panes.partners, empty(KT('Birlikte oynadığın kimse yok'), KT('Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür.'))); return; }
       put(panes.partners, h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Takım arkadaşlarım')), h('p', { class: 'lg-sub' }, KT('{0} maçın {1} tanesinde oyuncu ayrıntısı var; yalnızca bunlar sayıldı.', pr.total, pr.covered)),
         h('div', { class: 'lg-tblw' }, h('table', { class: 'lg-table', id: 'lg-ptable' }, h('thead', {}, h('tr', {}, ...['Oyuncu', 'Maç', 'Galibiyet', 'Sık oynadığı', 'Son'].map((t) => h('th', { scope: 'col' }, KT(t))))), h('tbody', {}, ...pr.rows.map((x) => h('tr', {}, h('td', {}, h('div', { class: 'lg-who' }, icon('', 0, x.name), h('b', {}, x.name || '?', x.tag ? h('span', { class: 'lg-tag' }, ' #' + x.tag) : null))), h('td', {}, String(x.games)), h('td', {}, h('div', { class: 'lg-bar' + (x.wr < 50 ? ' lo' : '') }, h('span', {}, '%' + Math.round(x.wr) + ' (' + x.wins + '–' + (x.games - x.wins) + ')'), h('i', { style: '--w:' + Math.round(x.wr) + '%' }))), h('td', {}, x.top.map(nameOf).join(', ')), h('td', {}, ago(x.last)))))))));
     }
@@ -7840,6 +7848,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     autoCb.addEventListener('change', () => setAuto(autoCb.checked));
     enemyIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); suggest(); } }); enemyIn.addEventListener('change', () => suggest()); poolOnlyCb.addEventListener('change', () => suggest()); anyRoleCb.addEventListener('change', () => suggest());
     setInterval(() => { if (visible() && st.client === true && !st.busy && Date.now() - st.sync > 60000) doSync(false); }, 15000);
+    function setAutoSync() { clearInterval(st.autoT); st.autoT = 0; const n = Number(autoV); if (n > 0) st.autoT = setInterval(() => { if (!visible() || st.busy) return; if (st.client === false && Date.now() - st.sync < 15000) return; doSync(true); }, n * 1000); }
+    setAutoSync();
     boot();
   })();
 
@@ -8027,7 +8037,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
     /* Kategoriler: kenar cubugu ve Home bu sirayla gruplar. Yeni arac: MODULES girdisine cat: 'guvenlik' | 'windows' | 'minecraft' | 'kodlama' ekle. */
-    const CATS = [['guvenlik', 'Güvenlik', 'shield', 'Dosya, arşiv ve betik inceleme araçları.'], ['windows', 'Windows', 'winlogo', 'Sistem izleme, bellek analizi, oyun ve League araçları.'], ['minecraft', 'Minecraft', 'cube', 'Doku paketi ve mod araçları.'], ['kodlama', 'Kodlama', 'code', 'Derleme ve kaynak kod araçları.']];
+    const CATS = [['guvenlik', 'Güvenlik', 'shield', 'Dosya, arşiv ve betik inceleme araçları.'], ['windows', 'Windows', 'winlogo', 'Sistem izleme ve bellek analizi araçları.'], ['oyun', 'Oyun', 'gamepad', 'Oyun ayarlayıcı ve League asistanı Blitz.'], ['minecraft', 'Minecraft', 'cube', 'Doku paketi ve mod araçları.'], ['kodlama', 'Kodlama', 'code', 'Derleme ve kaynak kod araçları.']];
     const MODULES = [{ id: 'statscan', cat: 'guvenlik', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
       { id: 'texpack', cat: 'minecraft', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', cat: 'minecraft', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
@@ -8036,8 +8046,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'oyunayar', cat: 'windows', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'windows', name: 'League Asistanı', icon: 'swords', beta: true, ver: '0.0.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'oyunayar', cat: 'oyun', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.0.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
