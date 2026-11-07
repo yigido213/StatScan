@@ -62,8 +62,9 @@ const mk = (dir, extra) => createHost(Object.assign({ service: { closeAll() {} }
   // Baslat menusu onerileri
   const sm = path.join(tmp, 'startmenu'); mkf('startmenu/Programs/Discord Inc/Discord.lnk'); mkf('startmenu/Programs/Steam/Steam.lnk'); mkf('startmenu/Programs/Steam/Uninstall Steam.lnk'); mkf('startmenu/Programs/Medal.lnk'); mkf('startmenu/Programs/Rastgele Uygulama.lnk'); mkf('startmenu/Programs/League of Legends.lnk'); mkf('startmenu/Programs/Discord.txt');
   const h6 = mk(path.join(tmp, 'd6'), { startMenuDirs: [path.join(sm, 'Programs'), path.join(tmp, 'olmayan')] });
-  r = await h6['flow:suggest'](null); const names = r.items.map((x) => x.name); ok(names.join() === ['Discord', 'League of Legends', 'Medal', 'Steam'].join(), 'oneriler: yalniz tanidik adlar, "Uninstall"/rastgele yok -> ' + names.join('|'));
+  r = await h6['flow:suggest'](null); const names = r.items.map((x) => x.name); ok(names.join() === ['Discord', 'League of Legends', 'Medal', 'Steam', 'Rastgele Uygulama'].join(), 'oneriler: tum Baslat menusu, tanidik adlar once, "Uninstall" yok -> ' + names.join('|'));
   ok(!JSON.stringify(r).includes(tmp) && r.items.every((x) => /^[0-9a-f]{10}$/.test(x.sid)), 'oneri yaniti yol icermez; yalniz sid');
+  { const hl = mk(path.join(tmp, 'd6b'), { startMenuDirs: [path.join(sm, 'Programs')], readShortcut: (p) => (/Rastgele/.test(p) ? { target: path.join(tmp, 'apps/Rastgele/rast.exe') } : null) }); const rl = await hl['flow:suggest'](null); const rr = rl.items.find((x) => x.name === 'Rastgele Uygulama'); ok(rr && rr.location === path.join(tmp, 'apps/Rastgele') && rr.known === false, 'oneri: kisayol hedefinden kurulu klasor kendisi bulunur (location), tanidik degilse known=false'); }
   const d = r.items.find((x) => x.name === 'Discord'); r = await h6['flow:addSuggested'](null, d.sid); ok(r.apps && r.apps.length === 1 && r.apps[0].name === 'Discord', 'onerilen eklenir');
   r = await h6['flow:suggest'](null); ok(r.items.find((x) => x.name === 'Discord').already === true, 'eklenen oneride "already" isaretlenir');
   r = await h6['flow:addSuggested'](null, 'ffffffffff'); ok(r.error === 'flow', 'bilinmeyen sid reddedilir');
@@ -75,7 +76,7 @@ const mk = (dir, extra) => createHost(Object.assign({ service: { closeAll() {} }
   const hb = createHost({ service: { closeAll() {} }, flow: { dataDir: path.join(tmp, 'd8'), platform: 'win32' }, access: { dataDir: path.join(tmp, 'acc'), publicKey: null } });
   ok(typeof hb.handlers['flow:open'] === 'function', 'erisim modulu varken flow: kanallari kayitli');
   // kaynak taramasi: FLOWMOD'da shell/exec/spawn/ag yok
-  const src = fs.readFileSync(path.join(__dirname, '../../app/desktop/host.js'), 'utf8'); const a1 = src.indexOf('const FLOWMOD = (() => {'); const a2 = src.indexOf("/* --- Oyun Ayarlayici (Kovan 'oyunayar'"); const body = src.slice(a1, a2);
+  const src = fs.readFileSync(path.join(__dirname, '../../app/desktop/host.js'), 'utf8'); const a1 = src.indexOf('const FLOWMOD = (() => {'); const a2 = src.indexOf("/* --- Otomatik Guncelleyici (Kovan 'upd')"); const body = src.slice(a1, a2);
   ok(a1 > 0 && a2 > a1, 'FLOWMOD, GAMEMOD oncesinde (MEMMOD diliminin disinda)');
   ok(!/child_process|cp\.|spawn|exec\(|execFile|shell\s*:|require\('(https?|net|tls|dgram|dns)'\)|fetch\(|XMLHttpRequest|\bdeps\.(get|getBin|run)\b/.test(body.replace(/\/\*[\s\S]*?\*\//g, '')), 'FLOWMOD: komut calistirma/ag kodu YOK (yalniz openPath/openExternal enjekte)');
   console.log(bad ? '\n' + bad + ' BASARISIZ' : '\nHepsi gecti'); process.exit(bad ? 1 : 0);
