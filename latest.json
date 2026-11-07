@@ -1,6 +1,6 @@
 {
-  "version": "5.0.10",
-  "url": "StatScan-5.0.10.ssu",
-  "sha256": "a3ec4eee2a2b2fd075229159e13a2447434e71724de0dc975bd9bb119e455d52",
-  "notes": "5.0.10 — Kovan beta 0.1.5: League Asistanı'na Oyuncu ara sekmesi eklendi. Ad#ETİKET ile ya da arkadaş listenden bir oyuncu seçip profilini, derecesini, son maçlarını, şampiyon ve rol istatistiklerini görebilirsin (League istemcisi üzerinden, yalnız okuma; sonuç yalnızca bellekte tutulur)."
+  "version": "5.0.11",
+  "url": "StatScan-5.0.11.ssu",
+  "sha256": "62ebc88e9d6fdd5117ad56e539dc10e25ae81560f18767902e1933590b461c77",
+  "notes": "5.0.11 — HOTFIX (Kovan beta 0.1.5 kaldı): League Asistanı'nda oyuncu arama artık sekme değil, her sekmede en üstte duran bir arama çubuğu (Arkadaşlarım listesiyle). Karşı seçim sekmesi tam genişlik, rol/rakip/şampiyon havuzu bölümleri ferah ve düzenli."
 }
