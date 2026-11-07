@@ -1,6 +1,6 @@
 {
-  "version": "5.0.15",
-  "url": "StatScan-5.0.15.ssu",
-  "sha256": "7ea451a36e403aa625f1aa708059947c2462737d71e2267b72918666df0ab166",
-  "notes": "5.0.15 — HOTFIX (Kovan beta 0.1.7 kaldı): Blitz'te Güncelle, Otomatik yenile ve Verileri sil düğmeleri kaldırıldı; yenileme kendiliğinden (3 sn) sürer."
+  "version": "5.0.16",
+  "url": "StatScan-5.0.16.ssu",
+  "sha256": "b01832ad811df50fcc7ce0d2e1b7198059cd2248a90c8665a8314e081df598e1",
+  "notes": "5.0.16 — Kovan beta 0.1.8: Otomatik güncelleyici (akış sütununun solunda küçük çubuk; uygulamaya tıkla → winget ile güncelleme kontrolü → onaylarsan güncelle; uygulamaları Başlat menüsünden kendisi bulur). Akış sütununda uygulama ekleme de tüm Başlat menüsünü arıyor."
 }
