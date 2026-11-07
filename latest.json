@@ -1,6 +1,6 @@
 {
-  "version": "5.0.14",
-  "url": "StatScan-5.0.14.ssu",
-  "sha256": "56351458b00a373adaa98096765e811d03933c1f7b6049d08eae496c05055cbe",
-  "notes": "5.0.14 — Kovan beta 0.1.7: League Asistanı 'Blitz' oldu, 'Geçmişi derin tara' kaldırıldı, Otomatik yenile (1/2/3 sn) eklendi; yeni 'Oyun' kategorisi (Oyun Ayarlayıcı + Blitz)."
+  "version": "5.0.15",
+  "url": "StatScan-5.0.15.ssu",
+  "sha256": "7ea451a36e403aa625f1aa708059947c2462737d71e2267b72918666df0ab166",
+  "notes": "5.0.15 — HOTFIX (Kovan beta 0.1.7 kaldı): Blitz'te Güncelle, Otomatik yenile ve Verileri sil düğmeleri kaldırıldı; yenileme kendiliğinden (3 sn) sürer."
 }
