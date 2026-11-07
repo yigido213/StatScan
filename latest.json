@@ -1,6 +1,6 @@
 {
-  "version": "5.0.15",
-  "url": "StatScan-5.0.15.ssu",
-  "sha256": "7ea451a36e403aa625f1aa708059947c2462737d71e2267b72918666df0ab166",
-  "notes": "5.0.15 — HOTFIX (Kovan beta 0.1.7 kaldı): Blitz'te Güncelle, Otomatik yenile ve Verileri sil düğmeleri kaldırıldı; yenileme kendiliğinden (3 sn) sürer."
+  "version": "5.0.17",
+  "url": "StatScan-5.0.17.ssu",
+  "sha256": "9bf4378fb23e0e551677cbd272849b93e96187c16c6375c00735619ea94365d4",
+  "notes": "5.0.17 — Kovan beta 0.1.9: Blitz'te rank filtreli eşleşme verisi (Iron–Challenger, 'Tüm ranklar' = Emerald+), eşleşmeye özel eşya, kişisel eşleşme notu ve maç açılış bindirmesi (Ayarlar'dan açılır; Borderless/Pencereli oyunda görünür)."
 }

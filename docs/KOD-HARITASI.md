@@ -14,7 +14,16 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 - Sağ kenarda (≥1100 px, yalnız masaüstü köprüsü varsa) yukarıdan aşağı yavaş akan, döngüsel uygulama sütunu. Kullanıcı exe/lnk/url veya https web girişi ekler; tıklayınca açılır. Kendi tarayıcı = kullanıcının tarayıcısı (exe/lnk ya da https girişi); Kovan içi tarayıcı YOK.
 - Host (`FLOWMOD`, `uygulamaakisi.json`): handlerlar `flow:list/add/addWeb/suggest/addSuggested/rename/remove/order/open`. Arayüz yol/URL göndermez; yalnız kimlik. Dosya host dialoguyla ya da Başlat menüsü taramasıyla (sid) seçilir; uzantı .exe/.lnk/.url, UNC/göreli yol reddedilir, web yalnız https, en çok 24 uygulama. Kabuk/ağ/exec yok (testle kaynak taranır); yanıtlarda dosya yolu yok. Engelli kurulumda `flow:` kanalları kapalı (ACCESSMOD sarmalayıcı).
 - Arayüz: tek rAF döngüsü, offset += hız*dt; hız üzerine gelince/odakta/pencere açıkken 0'a yumuşar; az uygulamada kopyalarla doldurulur; derinlik ölçeği + opaklık + sallanma; tekerlek kaydırır; klavye odağı ortalar. `data-fx="off"` veya hareket azaltmada durağan liste. Ayarlar'da anahtar + düzenle; komut paletinde iki komut. localStorage `kovan.flow`='0' = gizli.
-- Testler: `flow-host.cjs` (63), `ui-flow.mjs` (68).
+- Testler: `flow-host.cjs` (64), `ui-flow.mjs` (71).
+- `flow:suggest` artık TÜM Başlat menüsü kısayollarını döndürür (tanıdık adlar önce; 'Uninstall/Readme/Help' vb. elenir), her öğede `location` (kısayol hedefinin kurulu klasörü, `deps.readShortcut` ile) ve `known`; arayüzde arama kutusu. Kullanıcı exe aramak zorunda kalmaz.
+
+## Otomatik güncelleyici (UPDMOD + `kovanUpd`)
+- Arayüz: akış sütununun SOLUNDA (sağ üstte, `top:10px; right:110px`; akış gizliyse `right:14px`; ≥1100 px) küçük 'Otomatik güncelleyici' çubuğu `#kv-upd-bar`; tıklayınca `#kv-upd-pop` açılır: uygulama simgeleri + altında ad, '+ Ekle'. Uygulamaya tıkla → kontrol → 'X için henüz update gelmemiş.' / 'X için update gelmiş. Update demek ister misiniz?' [Güncelle] (onaydan sonra güncellenir, ilerleme çubuğu) / 'bilgi alınamadı (kendi kendini güncelliyor olabilir)'. Esc/dışına tık kapatır. Kod: `StatScan.html` `kovanUpd` (kovanFlow'dan sonra), CSS `.upd-*`, EN sözlük 'Uygulama Akışı' girdisinin altında.
+- Host: `host.js` `UPDMOD` (FLOWMOD'dan sonra, GAMEMOD'dan önce; `createHost`'ta `deps.upd`, `deps.flow`'dan dataDir/fileIcon/chooseApp/readShortcut/startMenuDirs/platform miras alır). Kanallar: `upd:list/discover/add/addFile/remove/check/apply`; veri `guncelleyici.json` (id, ad, kısayol yolu, bulunan winget kimliği). Arayüze yol/komut/paket kimliği GİTMEZ (yalnız uygulama kimliği + `location` klasörü).
+- Kontrol: `winget upgrade` (60 sn önbellek) tablosu ayrıştırılır (`parseTable`: başlık sütun konumları, dile bağımsız); eşleşme önce kayıtlı winget kimliği, sonra ad (tam, yoksa tek önek eşleşmesi). Yoksa `winget list -q <ad>`: bulunursa 'current', bulunamazsa 'unknown' (dürüst: winget bilmiyor, ör. Roblox). winget yoksa 'nowinget'.
+- Güncelleme: `winget upgrade --id <kimlik> -e --silent --accept-package-agreements --accept-source-agreements --disable-interactivity` (`execFile`, kabuk YOK); yalnız o uygulama için son 30 dk içinde 'available' dönen kontrolden sonra (`pending`), tek seferde bir güncelleme (`busy`), 15 dk zaman aşımı; çıkış 0 → updated, 0x8A15002B → current, diğer → failed (+ kısa özet).
+- Testler: `upd-host.cjs` (39, sahte winget/Başlat menüsü), `ui-upd.mjs` (31, yerleşim/akış/EN/klavye). Gerçek winget/Windows'ta DENENMEDİ.
+
 - DENENMEDİ: gerçek Windows, gerçek exe/lnk açma, `app.getFileIcon`, Başlat menüsü yolları, gerçek Discord/Steam/Medal/League kısayolları.
 
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
@@ -50,7 +59,7 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: paket 5.0.15, Kovan beta 0.1.7.
+- Mevcut: paket 5.0.16, Kovan beta 0.1.8.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).

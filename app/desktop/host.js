@@ -1673,6 +1673,7 @@ const FLOWMOD = (() => {
   const MAX_APPS = 24; const APP_EXT = /\.(exe|lnk|url)$/i; const ID_RE = /^[0-9a-f]{12}$/; const SID_RE = /^[0-9a-f]{10}$/;
   /* Baslat menusu taramasinda aranan tanidik uygulama adlari (yalniz kisayol adi eslesmesi; baska hicbir sey okunmaz) */
   const KNOWN = [/^discord/i, /^steam$/i, /^medal/i, /league of legends/i, /^riot client/i, /^google chrome$/i, /^firefox/i, /^microsoft edge$/i, /^brave/i, /^opera/i, /^spotify/i, /^obs studio/i, /^epic games launcher$/i, /battle\.net/i, /^whatsapp/i, /^telegram/i, /^visual studio code$/i, /^notepad\+\+$/i];
+  const SKIP_SM = /(uninstall|kald[ıi]r|readme|release notes|documentation|dok[uü]man|help\b|yard[ıi]m|web ?site|web sitesi|license|lisans|manual|k[ıi]lavuz)/i;
   const cleanName = (s) => { if (typeof s !== 'string') return null; const v = s.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40); return v || null; };
   const isUnc = (p) => /^[\\/]{2}/.test(p);
   function validWeb(u) {
@@ -1709,8 +1710,8 @@ const FLOWMOD = (() => {
       const dirs = deps.startMenuDirs || (isWin() ? [process.env.ProgramData && path.join(process.env.ProgramData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'), process.env.APPDATA && path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs')].filter(Boolean) : []);
       const found = new Map(); let budget = 3000;
       const walk = (d, depth) => { if (depth > 3 || budget <= 0) return; let ents; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
-        for (const en of ents) { if (budget-- <= 0) return; const full = path.join(d, en.name); if (en.isDirectory()) walk(full, depth + 1); else if (en.isFile() && /\.lnk$/i.test(en.name)) { const nm = cleanName(en.name.replace(/\.lnk$/i, '')); if (nm && KNOWN.some((re) => re.test(nm)) && !found.has(nm.toLowerCase())) found.set(nm.toLowerCase(), { name: nm, path: full }); } } };
-      for (const d of dirs) walk(d, 0); return [...found.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 40);
+        for (const en of ents) { if (budget-- <= 0) return; const full = path.join(d, en.name); if (en.isDirectory()) walk(full, depth + 1); else if (en.isFile() && /\.lnk$/i.test(en.name)) { const nm = cleanName(en.name.replace(/\.lnk$/i, '')); if (nm && !SKIP_SM.test(nm) && !found.has(nm.toLowerCase())) found.set(nm.toLowerCase(), { name: nm, path: full, known: KNOWN.some((re) => re.test(nm)) }); } } };
+      for (const d of dirs) walk(d, 0); /* tanidik uygulamalar (Discord, Steam...) once, sonra alfabetik; tum Baslat menusu aranabilir */ return [...found.values()].sort((a, b) => (a.known === b.known ? a.name.localeCompare(b.name) : a.known ? -1 : 1)).slice(0, 400);
     }
     const handlers = {
       'flow:list': async () => { try { return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
@@ -1722,7 +1723,7 @@ const FLOWMOD = (() => {
           const nm = cleanName(name) || new URL(u).hostname.replace(/^www\./, ''); state.apps.push({ id: newId(), name: nm, kind: 'web', url: u }); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
       },
       'flow:suggest': async () => {
-        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); sugg.set(sid, f.path); items.push({ sid, name: f.name, already: state.apps.some((a) => a.kind === 'app' && norm(a.path) === norm(f.path)) }); }
+        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); sugg.set(sid, f.path); let loc = ''; try { const r = deps.readShortcut && deps.readShortcut(f.path); if (r && typeof r.target === 'string' && r.target) loc = path.dirname(r.target); } catch (e) { loc = ''; } items.push({ sid, name: f.name, location: loc, known: !!f.known, already: state.apps.some((a) => a.kind === 'app' && norm(a.path) === norm(f.path)) }); }
           return { items, windows: isWin() || !!deps.startMenuDirs }; } catch (e) { return errE(String(e && e.message || e)); }
       },
       'flow:addSuggested': async (_e, sid) => {
@@ -1745,6 +1746,105 @@ const FLOWMOD = (() => {
     return { handlers, _state: () => state };
   }
   return { createFlowHost, cleanName, validWeb, KNOWN, MAX_APPS };
+})();
+
+/* --- Otomatik Guncelleyici (Kovan 'upd'): kullanicinin sectigi uygulamalar icin winget ile guncelleme kontrolu + onayli guncelleme ---
+ * Uygulamalari KENDISI bulur: Baslat menusundeki tum kisayollar taranir, her kisayolun hedefinden uygulamanin kurulu klasoru okunur (exe aramak gerekmez).
+ * Guncelleme kontrolu 'winget upgrade' / 'winget list' ciktisini okur (yalniz okuma). Guncelleme 'winget upgrade --id <kimlik> -e --silent' ile yapilir:
+ * kabuk YOK (execFile), kimlik yalniz bu hostun kendi kontrolunden gelir (arayuz kimlik/yol/komut gonderemez), her guncelleme arayuzde onaydan sonra baslar.
+ * winget bilmeyen uygulamalar (kendi kendini guncelleyenler: Roblox, bazen Discord) icin durust 'bilinmiyor' doner; uydurma sonuc yok. */
+const UPDMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const crypto = require('crypto'); const cp = require('child_process');
+  const MAX_APPS = 30; const ID_RE = /^[0-9a-f]{12}$/; const SID_RE = /^[0-9a-f]{10}$/; const WID_RE = /^[A-Za-z0-9][A-Za-z0-9._+\-]{1,100}$/; const APP_EXT = /\.(exe|lnk)$/i;
+  const SKIP = /(uninstall|kald[ıi]r|readme|release notes|documentation|dok[uü]man|help\b|yard[ıi]m|web ?site|web sitesi|license|lisans|manual|k[ıi]lavuz)/i;
+  const NOT_APPLICABLE = -1978335189; /* 0x8A15002B: uygulanabilir guncelleme yok */
+  const cleanName = (s) => { if (typeof s !== 'string') return null; const v = s.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40); return v || null; };
+  const nrm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  /* winget tablosu: baslik sutun konumlari (dil bagimsiz) + tire satiri; ilerleme/spinner satirlari atilir */
+  function parseTable(text) {
+    const lines = String(text || '').split(/\r?\n/).map((l) => { const i = l.lastIndexOf('\r'); return (i >= 0 ? l.slice(i + 1) : l).replace(/\s+$/, ''); });
+    const di = lines.findIndex((l, i) => i > 0 && /^-{8,}$/.test(l.trim()) && lines[i - 1].trim()); if (di < 0) return [];
+    const head = lines[di - 1]; let pos = [...head.matchAll(/\S+/g)].map((m) => m.index);
+    if (pos.length < 3 || pos.length > 5) pos = [...head.matchAll(/\S+(?: \S+)*/g)].map((m) => m.index); if (pos.length < 3) return [];
+    const cut = (l, k) => (l.slice(pos[k], k + 1 < pos.length ? pos[k + 1] : undefined) || '').trim(); const rows = [];
+    for (let i = di + 1; i < lines.length; i++) { const l = lines[i]; if (!l.trim()) { if (rows.length) break; continue; } if (l.length <= pos[1]) continue;
+      const c3 = pos.length >= 4 ? cut(l, 3) : ''; const hasAv = pos.length >= 5 || /\d/.test(c3); const r = { name: cut(l, 0), id: cut(l, 1), version: cut(l, 2), available: hasAv ? c3 : '', source: pos.length >= 5 ? cut(l, 4) : (hasAv ? '' : c3) };
+      if (r.name && WID_RE.test(r.id) && /\d/.test(r.version)) rows.push(r); }
+    return rows;
+  }
+  function pickRow(rows, app) {
+    if (app.wid) { const r = rows.find((x) => x.id.toLowerCase() === app.wid.toLowerCase()); if (r) return r; }
+    const exact = rows.filter((r) => nrm(r.name) === nrm(app.name)); if (exact.length) return exact[0];
+    const n = nrm(app.name); if (n.length < 4) return null; const pre = rows.filter((r) => { const m = nrm(r.name); return m.length >= 4 && (m.startsWith(n) || n.startsWith(m)); }); return pre.length === 1 ? pre[0] : null;
+  }
+  const dirOf = (p) => { try { return path.dirname(p); } catch (e) { return ''; } };
+  function createUpdHost(deps) {
+    deps = deps || {}; const isWin = () => (deps.platform || process.platform) === 'win32'; const now = deps.now || (() => Date.now());
+    const stateFile = deps.dataDir ? path.join(deps.dataDir, 'guncelleyici.json') : null; const errE = (message, extra) => Object.assign({ error: 'upd', message }, extra || {});
+    let state = { v: 1, apps: [] };
+    if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && Array.isArray(o.apps)) state.apps = o.apps.filter((a) => a && ID_RE.test(String(a.id)) && cleanName(a.name) && typeof a.path === 'string').slice(0, MAX_APPS).map((a) => ({ id: a.id, name: cleanName(a.name), path: a.path, wid: typeof a.wid === 'string' && WID_RE.test(a.wid) ? a.wid : null })); } catch (e) { /* ilk calistirma */ } }
+    const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
+    const find = (id) => (typeof id === 'string' && ID_RE.test(id) ? state.apps.find((a) => a.id === id) : null);
+    const newId = () => { let id; do { id = crypto.randomBytes(6).toString('hex'); } while (state.apps.some((a) => a.id === id)); return id; };
+    const norm = (p) => (isWin() ? path.normalize(p).toLowerCase() : path.normalize(p));
+    const iconCache = new Map(); const sugg = new Map(); const pending = new Map(); let upCache = null; let busy = false;
+    const run = deps.run || ((args, timeout) => new Promise((resolve) => { cp.execFile('winget', args, { windowsHide: true, timeout: timeout || 60000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : (err.code === 'ENOENT' ? 'ENOENT' : -1)) : 0, stdout: String(stdout || ''), stderr: String(stderr || ''), killed: !!(err && err.killed) })); }));
+    async function iconOf(p) { if (!deps.fileIcon) return null; if (iconCache.has(p)) return iconCache.get(p); let v = null; try { const r = await deps.fileIcon(p); if (typeof r === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(r) && r.length <= 200000) v = r; } catch (e) { v = null; } iconCache.set(p, v); return v; }
+    const exists = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
+    async function pub() { const out = []; for (const a of state.apps) { const miss = !exists(a.path); out.push({ id: a.id, name: a.name, icon: miss ? null : await iconOf(a.path), missing: miss }); } return { apps: out, max: MAX_APPS, windows: isWin() }; }
+    function scanStart() {
+      const dirs = deps.startMenuDirs || (isWin() ? [process.env.ProgramData && path.join(process.env.ProgramData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'), process.env.APPDATA && path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs')].filter(Boolean) : []);
+      const found = new Map(); let budget = 5000;
+      const walk = (d, depth) => { if (depth > 3 || budget <= 0) return; let ents; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+        for (const en of ents) { if (budget-- <= 0) return; const full = path.join(d, en.name); if (en.isDirectory()) walk(full, depth + 1); else if (en.isFile() && /\.lnk$/i.test(en.name)) { const nm = cleanName(en.name.replace(/\.lnk$/i, '')); if (nm && !SKIP.test(nm) && !found.has(nm.toLowerCase())) found.set(nm.toLowerCase(), { name: nm, path: full }); } } };
+      for (const d of dirs) walk(d, 0); return [...found.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
+    }
+    function locationOf(lnk) { let t = null; try { const r = deps.readShortcut && deps.readShortcut(lnk); if (r && typeof r.target === 'string' && r.target) t = r.target; } catch (e) { t = null; } if (!t) return { loc: '', target: null }; return { loc: dirOf(t), target: t }; }
+    async function upgrades() { if (upCache && now() - upCache.t < 60000) return upCache.r; const r = await run(['upgrade', '--accept-source-agreements', '--disable-interactivity'], 90000); if (r.code === 'ENOENT') return { nowinget: true }; const v = { rows: parseTable(r.stdout), code: r.code }; upCache = { t: now(), r: v }; return v; }
+    const handlers = {
+      'upd:list': async () => { try { return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
+      'upd:discover': async () => {
+        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); const lc = locationOf(f.path); sugg.set(sid, f.path); items.push({ sid, name: f.name, location: lc.loc, already: state.apps.some((a) => norm(a.path) === norm(f.path) || a.name.toLowerCase() === f.name.toLowerCase()) }); }
+          return { items, windows: isWin() || !!deps.startMenuDirs }; } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'upd:add': async (_e, sid) => {
+        try { const p = typeof sid === 'string' && SID_RE.test(sid) ? sugg.get(sid) : null; if (!p) return errE('Öneri bulunamadı; listeyi yenile.'); if (state.apps.length >= MAX_APPS) return errE('En fazla ' + MAX_APPS + ' uygulama eklenebilir.');
+          if (state.apps.some((a) => norm(a.path) === norm(p))) return errE('Bu uygulama zaten listede.'); state.apps.push({ id: newId(), name: cleanName(path.basename(p).replace(APP_EXT, '')) || 'Uygulama', path: path.normalize(p), wid: null }); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'upd:addFile': async () => {
+        try { if (!deps.chooseApp) return errE('Dosya seçimi kullanılamıyor.'); const p0 = await deps.chooseApp(); if (!p0) return { canceled: true }; const p = String(p0);
+          if (typeof p !== 'string' || p.length > 1024 || !path.isAbsolute(p) || /^[\\/]{2}/.test(p) || !APP_EXT.test(p) || !exists(p)) return errE('Yalnızca bu bilgisayardaki .exe veya .lnk dosyası eklenebilir.');
+          if (state.apps.length >= MAX_APPS) return errE('En fazla ' + MAX_APPS + ' uygulama eklenebilir.'); if (state.apps.some((a) => norm(a.path) === norm(p))) return errE('Bu uygulama zaten listede.');
+          state.apps.push({ id: newId(), name: cleanName(path.basename(p).replace(APP_EXT, '')) || 'Uygulama', path: path.normalize(p), wid: null }); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'upd:remove': async (_e, id) => { try { const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); state.apps = state.apps.filter((x) => x !== a); pending.delete(a.id); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
+      'upd:check': async (_e, id) => {
+        try {
+          const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); if (!isWin() && !deps.run) return { status: 'unsupported', name: a.name }; if (busy) return errE('Bir güncelleme sürüyor; bitmesini bekle.');
+          pending.delete(a.id); const up = await upgrades(); if (up.nowinget) return { status: 'nowinget', name: a.name };
+          const hit = pickRow(up.rows || [], a);
+          if (hit) { if (a.wid !== hit.id) { a.wid = hit.id; save(); } pending.set(a.id, { wid: hit.id, t: now() }); return { status: 'available', name: a.name, current: hit.version, available: hit.available }; }
+          const q = a.name.replace(/^-+/, '').trim(); const lr = await run(['list', '-q', q, '--accept-source-agreements', '--disable-interactivity'], 60000); if (lr.code === 'ENOENT') return { status: 'nowinget', name: a.name };
+          const row = pickRow(parseTable(lr.stdout), a);
+          if (row) { if (a.wid !== row.id) { a.wid = row.id; save(); } return { status: 'current', name: a.name, current: row.version }; }
+          return { status: 'unknown', name: a.name };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'upd:apply': async (_e, id) => {
+        try {
+          const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); const p = pending.get(a.id); if (!p || now() - p.t > 30 * 60 * 1000) return errE('Önce güncelleme kontrolü yap.'); if (!WID_RE.test(p.wid)) return errE('Geçersiz paket kimliği.'); if (busy) return errE('Bir güncelleme zaten sürüyor.');
+          busy = true; let r; try { r = await run(['upgrade', '--id', p.wid, '-e', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity'], 15 * 60 * 1000); } finally { busy = false; }
+          upCache = null; if (r.code === 'ENOENT') return { status: 'nowinget', name: a.name };
+          if (r.code === 0) { pending.delete(a.id); return { status: 'updated', name: a.name }; }
+          if (r.code === NOT_APPLICABLE) { pending.delete(a.id); return { status: 'current', name: a.name }; }
+          const tail = String(r.stdout || r.stderr || '').split(/\r?\n/).map((l) => { const i = l.lastIndexOf('\r'); return (i >= 0 ? l.slice(i + 1) : l).trim(); }).filter((l) => l && !/^[-\\|/ ]+$/.test(l)).slice(-2).join(' ').slice(0, 200);
+          return { status: 'failed', name: a.name, code: typeof r.code === 'number' ? r.code : null, killed: !!r.killed, detail: tail };
+        } catch (e) { busy = false; return errE(String(e && e.message || e)); }
+      }
+    };
+    return { handlers, _state: () => state };
+  }
+  return { createUpdHost, parseTable, pickRow, cleanName, MAX_APPS };
 })();
 
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
@@ -2450,6 +2550,8 @@ function createHost(deps) {
   if (deps.mem !== false) { const mh = MEMMOD.createMemHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.mem || {})); Object.assign(handlers, mh.handlers); }
   /* Uygulama Akisi: sagdaki akan sutun; yalniz kullanicinin sectigi uygulamalar, yol arayuzden gelmez (bkz. FLOWMOD) */
   if (deps.flow !== false) { const fh = FLOWMOD.createFlowHost(Object.assign({ openExternal: deps.openExternal }, deps.flow || {})); Object.assign(handlers, fh.handlers); }
+  /* Otomatik Guncelleyici: winget ile kontrol/onayli guncelleme (bkz. UPDMOD) */
+  if (deps.upd !== false) { const uh = UPDMOD.createUpdHost(Object.assign({}, deps.flow ? { dataDir: deps.flow.dataDir, fileIcon: deps.flow.fileIcon, chooseApp: deps.flow.chooseApp, readShortcut: deps.flow.readShortcut, startMenuDirs: deps.flow.startMenuDirs, platform: deps.flow.platform } : {}, deps.upd || {})); Object.assign(handlers, uh.handlers); }
   /* Oyun Ayarlayici: oyun algilama + anti-cheat filtresi + yedekli ayar dosyasi + FPS olcumu (bkz. GAMEMOD) */
   if (deps.game !== false) { const gh = GAMEMOD.createGameHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.game || {})); Object.assign(handlers, gh.handlers); }
   /* Karsi Secim (LoL counter): Data Dragon + kisisel kayit + salt-okunur LCU (bkz. LOLMOD) */
@@ -2482,4 +2584,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };
+module.exports = { createHost, createWatcher, updModule: UPDMOD, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };

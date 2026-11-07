@@ -1045,7 +1045,44 @@ html[data-fx="off"] .flow *, html[data-fx="off"] .flow *::after, html[data-fx="o
 .flow-bar { display: flex; flex-wrap: wrap; gap: 8px; }
 .flow-web { display: none; gap: 8px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; } .flow-web.on { display: grid; } .flow-web input { min-width: 0; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: 14px var(--f-body); } .flow-web input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .flow-sugg { display: grid; gap: 6px; } .flow-sugg[hidden] { display: none; } .flow-sugg .srow { padding: 7px 0; } .flow-msg { min-height: 1.2em; margin: 0; font-size: 13px; color: var(--muted); } .flow-msg.bad { color: #ff8a8a; }
+.flow-q { min-width: 0; width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: 500 13px var(--f-body); } .flow-srows { display: grid; gap: 0; max-height: 300px; overflow-y: auto; } .sloc { display: block; color: var(--muted); font: 11px var(--f-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; max-width: 100%; }
 @media (max-width: 520px) { .flow-web { grid-template-columns: 1fr; } .flow-row { grid-template-columns: 36px minmax(0, 1fr) auto auto auto; } }
+/* ---- Otomatik guncelleyici: akis sutununun solunda kucuk cubuk + simgeli uygulama listesi (kovanUpd) ---- */
+.upd-bar { position: fixed; top: 10px; right: 14px; z-index: 21; display: none; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 9px; border-radius: 10px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(6px); color: var(--muted); cursor: pointer; font: 600 12px/1 var(--f-body); letter-spacing: .01em; transition: color .2s, border-color .2s, box-shadow .25s, transform .2s; }
+.upd-bar svg { width: 16px; height: 16px; flex: none; transition: transform .6s var(--ease); }
+.upd-bar:hover, .upd-bar:focus-visible, .upd-bar[aria-expanded="true"] { color: var(--ink); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 24px -10px var(--accent); outline: none; }
+.upd-bar:hover svg, .upd-bar[aria-expanded="true"] svg { transform: rotate(180deg); }
+.upd-bar .dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: #ffb454; box-shadow: 0 0 0 3px color-mix(in srgb, #ffb454 30%, transparent); }
+.upd-bar.has-up .dot { display: block; }
+@media (min-width: 1100px) { .app .upd-bar { display: inline-flex; } .app.has-flow .upd-bar { right: 110px; } }
+.upd-pop { position: fixed; top: 52px; right: 14px; z-index: 30; width: min(368px, calc(100vw - 24px)); max-height: calc(100vh - 70px); display: none; flex-direction: column; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 30px 70px -24px rgba(0, 0, 0, .75); overflow: hidden; }
+.app.has-flow .upd-pop { right: 110px; }
+.upd-pop.on { display: flex; animation: upd-in .28s var(--spring) both; }
+@keyframes upd-in { from { opacity: 0; transform: translateY(-8px) scale(.97); } }
+.upd-hd { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; } .upd-hd h2 { margin: 0; flex: 1; font: 650 14px var(--f-display); }
+.upd-hd button { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); color: var(--muted); cursor: pointer; font: 700 14px var(--f-body); } .upd-hd button:hover, .upd-hd button:focus-visible { color: var(--ink); border-color: var(--accent); outline: none; }
+.upd-body { overflow-y: auto; padding: 4px 14px 14px; display: grid; gap: 10px; }
+.upd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
+.upd-app { position: relative; display: grid; justify-items: center; gap: 6px; padding: 8px 2px 6px; border: 1px solid transparent; border-radius: 12px; background: none; color: var(--ink); cursor: pointer; font: 600 11.5px/1.2 var(--f-body); transition: background .2s, border-color .2s, transform .2s; }
+.upd-app:hover, .upd-app:focus-visible { background: var(--surface2); border-color: var(--line); outline: none; } .upd-app:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.upd-tile { position: relative; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; overflow: hidden; background: var(--surface2); border: 1px solid var(--line); transition: transform .25s var(--spring); }
+.upd-app:hover .upd-tile { transform: scale(1.1); } .upd-tile img { width: 32px; height: 32px; object-fit: contain; -webkit-user-drag: none; }
+.upd-tile .fl { font: 800 20px/1 var(--f-display); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.upd-app .nm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .upd-app .st { position: absolute; top: 6px; right: 14px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface); display: none; }
+.upd-app .st.ok { display: block; background: #5ad19a; } .upd-app .st.up { display: block; background: #ffb454; }
+.upd-app .rm { position: absolute; top: 2px; left: 4px; width: 20px; height: 20px; padding: 0; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font: 700 11px var(--f-body); opacity: 0; transition: opacity .15s; } .upd-app:hover .rm, .upd-app:focus-within .rm { opacity: 1; } .upd-app .rm:hover { color: #ff8a8a; border-color: #ff8a8a; }
+.upd-add .upd-tile { border: 1.5px dashed var(--line); background: none; color: var(--muted); } .upd-add:hover .upd-tile { border-color: var(--accent); color: var(--accent); } .upd-add svg { width: 22px; height: 22px; }
+.upd-empty { margin: 0; padding: 4px 2px 8px; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.upd-detail { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 6px 0 2px; } .upd-detail .upd-tile { width: 60px; height: 60px; border-radius: 17px; } .upd-detail .upd-tile img { width: 40px; height: 40px; }
+.upd-msg { margin: 0; font: 600 14px/1.4 var(--f-body); color: var(--ink); } .upd-msg.sub { font-weight: 500; font-size: 12.5px; color: var(--muted); } .upd-msg.bad { color: #ff8a8a; }
+.upd-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.upd-spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--accent); animation: upd-spin .8s linear infinite; } @keyframes upd-spin { to { transform: rotate(360deg); } }
+.upd-prog { width: 100%; height: 5px; border-radius: 99px; background: var(--surface2); overflow: hidden; } .upd-prog i { display: block; width: 35%; height: 100%; border-radius: inherit; background: var(--accent); animation: upd-slide 1.3s ease-in-out infinite; } @keyframes upd-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.upd-find { display: grid; gap: 8px; } .upd-find input { min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: 500 13px var(--f-body); } .upd-find input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.upd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 280px; overflow-y: auto; }
+.upd-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); } .upd-li b { display: block; font: 600 13px var(--f-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .upd-li small { display: block; color: var(--muted); font: 11px var(--f-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"] .upd-pop * { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .upd-bar *, .upd-pop, .upd-pop * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -6484,6 +6521,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Rakibin büyü hasarı dayanıklı seçimlere karşı iyi": "Opponent’s magic damage is good against durable picks",
       "Tüm şampiyonlar (rol filtresi yok)": "All champions (no role filter)",
       'Uygulama Akışı': 'App Flow',
+      "Otomatik güncelleyici": "Auto updater",
+      "Henüz uygulama yok. “Ekle” ile Discord, Roblox gibi güncel tutmak istediklerini seç; bilgisayarda kendisi bulunur.": "No apps yet. Use “Add” to pick apps like Discord or Roblox; they are found on your computer automatically.",
+      "Geri": "Back",
+      "Uygulama ara…": "Search apps…",
+      "Bilgisayardan seç…": "Choose from computer…",
+      "Uygulama taraması yalnızca Windows’ta çalışır.": "App scanning only works on Windows.",
+      "Başlat menüsünde uygulama bulunamadı.": "No apps found in the Start menu.",
+      "Eşleşen uygulama yok.": "No matching apps.",
+      "Aranıyor…": "Searching…",
+      "{0} için güncelleme aranıyor…": "Checking for updates to {0}…",
+      "{0} için güncelleme kontrolü": "Check for updates to {0}",
+      "Sürüm {0}": "Version {0}",
+      "{0} için henüz update gelmemiş.": "No update for {0} yet.",
+      "{0} için update gelmiş. Update demek ister misiniz?": "{0} has an update. Do you want to update?",
+      "Uygulama açıksa güncelleme sırasında kapanabilir.": "If the app is open, it may close during the update.",
+      "Bu bilgisayarda winget (Windows Paket Yöneticisi) bulunamadı; güncelleme kontrolü yapılamıyor.": "winget (Windows Package Manager) was not found on this computer, so updates cannot be checked.",
+      "Güncelleme kontrolü yalnızca Windows’ta çalışır.": "Update checking only works on Windows.",
+      "{0} için güncelleme bilgisi alınamadı.": "Could not get update info for {0}.",
+      "Windows paket yöneticisi bu uygulamayı tanımıyor; kendi kendini güncelliyor olabilir (açınca kendisi günceller).": "The Windows package manager does not know this app; it may update itself (it updates when you open it).",
+      "Güncelleniyor…": "Updating…",
+      "{0} güncelleniyor…": "Updating {0}…",
+      "Birkaç dakika sürebilir; pencereyi kapatabilirsin.": "This can take a few minutes; you can close this window.",
+      "{0} güncellendi.": "{0} was updated.",
+      "{0} güncellenemedi. Uygulamayı kapatıp tekrar dene.": "{0} could not be updated. Close the app and try again.",
+      "{0} güncellenemedi.": "{0} could not be updated.",
+      "Önce güncelleme kontrolü yap.": "Check for updates first.",
+      "Bir güncelleme sürüyor; bitmesini bekle.": "An update is in progress; wait for it to finish.",
+      "Bir güncelleme zaten sürüyor.": "An update is already in progress.",
+      "Geçersiz paket kimliği.": "Invalid package id.",
+      "Yalnızca bu bilgisayardaki .exe veya .lnk dosyası eklenebilir.": "Only a .exe or .lnk file on this computer can be added.",
       'Uygulamaları düzenle': 'Edit apps',
       '{0} uygulamasını aç': 'Open {0}',
       'Açılıyor…': 'Opening…',
@@ -6508,7 +6575,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Ekle': 'Add',
       'Eklendi.': 'Added.',
       'Zaten ekli': 'Already added',
-      'Önerilecek tanıdık bir uygulama bulunamadı. Başlat menüsünde kısayolu olan Discord, Steam, Medal, League gibi uygulamalar aranır.': 'No familiar apps found. The Start menu is searched for shortcuts of apps such as Discord, Steam, Medal and League.',
+      'Önerilecek uygulama bulunamadı. Başlat menüsündeki kısayollar taranır; uygulamanın kurulu klasörünü kendisi bulur.': 'No apps found to suggest. Start menu shortcuts are scanned; the app finds each program’s install folder itself.',
       'Öneriler yalnızca Windows’ta çalışır.': 'Suggestions only work on Windows.',
       'Akışı gizle': 'Hide the flow',
       'Uygulama Akışı gizlendi. Ayarlar’dan tekrar açabilirsin.': 'App Flow hidden. You can turn it back on in Settings.',
@@ -6561,7 +6628,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.7';
+  const KOVAN_VER = 'beta 0.1.9';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8056,8 +8123,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     async function showSuggestions() {
       say(''); const r = await call('flowSuggest'); if (!r || r.error) { say(hostMsg(r && r.message), true); return; } suggItems = r.items || []; suggBox.replaceChildren(); suggBox.hidden = false;
       if (!r.windows) { suggBox.append(h('p', { class: 'snote' }, KT('Öneriler yalnızca Windows’ta çalışır.'))); return; }
-      if (!suggItems.length) { suggBox.append(h('p', { class: 'snote' }, KT('Önerilecek tanıdık bir uygulama bulunamadı. Başlat menüsünde kısayolu olan Discord, Steam, Medal, League gibi uygulamalar aranır.'))); return; }
-      for (const it of suggItems) { const b = h('button', { type: 'button', class: 'cv-btn', 'data-sid': it.sid, disabled: it.already }, it.already ? KT('Zaten ekli') : KT('Ekle')); b.addEventListener('click', async () => { if (apply(await call('flowAddSuggested', it.sid))) { b.disabled = true; b.textContent = KT('Zaten ekli'); say(KT('Eklendi.')); } }); suggBox.append(h('div', { class: 'srow' }, h('div', { class: 'stxt' }, h('label', {}, it.name)), b)); }
+      if (!suggItems.length) { suggBox.append(h('p', { class: 'snote' }, KT('Önerilecek uygulama bulunamadı. Başlat menüsündeki kısayollar taranır; uygulamanın kurulu klasörünü kendisi bulur.'))); return; }
+      const q = h('input', { type: 'search', class: 'flow-q', placeholder: KT('Uygulama ara…'), 'aria-label': KT('Uygulama ara…'), autocomplete: 'off', spellcheck: 'false' }); const rowsEl = h('div', { class: 'flow-srows' }); suggBox.append(q, rowsEl);
+      const fill = () => { const t = q.value.trim().toLocaleLowerCase('tr'); rowsEl.replaceChildren(); const shown = suggItems.filter((it) => !t || it.name.toLocaleLowerCase('tr').includes(t)).slice(0, 100); if (!shown.length) rowsEl.append(h('p', { class: 'snote' }, KT('Eşleşen uygulama yok.')));
+        for (const it of shown) { const b = h('button', { type: 'button', class: 'cv-btn', 'data-sid': it.sid, disabled: it.already }, it.already ? KT('Zaten ekli') : KT('Ekle')); b.addEventListener('click', async () => { if (apply(await call('flowAddSuggested', it.sid))) { b.disabled = true; b.textContent = KT('Zaten ekli'); it.already = true; say(KT('Eklendi.')); } }); rowsEl.append(h('div', { class: 'srow' }, h('div', { class: 'stxt' }, h('label', {}, it.name), it.location ? h('small', { class: 'sloc', title: it.location }, it.location) : null), b)); } };
+      q.addEventListener('input', fill); fill();
     }
     function build() {
       if (dlg) return; const close = h('button', { type: 'button', class: 'cv-btn' }, KT('Kapat'));
@@ -8087,6 +8157,90 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     api.setVisible = (on) => { hiddenMem = !on; FS.set('kovan.flow', on ? null : '0'); applyVisible(); listeners.forEach((f) => f()); };
     manageBtn.addEventListener('click', () => api.openManage());
     applyVisible(); refresh();
+  })();
+
+  /* ---------- Otomatik guncelleyici: akis sutununun solunda kucuk cubuk (bkz. host.js UPDMOD) ----------
+     Cubuga tikla -> secili uygulamalarin simgeleri + adi; birine tikla -> guncelleme kontrolu ('henuz gelmemis' / 'gelmis, guncelleyelim mi?').
+     Uygulamalar Baslat menusunden kendiliginden bulunur (kurulu klasor gosterilir); exe aramak gerekmez. Yol/komut/paket kimligi bu dosyada YOK: yalniz uygulama kimligi gider. */
+  (function kovanUpd() {
+    const Hh = window.statscanHost; if (!(Hh && Hh.desktop && typeof Hh.updList === 'function')) return;
+    const appEl = $('#app'); const hueOf = (s) => { let x = 7; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) % 360; return x; };
+    const letterBg = (name) => { const hh = hueOf(name); return 'linear-gradient(135deg, hsl(' + hh + ' 62% 46%), hsl(' + ((hh + 40) % 360) + ' 62% 32%))'; };
+    const svgI = (d) => { const w = document.createElement('span'); w.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; return w.firstChild; };
+    const call = async (fn, ...a) => { try { return await Hh[fn](...a); } catch (e) { return { error: 'upd', message: String((e && e.message) || e) }; } };
+    const hostMsg = (m) => { m = String(m || ''); const mm = /^En fazla (\d+) uygulama eklenebilir\.$/.exec(m); return mm ? KT('En fazla {0} uygulama eklenebilir.', mm[1]) : KT(m); };
+    const tileOf = (a, cls) => { const t = h('span', { class: cls || 'upd-tile' }); if (a.icon) t.append(h('img', { src: a.icon, alt: '', draggable: 'false' })); else { t.style.background = letterBg(a.name); t.append(h('span', { class: 'fl' }, [...a.name][0].toLocaleUpperCase('tr'))); } return t; };
+    let apps = [], max = 30, view = 'grid', cur = null, busy = false, found = [], seq = 0; const known = new Map();
+    const bar = h('button', { type: 'button', class: 'upd-bar', id: 'kv-upd-bar', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'kv-upd-pop', title: KT('Otomatik güncelleyici') }, svgI('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/><path d="M12 8.5v4.2l2.4 1.4"/>'), h('span', {}, KT('Otomatik güncelleyici')), h('i', { class: 'dot', 'aria-hidden': 'true' }));
+    const title = h('h2', { id: 'kv-upd-title' }, KT('Otomatik güncelleyici')); const closeB = h('button', { type: 'button', 'aria-label': KT('Kapat'), title: KT('Kapat') }, '✕'); const body = h('div', { class: 'upd-body', 'aria-live': 'polite' });
+    const pop = h('section', { class: 'upd-pop', id: 'kv-upd-pop', role: 'dialog', 'aria-labelledby': 'kv-upd-title' }, h('div', { class: 'upd-hd' }, title, closeB), body);
+    appEl.append(bar, pop);
+    const isOpen = () => pop.classList.contains('on');
+    function mark() { bar.classList.toggle('has-up', [...known.values()].some((v) => v === 'up')); }
+    function open() { pop.classList.add('on'); bar.setAttribute('aria-expanded', 'true'); view = 'grid'; cur = null; draw(); refresh(); const f = body.querySelector('.upd-app'); if (f) f.focus(); }
+    function close() { if (!isOpen()) return; pop.classList.remove('on'); bar.setAttribute('aria-expanded', 'false'); if (!busy) { view = 'grid'; cur = null; } bar.focus(); }
+    bar.addEventListener('click', () => (isOpen() ? close() : open())); closeB.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) { e.stopPropagation(); close(); } }, true);
+    document.addEventListener('pointerdown', (e) => { if (isOpen() && !pop.contains(e.target) && !bar.contains(e.target)) close(); });
+    async function refresh() { const r = await call('updList'); if (r && !r.error) { apps = r.apps || []; max = r.max || 30; if (isOpen() && view === 'grid') draw(); } }
+
+    function grid() {
+      const g = h('div', { class: 'upd-grid' });
+      for (const a of apps) {
+        const st = known.get(a.id); const rm = h('button', { type: 'button', class: 'rm', 'aria-label': KT('{0} uygulamasını kaldır', a.name), title: KT('Kaldır') }, '✕');
+        const b = h('div', { class: 'upd-app', role: 'button', tabindex: '0', 'data-id': a.id, 'aria-label': KT('{0} için güncelleme kontrolü', a.name), title: a.name }, tileOf(a), h('span', { class: 'nm' }, a.name), h('i', { class: 'st' + (st === 'ok' ? ' ok' : st === 'up' ? ' up' : '') }), rm);
+        const go = () => { cur = a; check(a); }; b.addEventListener('click', (e) => { if (e.target === rm) return; go(); }); b.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === b) { e.preventDefault(); go(); } });
+        rm.addEventListener('click', async (e) => { e.stopPropagation(); const r = await call('updRemove', a.id); if (r && !r.error) { known.delete(a.id); mark(); apps = r.apps || []; draw(); } else toast(hostMsg(r && r.message)); });
+        g.append(b);
+      }
+      if (apps.length < max) { const add = h('button', { type: 'button', class: 'upd-app upd-add', 'aria-label': KT('Uygulama ekle'), title: KT('Uygulama ekle') }, h('span', { class: 'upd-tile' }, svgI('<path d="M12 5v14M5 12h14"/>')), h('span', { class: 'nm' }, KT('Ekle'))); add.addEventListener('click', () => { view = 'add'; found = []; draw(); discover(); }); g.append(add); }
+      return g;
+    }
+    function drawGrid() { body.replaceChildren(); if (!apps.length) body.append(h('p', { class: 'upd-empty' }, KT('Henüz uygulama yok. “Ekle” ile Discord, Roblox gibi güncel tutmak istediklerini seç; bilgisayarda kendisi bulunur.'))); body.append(grid()); }
+    function backBtn(fn) { const b = h('button', { type: 'button', class: 'cv-btn' }, KT('Geri')); b.addEventListener('click', fn || (() => { view = 'grid'; cur = null; draw(); refresh(); })); return b; }
+
+    /* ---- uygulama ekleme: Baslat menusu taramasi (kurulu klasoru kendisi bulur) ---- */
+    async function discover() {
+      const my = ++seq; const r = await call('updDiscover'); if (my !== seq || view !== 'add') return; if (!r || r.error) { toast(hostMsg(r && r.message)); view = 'grid'; draw(); return; } found = r.items || []; r.windows === false && (found = []); drawAdd(r.windows !== false);
+    }
+    function drawAdd(win) {
+      body.replaceChildren(); const q = h('input', { type: 'search', placeholder: KT('Uygulama ara…'), 'aria-label': KT('Uygulama ara…'), autocomplete: 'off', spellcheck: 'false' }); const list = h('ul', { class: 'upd-list' }); const msg = h('p', { class: 'upd-empty', role: 'status' });
+      const file = h('button', { type: 'button', class: 'cv-btn' }, KT('Bilgisayardan seç…'));
+      file.addEventListener('click', async () => { const r = await call('updAddFile'); if (r && r.canceled) return; if (!r || r.error) { msg.textContent = hostMsg(r && r.message); return; } apps = r.apps || []; view = 'grid'; draw(); });
+      function fill() { const t = q.value.trim().toLocaleLowerCase('tr'); list.replaceChildren(); const items = found.filter((i) => !t || i.name.toLocaleLowerCase('tr').includes(t)).slice(0, 80);
+        msg.textContent = !win ? KT('Uygulama taraması yalnızca Windows’ta çalışır.') : !found.length ? KT('Başlat menüsünde uygulama bulunamadı.') : !items.length ? KT('Eşleşen uygulama yok.') : '';
+        for (const it of items) { const bt = h('button', { type: 'button', class: 'cv-btn', disabled: it.already }, it.already ? KT('Zaten ekli') : KT('Ekle'));
+          bt.addEventListener('click', async () => { bt.disabled = true; const r = await call('updAdd', it.sid); if (!r || r.error) { bt.disabled = false; msg.textContent = hostMsg(r && r.message); return; } apps = r.apps || []; it.already = true; bt.textContent = KT('Zaten ekli'); msg.textContent = KT('Eklendi.'); });
+          list.append(h('li', { class: 'upd-li' }, h('span', { style: 'min-width:0' }, h('b', {}, it.name), it.location ? h('small', { title: it.location }, it.location) : null), bt)); } }
+      q.addEventListener('input', fill); fill(); body.append(h('div', { class: 'upd-find' }, q, list, msg, h('div', { class: 'upd-row' }, backBtn(), file))); if (win) q.focus();
+    }
+
+    /* ---- kontrol / guncelleme ---- */
+    function detail(a, parts) { body.replaceChildren(h('div', { class: 'upd-detail' }, tileOf(a), ...parts)); }
+    const fail = (a, text) => detail(a, [h('p', { class: 'upd-msg bad' }, text), h('div', { class: 'upd-row' }, backBtn())]);
+    async function check(a) {
+      view = 'detail'; busy = true; detail(a, [h('div', { class: 'upd-spin', role: 'img', 'aria-label': KT('Aranıyor…') }), h('p', { class: 'upd-msg sub' }, KT('{0} için güncelleme aranıyor…', a.name))]);
+      const r = await call('updCheck', a.id); busy = false; if (!isOpen() || view !== 'detail' || !cur || cur.id !== a.id) { if (r && r.status === 'available') known.set(a.id, 'up'); else if (r && r.status === 'current') known.set(a.id, 'ok'); mark(); return; }
+      if (!r || r.error) { fail(a, hostMsg(r && r.message)); return; }
+      if (r.status === 'current') { known.set(a.id, 'ok'); mark(); detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için henüz update gelmemiş.', a.name)), r.current ? h('p', { class: 'upd-msg sub' }, KT('Sürüm {0}', r.current)) : null, h('div', { class: 'upd-row' }, backBtn())]); return; }
+      if (r.status === 'available') {
+        known.set(a.id, 'up'); mark(); const yes = h('button', { type: 'button', class: 'cv-btn primary' }, KT('Güncelle')); yes.addEventListener('click', () => apply(a));
+        detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için update gelmiş. Update demek ister misiniz?', a.name)), r.current || r.available ? h('p', { class: 'upd-msg sub' }, (r.current || '?') + ' → ' + (r.available || '?')) : null, h('p', { class: 'upd-msg sub' }, KT('Uygulama açıksa güncelleme sırasında kapanabilir.')), h('div', { class: 'upd-row' }, yes, backBtn())]); yes.focus(); return;
+      }
+      if (r.status === 'nowinget') { fail(a, KT('Bu bilgisayarda winget (Windows Paket Yöneticisi) bulunamadı; güncelleme kontrolü yapılamıyor.')); return; }
+      if (r.status === 'unsupported') { fail(a, KT('Güncelleme kontrolü yalnızca Windows’ta çalışır.')); return; }
+      detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için güncelleme bilgisi alınamadı.', a.name)), h('p', { class: 'upd-msg sub' }, KT('Windows paket yöneticisi bu uygulamayı tanımıyor; kendi kendini güncelliyor olabilir (açınca kendisi günceller).')), h('div', { class: 'upd-row' }, backBtn())]);
+    }
+    async function apply(a) {
+      busy = true; detail(a, [h('div', { class: 'upd-prog', role: 'progressbar', 'aria-label': KT('Güncelleniyor…') }, h('i')), h('p', { class: 'upd-msg' }, KT('{0} güncelleniyor…', a.name)), h('p', { class: 'upd-msg sub' }, KT('Birkaç dakika sürebilir; pencereyi kapatabilirsin.'))]);
+      const r = await call('updApply', a.id); busy = false; const vis = isOpen() && view === 'detail' && cur && cur.id === a.id;
+      if (r && r.status === 'updated') { known.set(a.id, 'ok'); mark(); toast(KT('{0} güncellendi.', a.name)); if (vis) detail(a, [h('p', { class: 'upd-msg' }, KT('{0} güncellendi.', a.name)), h('div', { class: 'upd-row' }, backBtn())]); return; }
+      if (r && r.status === 'current') { known.set(a.id, 'ok'); mark(); if (vis) detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için henüz update gelmemiş.', a.name)), h('div', { class: 'upd-row' }, backBtn())]); return; }
+      const m = !r || r.error ? hostMsg(r && r.message) : r.status === 'failed' ? KT('{0} güncellenemedi. Uygulamayı kapatıp tekrar dene.', a.name) + (r.detail ? ' (' + r.detail + ')' : '') : KT('{0} güncellenemedi.', a.name);
+      if (vis) fail(a, m); else toast(m);
+    }
+    function draw() { if (view === 'grid') drawGrid(); else if (view === 'add') drawAdd(true); }
+    refresh();
   })();
 
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
