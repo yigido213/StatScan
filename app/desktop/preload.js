@@ -120,6 +120,16 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolRunesApply: (o) => call('lol:runes:apply', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), perks: o && Array.isArray(o.perks) ? o.perks.slice(0, 9).map(Number) : [] }),
   lolIcon: (kind, id) => call('lol:icon', { kind: String(kind), id: String(id) }),
   lolDataClear: () => call('lol:data:clear'),
+  /* Uygulama Akisi: yol/komut tasimaz; yalniz kimlik, ad ve https adresi gider (dosya secimi host dialogunda) */
+  flowList: () => call('flow:list'),
+  flowAdd: () => call('flow:add'),
+  flowAddWeb: (name, url) => call('flow:addWeb', String(name || ''), String(url || '')),
+  flowSuggest: () => call('flow:suggest'),
+  flowAddSuggested: (sid) => call('flow:addSuggested', String(sid)),
+  flowRename: (id, name) => call('flow:rename', String(id), String(name || '')),
+  flowRemove: (id) => call('flow:remove', String(id)),
+  flowOrder: (ids) => call('flow:order', Array.isArray(ids) ? ids.map(String) : []),
+  flowOpen: (id) => call('flow:open', String(id)),
   storeGet: (k) => call('store:get', String(k)),
   storeSet: (k, v) => call('store:set', String(k), String(v))
 }));

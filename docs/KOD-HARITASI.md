@@ -5,10 +5,17 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 ## Genel yapı
 - **Uygulama**: Windows Electron uygulaması "Kovan" (StatScan'in yeni adı). Çoğu araç yalnız masaüstünde çalışır; arayüz tarayıcıda da açılır ama host gerektiren araçlar orada kapalıdır.
 - **Tek dosya arayüz**: `app/StatScan.html` (~1,4 MB). HTML + CSS + tüm arayüz JS'i. Elle baştan yazma; hedefli düzenle. Motor parçaları `src/engine/NN-*.js` içinde yazılır, `node tools/inject.mjs` ile HTML'e yerleştirilir.
-- **Host (ana süreç)**: `app/desktop/host.js` tek dosya, içinde bağımsız modüller (hepsi `const XMOD = (() => {...})()`): `OBFMOD`, `COMPMOD` (derleyici), `ACCESSMOD` (sahip/Notlarım/Yönetim — **güvenlik hassas, dokunma**), `SYSMOD` (görev yöneticisi, ağ), `LOLMOD` (League Asistanı), `GAMEMOD` (Oyun Ayarlayıcı), `MEMMOD` (RAM analizi). Sıra önemli: `mem-host.cjs` kaynak taramasında MEMMOD..riskyList dilimine bakar; GAMEMOD MEMMOD'dan önce durmalı.
+- **Host (ana süreç)**: `app/desktop/host.js` tek dosya, içinde bağımsız modüller (hepsi `const XMOD = (() => {...})()`): `OBFMOD`, `COMPMOD` (derleyici), `ACCESSMOD` (sahip/Notlarım/Yönetim — **güvenlik hassas, dokunma**), `SYSMOD` (görev yöneticisi, ağ), `LOLMOD` (League Asistanı), `FLOWMOD` (Uygulama Akışı; GAMEMOD'dan önce, MEMMOD diliminin dışında), `GAMEMOD` (Oyun Ayarlayıcı), `MEMMOD` (RAM analizi). Sıra önemli: `mem-host.cjs` kaynak taramasında MEMMOD..riskyList dilimine bakar; GAMEMOD MEMMOD'dan önce durmalı.
 - **Köprü**: `app/desktop/preload.js` arayüze dar bir API verir (`window.statscanHost.lolXxx(...)`); argümanları burada şekillendirilir (arayüz yol/URL gönderemez). `app/desktop/app.js` pencere + modül bağlama (ör. `lol: { dataDir }`).
 - **Güncelleme**: `latest.json` + `StatScan-X.Y.Z.ssu` (imzalı, `tools/make-ssu.mjs`). Güncelleyici `main` dalındaki `latest.json`'a bakar (`app.js` DEFAULT_FEED). Yeni dosya `app/` altına eklenmez (güncelleyici reddedebilir) — kod host.js/StatScan.html içine yazılır.
 - Arayüz modülleri `MODULES` listesinde (kategori: Güvenlik / Windows / Minecraft / Kodlama); her araç `#app-<id>` paneli + bir `kovanXxx` IIFE'si. İngilizce çeviri `KT()`/EN sözlüğü (Türkçe metin eklersen EN karşılığı da ekle; `ui-lang.mjs` Türkçe kalıntı tarar).
+
+## Uygulama Akışı (FLOWMOD + `kovanFlow`)
+- Sağ kenarda (≥1100 px, yalnız masaüstü köprüsü varsa) yukarıdan aşağı yavaş akan, döngüsel uygulama sütunu. Kullanıcı exe/lnk/url veya https web girişi ekler; tıklayınca açılır. Kendi tarayıcı = kullanıcının tarayıcısı (exe/lnk ya da https girişi); Kovan içi tarayıcı YOK.
+- Host (`FLOWMOD`, `uygulamaakisi.json`): handlerlar `flow:list/add/addWeb/suggest/addSuggested/rename/remove/order/open`. Arayüz yol/URL göndermez; yalnız kimlik. Dosya host dialoguyla ya da Başlat menüsü taramasıyla (sid) seçilir; uzantı .exe/.lnk/.url, UNC/göreli yol reddedilir, web yalnız https, en çok 24 uygulama. Kabuk/ağ/exec yok (testle kaynak taranır); yanıtlarda dosya yolu yok. Engelli kurulumda `flow:` kanalları kapalı (ACCESSMOD sarmalayıcı).
+- Arayüz: tek rAF döngüsü, offset += hız*dt; hız üzerine gelince/odakta/pencere açıkken 0'a yumuşar; az uygulamada kopyalarla doldurulur; derinlik ölçeği + opaklık + sallanma; tekerlek kaydırır; klavye odağı ortalar. `data-fx="off"` veya hareket azaltmada durağan liste. Ayarlar'da anahtar + düzenle; komut paletinde iki komut. localStorage `kovan.flow`='0' = gizli.
+- Testler: `flow-host.cjs` (63), `ui-flow.mjs` (68).
+- DENENMEDİ: gerçek Windows, gerçek exe/lnk açma, `app.getFileIcon`, Başlat menüsü yolları, gerçek Discord/Steam/Medal/League kısayolları.
 
 ## League Asistanı (LOLMOD + `kovanLol`)
 Veri akışı (hepsi arka planda, tarayıcı açmaz; yalnız sabit sunucular):
@@ -33,8 +40,8 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 **Gerçekte hiç denenmedi**: gerçek Windows, gerçek League istemcisi/rün uç noktaları (belgesiz, bellekten), gerçek counterpick.lol HTML'i, gerçek Meraki/CommunityDragon indirmesi (yol WebFetch ile görüldü; sandbox kabuğundan ağ yok).
 
 ## Testler (`tools/test/`)
-- Host: `node tools/test/lol-host.cjs` (sahte `deps.get/getBin/lcu/live/confirm`), `game-host.cjs`, `mem-host.cjs`, `sys-host.cjs`, `access-host.cjs`, `compile-host.cjs`, `obf-host.cjs`, `srcobf.cjs` …
-- Arayüz (Playwright, gerçek host koduna köprü): `node tools/test/ui-lol.mjs`, `ui-shell.mjs`, `ui-lang.mjs`, `ui-conv.mjs`, `ui-game.mjs`, `ui-mem.mjs` … Playwright yolu testlerde `/home/claude/.npm-global/lib/node_modules/`. Ekran görüntüsü: `SHOT=<klasör> node tools/test/ui-lol.mjs`.
+- Host: `node tools/test/lol-host.cjs` (sahte `deps.get/getBin/lcu/live/confirm`), `flow-host.cjs`, `game-host.cjs`, `mem-host.cjs`, `sys-host.cjs`, `access-host.cjs`, `compile-host.cjs`, `obf-host.cjs`, `srcobf.cjs` …
+- Arayüz (Playwright, gerçek host koduna köprü): `node tools/test/ui-lol.mjs`, `ui-flow.mjs`, `ui-shell.mjs`, `ui-lang.mjs`, `ui-conv.mjs`, `ui-game.mjs`, `ui-mem.mjs` … Playwright yolu testlerde `/home/claude/.npm-global/lib/node_modules/`. Ekran görüntüsü: `SHOT=<klasör> node tools/test/ui-lol.mjs`.
 - HTML değişince sözdizimi: her `<script>` bloğunu `new Function` ile dene (testler zaten sayfayı açar).
 - Bilinen: `ui-fx` 'daralma animasyonlu' kararsız; `compile-native` paralel yükte kararsız; ioc/mc/methods/modes/pack/trust fixture dizini (ortam değişkeni) olmadan düşer; `ui-lol` 'bugün özeti' gece yarısından sonraki ilk saatlerde atlanır.
 

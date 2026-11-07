@@ -985,6 +985,60 @@ html:not([data-fx="off"]).kfade, html:not([data-fx="off"]) .kfade *, html:not([d
 #blocked { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--bg) 92%, #000); }
 .bk-card { max-width: 520px; display: grid; gap: 12px; padding: 28px; border: 1px solid #ff8a8a; border-radius: 20px; background: var(--surface); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7); } .bk-card h1 { margin: 0; font-size: 24px; } .bk-card p { margin: 0; color: var(--muted); line-height: 1.5; } .bk-notice { color: var(--ink) !important; font-weight: 600; } .bk-idrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .bk-act { display: flex; flex-wrap: wrap; gap: 8px; } .bk-small { font-size: 12.5px; }
 @media (max-width: 899px) { .nt { grid-template-columns: 1fr; } .nt-list { max-height: 30vh; } .nt-toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } .ad-list li { grid-template-columns: 1fr auto; } }
+/* ---- Uygulama Akisi: sag kenarda yukaridan asagi akan, dongusel uygulama sutunu (kovanFlow) ---- */
+.flow { position: fixed; top: 0; right: 0; bottom: 0; width: 96px; z-index: 20; display: none; flex-direction: column; align-items: center; padding: 10px 0 12px; border-left: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 90%, var(--bg)); }
+@media (min-width: 1100px) { .app.has-flow { padding-right: 96px; } .app.has-flow .flow { display: flex; } }
+.flow::after { content: ''; position: absolute; left: -1px; top: 0; bottom: 0; width: 2px; pointer-events: none; opacity: .55; background: linear-gradient(to bottom, transparent 0, var(--accent) 50%, transparent 100%) 0 0 / 100% 240px repeat-y; animation: flow-stream 11s linear infinite; }
+@keyframes flow-stream { to { background-position: 0 240px; } }
+.flow-lane { position: relative; flex: 1; width: 100%; min-height: 0; overflow: hidden; overflow: clip; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%); }
+.flow-lane::before { content: ''; position: absolute; inset: 18% -30% 18% -30%; pointer-events: none; background: radial-gradient(closest-side, var(--glow), transparent); opacity: .9; }
+.flow-item { position: absolute; left: 50%; top: 0; width: 80px; margin-left: -40px; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; display: grid; justify-items: center; gap: 6px; font: 600 10.5px/1.2 var(--f-body); will-change: transform, opacity; -webkit-tap-highlight-color: transparent; }
+.flow-item:focus-visible { outline: none; }
+.flow-tile { position: relative; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; overflow: hidden; background: var(--surface2); border: 1px solid var(--line); box-shadow: 0 12px 26px -16px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(255, 255, 255, .07); transition: transform .3s var(--spring), box-shadow .3s var(--ease), border-color .25s; }
+.flow-tile img { width: 34px; height: 34px; object-fit: contain; -webkit-user-drag: none; user-select: none; }
+.flow-tile .fl { font: 800 21px/1 var(--f-display); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.flow-tile.hue { border-color: transparent; }
+.flow-item .nm { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); transition: color .2s; }
+.flow-item:hover .flow-tile, .flow-item:focus-visible .flow-tile { transform: scale(1.13); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 28px -6px var(--accent), 0 14px 26px -14px rgba(0, 0, 0, .8); }
+.flow-item:hover .nm, .flow-item:focus-visible .nm { color: var(--ink); }
+.flow-item:focus-visible .flow-tile { outline: 2px solid var(--accent); outline-offset: 3px; }
+.flow-item::after { content: ''; position: absolute; top: 0; left: 14px; width: 52px; height: 52px; border-radius: 16px; border: 2px solid var(--accent); opacity: 0; pointer-events: none; }
+.flow-item.go .flow-tile { animation: flow-pop .6s var(--spring); }
+.flow-item.go::after { animation: flow-ring .75s var(--ease); }
+.flow-item.err .flow-tile { border-color: #ff8a8a; animation: flow-shake .45s; }
+.flow-item.err .nm { color: #ff8a8a; }
+.flow-item.miss .flow-tile { filter: grayscale(1); opacity: .5; }
+.flow.enter .flow-tile { animation: flow-in .7s var(--spring) backwards; animation-delay: calc(var(--k, 0) * 55ms); }
+@keyframes flow-pop { 0% { transform: scale(1); } 35% { transform: scale(1.26); } 100% { transform: scale(1.13); } }
+@keyframes flow-ring { 0% { opacity: .75; transform: scale(.7); } 100% { opacity: 0; transform: scale(2.2); } }
+@keyframes flow-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-5px); } 45% { transform: translateX(5px); } 70% { transform: translateX(-3px); } }
+@keyframes flow-in { from { opacity: 0; transform: translateY(-14px) scale(.55) rotate(-10deg); } }
+.flow-empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 0 6px; text-align: center; color: var(--muted); font: 500 11px/1.35 var(--f-body); }
+.flow-empty button { width: 52px; height: 52px; border-radius: 16px; border: 1.5px dashed var(--line); background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; animation: flow-breathe 3.2s ease-in-out infinite; }
+.flow-empty button:hover, .flow-empty button:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.flow-empty svg, .flow-manage svg { width: 22px; height: 22px; }
+@keyframes flow-breathe { 0%, 100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.07); opacity: 1; } }
+.flow-manage { flex: none; width: 38px; height: 38px; margin-top: 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface2); color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: color .2s, border-color .2s, transform .3s var(--spring); }
+.flow-manage:hover, .flow-manage:focus-visible { color: var(--accent); border-color: var(--accent); transform: rotate(60deg); outline: none; }
+/* hareket kapali: akis yerine sabit, kaydirilabilir liste */
+.flow.still .flow-lane { overflow-y: auto; overflow-x: hidden; -webkit-mask-image: none; mask-image: none; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 12px 0; scrollbar-width: none; }
+.flow.still .flow-lane::before { display: none; }
+.flow.still .flow-item { position: relative; left: auto; top: auto; margin: 0; transform: none !important; opacity: 1 !important; flex: none; }
+html[data-fx="off"] .flow *, html[data-fx="off"] .flow *::after, html[data-fx="off"] .flow::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .flow *, .flow *::after, .flow::after { animation: none !important; transition: none !important; } }
+/* yonetim penceresi */
+.flow-dlg { width: min(560px, calc(100vw - 24px)); }
+.flow-dlg-body { overflow-y: auto; padding: 6px 20px 20px; display: grid; gap: 14px; }
+.flow-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.flow-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto auto auto; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface2); }
+.flow-row .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; overflow: hidden; background: var(--surface); } .flow-row .ic img { width: 24px; height: 24px; object-fit: contain; } .flow-row .ic .fl { font: 800 15px var(--f-display); color: #fff; width: 100%; height: 100%; display: grid; place-items: center; }
+.flow-row input { min-width: 0; padding: 7px 9px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--ink); font: 600 14px var(--f-body); } .flow-row input:hover { border-color: var(--line); } .flow-row input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--surface); }
+.flow-row button { width: 32px; height: 32px; padding: 0; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font: 700 15px var(--f-body); } .flow-row button:hover:not(:disabled), .flow-row button:focus-visible { color: var(--accent); border-color: var(--accent); outline: none; } .flow-row button:disabled { opacity: .35; cursor: default; } .flow-row button.rm:hover:not(:disabled), .flow-row button.rm:focus-visible { color: #ff8a8a; border-color: #ff8a8a; }
+.flow-row small { grid-column: 2 / -1; margin-top: -4px; padding-left: 9px; color: var(--muted); font-size: 12px; } .flow-row.miss small { color: #ff8a8a; }
+.flow-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.flow-web { display: none; gap: 8px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; } .flow-web.on { display: grid; } .flow-web input { min-width: 0; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: 14px var(--f-body); } .flow-web input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.flow-sugg { display: grid; gap: 6px; } .flow-sugg[hidden] { display: none; } .flow-sugg .srow { padding: 7px 0; } .flow-msg { min-height: 1.2em; margin: 0; font-size: 13px; color: var(--muted); } .flow-msg.bad { color: #ff8a8a; }
+@media (max-width: 520px) { .flow-web { grid-template-columns: 1fr; } .flow-row { grid-template-columns: 36px minmax(0, 1fr) auto auto auto; } }
 </style>
 </head>
 <body>
@@ -6386,6 +6440,54 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Rakip dayanıklı; suikastçıya karşı güçlü": "Opponent is durable; strong against assassins",
       "Rakibin büyü hasarı dayanıklı seçimlere karşı iyi": "Opponent’s magic damage is good against durable picks",
       "Tüm şampiyonlar (rol filtresi yok)": "All champions (no role filter)",
+      'Uygulama Akışı': 'App Flow',
+      'Uygulamaları düzenle': 'Edit apps',
+      '{0} uygulamasını aç': 'Open {0}',
+      'Açılıyor…': 'Opening…',
+      'Açılamadı': 'Could not open',
+      'Bulunamadı': 'Not found',
+      'Uygulama ekle': 'Add an app',
+      'Sağ kenarda yavaşça akan uygulamalar. Birine tıklayınca açılır; üzerine gelince akış durur.': 'Apps flowing slowly down the right edge. Click one to open it; the flow pauses while you hover.',
+      'Henüz uygulama yok. Aşağıdan ekle.': 'No apps yet. Add one below.',
+      'Uygulama adı': 'App name',
+      'Yukarı taşı': 'Move up',
+      'Aşağı taşı': 'Move down',
+      '{0} uygulamasını kaldır': 'Remove {0}',
+      'Kaldır': 'Remove',
+      'Kaldırıldı.': 'Removed.',
+      'Dosya bulunamadı': 'File not found',
+      'Bilgisayardan uygulama ekle…': 'Add an app from this computer…',
+      'Önerilenleri bul': 'Find suggestions',
+      'Web adresi ekle': 'Add a web address',
+      'Ad (ör. Medal)': 'Name (e.g. Medal)',
+      'Adres (https://…)': 'Address (https://…)',
+      'Web adresi': 'Web address',
+      'Ekle': 'Add',
+      'Eklendi.': 'Added.',
+      'Zaten ekli': 'Already added',
+      'Önerilecek tanıdık bir uygulama bulunamadı. Başlat menüsünde kısayolu olan Discord, Steam, Medal, League gibi uygulamalar aranır.': 'No familiar apps found. The Start menu is searched for shortcuts of apps such as Discord, Steam, Medal and League.',
+      'Öneriler yalnızca Windows’ta çalışır.': 'Suggestions only work on Windows.',
+      'Akışı gizle': 'Hide the flow',
+      'Uygulama Akışı gizlendi. Ayarlar’dan tekrar açabilirsin.': 'App Flow hidden. You can turn it back on in Settings.',
+      'İşlem başarısız.': 'Operation failed.',
+      'Sağ kenarda akan uygulama sütununu gösterir. Yalnızca masaüstü uygulamasında ve geniş pencerede (1100 piksel ve üstü) görünür.': 'Shows the column of apps flowing down the right edge. Only visible in the desktop app and on wide windows (1100 px and up).',
+      'Uygulama Akışını düzenle': 'Edit App Flow',
+      'Uygulama ekle, sırala, yeniden adlandır, kaldır.': 'Add, reorder, rename or remove apps.',
+      'Düzenle…': 'Edit…',
+      'Uygulama Akışı: düzenle': 'App Flow: edit',
+      'Uygulama Akışını gizle': 'Hide App Flow',
+      'Uygulama Akışını göster': 'Show App Flow',
+      'En fazla {0} uygulama eklenebilir.': 'At most {0} apps can be added.',
+      'Bu uygulama zaten listede.': 'This app is already in the list.',
+      'Dosya bulunamadı.': 'File not found.',
+      'Yalnızca bu bilgisayardaki dosyalar eklenebilir.': 'Only files on this computer can be added.',
+      'Yalnızca .exe, .lnk veya .url dosyası eklenebilir.': 'Only .exe, .lnk or .url files can be added.',
+      'Bir dosya seçmelisin.': 'You must pick a file.',
+      'Geçerli bir https:// adresi gir (ör. https://ornek.com).': 'Enter a valid https:// address (e.g. https://example.com).',
+      'Bu adres zaten listede.': 'This address is already in the list.',
+      'Ad boş olamaz.': 'The name cannot be empty.',
+      'Uygulama bulunamadı.': 'App not found.',
+      'Öneri bulunamadı; listeyi yenile.': 'Suggestion not found; refresh the list.',
       '(adsız)': '(unnamed)'
     };
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
@@ -7731,6 +7833,163 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   })();
 
 
+  /* ---------- Uygulama Akisi: sag kenarda yukaridan asagi akan, dongusel uygulama sutunu (bkz. host.js FLOWMOD) ----------
+     Yalniz masaustu uygulamasinda ve >=1100 px genislikte gorunur. Uygulama yolu/adresi bu dosyada tutulmaz: host kimlik + ad + ikon verir, acmayi kimlikle yapar.
+     Hareket: rAF ile tek dongu; her oge (L = dongu uzunlugu) boyunca kayar, alttan cikan ustten girer. Uzerine gelince/odaklaninca yavasca durur (tiklamak kolay olsun).
+     "Arayuz animasyonlari" kapaliysa veya sistem "hareketi azalt" aciksa akis yerine sabit liste gosterilir. */
+  (function kovanFlow() {
+    const Hh = window.statscanHost; const supported = !!(Hh && Hh.desktop && typeof Hh.flowList === 'function');
+    const FS = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* depolama yok: yalnizca bu oturum */ } } };
+    let hiddenMem = false; const listeners = [];
+    const api = { supported, visible: () => supported && !(FS.get('kovan.flow') === '0' || hiddenMem), setVisible: () => {}, openManage: () => {}, onChange: (fn) => listeners.push(fn) };
+    window.KovanFlow = api;
+    if (!supported) return;
+    const STEP = 96, SPEED = 16, MAXAPPS_FALLBACK = 24; const appEl = $('#app');
+    const mod = (a, n) => ((a % n) + n) % n;
+    const svgI = (d) => { const w = document.createElement('span'); w.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; return w.firstChild; };
+    const ICO = { sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>', plus: '<path d="M12 5v14M5 12h14"/>' };
+    const hueOf = (s) => { let x = 7; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) % 360; return x; };
+    const letterBg = (name) => { const hh = hueOf(name); return 'linear-gradient(135deg, hsl(' + hh + ' 62% 46%), hsl(' + ((hh + 40) % 360) + ' 62% 32%))'; };
+    const call = async (fn, ...a) => { try { return await Hh[fn](...a); } catch (e) { return { error: 'flow', message: String((e && e.message) || e) }; } };
+    const hostMsg = (m) => { m = String(m || ''); const mm = /^En fazla (\d+) uygulama eklenebilir\.$/.exec(m); return mm ? KT('En fazla {0} uygulama eklenebilir.', mm[1]) : KT(m); };
+    const isStill = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.getAttribute('data-fx') === 'off';
+
+    let apps = [], maxApps = MAXAPPS_FALLBACK, slots = [], L = 0, gap = 0, laneH = 0, offset = 0, vel = 0, goal = null, raf = 0, last = 0, hov = false, foc = false, dlgOpen = false, enterT = 0, rz = 0;
+    const rail = h('aside', { class: 'flow', id: 'kv-flow', 'aria-label': KT('Uygulama Akışı') });
+    const lane = h('div', { class: 'flow-lane', id: 'kv-flow-lane' });
+    const manageBtn = h('button', { type: 'button', class: 'flow-manage', id: 'kv-flow-manage', 'aria-label': KT('Uygulamaları düzenle'), title: KT('Uygulamaları düzenle'), 'aria-haspopup': 'dialog' }, svgI(ICO.sliders));
+    rail.append(lane, manageBtn); appEl.append(rail);
+
+    function tileOf(a, cls) {
+      const t = h('span', { class: cls || 'flow-tile' });
+      if (a.icon) t.append(h('img', { src: a.icon, alt: '', draggable: 'false' }));
+      else { if (!cls) t.classList.add('hue'); t.style.background = letterBg(a.name); t.append(h('span', { class: 'fl' }, [...a.name][0].toLocaleUpperCase('tr'))); }
+      return t;
+    }
+    function mkItem(a, k, clone) {
+      const nm = h('span', { class: 'nm' }, a.name);
+      const b = h('button', { type: 'button', class: 'flow-item' + (a.missing ? ' miss' : ''), 'data-id': a.id, title: a.name + (a.missing ? ' — ' + KT('Bulunamadı') : ''), 'aria-label': KT('{0} uygulamasını aç', a.name) }, tileOf(a), nm);
+      if (clone) { b.setAttribute('aria-hidden', 'true'); b.tabIndex = -1; }
+      b.style.setProperty('--k', String(k)); b.addEventListener('click', () => launch(a, b, nm)); return b;
+    }
+    function emptyEl() {
+      const b = h('button', { type: 'button', 'aria-label': KT('Uygulama ekle'), title: KT('Uygulama ekle') }, svgI(ICO.plus)); b.addEventListener('click', () => api.openManage());
+      return h('div', { class: 'flow-empty' }, b, h('span', {}, KT('Uygulama ekle')));
+    }
+    const holdOn = () => hov || foc || dlgOpen;
+
+    function paint() {
+      for (let k = 0; k < slots.length; k++) {
+        const y = mod(k * gap + offset, L) - STEP; const c = (y + 36) / laneH; const cc = c < 0 ? 0 : c > 1 ? 1 : c; const bell = Math.sin(Math.PI * cc);
+        const s = 0.72 + 0.28 * Math.pow(bell, 0.7); const o = Math.min(1, 0.25 + bell * 1.1); const sway = Math.sin(c * 6.2 + k * 1.7) * 3; const el = slots[k];
+        el.style.transform = 'translate3d(' + sway.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0) scale(' + s.toFixed(3) + ')'; el.style.opacity = o.toFixed(3); el.style.pointerEvents = bell < 0.18 ? 'none' : '';
+      }
+    }
+    function frame(ts) {
+      raf = 0; if (!slots.length || document.hidden) { last = 0; return; }
+      const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016; last = ts;
+      const target = holdOn() || goal !== null ? 0 : SPEED; vel += (target - vel) * Math.min(1, dt * 5);
+      offset = mod(offset + vel * dt, L);
+      if (goal !== null) { const d = mod(goal - offset + L / 2, L) - L / 2; offset = mod(offset + d * Math.min(1, dt * 9), L); if (Math.abs(d) < 0.4) goal = null; }
+      paint();
+      if (target === 0 && goal === null && Math.abs(vel) < 0.05) { vel = 0; last = 0; return; } /* durdu: bosta islemci kullanma */
+      raf = requestAnimationFrame(frame);
+    }
+    const start = () => { if (!raf && slots.length && !document.hidden) { last = 0; raf = requestAnimationFrame(frame); } };
+
+    function render(enter) {
+      lane.replaceChildren(); slots = []; const still = isStill(); rail.classList.toggle('still', still); laneH = lane.clientHeight;
+      if (!apps.length) { lane.append(emptyEl()); return; }
+      if (enter) { rail.classList.add('enter'); clearTimeout(enterT); enterT = setTimeout(() => rail.classList.remove('enter'), 1800); }
+      if (still) { apps.forEach((a, i) => lane.append(mkItem(a, i, false))); return; }
+      if (!laneH) return; /* gizli (dar pencere / kapali): ResizeObserver gorununce tekrar cagirir */
+      const need = laneH + STEP; const reps = Math.min(4, Math.max(1, Math.ceil(need / (apps.length * STEP)))); const total = apps.length * reps; L = Math.max(total * STEP, need); gap = L / total;
+      for (let r = 0; r < reps; r++) apps.forEach((a, i) => { const el = mkItem(a, r * apps.length + i, r > 0); lane.append(el); slots.push(el); });
+      paint(); start();
+    }
+    function apply(r) {
+      if (!r || r.error) { say(hostMsg((r && r.message) || 'İşlem başarısız.'), true); return false; }
+      if (r.canceled) return false;
+      const before = apps.map((a) => a.id).sort().join(); apps = Array.isArray(r.apps) ? r.apps : []; maxApps = r.max || MAXAPPS_FALLBACK;
+      render(before !== apps.map((a) => a.id).sort().join()); if (dlg && dlg.open) { renderRows(); markSugg(); } return true;
+    }
+    const refresh = async () => { const r = await call('flowList'); if (r && !r.error) apply(r); };
+
+    async function launch(a, el, nm) {
+      if (el.classList.contains('go')) return; el.classList.remove('err'); void el.offsetWidth; el.classList.add('go'); const old = nm.textContent; nm.textContent = KT('Açılıyor…');
+      const r = await call('flowOpen', a.id); const bad = !!(r && r.error);
+      if (bad) { el.classList.remove('go'); void el.offsetWidth; el.classList.add('err'); nm.textContent = KT('Açılamadı'); toast(hostMsg(r.message || 'Açılamadı')); if (r.missing) refresh(); }
+      setTimeout(() => { el.classList.remove('go', 'err'); nm.textContent = old; }, bad ? 1800 : 1200);
+    }
+    lane.addEventListener('mouseenter', () => { hov = true; });
+    lane.addEventListener('mouseleave', () => { hov = false; start(); });
+    lane.addEventListener('focusin', (e) => {
+      foc = true; const el = e.target.closest && e.target.closest('.flow-item'); const k = slots.indexOf(el);
+      if (k >= 0 && el.matches(':focus-visible')) { const y = mod(k * gap + offset, L) - STEP; goal = mod(offset + (laneH / 2 - 36 - y), L); } start();
+    });
+    lane.addEventListener('focusout', (e) => { if (!lane.contains(e.relatedTarget)) { foc = false; start(); } });
+    lane.addEventListener('wheel', (e) => { if (!slots.length) return; e.preventDefault(); offset = mod(offset - e.deltaY * 0.6, L); goal = null; paint(); start(); }, { passive: false });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) last = 0; else { start(); refresh(); } });
+    new ResizeObserver(() => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (lane.clientHeight !== laneH || (apps.length && !slots.length && !isStill() && lane.clientHeight)) render(false); }); }).observe(lane);
+    const rm = matchMedia('(prefers-reduced-motion: reduce)'); rm.addEventListener && rm.addEventListener('change', () => render(false));
+    new MutationObserver(() => render(false)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-fx'] });
+
+    /* ---- yonetim penceresi (uygulama ekle / sirala / yeniden adlandir / kaldir) ---- */
+    let dlg = null, listEl = null, msgEl = null, suggBox = null, webForm = null, prevFocus = null, suggItems = [];
+    function say(m, bad) { if (!msgEl) { if (bad && m) toast(m); return; } msgEl.textContent = m || ''; msgEl.classList.toggle('bad', !!bad); }
+    async function move(i, d) { const ids = apps.map((a) => a.id); const j = i + d; if (j < 0 || j >= ids.length) return; [ids[i], ids[j]] = [ids[j], ids[i]]; apply(await call('flowOrder', ids)); const b = listEl && listEl.children[j] && listEl.children[j].querySelector(d < 0 ? '.up' : '.dn'); if (b && !b.disabled) b.focus(); }
+    function renderRows() {
+      listEl.replaceChildren(); if (!apps.length) listEl.append(h('li', { class: 'snote' }, KT('Henüz uygulama yok. Aşağıdan ekle.')));
+      apps.forEach((a, i) => {
+        const ic = h('span', { class: 'ic' }); if (a.icon && !a.missing) ic.append(h('img', { src: a.icon, alt: '' })); else { ic.style.background = letterBg(a.name); ic.append(h('span', { class: 'fl' }, [...a.name][0].toLocaleUpperCase('tr'))); }
+        const inp = h('input', { type: 'text', value: a.name, maxlength: '40', 'aria-label': KT('Uygulama adı'), spellcheck: 'false', autocomplete: 'off' });
+        inp.addEventListener('change', async () => { const v = inp.value.trim(); if (!v) { inp.value = a.name; return; } if (v !== a.name) apply(await call('flowRename', a.id, v)); });
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+        const up = h('button', { type: 'button', class: 'up', 'aria-label': KT('Yukarı taşı'), title: KT('Yukarı taşı'), disabled: i === 0 }, '↑'); const dn = h('button', { type: 'button', class: 'dn', 'aria-label': KT('Aşağı taşı'), title: KT('Aşağı taşı'), disabled: i === apps.length - 1 }, '↓');
+        const rmv = h('button', { type: 'button', class: 'rm', 'aria-label': KT('{0} uygulamasını kaldır', a.name), title: KT('Kaldır') }, '✕');
+        up.addEventListener('click', () => move(i, -1)); dn.addEventListener('click', () => move(i, 1));
+        rmv.addEventListener('click', async () => { if (apply(await call('flowRemove', a.id))) say(KT('Kaldırıldı.')); });
+        const sub = a.kind === 'web' ? a.host : (a.missing ? KT('Dosya bulunamadı') : null);
+        listEl.append(h('li', { class: 'flow-row' + (a.missing ? ' miss' : ''), 'data-id': a.id }, ic, inp, up, dn, rmv, sub ? h('small', {}, sub) : null));
+      });
+    }
+    function markSugg() { if (!suggBox || suggBox.hidden) return; suggBox.querySelectorAll('button[data-sid]').forEach((b) => { const it = suggItems.find((x) => x.sid === b.dataset.sid); const has = it && apps.some((a) => a.kind === 'app' && a.name === it.name); if (has) { b.disabled = true; b.textContent = KT('Zaten ekli'); } }); }
+    async function showSuggestions() {
+      say(''); const r = await call('flowSuggest'); if (!r || r.error) { say(hostMsg(r && r.message), true); return; } suggItems = r.items || []; suggBox.replaceChildren(); suggBox.hidden = false;
+      if (!r.windows) { suggBox.append(h('p', { class: 'snote' }, KT('Öneriler yalnızca Windows’ta çalışır.'))); return; }
+      if (!suggItems.length) { suggBox.append(h('p', { class: 'snote' }, KT('Önerilecek tanıdık bir uygulama bulunamadı. Başlat menüsünde kısayolu olan Discord, Steam, Medal, League gibi uygulamalar aranır.'))); return; }
+      for (const it of suggItems) { const b = h('button', { type: 'button', class: 'cv-btn', 'data-sid': it.sid, disabled: it.already }, it.already ? KT('Zaten ekli') : KT('Ekle')); b.addEventListener('click', async () => { if (apply(await call('flowAddSuggested', it.sid))) { b.disabled = true; b.textContent = KT('Zaten ekli'); say(KT('Eklendi.')); } }); suggBox.append(h('div', { class: 'srow' }, h('div', { class: 'stxt' }, h('label', {}, it.name)), b)); }
+    }
+    function build() {
+      if (dlg) return; const close = h('button', { type: 'button', class: 'cv-btn' }, KT('Kapat'));
+      listEl = h('ul', { class: 'flow-list' }); msgEl = h('p', { class: 'flow-msg', role: 'status' }); suggBox = h('div', { class: 'flow-sugg', hidden: true });
+      const bFile = h('button', { type: 'button', class: 'cv-btn flow-first' }, KT('Bilgisayardan uygulama ekle…')); const bSug = h('button', { type: 'button', class: 'cv-btn' }, KT('Önerilenleri bul')); const bWeb = h('button', { type: 'button', class: 'cv-btn', 'aria-expanded': 'false' }, KT('Web adresi ekle'));
+      const wName = h('input', { type: 'text', maxlength: '40', placeholder: KT('Ad (ör. Medal)'), 'aria-label': KT('Uygulama adı'), autocomplete: 'off' }); const wUrl = h('input', { type: 'url', maxlength: '300', placeholder: KT('Adres (https://…)'), 'aria-label': KT('Web adresi'), autocomplete: 'off', spellcheck: 'false' }); const wGo = h('button', { type: 'submit', class: 'cv-btn' }, KT('Ekle'));
+      webForm = h('form', { class: 'flow-web' }, wName, wUrl, wGo);
+      const bHide = h('button', { type: 'button', class: 'cv-btn' }, KT('Akışı gizle'));
+      dlg = h('dialog', { class: 'settings flow-dlg', id: 'flow-dlg', 'aria-labelledby': 'flow-dlg-title' }, h('div', { class: 'settings-box' }, h('header', {}, h('h2', { id: 'flow-dlg-title' }, KT('Uygulama Akışı')), close),
+        h('div', { class: 'flow-dlg-body' }, h('p', { class: 'snote' }, KT('Sağ kenarda yavaşça akan uygulamalar. Birine tıklayınca açılır; üzerine gelince akış durur.')), listEl, h('div', { class: 'flow-bar' }, bFile, bSug, bWeb), suggBox, webForm, msgEl, h('div', { class: 'flow-bar' }, bHide))));
+      document.body.append(dlg);
+      close.addEventListener('click', closeManage); dlg.addEventListener('click', (e) => { if (e.target === dlg) closeManage(); });
+      dlg.addEventListener('close', () => { dlgOpen = false; start(); if (prevFocus && prevFocus.isConnected && prevFocus.focus) prevFocus.focus(); });
+      bFile.addEventListener('click', async () => { say(''); if (apply(await call('flowAdd'))) say(KT('Eklendi.')); });
+      bSug.addEventListener('click', showSuggestions);
+      bWeb.addEventListener('click', () => { const on = !webForm.classList.contains('on'); webForm.classList.toggle('on', on); bWeb.setAttribute('aria-expanded', String(on)); if (on) wName.focus(); });
+      webForm.addEventListener('submit', async (e) => { e.preventDefault(); say(''); if (apply(await call('flowAddWeb', wName.value, wUrl.value))) { wName.value = ''; wUrl.value = ''; say(KT('Eklendi.')); } });
+      bHide.addEventListener('click', () => { api.setVisible(false); closeManage(); toast(KT('Uygulama Akışı gizlendi. Ayarlar’dan tekrar açabilirsin.')); });
+    }
+    function openManage() {
+      build(); renderRows(); say(''); suggBox.hidden = true; webForm.classList.remove('on'); prevFocus = document.activeElement; dlgOpen = true;
+      if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', ''); const f = dlg.querySelector('.flow-first'); if (f) f.focus(); refresh();
+    }
+    function closeManage() { if (!dlg) return; if (dlg.close) dlg.close(); else { dlg.removeAttribute('open'); dlgOpen = false; start(); } }
+    function applyVisible() { appEl.classList.toggle('has-flow', api.visible()); if (api.visible()) { render(false); } }
+    api.openManage = () => { if (!api.visible()) { hiddenMem = false; FS.set('kovan.flow', null); applyVisible(); listeners.forEach((f) => f()); } openManage(); };
+    api.setVisible = (on) => { hiddenMem = !on; FS.set('kovan.flow', on ? null : '0'); applyVisible(); listeners.forEach((f) => f()); };
+    manageBtn.addEventListener('click', () => api.openManage());
+    applyVisible(); refresh();
+  })();
+
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
      Yeni arac eklemek: (1) <section id="app-ID" hidden> kabini .stage icine koy, (2) asagidaki MODULES listesine { id, name, icon, desc } ekle.
      Kenar cubugu girdisi, Home karti ve #/ID yonlendirmesi bu listeden uretilir. Listede olmayan arac gosterilmez. */
@@ -7849,6 +8108,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       g1.append(sRow('collapsed', 'Kenar çubuğunu daralt', 'Yalnızca geniş ekranlarda; dar ekranda alt çubuk kullanılır.', sSwitch('collapsed', app.classList.contains('collapsed'), (c) => setCollapsed(c.checked, true))));
       g1.append(sRow('typing', 'Karşılama yazısı animasyonu', 'Kapalıyken Home başlığı doğrudan gösterilir. Sistem "hareketi azalt" ayarı her durumda önceliklidir.', sSwitch('typing', LS.get('kovan.typing') !== '0', (c) => LS.set('kovan.typing', c.checked ? null : '0'))));
       g1.append(sRow('fx', 'Arayüz animasyonları', 'Sayfa geçişleri, kart efektleri, dalga ve arka plan hareketleri. Kapalıyken arayüz sabit kalır. Sistem "hareketi azalt" ayarı her durumda önceliklidir.', sSwitch('fx', LS.get('kovan.fx') !== '0', (c) => { LS.set('kovan.fx', c.checked ? null : '0'); if (c.checked) document.documentElement.removeAttribute('data-fx'); else document.documentElement.setAttribute('data-fx', 'off'); })));
+      if (window.KovanFlow && window.KovanFlow.supported) { g1.append(sRow('flow', 'Uygulama Akışı', 'Sağ kenarda akan uygulama sütununu gösterir. Yalnızca masaüstü uygulamasında ve geniş pencerede (1100 piksel ve üstü) görünür.', sSwitch('flow', window.KovanFlow.visible(), (c) => window.KovanFlow.setVisible(c.checked)))); const flB = mk('button', { type: 'button', id: 'st-flowedit' }, 'Düzenle…'); flB.addEventListener('click', () => { closeSettings(); window.KovanFlow.openManage(); }); g1.append(sRow('flowedit', 'Uygulama Akışını düzenle', 'Uygulama ekle, sırala, yeniden adlandır, kaldır.', flB)); }
       const nm = mk('input', { id: 'st-name', maxlength: '24', autocomplete: 'off', spellcheck: 'false' }); nm.value = user; const nmWrap = mk('span', { class: 'sinline' }); const nmSave = mk('button', { type: 'button' }, 'Kaydet'); const nmReset = mk('button', { type: 'button' }, 'Varsayılan'); nmWrap.append(nm, nmSave, nmReset);
       const saveName = (v) => { v = v.trim().replace(/\s+/g, ' ').slice(0, 24); if (!v) { nm.value = user; return; } applyName(v); nm.value = v; LS.set('kovan.user', v === DEFAULT_USER ? null : v); };
       nmSave.addEventListener('click', () => saveName(nm.value)); nmReset.addEventListener('click', () => saveName(DEFAULT_USER)); nm.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveName(nm.value); } });
@@ -7870,7 +8130,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       async function hostSet(k, c) { c.disabled = true; stNote.hidden = true; try { const r = await host.settingsSet(k, c.checked); if (r && r.error) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = r.message || 'Ayar uygulanamadı.'; } else hostFill(r); } catch (e) { c.checked = !c.checked; stNote.hidden = false; stNote.textContent = 'Ayar uygulanamadı: ' + (e && e.message ? e.message : e); } syncMin(); }
       function syncMin() { swMin.disabled = !host || !swLogin.checked; }
       function hostFill(r) { if (!r || r.error) return; swLogin.checked = !!r.openAtLogin; swMin.checked = !!r.startMinimized; swAuto.checked = !!r.autoUpdate; swLogin.disabled = !r.autostart || !r.autostart.supported; swAuto.disabled = false; chk.disabled = false; stNote.hidden = !(r.autostart && !r.autostart.supported); if (!stNote.hidden) stNote.textContent = r.autostart.reason; syncMin(); }
-      S.refresh = async () => { theme.value = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'; S.collapsed.checked = app.classList.contains('collapsed'); S.typing.checked = LS.get('kovan.typing') !== '0'; S.fx.checked = LS.get('kovan.fx') !== '0'; nm.value = user; if (host) { try { hostFill(await host.settingsGet()); } catch (e) { stNote.hidden = false; stNote.textContent = 'Masaüstü ayarları okunamadı.'; } } };
+      S.refresh = async () => { theme.value = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'; S.collapsed.checked = app.classList.contains('collapsed'); S.typing.checked = LS.get('kovan.typing') !== '0'; S.fx.checked = LS.get('kovan.fx') !== '0'; if (S.flow && window.KovanFlow) S.flow.checked = window.KovanFlow.visible(); nm.value = user; if (host) { try { hostFill(await host.settingsGet()); } catch (e) { stNote.hidden = false; stNote.textContent = 'Masaüstü ayarları okunamadı.'; } } };
     }
     function openSettings() { buildSettings(); if (!pal.hidden) palClose(false); S.refresh(); sPrev = document.activeElement; if (hasDlg) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', ''); const f = dlg.querySelector('#st-theme'); if (f) f.focus(); }
     function closeSettings() { if (hasDlg) dlg.close(); else dlg.removeAttribute('open'); if (sPrev && sPrev.focus) sPrev.focus(); }
@@ -7884,6 +8144,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const c = [{ label: KT('Home’a git'), hint: KT('Sayfa'), run: () => go('home') }];
       for (const m of MODULES) { if (m.owner && !ownerOn) continue; c.push({ label: KT('{0} aracını aç', KT(m.name)), hint: KT('Araç'), run: () => go(m.id) }); for (const a of m.actions || []) c.push({ label: KT(a.label), hint: KT('Komut'), run: a.run }); }
       c.push({ label: KT('Temayı değiştir (açık/koyu)'), hint: KT('Komut'), run: () => $('#theme').click() }, { label: KT(app.classList.contains('collapsed') ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'), hint: KT('Komut'), run: () => setCollapsed(!app.classList.contains('collapsed'), true) }, { label: KT('Kullanıcı adını değiştir'), hint: KT('Komut'), run: editName }, { label: KT('Ayarlar'), hint: 'Ctrl ,', run: openSettings });
+      if (window.KovanFlow && window.KovanFlow.supported) c.push({ label: KT('Uygulama Akışı: düzenle'), hint: KT('Komut'), run: () => window.KovanFlow.openManage() }, { label: KT(window.KovanFlow.visible() ? 'Uygulama Akışını gizle' : 'Uygulama Akışını göster'), hint: KT('Komut'), run: () => window.KovanFlow.setVisible(!window.KovanFlow.visible()) });
       return c;
     }
     function palRender() {

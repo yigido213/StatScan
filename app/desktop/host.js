@@ -1554,6 +1554,90 @@ const LOLMOD = (() => {
   return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN };
 })();
 
+/* --- Uygulama Akisi (Kovan 'Uygulama Akisi' v0.0.1) ---
+ * Kovan'in sag kenarindaki akan sutunun uygulama listesi. Kullanici Discord, Steam, Medal, League, tarayici gibi uygulamalari ekler; sutundan tiklayinca acilir.
+ * Guvenlik: dosya yolunu/adresi arayuz GONDEREMEZ. Uygulama yalniz host dialogundan (kullanicinin kendi secimi) veya Baslat menusu taramasindan (arayuz yalniz
+ * kimlik "sid" gonderir) eklenir; acma yalniz kayitli kimlikle olur. Yalniz .exe/.lnk/.url, UNC/ag yolu reddedilir, web girisi yalniz https. Komut satiri/arguman YOK,
+ * shell YOK: dosya isletim sistemine openPath ile (cift tiklamayla ayni) acilir. Oyuna/belleğe/baska sürece dokunmaz, ag istegi yapmaz. */
+const FLOWMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const crypto = require('crypto');
+  const MAX_APPS = 24; const APP_EXT = /\.(exe|lnk|url)$/i; const ID_RE = /^[0-9a-f]{12}$/; const SID_RE = /^[0-9a-f]{10}$/;
+  /* Baslat menusu taramasinda aranan tanidik uygulama adlari (yalniz kisayol adi eslesmesi; baska hicbir sey okunmaz) */
+  const KNOWN = [/^discord/i, /^steam$/i, /^medal/i, /league of legends/i, /^riot client/i, /^google chrome$/i, /^firefox/i, /^microsoft edge$/i, /^brave/i, /^opera/i, /^spotify/i, /^obs studio/i, /^epic games launcher$/i, /battle\.net/i, /^whatsapp/i, /^telegram/i, /^visual studio code$/i, /^notepad\+\+$/i];
+  const cleanName = (s) => { if (typeof s !== 'string') return null; const v = s.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40); return v || null; };
+  const isUnc = (p) => /^[\\/]{2}/.test(p);
+  function validWeb(u) {
+    if (typeof u !== 'string' || u.length > 300) return null; let x; try { x = new URL(u.trim()); } catch (e) { return null; }
+    if (x.protocol !== 'https:' || x.username || x.password || !x.hostname || !/\./.test(x.hostname)) return null; return x.href;
+  }
+  function createFlowHost(deps) {
+    deps = deps || {}; const isWin = () => (deps.platform || process.platform) === 'win32'; const now = deps.now || (() => Date.now());
+    const stateFile = deps.dataDir ? path.join(deps.dataDir, 'uygulamaakisi.json') : null;
+    const errE = (message, extra) => Object.assign({ error: 'flow', message }, extra || {});
+    let state = { v: 1, apps: [] };
+    if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && Array.isArray(o.apps)) state.apps = o.apps.filter((a) => a && ID_RE.test(String(a.id)) && cleanName(a.name) && ((a.kind === 'app' && typeof a.path === 'string') || (a.kind === 'web' && validWeb(a.url)))).slice(0, MAX_APPS).map((a) => (a.kind === 'app' ? { id: a.id, name: cleanName(a.name), kind: 'app', path: a.path } : { id: a.id, name: cleanName(a.name), kind: 'web', url: validWeb(a.url) })); } catch (e) { /* ilk kullanim */ } }
+    const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
+    const iconCache = new Map(); const sugg = new Map(); const lastOpen = new Map();
+    const norm = (p) => (isWin() ? path.normalize(p).toLowerCase() : path.normalize(p));
+    function okPath(p) { if (typeof p !== 'string' || p.length > 1024 || p.indexOf('\0') >= 0) return 'Geçersiz yol.'; if (!path.isAbsolute(p) || isUnc(p)) return 'Yalnızca bu bilgisayardaki dosyalar eklenebilir.'; if (!APP_EXT.test(p)) return 'Yalnızca .exe, .lnk veya .url dosyası eklenebilir.'; let st; try { st = fs.statSync(p); } catch (e) { return 'Dosya bulunamadı.'; } return st.isFile() ? '' : 'Bir dosya seçmelisin.'; }
+    const newId = () => { let id; do { id = crypto.randomBytes(6).toString('hex'); } while (state.apps.some((a) => a.id === id)); return id; };
+    async function iconOf(p) {
+      if (!deps.fileIcon) return null; if (iconCache.has(p)) return iconCache.get(p);
+      let v = null; try { const r = await deps.fileIcon(p); if (typeof r === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(r) && r.length <= 200000) v = r; } catch (e) { v = null; }
+      iconCache.set(p, v); return v;
+    }
+    async function pub() {
+      const out = []; for (const a of state.apps) { if (a.kind === 'web') { out.push({ id: a.id, name: a.name, kind: 'web', host: new URL(a.url).hostname.replace(/^www\./, ''), icon: null, missing: false }); continue; } const miss = !!okPath(a.path); out.push({ id: a.id, name: a.name, kind: 'app', icon: miss ? null : await iconOf(a.path), missing: miss }); }
+      return { apps: out, max: MAX_APPS, windows: isWin() };
+    }
+    const find = (id) => (typeof id === 'string' && ID_RE.test(id) ? state.apps.find((a) => a.id === id) : null);
+    function addApp(p, name) {
+      if (state.apps.length >= MAX_APPS) return errE('En fazla ' + MAX_APPS + ' uygulama eklenebilir.');
+      const e = okPath(p); if (e) return errE(e); if (state.apps.some((a) => a.kind === 'app' && norm(a.path) === norm(p))) return errE('Bu uygulama zaten listede.');
+      const nm = cleanName(name) || cleanName(path.basename(p).replace(APP_EXT, '')) || 'Uygulama'; state.apps.push({ id: newId(), name: nm, kind: 'app', path: path.normalize(p) }); save(); return null;
+    }
+    function scanStart() {
+      const dirs = deps.startMenuDirs || (isWin() ? [process.env.ProgramData && path.join(process.env.ProgramData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'), process.env.APPDATA && path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs')].filter(Boolean) : []);
+      const found = new Map(); let budget = 3000;
+      const walk = (d, depth) => { if (depth > 3 || budget <= 0) return; let ents; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+        for (const en of ents) { if (budget-- <= 0) return; const full = path.join(d, en.name); if (en.isDirectory()) walk(full, depth + 1); else if (en.isFile() && /\.lnk$/i.test(en.name)) { const nm = cleanName(en.name.replace(/\.lnk$/i, '')); if (nm && KNOWN.some((re) => re.test(nm)) && !found.has(nm.toLowerCase())) found.set(nm.toLowerCase(), { name: nm, path: full }); } } };
+      for (const d of dirs) walk(d, 0); return [...found.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 40);
+    }
+    const handlers = {
+      'flow:list': async () => { try { return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
+      'flow:add': async () => {
+        try { if (!deps.chooseApp) return errE('Dosya seçimi kullanılamıyor.'); const p = await deps.chooseApp(); if (!p) return { canceled: true }; const e = addApp(String(p), null); if (e) return e; return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'flow:addWeb': async (_e, name, url) => {
+        try { if (state.apps.length >= MAX_APPS) return errE('En fazla ' + MAX_APPS + ' uygulama eklenebilir.'); const u = validWeb(url); if (!u) return errE('Geçerli bir https:// adresi gir (ör. https://ornek.com).'); if (state.apps.some((a) => a.kind === 'web' && a.url === u)) return errE('Bu adres zaten listede.');
+          const nm = cleanName(name) || new URL(u).hostname.replace(/^www\./, ''); state.apps.push({ id: newId(), name: nm, kind: 'web', url: u }); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'flow:suggest': async () => {
+        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); sugg.set(sid, f.path); items.push({ sid, name: f.name, already: state.apps.some((a) => a.kind === 'app' && norm(a.path) === norm(f.path)) }); }
+          return { items, windows: isWin() || !!deps.startMenuDirs }; } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'flow:addSuggested': async (_e, sid) => {
+        try { const p = typeof sid === 'string' && SID_RE.test(sid) ? sugg.get(sid) : null; if (!p) return errE('Öneri bulunamadı; listeyi yenile.'); const nm = cleanName(path.basename(p).replace(APP_EXT, '')); const e = addApp(p, nm); if (e) return e; return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'flow:rename': async (_e, id, name) => { try { const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); const nm = cleanName(name); if (!nm) return errE('Ad boş olamaz.'); a.name = nm; save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
+      'flow:remove': async (_e, id) => { try { const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); state.apps = state.apps.filter((x) => x !== a); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
+      'flow:order': async (_e, ids) => {
+        try { if (!Array.isArray(ids)) return errE('Geçersiz sıra.'); const seen = new Set(); const next = []; for (const id of ids.slice(0, MAX_APPS)) { const a = find(id); if (a && !seen.has(a.id)) { seen.add(a.id); next.push(a); } } for (const a of state.apps) if (!seen.has(a.id)) next.push(a); state.apps = next; save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'flow:open': async (_e, id) => {
+        try {
+          const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); const t = now(); if (t - (lastOpen.get(a.id) || 0) < 800) return { ok: true, name: a.name, skipped: true }; lastOpen.set(a.id, t);
+          if (a.kind === 'web') { const u = validWeb(a.url); if (!u || !deps.openExternal) return errE('Adres açılamadı.'); await deps.openExternal(u); return { ok: true, name: a.name }; }
+          const e = okPath(a.path); if (e) return errE(a.name + ': ' + e, { missing: true }); if (!deps.openPath) return errE('Uygulama açma kullanılamıyor.');
+          const r = await deps.openPath(a.path); if (typeof r === 'string' && r) return errE(a.name + ' açılamadı: ' + r.slice(0, 200)); return { ok: true, name: a.name };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      }
+    };
+    return { handlers, _state: () => state };
+  }
+  return { createFlowHost, cleanName, validWeb, KNOWN, MAX_APPS };
+})();
+
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
  * Steam + Epic kutuphanelerini ve calisan oyunu algilar; anti-cheat'li oyunlara ASLA dokunmaz; bir oyunun metin ayar dosyasini (.ini/.cfg/.conf)
  * ayar oncesi YEDEKLEYEREK degistirir; FPS'i PresentMon ile olcup hedef FPS'e gore ayar onerir. Oyunu calistirmaz, oyuna kod enjekte etmez, bellegine bakmaz.
@@ -2255,6 +2339,8 @@ function createHost(deps) {
   if (deps.sys !== false) { const sh = SYSMOD.createSysHost(Object.assign({ confirm: deps.confirm, showItemInFolder: deps.showItemInFolder }, deps.sys || {})); Object.assign(handlers, sh.handlers); }
   /* RAM Analizi: kullanicinin kendi Volatility 3 kurulumu (bkz. MEMMOD); dosya secimi + ag onayi host tarafinda */
   if (deps.mem !== false) { const mh = MEMMOD.createMemHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.mem || {})); Object.assign(handlers, mh.handlers); }
+  /* Uygulama Akisi: sagdaki akan sutun; yalniz kullanicinin sectigi uygulamalar, yol arayuzden gelmez (bkz. FLOWMOD) */
+  if (deps.flow !== false) { const fh = FLOWMOD.createFlowHost(Object.assign({ openExternal: deps.openExternal }, deps.flow || {})); Object.assign(handlers, fh.handlers); }
   /* Oyun Ayarlayici: oyun algilama + anti-cheat filtresi + yedekli ayar dosyasi + FPS olcumu (bkz. GAMEMOD) */
   if (deps.game !== false) { const gh = GAMEMOD.createGameHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.game || {})); Object.assign(handlers, gh.handlers); }
   /* Karsi Secim (LoL counter): Data Dragon + kisisel kayit + salt-okunur LCU (bkz. LOLMOD) */
@@ -2287,4 +2373,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD };
+module.exports = { createHost, createWatcher, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };
