@@ -76,15 +76,14 @@ await pg.keyboard.press('Escape'); await pg.waitForTimeout(100); ok(await pg.eva
 ok(await pg.evaluate(() => !document.querySelector('#lc-note') && !/dürüst sınırlar/i.test(document.querySelector('#app-lolcounter').textContent)), 'beta “dürüst sınırlar” kutusu kaldırıldı');
 ok(await pg.evaluate(() => !document.querySelector('#lg-deep') && !document.querySelector('#lg-deep2') && !/derin tara/i.test(document.querySelector('#app-lolcounter').textContent)), 'Blitz: “Geçmişi derin tara” düğmesi kaldırıldı');
 ok(/Blitz/.test(await txt(pg, '.lg-name')) || /Yiğit/.test(await txt(pg, '.lg-name')), 'Blitz: başlıkta Blitz/oyuncu adı');
-{ /* otomatik yenileme: varsayılan 3 sn, seçenekler, kayıt, gerçekten host'a sync gönderir, Kapalı durdurur */
+{ /* otomatik yenileme: düğme/seçici yok, kendiliğinden 3 sn'de bir yeniler; gizli ayar 0 = kapalı */
   const ha = mkHost(path.join(tmp, 'auto'), true); let calls = 0; const so = ha.handlers['lol:sync']; ha.handlers['lol:sync'] = async (...a) => { calls++; return so(...a); };
   const pa = await page(null, ha, false, 'reduce', true); await pa.goto(URL + '#/lolcounter'); await ready(pa); await pa.waitForTimeout(300);
-  ok(await pa.evaluate(() => { const bt = document.querySelector('#lg-auto'); return !!bt && bt.dataset.value === '3' && /Otomatik yenile/.test(document.querySelector('.lg-auto').textContent); }), 'Blitz: otomatik yenileme seçicisi var, varsayılan 3 sn');
-  await pa.click('#lg-auto'); ok(await pa.evaluate(() => [...document.querySelectorAll('#lg-auto-list li')].map((x) => x.dataset.v).join() === '0,1,2,3' && [...document.querySelectorAll('#lg-auto-list li')].map((x) => x.textContent.trim()).join('|').replace(/\s+/g, ' ') .includes('Kapalı') ), 'Blitz: otomatik yenileme seçenekleri Kapalı, 1, 2, 3 sn');
-  await pa.click('#lg-auto-list li[data-v="1"]'); ok(await pa.evaluate(() => document.querySelector('#lg-auto').dataset.value === '1' && localStorage.getItem('kovan.lgauto') === '1'), 'Blitz: 1 sn seçimi kaydedildi');
-  const c0 = calls; await pa.waitForTimeout(3600); ok(calls - c0 >= 2, 'Blitz: 1 sn seçiliyken kendiliğinden yeniler (' + (calls - c0) + ' çağrı / 3,6 sn)');
-  await pa.click('#lg-auto'); await pa.click('#lg-auto-list li[data-v="0"]'); await pa.waitForTimeout(300); const c1 = calls; await pa.waitForTimeout(2600); ok(calls === c1 && (await pa.evaluate(() => localStorage.getItem('kovan.lgauto'))) === '0', 'Blitz: Kapalı seçilince yenileme durur');
-  ok(pa.errs.length === 0, 'Blitz: otomatik yenilemede sayfa hatası yok'); await pa.context().close(); }
+  ok(await pa.evaluate(() => !document.querySelector('#lg-sync') && !document.querySelector('#lg-wipe') && !document.querySelector('#lg-auto') && !document.querySelector('.lg-actions') && !/Otomatik yenile|Verileri sil/.test(document.querySelector('#app-lolcounter').textContent)), 'Blitz: Güncelle / Otomatik yenile / Verileri sil düğmeleri yok');
+  const c0 = calls; await pa.waitForTimeout(7200); ok(calls - c0 >= 2, 'Blitz: kendiliğinden yeniler, varsayılan 3 sn (' + (calls - c0) + ' çağrı / 7,2 sn)');
+  ok(pa.errs.length === 0, 'Blitz: otomatik yenilemede sayfa hatası yok'); await pa.context().close();
+  const hb = mkHost(path.join(tmp, 'auto0'), true); let cb = 0; const sb = hb.handlers['lol:sync']; hb.handlers['lol:sync'] = async (...a) => { cb++; return sb(...a); };
+  const pb = await page(null, hb, false, 'reduce', false); await pb.goto(URL + '#/lolcounter'); await ready(pb); await pb.waitForTimeout(300); const cb0 = cb; await pb.waitForTimeout(3800); ok(cb === cb0, 'Blitz: gizli ayar 0 iken otomatik yenileme durur'); await pb.context().close(); }
 ok(await pg.evaluate(() => document.querySelectorAll('.lc-role').length === 5 && document.querySelector('#lc-role-top').getAttribute('aria-pressed') === 'true'), '5 rol düğmesi, varsayılan: Üst hat');
 async function enemy(name) { await pg.fill('#lc-enemy', name); await pg.click('#lc-go'); await pg.waitForTimeout(250); return pg.evaluate(() => ({ hint: document.querySelector('#lc-reshint').textContent, n: document.querySelectorAll('#lc-list .lc-pick').length })); }
 let e1 = await enemy('darius'); ok(e1.n > 0 && /Darius/.test(e1.hint), 'öneri: “darius” (küçük harf) bulundu, ' + e1.n + ' öneri');
@@ -226,15 +225,15 @@ const hr = mkHost(path.join(tmp, 'rich')); pg = await page(null, hr); await pg.g
 ok(/Test Oyuncu/.test(await txt(pg, '.lg-name')) && /#EUW/.test(await txt(pg, '.lg-name')) && (await txt(pg, '.lg-lvl')) === '77' && /İstemci bağlı/.test(await txt(pg, '#lg-client')), 'açılışta otomatik senkron: profil, seviye, “İstemci bağlı”');
 ok(/Zümrüt IV/.test(await txt(pg, '#lg-rank-solo')) && /33 LP/.test(await txt(pg, '#lg-rank-solo')) && await pg.evaluate(() => document.querySelectorAll('#lg-matches .lg-match').length === 2), 'senkron: Zümrüt IV, 33 LP, 2 maç; rank/maç kartları çizildi');
 ok(/2 yeni maç/.test(await txt(pg, '#lc-live')), 'senkron mesajı: 2 yeni maç');
-await pg.click('#lg-sync'); await pg.waitForFunction(() => /0 yeni maç/.test(document.querySelector('#lc-live').textContent), null, { timeout: 8000 }); ok(true, 'tekrar güncelle: yinelenen maç eklenmez');
-await pg.click('#lg-wipe'); await pg.waitForTimeout(600); ok(/silindi/.test(await txt(pg, '#lc-live')) || /Henüz maç yok/.test(await txt(pg, '#lg-pane-overview')), 'Verileri sil: onaydan sonra kayıtlar silinir');
+{ const r2 = await hr.handlers['lol:sync'](null, { deep: false }); ok(r2 && r2.added === 0, 'tekrar güncelle: yinelenen maç eklenmez'); }
+await hr.handlers['lol:data:clear'](null); await pg.waitForTimeout(100); ok(true, 'Verileri silme (host kanalı; arayüzde düğme yok)');
 const afterWipe = await hr.handlers['lol:profile'](); ok(afterWipe.matches === 0 && afterWipe.me === null, 'silme: host tarafında maç ve profil kalmadı'); await pg.context().close(); rich = null;
 
 // ---- English
 const pe = await page(null, hs, true); await pe.goto(URL + '#/lolcounter'); await pe.waitForFunction(() => /Offline|ready|Updated|not found/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); await pe.waitForTimeout(500);
 ok(/Overview/.test(await txt(pe, '#lg-tab-overview')) && /My champions/.test(await txt(pe, '#lg-tab-champs')) && /LP history/.test(await txt(pe, '#lg-tab-lp')) && /Counter pick/.test(await txt(pe, '#lg-tab-counter')), 'English: sekme adları');
 ok(/Ranked Solo\/Duo/.test(await txt(pe, '#lg-rank-solo')) && /Gold II/.test(await txt(pe, '#lg-rank-solo')) && /41 W – 35 L/.test(await txt(pe, '#lg-rank-solo')), 'English: rank kartı (Gold II, 41 W – 35 L)');
-ok(/Victory|Defeat/.test(await txt(pe, '#lg-matches')) && /Show more/.test(await txt(pe, '#lg-more')) && /Update/.test(await txt(pe, '#lg-sync')), 'English: maç kartları ve düğmeler');
+ok(/Victory|Defeat/.test(await txt(pe, '#lg-matches')) && /Show more/.test(await txt(pe, '#lg-more')), 'English: maç kartları ve düğmeler');
 liveData = { activePlayer: { riotId: 'Yigit#TR1', riotIdGameName: 'Yigit' }, gameData: { gameMode: 'CLASSIC', gameTime: 61 }, allPlayers: [P('Darius', 'Yigit', 'ORDER', ['Flash', 'Teleport'], 'TOP'), P('Nunu', 'M', 'ORDER', ['Flash', 'Smite']), P('Ahri', 'A', 'ORDER', ['Flash', 'Ignite']), P('Jinx', 'K', 'ORDER', ['Flash', 'Heal']), P('Lux', 'D', 'ORDER', ['Flash', 'Exhaust']), P('Garen', 'F1', 'CHAOS', ['Flash', 'Teleport']), P('MonkeyKing', 'F2', 'CHAOS', ['Flash', 'Smite']), P('Zed', 'F3', 'CHAOS', ['Flash', 'Ignite']), P('Kaisa', 'F4', 'CHAOS', ['Flash', 'Heal']), P('Teemo', 'F5', 'CHAOS', ['Flash', 'Exhaust'])] };
 await pe.click('#lg-tab-live'); await pe.waitForTimeout(500);
 ok(await pe.evaluate(() => { const x = document.querySelector('#lg-pane-live').textContent; return /Live match/.test(document.querySelector('#lg-tab-live').textContent) && /Enemy team/.test(x) && /My team/.test(x) && /Lane matchup/.test(x) && /Teleport/.test(x) && /guess \d+%/.test(x) && !/Takımım|Rakip takım|Hat eşleşmesi|Işınlan|tahmin/.test(x); }), 'English: canlı maç sekmesi çevrildi');
