@@ -1,6 +1,6 @@
 {
-  "version": "5.0.11",
-  "url": "StatScan-5.0.11.ssu",
-  "sha256": "62ebc88e9d6fdd5117ad56e539dc10e25ae81560f18767902e1933590b461c77",
-  "notes": "5.0.11 — HOTFIX (Kovan beta 0.1.5 kaldı): League Asistanı'nda oyuncu arama artık sekme değil, her sekmede en üstte duran bir arama çubuğu (Arkadaşlarım listesiyle). Karşı seçim sekmesi tam genişlik, rol/rakip/şampiyon havuzu bölümleri ferah ve düzenli."
+  "version": "5.0.12",
+  "url": "StatScan-5.0.12.ssu",
+  "sha256": "72087a800342a688e3da5230af0c8cd1ff2ef654a74c971e60eca0f8519d6371",
+  "notes": "5.0.12 — Kovan beta 0.1.6: Uygulama Akışı. Sağ kenarda yukarıdan aşağı yavaşça akan, döngüsel uygulama sütunu; Discord, Steam, Medal, League, kendi tarayıcın veya istediğin uygulamayı (exe/kısayol/https) ekle, tıklayınca açılır. Ayarlar'dan ve komut paletinden yönetilir/gizlenir."
 }
