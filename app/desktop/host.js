@@ -199,7 +199,8 @@ function createObfHost(deps) {
   };
   return { handlers, tools, save, start, job, cancel };
 }
-module.exports = { createObfHost, detectTools, TOOLS, safeName, rankRisk, riskMd };
+module.exports = {
+  createObfHost, detectTools, TOOLS, safeName, rankRisk, riskMd };
 
 return module.exports; })();
 
@@ -1668,6 +1669,25 @@ const LOLMOD = (() => {
  * Guvenlik: dosya yolunu/adresi arayuz GONDEREMEZ. Uygulama yalniz host dialogundan (kullanicinin kendi secimi) veya Baslat menusu taramasindan (arayuz yalniz
  * kimlik "sid" gonderir) eklenir; acma yalniz kayitli kimlikle olur. Yalniz .exe/.lnk/.url, UNC/ag yolu reddedilir, web girisi yalniz https. Komut satiri/arguman YOK,
  * shell YOK: dosya isletim sistemine openPath ile (cift tiklamayla ayni) acilir. Oyuna/belleğe/baska sürece dokunmaz, ag istegi yapmaz. */
+/* Saf JS .lnk hedef okuyucu (MS-SHLLINK). Electron'un yerel shell.readShortcutLink'i toplu cagrida butun uygulamayi kapatabiliyordu; bu hicbir yerel kod cagirmaz, bozuk dosyada null doner. */
+function readLnkTarget(file) {
+  try {
+    const fs = require('fs'); const st = fs.statSync(file); if (!st.isFile() || st.size < 0x4c || st.size > 262144) return null;
+    const b = fs.readFileSync(file); if (b.readUInt32LE(0) !== 0x4c) return null;
+    const flags = b.readUInt32LE(0x14); let o = 0x4c;
+    if (flags & 1) { if (o + 2 > b.length) return null; o += 2 + b.readUInt16LE(o); }
+    if (!(flags & 2) || o + 28 > b.length) return null;
+    const size = b.readUInt32LE(o), hdr = b.readUInt32LE(o + 4), lf = b.readUInt32LE(o + 8);
+    if (size < 28 || o + size > b.length || !(lf & 1)) return null;
+    const rd = (off, uni) => { let e = off; if (uni) { while (e + 1 < o + size && (b[e] || b[e + 1])) e += 2; return b.toString('utf16le', off, e); } while (e < o + size && b[e]) e++; return b.toString('latin1', off, e); };
+    const baseOff = b.readUInt32LE(o + 16), sufOff = b.readUInt32LE(o + 24);
+    let base = '', suf = '';
+    if (hdr >= 0x24 && o + 36 <= b.length) { const bu = b.readUInt32LE(o + 28), su = b.readUInt32LE(o + 32); if (bu) base = rd(o + bu, true); if (su) suf = rd(o + su, true); }
+    if (!base && baseOff) base = rd(o + baseOff, false);
+    if (!suf && sufOff) suf = rd(o + sufOff, false);
+    const t = (base + suf).trim(); return t && t.length < 1024 ? { target: t } : null;
+  } catch (e) { return null; }
+}
 const FLOWMOD = (() => {
   const fs = require('fs'); const path = require('path'); const crypto = require('crypto');
   const MAX_APPS = 24; const APP_EXT = /\.(exe|lnk|url)$/i; const ID_RE = /^[0-9a-f]{12}$/; const SID_RE = /^[0-9a-f]{10}$/;
@@ -1723,7 +1743,7 @@ const FLOWMOD = (() => {
           const nm = cleanName(name) || new URL(u).hostname.replace(/^www\./, ''); state.apps.push({ id: newId(), name: nm, kind: 'web', url: u }); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
       },
       'flow:suggest': async () => {
-        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); sugg.set(sid, f.path); let loc = ''; try { const r = deps.readShortcut && deps.readShortcut(f.path); if (r && typeof r.target === 'string' && r.target) loc = path.dirname(r.target); } catch (e) { loc = ''; } items.push({ sid, name: f.name, location: loc, known: !!f.known, already: state.apps.some((a) => a.kind === 'app' && norm(a.path) === norm(f.path)) }); }
+        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); sugg.set(sid, f.path); let loc = ''; try { const r = (deps.readShortcut || readLnkTarget)(f.path); if (r && typeof r.target === 'string' && r.target) loc = path.dirname(r.target); } catch (e) { loc = ''; } items.push({ sid, name: f.name, location: loc, known: !!f.known, already: state.apps.some((a) => a.kind === 'app' && norm(a.path) === norm(f.path)) }); }
           return { items, windows: isWin() || !!deps.startMenuDirs }; } catch (e) { return errE(String(e && e.message || e)); }
       },
       'flow:addSuggested': async (_e, sid) => {
@@ -1799,7 +1819,7 @@ const UPDMOD = (() => {
         for (const en of ents) { if (budget-- <= 0) return; const full = path.join(d, en.name); if (en.isDirectory()) walk(full, depth + 1); else if (en.isFile() && /\.lnk$/i.test(en.name)) { const nm = cleanName(en.name.replace(/\.lnk$/i, '')); if (nm && !SKIP.test(nm) && !found.has(nm.toLowerCase())) found.set(nm.toLowerCase(), { name: nm, path: full }); } } };
       for (const d of dirs) walk(d, 0); return [...found.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     }
-    function locationOf(lnk) { let t = null; try { const r = deps.readShortcut && deps.readShortcut(lnk); if (r && typeof r.target === 'string' && r.target) t = r.target; } catch (e) { t = null; } if (!t) return { loc: '', target: null }; return { loc: dirOf(t), target: t }; }
+    function locationOf(lnk) { let t = null; try { const r = (deps.readShortcut || readLnkTarget)(lnk); if (r && typeof r.target === 'string' && r.target) t = r.target; } catch (e) { t = null; } if (!t) return { loc: '', target: null }; return { loc: dirOf(t), target: t }; }
     async function upgrades() { if (upCache && now() - upCache.t < 60000) return upCache.r; const r = await run(['upgrade', '--accept-source-agreements', '--disable-interactivity'], 90000); if (r.code === 'ENOENT') return { nowinget: true }; const v = { rows: parseTable(r.stdout), code: r.code }; upCache = { t: now(), r: v }; return v; }
     const handlers = {
       'upd:list': async () => { try { return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
@@ -2589,4 +2609,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, updModule: UPDMOD, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };
+module.exports = { createHost, createWatcher, readLnkTarget, updModule: UPDMOD, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };
