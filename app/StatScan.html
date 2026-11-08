@@ -944,7 +944,9 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-lpbody { position: relative; padding: 6px 10px 12px; min-height: 260px; } .bz-lpbody > * { position: relative; }
 .bz-lpart { position: absolute !important; inset: 0; opacity: .5; -webkit-mask-image: linear-gradient(180deg, transparent 5%, #000 60%); mask-image: linear-gradient(180deg, transparent 5%, #000 60%); } .bz-lpart .art { height: 100%; } .bz-lpart .art .far, .bz-lpart .art .mid, .bz-lpart .art .near { fill: #a9c0d6; opacity: .1; } .bz-lpart .art .st { fill: none; stroke: #a9c0d6; opacity: .1; }
 .bz-chart { width: 100%; height: auto; display: block; } .bz-chart .gl { stroke: rgba(255,255,255,.1); stroke-dasharray: 3 6; stroke-width: 1; } .bz-chart .vl { stroke: rgba(255,255,255,.3); stroke-dasharray: 4 5; stroke-width: 1; } .bz-chart .yl { font: 600 11px var(--f-body); } .bz-chart .tl { fill: #16bff2; font: 600 11px var(--f-body); } .bz-chart .cap { fill: #aab3c3; font: 600 12px var(--f-body); }
-.bz-chart .ln { fill: none; stroke: rgba(190,200,215,.42); stroke-width: 1.3; stroke-linejoin: round; } .bz-pt2 { transform-box: fill-box; transform-origin: center; transition: transform .12s; } .bz-pt2:hover { transform: scale(1.55); }
+.bz-chart .ln { fill: none; stroke: rgba(190,200,215,.42); stroke-width: 1.3; stroke-linejoin: round; } .bz-pt2 { transform-box: fill-box; transform-origin: center; transition: transform .14s; animation: bzPop .4s cubic-bezier(.2,.9,.3,1.4) backwards; animation-delay: calc(var(--i, 0) * 9ms); } .bz-pt2.on { transform: scale(1.7); stroke: rgba(255,255,255,.85); stroke-width: 1.4; }
+.bz-chart .ln { stroke-dasharray: 1; animation: bzDraw 1.2s ease-out backwards; } @keyframes bzDraw { from { stroke-dashoffset: 1; } } @keyframes bzPop { from { opacity: 0; transform: scale(.15); } }
+.bz-chart .vl.hv { opacity: 0; pointer-events: none; transition: opacity .12s; stroke: rgba(255,255,255,.42); } .bz-chart .vl.hv.on { opacity: 1; } .bz-chart { touch-action: pan-y; cursor: crosshair; }
 .bz-endt .t1 { font: 700 14px var(--f-display); } .bz-endt .t2 { fill: #fff; font: 700 24px var(--f-display); } .bz-endt .t3 { fill: var(--muted); font: 600 12px var(--f-body); }
 .bz-lpbody .lg-empty { margin: 14px; }
 @media (max-width: 1100px) { .bz-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .bz-role { grid-template-columns: minmax(0, 1fr); } }
@@ -8064,11 +8066,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       for (let a = Math.max(0, lo); a <= hi; a += step) { svg.append(sv('line', { class: 'gl', x1: L, x2: W - Rr, y1: Y(a), y2: Y(a) })); const tx = sv('text', { class: 'yl', x: L - 12, y: Y(a) + 4, 'text-anchor': 'end', fill: TCH[absTier(a)] || '#8c95a6' }); tx.textContent = absLabel(a); svg.append(tx); }
       svg.append(sv('line', { class: 'vl', x1: X(0), x2: X(0), y1: T - 18, y2: Hh - B })); const cap = sv('text', { class: 'cap', x: X(0) + 8, y: T - 6 }); cap.textContent = KT('Kayıt başlangıcı'); svg.append(cap);
       for (let i = 1; i < n; i++) if (pts[i].tier !== pts[i - 1].tier || pts[i].div !== pts[i - 1].div) { const v = sv('line', { class: 'vl ev', x1: X(i), x2: X(i), y1: T - 18, y2: Hh - B }); v.append(sv('title', {}, mdy(pts[i].t) + ' — ' + tierDiv(pts[i - 1].tier, pts[i - 1].div) + ' → ' + tierDiv(pts[i].tier, pts[i].div))); svg.append(v); }
-      svg.append(sv('path', { class: 'ln', d: pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.abs).toFixed(1)).join('') }));
-      pts.forEach((p, i) => { const c = sv('circle', { class: 'bz-pt2', cx: X(i).toFixed(1), cy: Y(p.abs).toFixed(1), r: n > 100 ? '3.6' : '4.8', fill: TCH[p.tier] || '#16bff2' }); c.append(sv('title', {}, new Date(p.t).toLocaleString('tr-TR') + ' — ' + tierDiv(p.tier, p.div) + ' ' + p.lp + ' LP')); svg.append(c); });
+      svg.append(sv('path', { class: 'ln', pathLength: '1', d: pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.abs).toFixed(1)).join('') }));
+      const dots = []; pts.forEach((p, i) => { const c = sv('circle', { class: 'bz-pt2', cx: X(i).toFixed(1), cy: Y(p.abs).toFixed(1), r: n > 100 ? '3.6' : '4.8', fill: TCH[p.tier] || '#16bff2' }); c.style.setProperty('--i', String(Math.min(i, 130))); dots.push(c); svg.append(c); });
       const tk = Math.min(9, n); const seen = new Set(); for (let j = 0; j < tk; j++) { const i = tk === 1 ? 0 : Math.round((j * (n - 1)) / (tk - 1)); if (seen.has(i)) continue; seen.add(i); const tx = sv('text', { class: 'tl', x: X(i), y: Hh - 10, 'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' }); tx.textContent = md(pts[i].t); svg.append(tx); }
-      const last = pts[n - 1]; const ex = Math.min(X(n - 1) - 10, W - Rr - 4); let ey = Y(last.abs) + 54; if (ey > Hh - B - 8) ey = Math.max(T + 30, Y(last.abs) - 54);
-      const et = sv('text', { class: 'bz-endt', x: ex, y: ey, 'text-anchor': 'end' }); const t1 = sv('tspan', { class: 't1', x: ex, dy: '0', fill: TCH[last.tier] || '#16bff2' }); t1.textContent = tierDiv(last.tier, last.div).toUpperCase().replace(/ ([1-4])$/, (m0, d) => ' ' + ['', 'I', 'II', 'III', 'IV'][+d]); const t2 = sv('tspan', { class: 't2', x: ex, dy: '28' }); t2.textContent = last.lp + ' LP '; const t3 = sv('tspan', { class: 't3' }); t3.textContent = mdy(last.t); t2.append(t3); et.append(t1, t2); svg.append(et);
+      const hv = sv('line', { class: 'vl hv', y1: T - 18, y2: Hh - B }); svg.append(hv);
+      const et = sv('text', { class: 'bz-endt' }); const t1 = sv('tspan', { class: 't1' }); const t2 = sv('tspan', { class: 't2' }); const t3 = sv('tspan', { class: 't3' }); const lpTx = document.createTextNode(''); t2.append(lpTx, t3); et.append(t1, t2); svg.append(et);
+      let cur = -1;
+      function show(i) {
+        if (i === cur) return; if (cur >= 0) dots[cur].classList.remove('on'); cur = i; dots[i].classList.add('on'); const p = pts[i]; const px = X(i); const py = Y(p.abs);
+        const right = px < W - Rr - 190; const ex = right ? px + 16 : px - 16; let ey = py + 42; if (ey > Hh - B - 40) ey = py - 38; if (ey < T + 14) ey = T + 14;
+        et.setAttribute('text-anchor', right ? 'start' : 'end'); t1.setAttribute('x', ex.toFixed(1)); t1.setAttribute('y', ey.toFixed(1)); t1.setAttribute('fill', TCH[p.tier] || '#16bff2'); t2.setAttribute('x', ex.toFixed(1)); t2.setAttribute('dy', '28');
+        t1.textContent = tierDiv(p.tier, p.div).toUpperCase().replace(/ ([1-4])$/, (m0, d) => ' ' + ['', 'I', 'II', 'III', 'IV'][+d]); lpTx.nodeValue = p.lp + ' LP '; t3.textContent = mdy(p.t);
+        hv.setAttribute('x1', px.toFixed(1)); hv.setAttribute('x2', px.toFixed(1));
+      }
+      show(n - 1);
+      svg.addEventListener('pointermove', (e) => { const m = svg.getScreenCTM(); if (!m) return; const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const x = pt.matrixTransform(m.inverse()).x; const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round(((x - L) / (W - L - Rr)) * (n - 1)))); show(i); hv.classList.add('on'); });
+      svg.addEventListener('pointerleave', () => { hv.classList.remove('on'); show(n - 1); });
       return svg;
     }
     async function drawLp() {
