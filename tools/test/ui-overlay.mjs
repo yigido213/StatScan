@@ -23,4 +23,20 @@ ok((await pg.evaluate(() => window.__calls)).join() === 'all,iron,all', 'lolMu d
 await pg.click('#pin'); await pg.waitForTimeout(2300); ok(/Sabit/.test(await pg.textContent('#pin')) && /10 sn/.test(await pg.textContent('#cd')), 'sabitleyince geri sayım durur');
 ok(reqs.length === 0, 'ağ isteği yok: ' + reqs.join(','));
 ok(!errs.length, 'sayfa hatası yok ' + errs.join('|'));
+
+// ---- Tab altin farki sayfasi
+{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, lanes: [
+  { role: 'top', mine: { name: 'Darius', gold: 4000, me: true }, enemy: { name: '<img src=x onerror="window.__xss2=1">', gold: 3500 }, diff: 500 }, { role: 'jungle', mine: { name: 'Sion', gold: 3000 }, enemy: { name: 'Ornn', gold: 4100 }, diff: -1100 } ] };
+  const p2 = await b.newPage(); const e2 = []; const r2 = []; p2.on('pageerror', (e) => e2.push(String(e))); p2.on('request', (r) => { if (!/^data:|^about:/.test(r.url())) r2.push(r.url()); });
+  await p2.setViewportSize({ width: 340, height: 270 });
+  await p2.setContent(gh.replace('<script>', '<script>window.statscanHost={lolGold:async()=>(' + JSON.stringify(G) + ')};</script><script>')); await p2.waitForTimeout(400);
+  ok((await p2.textContent('#gl')) === '20.125' && (await p2.textContent('#gr')) === '23.950' && (await p2.textContent('#df')) === '3.825', 'altın sayfası: iki takım toplamı + ortada fark');
+  ok((await p2.getAttribute('#df', 'class')) === 'dn' && (await p2.textContent('#ar')) === '▶', 'altın sayfası: gerideyken kırmızı + ok rakip tarafa');
+  ok((await p2.textContent('#kl')) === '8' && (await p2.textContent('#kr')) === '16', 'altın sayfası: kill skoru');
+  const lt = await p2.textContent('#lanes'); ok(/\+500/.test(lt) && /−1\.100/.test(lt) && /Darius 4\.000/.test(lt), 'altın sayfası: hat farkları işaretli');
+  ok(await p2.evaluate(() => !window.__xss2 && document.querySelectorAll('#lanes img').length === 0), 'altın sayfası: ad düz metin (XSS yok)');
+  ok(/tahmin/.test(await p2.textContent('#ft')) && /cepteki altın dahil değil/.test(await p2.textContent('#ft')), 'altın sayfası: tahmin + cepteki altın dahil değil notu');
+  ok(!/innerHTML|eval\(|fetch\(|XMLHttpRequest/.test(gh) && !/cooldown|bekleme|flash|çarp|\bult\b/i.test(gh), 'altın sayfası: innerHTML/ağ yok, büyü sayacı yok');
+  ok(r2.length === 0 && !e2.length, 'altın sayfası: ağ isteği ve sayfa hatası yok ' + r2.join(',') + e2.join('|'));
+  if (process.env.SHOT) await p2.screenshot({ path: process.env.SHOT + '/gold.png', scale: 'css' }); await p2.close(); }
 await b.close(); console.log(bad ? '\n' + bad + ' BAŞARISIZ' : '\nTÜMÜ GEÇTİ'); process.exit(bad ? 1 : 0);

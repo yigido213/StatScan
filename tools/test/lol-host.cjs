@@ -247,6 +247,32 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   liveJson = mkLive(); liveJson.gameData.gameMode = 'ARAM'; r = await HV['lol:live'](); ok(r.state === 'ingame' && !r.classic && r.enemies.every((x) => x.role === null) && r.matchup === undefined, 'canlı: ARAM’da hat tahmini ve eşleşme yok');
   liveJson = mkLive(); liveJson.activePlayer = {}; r = await HV['lol:live'](); ok(r.state === 'ingame' && r.me === null && r.matchup === undefined, 'canlı: kendi oyuncum belirlenemezse eşleşme yok, çökme yok');
   liveJson = { allPlayers: 'x' }; ok((await HV['lol:live']()).state === 'nogame', 'canlı: bozuk veri → nogame');
+  // ---- Tab altin farki (esya degeri)
+  { const it = (price, count) => ({ itemID: 1, price, count: count || 1 }); const G = mkLive(); G.allPlayers.forEach((p, i) => { p.items = [it(450), it(1100)]; p.scores = { kills: 1 }; });
+    G.allPlayers[0].items = [it(3000), it(1100), it(50, 3)]; G.allPlayers[0].scores = { kills: 4 }; G.allPlayers[5].items = [it(450)]; G.allPlayers[5].scores = { kills: 2 };
+    liveJson = G; liveGets = []; const g = await HV['lol:gold']();
+    ok(g.state === 'ok' && g.mine.gold === 4250 + 4 * 1550 && g.enemy.gold === 450 + 4 * 1550 && g.diff === g.mine.gold - g.enemy.gold, 'altın: takım toplamı = Σ fiyat×adet; fark bizim − rakip');
+    ok(g.mine.kills === 4 + 4 && g.enemy.kills === 2 + 4, 'altın: takım kill toplamları');
+    ok(g.lanes.length === 5 && g.lanes.every((l) => l.diff === l.mine.gold - l.enemy.gold) && g.lanes.some((l) => l.mine.me) && g.guessed === true, 'altın: 5 hat farkı, ben işaretli, tahmin bayrağı');
+    ok(liveGets.every((p) => p === '/liveclientdata/allgamedata'), 'altın: yalnız /liveclientdata/allgamedata okunur');
+    const L2 = mkLive(); L2.allPlayers.forEach((p) => { p.items = [{ itemID: 1, price: 'x', count: -5 }, null, { price: 99999, count: 999 }]; }); liveJson = L2; const g2 = await HV['lol:gold'](); ok(g2.state === 'ok' && g2.mine.gold === 5 * 6000 * 20 && Number.isFinite(g2.diff), 'altın: bozuk/uç değerler sınırlanır, çökmez');
+    liveJson = mkLive(); const g3 = await HV['lol:gold'](); ok(g3.state === 'ok' && g3.mine.gold === 0 && g3.partial === true, 'altın: eşya alanı yoksa 0 + partial');
+    liveJson = mkLive(); liveJson.activePlayer = {}; ok((await HV['lol:gold']()).state === 'nogame', 'altın: kendi oyuncum belirsizse nogame');
+    liveJson = null; ok((await HV['lol:gold']()).state === 'nogame', 'altın: maç yokken nogame');
+    liveJson = mkLive(); liveJson.gameData.gameMode = 'ARAM'; const g4 = await HV['lol:gold'](); ok(g4.state === 'ok' && g4.lanes.length === 0, 'altın: ARAM’da hat yok, takım toplamı var');
+    ok((await HV['lol:gold:get']()).on === true, 'altın bindirmesi: varsayılan AÇIK'); await HV['lol:gold:set']({ on: false }); ok((await HV['lol:gold:get']()).on === false, 'altın ayarı kapanır');
+    const dg = path.join(tmp, 'goldset'); const h1 = mkHost({}, dg); await h1.handlers['lol:gold:set']({ on: false }); ok((await mkHost({}, dg).handlers['lol:gold:get']()).on === false, 'altın ayarı yeniden açılışta korunur'); }
+  // ---- Tab izleyici (sahte spawn)
+  { const { EventEmitter } = require('events'); const mk = () => { const c = new EventEmitter(); c.stdout = new EventEmitter(); c.killed = false; c.kill = () => { c.killed = true; c.emit('exit'); }; return c; };
+    let calls = []; let kid = null; const ev = []; const w = L.createTabWatcher({ platform: 'win32', spawn: (cmd, args, opt) => { calls.push({ cmd, args, opt }); kid = mk(); return kid; }, onChange: (d) => ev.push(d) });
+    ok(w.start() === true && w.start() === true && calls.length === 1 && calls[0].cmd === 'powershell.exe' && calls[0].opt.shell === false && calls[0].opt.windowsHide === true, 'tab izleyici: tek PowerShell süreci, shell yok, gizli');
+    const enc = calls[0].args[calls[0].args.indexOf('-EncodedCommand') + 1]; ok(Buffer.from(enc, 'base64').toString('utf16le') === L.TAB_PS && /GetAsyncKeyState\(9\)/.test(L.TAB_PS) && !/Send|keybd_event|SetWindowsHook|GetKeyboardState|Get-Content|Invoke-|http/i.test(L.TAB_PS), 'tab izleyici: betik sabit, yalnız Tab durumunu yoklar (tuş gönderme/kanca/ağ yok)');
+    kid.stdout.emit('data', 'D\r\nU\nD'); kid.stdout.emit('data', '\nU\n'); ok(ev.join() === 'true,false,true,false', 'tab izleyici: D/U satırları (parça parça gelse de) doğru çevrilir');
+    kid.stdout.emit('data', 'garbage\nX\n'); ok(ev.length === 4, 'tab izleyici: bilinmeyen satır yok sayılır');
+    kid.stdout.emit('data', 'D\n'); kid.emit('exit'); ok(ev[ev.length - 1] === false && !w.running(), 'tab izleyici: süreç ölürse "bırakıldı" + yeniden başlatılabilir'); ok(w.start() === true && calls.length === 2, 'tab izleyici: çıkıştan sonra yeniden başlar');
+    w.stop(); ok(kid.killed && !w.running(), 'tab izleyici: stop süreci öldürür');
+    ok(L.createTabWatcher({ platform: 'linux', spawn: () => { throw new Error('olmamalı'); } }).start() === false, 'tab izleyici: Windows dışında başlamaz');
+    ok(L.createTabWatcher({ platform: 'win32', spawn: () => { throw new Error('x'); } }).start() === false, 'tab izleyici: spawn hatasında çökmez'); }
   const hvOff = mkHost({ platform: 'win32', live: { get: async () => { throw new Error('ECONNREFUSED'); } } }, path.join(tmp, 'live2')); ok((await hvOff.handlers['lol:live']()).state === 'nogame', 'canlı: bağlantı reddedilince nogame (oyun yok)');
   ok(L.LIVE_OK.test('/liveclientdata/allgamedata') && !L.LIVE_OK.test('/liveclientdata/allgamedata/x') && !L.LIVE_OK.test('/lol-summoner/v1/current-summoner') && !L.LIVE_OK.test('http://evil/liveclientdata/allgamedata'), 'canlı: beyaz liste yalnızca allgamedata');
   // ---- counterpick.lol (isteğe bağlı; sentetik HTML, gerçek siteyle DENENMEDİ)
@@ -437,7 +463,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok(!/cooldown|bekleme|flash|çarp|\bult\b/i.test(h), 'bindirme sayfası: büyü/yetenek bekleme sayacı yok'); }
   // ---- host entegrasyonu: kanallar kayıtlı, arayüz yol/URL gönderemez
   const host = createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'entegre'), get } });
-  const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu', 'lol:items', 'lol:mu', 'lol:mu:cfg', 'lol:mu:rank', 'lol:mu:url:set', 'lol:note:set', 'lol:ov:get', 'lol:ov:set'];
+  const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu', 'lol:items', 'lol:mu', 'lol:mu:cfg', 'lol:mu:rank', 'lol:mu:url:set', 'lol:note:set', 'lol:ov:get', 'lol:ov:set', 'lol:gold', 'lol:gold:get', 'lol:gold:set'];
   ok(chans.every((c) => typeof host.handlers[c] === 'function'), 'createHost: tüm lol kanalları kayıtlı');
   const hd = createHost({ service: { closeAll() {} }, lol: false }); ok(!hd.handlers['lol:status'], 'createHost: lol:false ile kanallar kapanır');
   const src = fs.readFileSync(path.join(__dirname, '../../app/desktop/host.js'), 'utf8'); const lolSrc = src.slice(src.indexOf('const LOLMOD'), src.indexOf("/* --- Oyun Ayarlayici (Kovan 'oyunayar'"));

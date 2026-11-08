@@ -1194,10 +1194,13 @@ const LOLMOD = (() => {
     for (const perm of PERMS) { let pr = 1; for (let i = 0; i < 5; i++) pr *= weights[i][ROLE_ORDER[perm[i]]]; total += pr; for (let i = 0; i < 5; i++) marg[i][ROLE_ORDER[perm[i]]] += pr; if (!best || pr > best.pr) best = { pr, perm }; }
     if (!(total > 0)) return null; return weights.map((_, i) => { const m = marg[i]; const role = ROLE_ORDER[best.perm[i]]; const probs = {}; for (const r of ROLE_ORDER) probs[r] = Math.round((1000 * m[r]) / total) / 1000; return { role, conf: probs[role], probs }; });
   }
+  /* oyun ici tablodaki esya degeri: Live Client her esya icin `price` (esya fiyati) ve `count` verir; cebindeki/harcanmis altin YOK */
+  const clampN = (x, lo, hi) => { const n = Number(x); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : 0; };
+  function goldOf(p) { const L = Array.isArray(p && p.items) ? p.items.slice(0, 12) : []; let s = 0; for (const it of L) { if (!it || typeof it !== 'object') continue; s += clampN(it.price, 0, 6000) * Math.max(1, clampN(it.count, 1, 20)); } return s; }
   function parseLive(j, byName, byId) {
     if (!j || typeof j !== 'object' || !Array.isArray(j.allPlayers)) return null; const gd = j.gameData || {}; const ap = j.activePlayer || {}; const meName = String(ap.riotId || ap.summonerName || ''); const meGame = String(ap.riotIdGameName || '');
     const champId = (p) => { const raw = String(p.rawChampionName || '').replace(/^game_character_displayname_/i, ''); if (byId.has(raw)) return raw; const nm = String(p.championName || ''); const hit = byName.get(nm); return hit ? hit.id : (byId.has(nm.replace(/[^A-Za-z0-9]/g, '')) ? nm.replace(/[^A-Za-z0-9]/g, '') : null); };
-    const mk = (p) => { const rn = p.runes && typeof p.runes === 'object' ? p.runes : null; const nm = (x) => (x && typeof x.displayName === 'string' ? x.displayName.slice(0, 40) : null); return { champ: champId(p), name: String(p.riotIdGameName || p.summonerName || '').slice(0, 30), tag: String(p.riotIdTagLine || '').slice(0, 10), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER', level: Math.round(Number(p.level)) || 0, bot: !!p.isBot, pos: LIVE_POS[String(p.position || '').toUpperCase()] || null, smite: hasSpell(p, /Smite/i), spells: spellsOf(p).map((x) => (/Smite/i.test(x) ? 'smite' : /Teleport/i.test(x) ? 'teleport' : /Flash/i.test(x) ? 'flash' : /Heal/i.test(x) ? 'heal' : /Barrier/i.test(x) ? 'barrier' : /Exhaust/i.test(x) ? 'exhaust' : /Dot|Ignite/i.test(x) ? 'ignite' : /Haste|Ghost/i.test(x) ? 'ghost' : /Boost|Cleanse/i.test(x) ? 'cleanse' : 'other')), runes: rn ? { keystone: nm(rn.keystone), primary: nm(rn.primaryRuneTree), secondary: nm(rn.secondaryRuneTree) } : null, _raw: p, me: !!meName && (String(p.riotId || '') === meName || (meGame && String(p.riotIdGameName || '') === meGame) || String(p.summonerName || '') === meName) }; };
+    const mk = (p) => { const rn = p.runes && typeof p.runes === 'object' ? p.runes : null; const nm = (x) => (x && typeof x.displayName === 'string' ? x.displayName.slice(0, 40) : null); return { champ: champId(p), name: String(p.riotIdGameName || p.summonerName || '').slice(0, 30), tag: String(p.riotIdTagLine || '').slice(0, 10), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER', level: Math.round(Number(p.level)) || 0, gold: goldOf(p), k: clampN(p.scores && p.scores.kills, 0, 999), bot: !!p.isBot, pos: LIVE_POS[String(p.position || '').toUpperCase()] || null, smite: hasSpell(p, /Smite/i), spells: spellsOf(p).map((x) => (/Smite/i.test(x) ? 'smite' : /Teleport/i.test(x) ? 'teleport' : /Flash/i.test(x) ? 'flash' : /Heal/i.test(x) ? 'heal' : /Barrier/i.test(x) ? 'barrier' : /Exhaust/i.test(x) ? 'exhaust' : /Dot|Ignite/i.test(x) ? 'ignite' : /Haste|Ghost/i.test(x) ? 'ghost' : /Boost|Cleanse/i.test(x) ? 'cleanse' : 'other')), runes: rn ? { keystone: nm(rn.keystone), primary: nm(rn.primaryRuneTree), secondary: nm(rn.secondaryRuneTree) } : null, _raw: p, me: !!meName && (String(p.riotId || '') === meName || (meGame && String(p.riotIdGameName || '') === meGame) || String(p.summonerName || '') === meName) }; };
     const all = j.allPlayers.slice(0, 10).map(mk); return { mode: String(gd.gameMode || '').slice(0, 20), time: Math.max(0, Math.round(Number(gd.gameTime) || 0)), players: all };
   }
   function analyzeLive(parsed, roster, opts) {
@@ -1219,9 +1222,9 @@ const LOLMOD = (() => {
     deps = deps || {}; const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'lolcounter.json') : null; const cacheDir = dataDir ? path.join(dataDir, 'lolcounter-cache') : null;
     const now = deps.now || (() => Date.now());
     const run = deps.run || ((cmd, args, ms) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: ms || 10000, windowsHide: true, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (e, so) => (e && !so ? reject(e) : resolve(String(so || '')))); }));
-    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], matches: {}, murank: 'all', muUrl: null, notes: {}, ov: { on: false, secs: 20 } }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
+    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], matches: {}, murank: 'all', muUrl: null, notes: {}, ov: { on: false, secs: 20 }, gold: { on: true } }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
     if (!state.pool || typeof state.pool !== 'object') state.pool = {}; if (!Array.isArray(state.hist)) state.hist = []; if (!Array.isArray(state.lp)) state.lp = []; if (!state.matches || typeof state.matches !== 'object' || Array.isArray(state.matches)) state.matches = {};
-    if (muRankSet(state.murank) === null) state.murank = 'all'; if (!state.notes || typeof state.notes !== 'object' || Array.isArray(state.notes)) state.notes = {}; if (!state.ov || typeof state.ov !== 'object') state.ov = { on: false, secs: 20 }; state.ov = { on: state.ov.on === true, secs: clamp(Math.round(Number(state.ov.secs)) || 20, 8, 60) }; if (typeof state.muUrl !== 'string') state.muUrl = null;
+    if (muRankSet(state.murank) === null) state.murank = 'all'; if (!state.notes || typeof state.notes !== 'object' || Array.isArray(state.notes)) state.notes = {}; if (!state.ov || typeof state.ov !== 'object') state.ov = { on: false, secs: 20 }; state.ov = { on: state.ov.on === true, secs: clamp(Math.round(Number(state.ov.secs)) || 20, 8, 60) }; if (typeof state.muUrl !== 'string') state.muUrl = null; state.gold = { on: !(state.gold && state.gold.on === false) };
     const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
 
     /* --- ag: yalniz Data Dragon (sabit sunucu) --- */
@@ -1455,6 +1458,16 @@ const LOLMOD = (() => {
       /* maç açılış bindirmesi ayarı (pencereyi ana süreç açar; burada yalnız tercih saklanır) */
       'lol:ov:get': async () => ({ on: state.ov.on, secs: state.ov.secs }),
       'lol:ov:set': async (_e, req) => { req = req || {}; if (typeof req.on === 'boolean') state.ov.on = req.on; if (req.secs != null) state.ov.secs = clamp(Math.round(Number(req.secs)) || 20, 8, 60); save(); return { ok: true, on: state.ov.on, secs: state.ov.secs }; },
+      /* Tab'a basinca altin farki bindirmesi: ayar + tek hesap (yalniz GET /liveclientdata/allgamedata) */
+      'lol:gold:get': async () => ({ on: state.gold.on }),
+      'lol:gold:set': async (_e, req) => { req = req || {}; if (typeof req.on === 'boolean') state.gold.on = req.on; save(); return { ok: true, on: state.gold.on }; },
+      'lol:gold': async () => {
+        try {
+          const bad = await needRoster(); if (bad) return { state: 'nogame' }; let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
+          const parsed = parseLive(j, new Map(roster.map((c) => [c.name, c])), new Map(roster.map((c) => [c.id, c]))); if (!parsed) return { state: 'nogame' };
+          const a = analyzeLive(parsed, roster); const nm = new Map(roster.map((c) => [c.id, c.name])); return goldCompare(a, (id) => (id && nm.get(id)) || id || '?');
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
       'lol:sync': async (_e, req) => {
         try {
           const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' };
@@ -1639,6 +1652,57 @@ const LOLMOD = (() => {
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
+  /* ---- Tab'a basinca altin farki: tablodaki esya degerleri (tahmin; harcanmamis altin dahil degil). Yalnizca oyunun kendi Tab tablosunda
+     zaten gorunen bilgilerin (esya, kill) toplami/farki; dusman buyu/yetenek bekleme sayaci ya da durum tetikli uyari YOK. ---- */
+  function goldCompare(a, nameOf) {
+    if (!a || !a.me) return { state: 'nogame' }; const nf = nameOf || ((x) => x); const sum = (L, f) => L.reduce((s, x) => s + (Number(x[f]) || 0), 0);
+    const m = { gold: sum(a.allies, 'gold'), kills: sum(a.allies, 'k') }; const e = { gold: sum(a.enemies, 'gold'), kills: sum(a.enemies, 'k') };
+    const pl = (x) => ({ champ: x.champ, name: String(nf(x.champ)).slice(0, 24), gold: Number(x.gold) || 0, me: !!x.me }); const lanes = []; let guessed = false;
+    if (a.classic) for (const r of ['top', 'jungle', 'mid', 'bot', 'support']) { const x = a.allies.find((p) => p.role === r); const y = a.enemies.find((p) => p.role === r); if (!x || !y) continue; lanes.push({ role: r, mine: pl(x), enemy: pl(y), diff: (Number(x.gold) || 0) - (Number(y.gold) || 0) }); if (!x.known || !y.known) guessed = true; }
+    return { state: 'ok', time: a.time, classic: !!a.classic, mine: m, enemy: e, diff: m.gold - e.gold, lanes, guessed, partial: a.allies.concat(a.enemies).some((p) => !p.gold) };
+  }
+  function lolGoldHtml() {
+    const js = '(function(){var H=window.statscanHost,$=function(i){return document.getElementById(i)};'
+      + 'function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=String(x);return e}'
+      + 'var RN={top:"Üst",jungle:"Orman",mid:"Orta",bot:"Alt",support:"Destek"};'
+      + 'function n(v){return String(Math.round(v)).replace(/\\B(?=(\\d{3})+(?!\\d))/g,".")}'
+      + 'function sg(v){return(v>0?"+":v<0?"−":"")+n(Math.abs(v))}'
+      + 'function cl(v){return v>0?"up":v<0?"dn":"eq"}'
+      + 'function draw(g){if(!g||g.state!=="ok"){$("top").className="off";return}$("top").className="";'
+      + '$("gl").textContent=n(g.mine.gold);$("gr").textContent=n(g.enemy.gold);var d=$("df");d.textContent=n(Math.abs(g.diff));d.className=cl(g.diff);$("ar").textContent=g.diff>0?"◀":g.diff<0?"▶":"•";'
+      + '$("kl").textContent=g.mine.kills;$("kr").textContent=g.enemy.kills;var L=$("lanes");L.textContent="";'
+      + '(g.lanes||[]).forEach(function(r){var w=el("div","ln"+(r.mine.me?" me":""));w.appendChild(el("span","c l",r.mine.name+" "+n(r.mine.gold)));var m=el("span","c m "+cl(r.diff),sg(r.diff));w.appendChild(m);w.appendChild(el("span","c r",n(r.enemy.gold)+" "+r.enemy.name));w.title=RN[r.role]||r.role;L.appendChild(w)});'
+      + '$("ft").textContent="Eşya değeri toplamı (tahmin) · cepteki altın dahil değil"+(g.guessed?" · hat eşleşmesi tahmin":"")}'
+      + 'var busy=false;function refresh(){if(busy||!H||!H.lolGold)return;busy=true;H.lolGold().then(draw).catch(function(){draw(null)}).then(function(){busy=false})}'
+      + 'document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh()});setInterval(function(){if(!document.hidden)refresh()},1500);refresh();})();';
+    const css = 'html,body{margin:0;background:transparent;color:#e8ecf3;font:13px/1.35 system-ui,sans-serif;user-select:none}body{padding:8px 12px;background:rgba(8,12,20,.88);border:1px solid #c8aa6e;border-radius:10px;box-sizing:border-box;min-height:100vh}'
+      + '#top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700;font-size:16px}#top.off{opacity:.4}#gl{color:#e6c35c}#gr{color:#e6c35c}#df{font-size:15px;padding:2px 8px;border-radius:6px;background:#1b2434}'
+      + '#df.up,.m.up{color:#5be08a}#df.dn,.m.dn{color:#ff6b6b}#df.eq,.m.eq{color:#aab}#ar{color:#c8aa6e;font-size:11px;margin:0 4px}.k{display:flex;justify-content:space-between;margin:4px 0 6px;color:#cfd6e6;font-weight:700}.k i{color:#c8aa6e;font-style:normal}'
+      + '.ln{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;padding:2px 0;border-top:1px solid rgba(200,170,110,.18);font-size:12px}.ln.me{background:rgba(200,170,110,.10)}.c.l{text-align:left}.c.r{text-align:right}.c.m{font-weight:700;min-width:54px;text-align:center}'
+      + '.fine{margin:6px 0 0;color:#8f98ab;font-size:10.5px}';
+    const csp = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
+    return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '"><title>Altın farkı</title><style>' + css + '</style></head><body>'
+      + '<div id="top" class="off"><span id="gl">0</span><span><span id="ar">•</span><span id="df" class="eq">0</span></span><span id="gr">0</span></div>'
+      + '<div class="k"><span id="kl">0</span><i>⚔ kill</i><span id="kr">0</span></div><div id="lanes"></div><p class="fine" id="ft"></p><script>' + js + '</script></body></html>';
+  }
+  /* Tab tusu durumu: tek, sabit bir PowerShell sureci GetAsyncKeyState(0x09)'u yoklar (yalniz tus basili/birakildi; tus vurusu kaydedilmez, hicbir yere yazilmaz).
+     Yalniz Windows. Betik sabit; disaridan gelen hicbir deger icine girmez. */
+  const TAB_PS = "Add-Type -Namespace K -Name U -MemberDefinition '[DllImport(\"user32.dll\")] public static extern short GetAsyncKeyState(int v);'; $p = $false; while ($true) { $d = (([K.U]::GetAsyncKeyState(9) -band 0x8000) -ne 0); if ($d -ne $p) { $p = $d; if ($d) { [Console]::Out.WriteLine('D') } else { [Console]::Out.WriteLine('U') }; [Console]::Out.Flush() }; Start-Sleep -Milliseconds 40 }";
+  function createTabWatcher(o) {
+    o = o || {}; const spawnFn = o.spawn || cp.spawn; let child = null; let down = false; let buf = '';
+    const set = (v) => { if (v !== down) { down = v; try { if (o.onChange) o.onChange(v); } catch (e) { /* dinleyici hatasi */ } } };
+    return {
+      start() {
+        if (child) return true; if ((o.platform || process.platform) !== 'win32') return false;
+        try { child = spawnFn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', Buffer.from(TAB_PS, 'utf16le').toString('base64')], { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { child = null; return false; }
+        const me = child; buf = '';
+        if (me.stdout) me.stdout.on('data', (d) => { buf = (buf + String(d)).slice(-256); const parts = buf.split(/\r?\n/); buf = parts.pop(); for (const ln of parts) { const t = ln.trim(); if (t === 'D') set(true); else if (t === 'U') set(false); } });
+        const gone = () => { if (child === me) { child = null; set(false); } }; me.on('error', gone); me.on('exit', gone); return true;
+      },
+      stop() { const c = child; child = null; set(false); if (c) { try { c.kill(); } catch (e) { /* zaten bitti */ } } },
+      running() { return !!child; }, isDown() { return down; }
+    };
+  }
   /* ---- mac acilis bindirmesi: yalniz STATIK mac oncesi bilgi (build/not). Dusman buyu/yetenek bekleme sayaci,
      ulti sayaci ve durum tetikli "simdi sunu yap" uyarisi YOK (Riot politikasi). Pencereyi app.js acar. ---- */
   function overlayDecide(prevIn, cfg, live) {
@@ -1672,7 +1736,7 @@ const LOLMOD = (() => {
       + '<header><b id="t">Blitz</b><span id="cd" class="dim">' + s + ' sn</span><button id="pin">Sabitle</button><button id="x">×</button></header>'
       + '<div class="rows"><button id="prev">‹</button><span id="rk">Tüm ranklar (Emerald+)</span><button id="next">›</button></div><div id="body"></div><script>' + js + '</script></body></html>';
   }
-  return { createLolHost, overlayDecide, lolOverlayHtml, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN, parseMu, aggMu, muRankSet, MU_RANKS, MU_ALL, MU_SLOTS };
+  return { createLolHost, overlayDecide, lolOverlayHtml, lolGoldHtml, goldCompare, goldOf, createTabWatcher, TAB_PS, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN, parseMu, aggMu, muRankSet, MU_RANKS, MU_ALL, MU_SLOTS };
 })();
 
 /* --- Uygulama Akisi (Kovan 'Uygulama Akisi' v0.0.1) ---

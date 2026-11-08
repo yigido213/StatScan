@@ -123,6 +123,31 @@ function start(ctx) {
       } catch (e) { /* lig istemcisi yok: sessiz */ } finally { busy = false; }
     }, 6000);
   }
+  /* Tab'a basinca altin farki bindirmesi: oyun suruyorken gizli bir pencere hazir tutulur; Tab basili = gosterilir, birakilinca gizlenir.
+     Tab durumu icin tek PowerShell sureci (host.js createTabWatcher, yalniz Windows). Odak almaz, oyuna tus gondermez. */
+  let gWin = null; let gTab = null; let gTimer = null;
+  function closeGold() { if (gTab) { try { gTab.stop(); } catch (e) { /* yoksay */ } gTab = null; } if (gWin && !gWin.isDestroyed()) { try { gWin.close(); } catch (e) { /* yoksay */ } } gWin = null; }
+  function openGold() {
+    const { BrowserWindow, screen } = require('electron'); const { lolModule } = require('./host.js'); const wa = screen.getPrimaryDisplay().workArea; const w = 340; const h = 270;
+    gWin = new BrowserWindow({ width: w, height: h, x: wa.x + wa.width - w - 16, y: wa.y + 16, frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
+      webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: false, backgroundThrottling: false } });
+    try { gWin.setAlwaysOnTop(true, 'screen-saver'); } catch (e) { /* yoksay */ } try { gWin.setIgnoreMouseEvents(true); } catch (e) { /* yoksay */ }
+    gWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' })); gWin.webContents.on('will-navigate', (ev) => ev.preventDefault()); gWin.on('closed', () => { gWin = null; });
+    gWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(lolModule.lolGoldHtml()));
+  }
+  function startGold() {
+    if (gTimer || !host || !host.handlers || !host.handlers['lol:gold']) return; const { lolModule } = require('./host.js'); let busy = false;
+    gTimer = setInterval(async () => {
+      if (busy) return; busy = true;
+      try { const cfg = await host.handlers['lol:gold:get'](null); if (!cfg || !cfg.on) { closeGold(); return; }
+        const g = await host.handlers['lol:gold'](null); if (!g || g.state !== 'ok') { closeGold(); return; }
+        if (!gWin || gWin.isDestroyed()) openGold();
+        if (!gTab) gTab = lolModule.createTabWatcher({ onChange: (d) => { try { if (!gWin || gWin.isDestroyed()) return; if (d) gWin.showInactive(); else gWin.hide(); } catch (e) { /* yoksay */ } } });
+        gTab.start();
+      } catch (e) { closeGold(); } finally { busy = false; }
+    }, 5000);
+  }
+  app.on('before-quit', () => { try { closeGold(); } catch (e) { /* yoksay */ } });
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
@@ -146,6 +171,7 @@ function start(ctx) {
       }, openPath: (p) => shell.openPath(p) }, game: { dataDir: app.getPath('userData'), chooseConfig: async (name) => { const r = await dialog.showOpenDialog(win || undefined, { title: (name ? name + ' — ' : '') + 'Ayar dosyasını seç (.ini / .cfg / .conf)', properties: ['openFile'], filters: [{ name: 'Ayar dosyası', extensions: ['ini', 'cfg', 'conf'] }] }); return r.canceled ? null : r.filePaths[0]; }, choosePm: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'PresentMon dosyasını seç (PresentMon-*.exe)', properties: ['openFile'], filters: [{ name: 'PresentMon', extensions: process.platform === 'win32' ? ['exe'] : ['*'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; } }, mem: { dataDir: app.getPath('userData'), engine: D.loadEngine(HTML), chooseDump: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'Bellek dökümünü seç (yalnızca okunur)', properties: ['openFile'], filters: [{ name: 'Bellek dökümü', extensions: ['raw', 'mem', 'dmp', 'vmem', 'lime'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; }, chooseVol: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'Volatility 3 dosyasını seç (vol / vol.exe / vol.py)', properties: ['openFile'], filters: [{ name: 'Volatility', extensions: process.platform === 'win32' ? ['exe', 'py'] : ['*'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; } }, access: { dataDir: app.getPath('userData'), publicKey: ctx.publicKey, chooseFile: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'Sahip anahtarını seç (private.pem)', properties: ['openFile'], filters: [{ name: 'PEM anahtarı', extensions: ['pem', 'key'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; } } });
     host.register(ipcMain);
     try { startOverlay(); } catch (e) { /* bindirme acilmadi: ozellik devre disi */ }
+    try { startGold(); } catch (e) { /* altin bindirmesi acilmadi: ozellik devre disi */ }
     try { host.access && host.access.start(); } catch (e) { /* engelli liste denetimi acilmadi: engel uygulanmaz */ }
     setMenu(); createWindow();
     if (ctx.rolledBack) setTimeout(() => dialog.showMessageBox(win, { type: 'warning', title: 'Güncelleme geri alındı', message: 'Önceki güncelleme kullanılmadı; uygulamayla gelen sürüm açıldı.', detail: String(ctx.rolledBack) }), 1500);

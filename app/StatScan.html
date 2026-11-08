@@ -5995,6 +5995,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Bindirme süresi": "Overlay duration",
       "{0} sn": "{0} s",
       "Maç bindirmesi açıldı.": "Match overlay turned on.",
+      "Altın farkı bindirmesi açıldı.": "Gold difference overlay turned on.",
+      "Altın farkı bindirmesi kapatıldı.": "Gold difference overlay turned off.",
+      "Tab’a basılı tutunca altın farkını (takım ve hat) oyunun üstünde göster": "Show the gold difference (team and lane) on top of the game while Tab is held",
       "Maç bindirmesi kapatıldı.": "Match overlay turned off.",
       "Maça girince eşleşme bilgisini oyunun üstünde göster": "Show matchup info on top of the game when a match starts",
       "Maç yüklenince küçük bir pencere açılır ve birkaç saniye sonra kapanır; oyuna dokunmaz, odağı çalmaz. Oyunu “Kenarlıksız” ya da “Pencereli” modda oynuyorsan görünür; “Tam ekran” modda görünmez.": "A small window opens when the match loads and closes after a few seconds; it does not touch the game or steal focus. It is visible in “Borderless” or “Windowed” mode, not in “Fullscreen”.",
@@ -7875,7 +7878,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       call(H.lolOvGet).then((r) => { if (r && !r.error) { cb.checked = r.on === true; const o = [...secs.options].find((x) => Number(x.value) === r.secs); if (o) secs.value = o.value; } });
       const push = async () => { const r = await call(H.lolOvSet, { on: cb.checked, secs: Number(secs.value) }); if (!r || r.error) say(failMsg(r), true); else say(r.on ? KT('Maç bindirmesi açıldı.') : KT('Maç bindirmesi kapatıldı.')); };
       cb.addEventListener('change', push); secs.addEventListener('change', push);
-      return h('div', { class: 'lg-ov', id: 'lg-ov-' + n }, h('label', { class: 'fine', style: 'display:inline-flex;gap:8px;align-items:center', for: cb.id }, cb, KT('Maça girince eşleşme bilgisini oyunun üstünde göster')), ' ', secs,
+      const gcb = h('input', { type: 'checkbox', class: 'lg-gdcb', id: 'lg-gd-on-' + n });
+      call(H.lolGoldGet).then((r) => { if (r && !r.error) gcb.checked = r.on === true; });
+      gcb.addEventListener('change', async () => { const r = await call(H.lolGoldSet, { on: gcb.checked }); if (!r || r.error) say(failMsg(r), true); else say(r.on ? KT('Altın farkı bindirmesi açıldı.') : KT('Altın farkı bindirmesi kapatıldı.')); });
+      return h('div', { class: 'lg-ov', id: 'lg-ov-' + n }, h('label', { class: 'fine', style: 'display:flex;gap:8px;align-items:center;margin-bottom:6px', for: gcb.id }, gcb, KT('Tab’a basılı tutunca altın farkını (takım ve hat) oyunun üstünde göster')), h('label', { class: 'fine', style: 'display:inline-flex;gap:8px;align-items:center', for: cb.id }, cb, KT('Maça girince eşleşme bilgisini oyunun üstünde göster')), ' ', secs,
         h('p', { class: 'rm-hint' }, KT('Maç yüklenince küçük bir pencere açılır ve birkaç saniye sonra kapanır; oyuna dokunmaz, odağı çalmaz. Oyunu “Kenarlıksız” ya da “Pencereli” modda oynuyorsan görünür; “Tam ekran” modda görünmez.')));
     }
     function muNoteBox(me, enemy, role, note) {
