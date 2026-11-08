@@ -956,7 +956,7 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-match .lg-pl { font-size: 12px; gap: 3px 10px; } .bz-match .lg-pl .lg-ic { width: 18px; height: 18px; }
 /* şampiyon havuzu */
 .bz-pooltop { display: flex; align-items: center; gap: 12px; } .bz-roles { display: grid; gap: 14px; }
-.bz-role { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 18px; padding: 20px; border-radius: 16px; background: rgba(14,18,24,.86); border: 1px solid rgba(255,255,255,.055); }
+.bz-role { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 18px; padding: 20px; border-radius: 16px; background: rgba(14,18,24,.86); border: 1px solid rgba(255,255,255,.055); }
 .bz-rolehead { display: grid; grid-template-columns: 48px auto; gap: 0 14px; align-content: start; } .bz-ri { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #1b212b; color: #c9d0dc; } .bz-ri svg { width: 22px; height: 22px; }
 .bz-rolehead h2 { margin: 0; font: 600 21px var(--f-display); color: #fff; } .bz-rlp { display: block; font: 700 20px var(--f-display); color: #9aa3b2; margin-top: 2px; } .bz-rwl { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bz-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
@@ -3931,7 +3931,7 @@ async function packAudit(u8, name, opts) {
     out.kind = p.clr ? 'dotnet' : 'pe'; out.is64 = p.is64; out.overlay = p.overlay; out.importCount = [...p.imports.values()].reduce((a, v) => a + v.length, 0); out.entropy = +entropy(u8).toFixed(2);
     out.sections = p.sections.map((s) => ({ n: s.name, vsize: s.vsize, rsize: s.rsize, ent: +s.ent.toFixed(2), x: !!(s.ch & 0x20000000), w: !!(s.ch & 0x80000000), std: PK_STD_SEC.test(s.name), packer: (typeof PACKER_SEC !== 'undefined' ? PACKER_SEC.find(([re]) => re.test(s.name)) : null) }));
     const epSec = p.ep ? p.sections.find((s) => p.ep >= s.va && p.ep < s.va + Math.max(s.vsize, s.rsize)) : null; out.ep = epSec ? epSec.name : (p.ep ? '(bölüm dışı)' : '—'); out.epIndex = epSec ? p.sections.indexOf(epSec) : -1;
-    for (const s of out.sections) if (s.packer) add('sec_' + s.packer[1], 45, s.packer[1] + ' bölüm adı (' + s.n + ')', 'Bölüm adı bu paketleyici/koruyucuya özgü.', 'fact');
+    const secSeen = new Set(); for (const s of out.sections) if (s.packer && !secSeen.has(s.packer[1])) { secSeen.add(s.packer[1]); add('sec_' + s.packer[1], 45, s.packer[1] + ' bölüm adı (' + out.sections.filter((x) => x.packer && x.packer[1] === s.packer[1]).map((x) => x.n).join(', ') + ')', 'Bölüm adı bu paketleyici/koruyucuya özgü.', 'fact'); }
     const hiX = out.sections.filter((s) => s.x && s.ent >= 7.2 && s.rsize > 4096); if (hiX.length) add('ent_x', 22, 'Yüksek entropili çalıştırılabilir bölüm', hiX.map((s) => s.n + ' (' + s.ent + ')').join(', ') + ' — kod sıkıştırılmış/şifrelenmiş gibi.');
     const hiAll = out.sections.filter((s) => !s.x && s.ent >= 7.4 && s.rsize > 65536); if (hiAll.length && !hiX.length) add('ent_d', 8, 'Yüksek entropili veri bölümü', hiAll.map((s) => s.n + ' (' + s.ent + ')').join(', ') + ' — gömülü sıkıştırılmış/şifreli veri (kaynak, kurulum verisi olabilir).');
     const rwx = out.sections.filter((s) => s.x && s.w); if (rwx.length) add('rwx', 10, 'Hem yazılabilir hem çalıştırılabilir bölüm', rwx.map((s) => s.n).join(', ') + ' — kendini açan kod bu izni ister.');
@@ -3939,11 +3939,9 @@ async function packAudit(u8, name, opts) {
     if (!p.clr && p.sections.length) { if (!epSec && p.ep) add('ep_out', 14, 'Giriş noktası bölümlerin dışında', 'Program başlangıcı normal bölümlerin dışında.'); else if (epSec && out.epIndex === p.sections.length - 1 && p.sections.length > 2) add('ep_last', 12, 'Giriş noktası SON bölümde', 'Program son bölümde başlıyor (paketleyici kalıbı).'); else if (epSec && !/^(?:\.text|CODE|\.code|\.itext)$/i.test(epSec.name) && out.epIndex > 0) add('ep_odd', 8, 'Giriş noktası olağandışı bölümde (' + epSec.name + ')', 'Normalde .text/CODE gibi bir kod bölümünde olur.'); }
     const nstd = out.sections.filter((s) => !s.std && !s.packer); if (nstd.length >= 2 || (nstd.length && out.sections.length <= 4)) add('nonstd', 6, 'Standart olmayan bölüm adları', nstd.map((s) => s.n).join(', ') + ' — yalnızca ipucu (derleyiciye göre değişir).');
     const APIS = new Set(); for (const fns of p.imports.values()) for (const f of fns) APIS.add(f.toLowerCase());
-    const stub = ['loadlibrarya', 'loadlibraryw', 'getprocaddress', 'virtualalloc', 'virtualprotect', 'virtualfree', 'exitprocess', 'getmodulehandlea', 'getmodulehandlew', 'kernel32.dll'];
     if (!p.clr && out.importCount > 0 && out.importCount <= 12 && APIS.has('getprocaddress') && (APIS.has('loadlibrarya') || APIS.has('loadlibraryw')) && u8.length > 30000) add('imp_stub', 20, 'Klasik paketleyici import kalıbı', 'Yalnızca ' + out.importCount + ' import ve LoadLibrary+GetProcAddress var: gerçek API\'ler çalışma anında çözülüyor olabilir.');
     else if (!p.clr && out.importCount > 0 && out.importCount <= 6 && u8.length > 30000) add('imp_few', 14, 'Çok az import', out.importCount + ' import: API\'ler gizlenmiş olabilir.');
     else if (!p.clr && out.importCount === 0 && !p.dll && u8.length > 20000) add('imp_none', 14, 'Import tablosu yok', 'Çalıştırılabilir dosya import tablosu taşımıyor.');
-    void stub;
     if (out.overlay > 4096 && out.overlay / u8.length > 0.3) out.notes.push('Dosyanın %' + Math.round(100 * out.overlay / u8.length) + '’i bölümlerin dışında (overlay): yükleyici/kurulum paketi ya da gömülü veri olabilir.');
   } else if (isZip) {
     out.kind = 'zip';
@@ -3971,10 +3969,6 @@ async function packAudit(u8, name, opts) {
     const hay = pkHay(u8); const seen = new Set();
     for (const sg of PK_SIGS) { const hit = sg.needles.find((nd) => hay.indexOf(nd) >= 0); if (!hit) continue; if (seen.has(sg.id)) continue; seen.add(sg.id); const secHit = p && out.sections.some((s) => s.packer && s.packer[1].toLowerCase().includes(sg.name.split(' ')[0].toLowerCase())); const strong = sg.id === 'upx' ? (hay.indexOf('UPX0') >= 0 || hay.indexOf('UPX1') >= 0) : true; out.tools.push({ id: sg.id, name: sg.name, cat: sg.cat, evidence: secHit ? 'bölüm adı + dize' : 'dize', hint: sg.hint }); if (sg.cat === 'installer') continue; if (!secHit) add('str_' + sg.id, strong ? 30 : 14, sg.name + ' izi (' + PK_CAT[sg.cat] + ')', 'Dosyada “' + hit.replace(/[\x00-\x1f]/g, '·') + '” dizesi bulundu' + (strong ? '' : ' (tek başına zayıf ipucu; belgeler/ürün adı olarak da geçebilir)') + '.', strong ? 'fact' : 'heuristic'); }
     for (const s of (p ? out.sections : [])) if (s.packer && !out.tools.some((t) => t.name.toLowerCase().includes(s.packer[1].toLowerCase().split(/[\/ ]/)[0]))) { const sg = PK_SIGS.find((x) => x.name.toLowerCase().includes(s.packer[1].toLowerCase().split(/[\/ ]/)[0])); out.tools.push({ id: sg && sg.id, name: s.packer[1], cat: sg ? sg.cat : 'packer', evidence: 'bölüm adı', hint: sg ? sg.hint : '' }); }
-  }
-  if (p && p.clr) {
-    const hay = pkHay(u8); const names = (hay.match(/\b[A-Za-z_][A-Za-z0-9_]{0,2}\b/g) || []).length; void names;
-    const strs = u8.length < 40e6 ? (hay.match(/[ࠀ-￿]{3,}/g) || []).length : 0; void strs;
   }
   out.score = Math.min(100, out.score);
   const fact = out.evidence.some((e) => e.kind === 'fact' && e.w >= 30); out.level = out.score >= 45 && (fact || out.score >= 60) ? 'confirmed' : out.score >= 30 ? 'likely' : out.score >= 12 ? 'possible' : 'none';

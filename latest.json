@@ -1,6 +1,6 @@
 {
-  "version": "5.0.20",
-  "url": "StatScan-5.0.20.ssu",
-  "sha256": "bebf2bb60c968db568bec5be4e4d022ff48e704ffe7cf7ccc865dce147f70f84",
-  "notes": "5.0.20 — Kovan beta 0.1.10: Blitz görünümü yenilendi (Genel bakış, Şampiyon havuzu, LP geçmişi Blitz.gg tarzı; sekmeye özel League temalı arka plan) + Ayarlar'da arayüz ölçeği (%50–200, özel yüzde)."
+  "version": "5.0.21",
+  "url": "StatScan-5.0.21.ssu",
+  "sha256": "d9e0a117929d4545072508a9e2a6e57bb07e3218b9ae273c6e55947ad2b5be92",
+  "notes": "5.0.21 — HOTFIX (Kovan beta 0.1.10 kaldı): Blitz LP geçmişinde imleçle nokta yakalama, taşınan etiket ve çizim animasyonu; Şampiyon havuzu rol sütunu daraltıldı."
 }
