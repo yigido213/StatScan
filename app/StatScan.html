@@ -688,6 +688,30 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .cv-res { border: 1px solid var(--line); border-radius: var(--r); padding: 16px; background: var(--surface); display: grid; gap: 12px; }
 .cv-res h2 { margin: 0; font-size: 18px; } .cv-sum { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
 .cv-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/*#css-sectools*/
+[data-sc] .sc-res { display: grid; gap: 14px; } [data-sc] .sc-body { display: grid; gap: 14px; border: 1px solid var(--line); border-radius: var(--r); padding: 16px; background: var(--surface); }
+[data-sc] .sc-body h2 { margin: 6px 0 0; font-size: 16px; }
+[data-sc] .sc-file { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; } [data-sc] .sc-file span { color: var(--muted); font: 12.5px var(--f-mono); overflow-wrap: anywhere; }
+[data-sc] .sc-score { display: flex; gap: 16px; align-items: center; border: 1px solid var(--line); border-radius: var(--r); padding: 12px 16px; background: var(--surface2); }
+[data-sc] .sc-score > div:last-child { display: grid; gap: 2px; min-width: 0; }
+[data-sc] .sc-num { font: 700 38px/1 var(--f-mono); color: var(--s0); min-width: 92px; } [data-sc] .sc-num small { font-size: 15px; color: var(--muted); font-weight: 500; }
+[data-sc] .sc-score.mid .sc-num { color: var(--s2); } [data-sc] .sc-score.hi .sc-num { color: var(--s3); }
+[data-sc] .sc-fine { color: var(--muted); font-size: 12.5px; margin: 0; } [data-sc] ul.sc-fine { padding-left: 18px; display: grid; gap: 2px; }
+[data-sc] .sc-verdict { display: grid; gap: 4px; padding: 12px 16px; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface2); } [data-sc] .sc-verdict span { color: var(--muted); font-size: 13.5px; }
+[data-sc] .sc-v-bad, [data-sc] .sc-pk-confirmed { border-color: var(--s3); } [data-sc] .sc-v-warn, [data-sc] .sc-pk-likely { border-color: var(--s2); } [data-sc] .sc-v-ok, [data-sc] .sc-pk-none { border-color: var(--s0); } [data-sc] .sc-pk-possible { border-color: var(--s1); }
+[data-sc] .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; }
+[data-sc] .sc-kv { display: grid; gap: 1px; min-width: 0; } [data-sc] .sc-kv span { color: var(--muted); font-size: 12px; } [data-sc] .sc-kv b { font-weight: 600; overflow-wrap: anywhere; }
+[data-sc] .sc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+[data-sc] .sc-f { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; } [data-sc] .sc-f p { margin: 3px 0 0; color: var(--muted); font-size: 13.5px; } [data-sc] .sc-f .sc-act { color: var(--ink); }
+[data-sc] .sc-pill { font: 600 10.5px var(--f-mono); text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+[data-sc] .sc-pill.sc-high { color: var(--s3); } [data-sc] .sc-pill.sc-med { color: var(--s2); } [data-sc] .sc-pill.sc-low { color: var(--s1); } [data-sc] .sc-pill.sc-info { color: var(--muted); } [data-sc] .sc-pill.sc-ok { color: var(--s0); }
+[data-sc] .sc-ent { display: inline-grid; grid-template-columns: 90px auto; align-items: center; gap: 8px; } [data-sc] .sc-ent i { display: block; height: 7px; border-radius: 4px; background: var(--s0); }
+[data-sc] .sc-hot td { background: color-mix(in srgb, var(--s3) 10%, transparent); } [data-sc] .mtable td small { display: block; color: var(--muted); }
+[data-sc] .sc-tools { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; } [data-sc] .sc-chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; }
+[data-sc] .sc-ioc { display: grid; gap: 8px; } [data-sc] .sc-ioc ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; max-height: 360px; overflow: auto; } [data-sc] .sc-ioc li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; } [data-sc] .sc-ioc code { font: 12.5px var(--f-mono); overflow-wrap: anywhere; } [data-sc] .sc-ioc small { color: var(--muted); }
+[data-sc] .sc-empty { color: var(--muted); margin: 0; } [data-sc] .cv-live.warn { color: var(--s3); }
+@media (max-width: 640px) { [data-sc] .sc-score { flex-direction: column; align-items: flex-start; } }
+/*#end-css-sectools*/
 .cv-sec { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; } .cv-sec.warn { border-color: color-mix(in srgb, var(--s1) 45%, var(--line)); }
 .cv-sec summary { cursor: pointer; font-weight: 600; } .cv-sec ul { margin: 8px 0 2px; padding-left: 18px; display: grid; gap: 3px; font: 12.5px/1.45 var(--f-mono); overflow-wrap: anywhere; }
 /* Home kategori basliklari */
@@ -1201,6 +1225,9 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
 <section id="app-modconv" class="kv" aria-label="Mod sürüm ayarlayıcı" hidden></section>
 <section id="app-compiler" class="kv" aria-label="Derleyici" hidden></section>
 <section id="app-obfuscate" class="kv" aria-label="Obfuscate" hidden></section>
+<section id="app-imza" class="kv" aria-label="İmza ve Sertifika Denetçisi" hidden></section>
+<section id="app-paketleyici" class="kv" aria-label="Paketleyici / Obfuscation Dedektörü" hidden></section>
+<section id="app-ioc" class="kv" aria-label="IOC Çıkarıcı" hidden></section>
 <section id="app-taskmgr" class="kv kv-wide" aria-label="Görev Yöneticisi" hidden></section>
 <section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
 <section id="app-ramanaliz" class="kv kv-wide" aria-label="RAM Analizi" hidden></section>
@@ -3649,6 +3676,306 @@ function srcObfSupport() {
   return rows;
 }
 /*#endregion srcobf*/
+/*#region sectools*/
+/* Guvenlik araclari motoru: Imza ve Sertifika Denetcisi (sigAudit) + Paketleyici/Obfuscation Dedektoru (packAudit).
+ * Dosya CALISTIRILMAZ, ag istegi YAPILMAZ. IOC Cikarici mevcut collectIocTree/iocExport'u kullanir (90-ioc.js).
+ * IMZA: PKCS#7 icindeki sertifikalar ayristirilir; imza matematigi ve zincir baglantilari dosya ici verilerle
+ * (WebCrypto, yalnizca RSA) denetlenir. YAPILMAYANLAR: Windows kok sertifika deposuna guven, iptal (CRL/OCSP sorgusu),
+ * bilinen sizdirilmis/kotuye kullanilmis sertifika listesi, ECDSA imza dogrulamasi. Iptal adresleri yalnizca LISTELENIR.
+ * PAKET: bolum adi/entropi/giris noktasi/import ve bilinen koruyucu dizeleri sezgiseldir; "paketli" = zararli DEGIL. */
+function sdr(b, p, end) {
+  if (p + 2 > end) return null; const tag = b[p]; let l = b[p + 1], q = p + 2;
+  if (l & 0x80) { const n = l & 0x7f; if (n === 0 || n > 4 || q + n > end) return null; l = 0; for (let i = 0; i < n; i++) l = l * 256 + b[q + i]; q += n; }
+  if (q + l > end) return null; return { tag, h: p, s: q, e: q + l };
+}
+function sdk(b, n) { const out = []; if (!n) return out; let p = n.s; while (p < n.e && out.length < 400) { const k = sdr(b, p, n.e); if (!k) break; out.push(k); p = k.e; } return out; }
+const sraw = (b, n) => b.subarray(n.h, n.e);
+const SIG_RDN = { '2.5.4.3': 'CN', '2.5.4.10': 'O', '2.5.4.11': 'OU', '2.5.4.6': 'C', '2.5.4.7': 'L', '2.5.4.8': 'S', '2.5.4.5': 'SERIAL', '1.2.840.113549.1.9.1': 'E' };
+function sigName(b, n) {
+  const map = {}; if (!n) return { map, str: '', key: '' };
+  for (const rdn of sdk(b, n)) for (const atv of sdk(b, rdn)) { const k = sdk(b, atv); const key = SIG_RDN[derOid(b, k[0])]; if (key && k[1] && map[key] === undefined) map[key] = derStr(b, k[1]).slice(0, 120); }
+  return { map, str: ['CN', 'O', 'OU', 'L', 'S', 'C'].filter((k) => map[k]).map((k) => k + '=' + map[k]).join(', '), key: hex(sraw(b, n)) };
+}
+function sigTimeMs(b, n) {
+  if (!n) return null; const t = ascii(b, n.s, n.e); let m;
+  if (n.tag === 0x17 && (m = /^(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)?/.exec(t))) return Date.UTC(+m[1] < 50 ? 2000 + +m[1] : 1900 + +m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+  if (n.tag === 0x18 && (m = /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)?/.exec(t))) return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+  return null;
+}
+const sigDay = (ms) => (ms == null ? '' : new Date(ms).toISOString().slice(0, 10));
+const SIG_ALG_NAME = { '1.2.840.113549.1.1.2': 'MD2withRSA', '1.2.840.113549.1.1.4': 'MD5withRSA', '1.2.840.113549.1.1.5': 'SHA1withRSA', '1.2.840.113549.1.1.11': 'SHA256withRSA', '1.2.840.113549.1.1.12': 'SHA384withRSA', '1.2.840.113549.1.1.13': 'SHA512withRSA', '1.2.840.113549.1.1.10': 'RSASSA-PSS', '1.2.840.10045.4.1': 'SHA1withECDSA', '1.2.840.10045.4.3.2': 'SHA256withECDSA', '1.2.840.10045.4.3.3': 'SHA384withECDSA', '1.2.840.10045.4.3.4': 'SHA512withECDSA' };
+const SIG_EC = { '1.2.840.10045.3.1.7': 'P-256', '1.3.132.0.34': 'P-384', '1.3.132.0.35': 'P-521' };
+const SIG_HASH_OF = (alg) => (/^SHA1/.test(alg) ? 'SHA-1' : /^SHA256/.test(alg) ? 'SHA-256' : /^SHA384/.test(alg) ? 'SHA-384' : /^SHA512/.test(alg) ? 'SHA-512' : '');
+function sigUris(b, n, out, depth) {
+  if (!n || depth > 8) return; if (n.tag === 0x86) { out.push(ascii(b, n.s, n.e).slice(0, 200)); return; }
+  if (n.tag & 0x20) for (const k of sdk(b, n)) sigUris(b, k, out, depth + 1);
+}
+function sigCert(b, n) {
+  const k = sdk(b, n); const tbs = k[0]; const tk = sdk(b, tbs); const i = tk[0] && tk[0].tag === 0xa0 ? 1 : 0;
+  const c = { tbs: sraw(b, tbs), serial: hex(b.subarray(tk[i].s, tk[i].e)).replace(/^(?:00)+(?=.)/, ''), sigOid: derOid(b, sdk(b, k[1])[0]), eku: [], crl: [], ocsp: [], caIssuers: [], ca: false, ku: null };
+  c.sigAlg = SIG_ALG_NAME[c.sigOid] || c.sigOid; c.sigBits = b.subarray(k[2].s + 1, k[2].e);
+  const iss = sigName(b, tk[i + 2]); const sub = sigName(b, tk[i + 4]); c.issuer = iss; c.subject = sub; c.issKey = iss.key; c.subjKey = sub.key;
+  const v = sdk(b, tk[i + 3]); c.from = sigTimeMs(b, v[0]); c.to = sigTimeMs(b, v[1]);
+  const spki = tk[i + 5]; c.spki = sraw(b, spki); const sk = sdk(b, spki); const ak = sdk(b, sk[0]); c.keyOid = derOid(b, ak[0]);
+  if (c.keyOid === '1.2.840.113549.1.1.1') {
+    c.keyAlg = 'RSA'; try { const bs = b.subarray(sk[1].s + 1, sk[1].e); const rk = sdr(bs, 0, bs.length); const mk = sdk(bs, rk)[0]; let o = mk.s; while (o < mk.e - 1 && bs[o] === 0) o++; c.keyBits = (mk.e - o - 1) * 8 + (32 - Math.clz32(bs[o])); } catch (e) { c.keyBits = 0; }
+  } else if (c.keyOid === '1.2.840.10045.2.1') { c.keyAlg = 'EC'; c.curve = SIG_EC[derOid(b, ak[1])] || derOid(b, ak[1]); } else c.keyAlg = c.keyOid;
+  for (const x of tk.slice(i + 6)) if (x.tag === 0xa3) for (const ext of sdk(b, sdk(b, x)[0])) {
+    const ek = sdk(b, ext); const oid = derOid(b, ek[0]); const val = ek[ek.length - 1]; const inner = val && sdr(b, val.s, val.e); if (!inner) continue;
+    if (oid === '2.5.29.19') { const kk = sdk(b, inner); c.ca = !!(kk[0] && kk[0].tag === 1 && b[kk[0].s] !== 0); }
+    else if (oid === '2.5.29.15') { const f = b[inner.s + 1] || 0; c.ku = { sig: !!(f & 0x80), certSign: !!(f & 0x04), crlSign: !!(f & 0x02) }; }
+    else if (oid === '2.5.29.37') c.eku = sdk(b, inner).map((o) => derOid(b, o));
+    else if (oid === '2.5.29.31') sigUris(b, inner, c.crl, 0);
+    else if (oid === '1.3.6.1.5.5.7.1.1') for (const ad of sdk(b, inner)) { const q = sdk(b, ad); const m = derOid(b, q[0]); const u = []; sigUris(b, q[1], u, 0); if (u[0]) (m === '1.3.6.1.5.5.7.48.1' ? c.ocsp : c.caIssuers).push(u[0]); }
+  }
+  c.codeSign = !c.eku.length || c.eku.includes('1.3.6.1.5.5.7.3.3') || c.eku.includes('1.3.6.1.4.1.311.2.1.22') || c.eku.includes('1.3.6.1.4.1.311.2.1.21');
+  c.timestampOnly = c.eku.length > 0 && c.eku.includes('1.3.6.1.5.5.7.3.8') && !c.codeSign;
+  c.self = c.issKey === c.subjKey; return c;
+}
+function sigFindGt(b, n, depth) {
+  if (!n || depth > 14) return null; if (n.tag === 0x18) return sigTimeMs(b, n);
+  if (n.tag === 0x04) { const x = sdr(b, n.s, n.e); return x && x.e === n.e ? sigFindGt(b, x, depth + 1) : null; }
+  if (n.tag & 0x20) for (const k of sdk(b, n)) { const r = sigFindGt(b, k, depth + 1); if (r != null) return r; }
+  return null;
+}
+function sigSigner(b, si) {
+  const k = sdk(b, si); const o = { digestOid: '', auth: null }; const ias = sdk(b, k[1]);
+  o.issuerKey = hex(sraw(b, ias[0])); o.serial = hex(b.subarray(ias[1].s, ias[1].e)).replace(/^(?:00)+(?=.)/, ''); o.digestOid = derOid(b, sdk(b, k[2])[0]);
+  let j = 3; if (k[j] && k[j].tag === 0xa0) { o.auth = k[j]; j++; }
+  o.sigOid = derOid(b, sdk(b, k[j])[0]); o.sig = b.subarray(k[j + 1].s, k[j + 1].e); j += 2; const un = k[j] && k[j].tag === 0xa1 ? k[j] : null;
+  for (const a of sdk(b, o.auth)) { const ak = sdk(b, a); const oid = derOid(b, ak[0]); const val = sdk(b, ak[1])[0]; if (!val) continue; if (oid === '1.2.840.113549.1.9.4') o.msgDigest = hex(b.subarray(val.s, val.e)); else if (oid === '1.2.840.113549.1.9.5') o.signingTime = sigTimeMs(b, val); }
+  for (const a of sdk(b, un)) {
+    const ak = sdk(b, a); const oid = derOid(b, ak[0]); const val = sdk(b, ak[1])[0]; if (!val) continue;
+    if (oid === '1.2.840.113549.1.9.6') { try { const ck = sdk(b, val); let jj = 3; if (ck[jj] && ck[jj].tag === 0xa0) for (const at of sdk(b, ck[jj])) { const q = sdk(b, at); if (derOid(b, q[0]) === '1.2.840.113549.1.9.5') { const t = sigTimeMs(b, sdk(b, q[1])[0]); if (t != null) o.ts = { ms: t, kind: 'counter' }; } } } catch (e) { /* yoksay */ } }
+    else if (oid === '1.3.6.1.4.1.311.3.3.1' && !o.ts) { const t = sigFindGt(b, val, 0); if (t != null) o.ts = { ms: t, kind: 'rfc3161' }; }
+  }
+  return o;
+}
+async function sigVerifyRsa(spki, hashName, sig, data) {
+  try {
+    if (!hashName) return { ok: null, why: 'Özet algoritması WebCrypto’da yok (MD5/bilinmeyen)' };
+    if (!(globalThis.crypto && crypto.subtle)) return { ok: null, why: 'Bu ortamda WebCrypto yok' };
+    const key = await crypto.subtle.importKey('spki', spki, { name: 'RSASSA-PKCS1-v1_5', hash: hashName }, false, ['verify']);
+    return { ok: await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sig, data) };
+  } catch (e) { return { ok: null, why: String(e && e.message || e).slice(0, 120) }; }
+}
+/* ---- yayinci taklidi ---- */
+const SIG_BRANDS = ['Microsoft', 'Google', 'Adobe', 'Intel', 'NVIDIA', 'Advanced Micro Devices', 'Oracle', 'Mozilla', 'Valve', 'Discord', 'Riot Games', 'Epic Games', 'Apple', 'Amazon', 'Realtek', 'Logitech', 'Razer', 'Zoom Video Communications', 'Dropbox', 'Cloudflare', 'Docker', 'JetBrains', 'Brave Software', 'Opera Software', 'Spotify', 'Telegram', 'Blizzard Entertainment', 'Electronic Arts', 'Ubisoft', 'Mojang', 'VMware', 'Cisco Systems', 'Dell', 'Lenovo', 'ASUSTeK Computer', 'Samsung Electronics', 'Kaspersky', 'Avast Software', 'ESET', 'Malwarebytes', 'NortonLifeLock', 'McAfee', 'Python Software Foundation', 'GitHub', 'Slack Technologies', 'Notion Labs', 'OBS Project', 'Steam', 'Canonical', 'Red Hat', 'Qualcomm', 'Broadcom', 'Synaptics', 'Corsair', 'SteelSeries', 'MSI', 'Gigabyte'];
+const SIG_LEGAL = /\b(?:inc|llc|ltd|limited|corp|corporation|co|company|gmbh|ag|sa|srl|sro|spol|as|ab|oy|plc|bv|nv|kg|lp|fz|pty|usa|incorporated|services|software|technologies|technology|systems|group|international|holdings|publisher|windows)\b/g;
+function sigNorm(s) { return String(s || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[.,'"’()&\-_]/g, ' ').replace(SIG_LEGAL, ' ').replace(/\s+/g, ''); }
+const SIG_CONF = { '0': 'o', '1': 'l', '3': 'e', '5': 's', '$': 's', '@': 'a', '|': 'l', 'i': 'l', 'і': 'l', 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'х': 'x', 'у': 'y', 'ѕ': 's', 'ј': 'l', 'ο': 'o', 'ν': 'v', 'ι': 'l', 'α': 'a' };
+function sigSkel(s) { return sigNorm(s).replace(/rn/g, 'm').replace(/vv/g, 'w').replace(/[^a-z0-9]/g, (ch) => SIG_CONF[ch] || ch).replace(/[01i3$5@|]/g, (ch) => SIG_CONF[ch] || ch); }
+function sigLev(a, b) { const m = a.length, n = b.length; if (Math.abs(m - n) > 3) return 9; let prev = Array.from({ length: n + 1 }, (_, j) => j); for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; } return prev[n]; }
+/* name: imzalayan O/CN; dondurur { kind: 'exact'|'homoglyph'|'typo'|'contains'|null, brand } */
+function sigBrandMatch(name) {
+  const n = sigNorm(name); if (n.length < 3) return { kind: null };
+  const sk = sigSkel(name);
+  for (const br of SIG_BRANDS) {
+    const bn = sigNorm(br); if (bn.length < 4) continue; const bs = sigSkel(br);
+    if (n === bn) return { kind: 'exact', brand: br };
+    if (sk === bs) return { kind: 'homoglyph', brand: br };
+    if (bn.length >= 6 && sigLev(n, bn) <= (bn.length >= 10 ? 2 : 1)) return { kind: 'typo', brand: br };
+  }
+  for (const br of SIG_BRANDS) { const bn = sigNorm(br); if (bn.length >= 5 && n.includes(bn) && n !== bn) return { kind: 'contains', brand: br }; }
+  return { kind: null };
+}
+/* ---- ana: Imza ve Sertifika Denetcisi ---- */
+async function sigAudit(u8, name, opts) {
+  opts = opts || {}; const now = opts.now || Date.now(); const out = { name, kind: 'none', findings: [], certs: [], chain: [], signer: null, ts: null, limits: [] };
+  const F = (id, sev, title, why, act) => out.findings.push({ id, sev, title, why: why || '', act: act || '' });
+  let p = null; try { p = parsePE(u8); } catch (e) { p = null; }
+  if (!p) { out.kind = 'notpe'; return out; }
+  const ver = opts.ver || null; out.company = ver && ver.CompanyName ? String(ver.CompanyName).slice(0, 80) : '';
+  const claim = out.company ? sigBrandMatch(out.company) : { kind: null };
+  if (!p.signed || !p.certOff || !p.certSize) {
+    out.kind = 'unsigned';
+    F('sig_none', 'info', 'Dosyada dijital imza yok', 'İmzasız olmak tek başına kötü değildir (küçük geliştiricilerin ve kişisel araçların çoğu imzasızdır). Ama büyük bir yayıncı adını taşıyan imzasız dosya şüphelidir.', 'Dosyayı resmi kaynaktan indirdiğini doğrula.');
+    if (claim.kind === 'exact' || claim.kind === 'contains') F('sig_unsigned_claim', 'med', '“' + claim.brand + '” adını taşıyor ama imzasız', 'Sürüm bilgisindeki üretici alanı “' + out.company + '”, oysa ' + claim.brand + ' dosyaları imzalı gelir. Sahte olabilir (ya da elle yazılmış sürüm bilgisi).', 'Yayıncının resmi sitesinden indirip SHA-256’yı karşılaştır.');
+    out.verdict = { level: 'none', text: 'İmza yok.' }; return out;
+  }
+  let blob = null; try {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); let q = p.certOff; const endC = Math.min(u8.length, p.certOff + p.certSize); let nb = 0;
+    while (q + 8 <= endC && nb < 8) { const len = dv.getUint32(q, true), type = dv.getUint16(q + 6, true); if (len < 8 || q + len > endC) break; nb++; if (type === 2 && !blob) blob = u8.subarray(q + 8, q + len); q += (len + 7) & ~7; }
+    out.entries = nb;
+  } catch (e) { blob = null; }
+  if (!blob) { out.kind = 'broken'; F('sig_broken', 'med', 'İmza bloğu okunamadı', 'Sertifika tablosu var ama içindeki PKCS#7 yapısı bulunamadı ya da bozuk.', 'Dosyayı Windows’ta Özellikler → Dijital İmzalar ile kontrol et.'); out.verdict = { level: 'warn', text: 'İmza bloğu bozuk.' }; return out; }
+  let sd, sk, content, certNodes = [], signerNode = null;
+  try {
+    const ci = sdr(blob, 0, blob.length); const ck = sdk(blob, ci); if (derOid(blob, ck[0]) !== '1.2.840.113549.1.7.2') throw new Error('signedData değil');
+    sd = sdk(blob, ck[1])[0]; sk = sdk(blob, sd); content = sk[2];
+    for (const x of sk.slice(3)) { if (x.tag === 0xa0) certNodes = sdk(blob, x); else if (x.tag === 0x31) signerNode = x; }
+  } catch (e) { out.kind = 'broken'; F('sig_broken', 'med', 'İmza yapısı ayrıştırılamadı', String(e && e.message || e).slice(0, 120), 'Dosyayı Windows’ta doğrula.'); out.verdict = { level: 'warn', text: 'İmza yapısı ayrıştırılamadı.' }; return out; }
+  const certs = []; for (const cn of certNodes) { try { certs.push(sigCert(blob, cn)); } catch (e) { out.limits.push('Bir sertifika ayrıştırılamadı'); } }
+  let sg = null; try { const si = sdk(blob, signerNode)[0]; if (si) sg = sigSigner(blob, si); } catch (e) { out.limits.push('İmzalayan bilgisi (SignerInfo) ayrıştırılamadı'); }
+  let leaf = sg ? certs.find((c) => c.serial === sg.serial && c.issKey === sg.issuerKey) : null;
+  if (!leaf) leaf = certs.find((c) => !c.timestampOnly && !certs.some((o) => o !== c && o.issKey === c.subjKey)) || certs[0];
+  if (!leaf) { out.kind = 'broken'; F('sig_nocert', 'med', 'İmzada sertifika yok', 'Bu imza içinde hiç sertifika bulunamadı; imzalayan kim olduğu dosyadan anlaşılamaz.', 'Windows’ta doğrula.'); out.verdict = { level: 'warn', text: 'İmzada sertifika yok.' }; return out; }
+  /* zincir (yalniz ad eslesmesi; kok sertifika dosyada olmayabilir) */
+  const chain = [leaf]; for (let n = 0; n < 8; n++) { const cur = chain[chain.length - 1]; if (cur.self) break; const nx = certs.find((o) => o !== cur && o.subjKey === cur.issKey && !chain.includes(o)); if (!nx) break; chain.push(nx); }
+  out.kind = 'signed'; out.chain = chain.map((c) => ({ subject: c.subject.str, issuer: c.issuer.str, from: sigDay(c.from), to: sigDay(c.to), serial: c.serial, keyAlg: c.keyAlg, keyBits: c.keyBits || 0, curve: c.curve || '', sigAlg: c.sigAlg, ca: c.ca, self: c.self }));
+  out.certs = certs.map((c) => ({ subject: c.subject.str, issuer: c.issuer.str, from: sigDay(c.from), to: sigDay(c.to), serial: c.serial, ts: c.timestampOnly }));
+  const last = chain[chain.length - 1]; out.rootInFile = !!last.self; out.chainComplete = out.rootInFile;
+  out.signer = { subject: leaf.subject.str, o: leaf.subject.map.O || '', cn: leaf.subject.map.CN || '', country: leaf.subject.map.C || '', issuer: leaf.issuer.str, issuerCn: leaf.issuer.map.CN || leaf.issuer.map.O || '', serial: leaf.serial, from: sigDay(leaf.from), to: sigDay(leaf.to), sigAlg: leaf.sigAlg, keyAlg: leaf.keyAlg, keyBits: leaf.keyBits || 0, curve: leaf.curve || '', ca: leaf.ca, eku: leaf.eku, crl: leaf.crl.slice(0, 4), ocsp: leaf.ocsp.slice(0, 4), self: leaf.self };
+  /* 1) gomulu ozet ↔ dosya ozeti (mevcut denetim) */
+  let pes = null; try { pes = await peSignature(u8, p, { skips: new Map() }); } catch (e) { pes = null; }
+  if (pes) { out.digest = { alg: pes.alg || '', match: pes.match == null ? null : pes.match, embedded: pes.embedded || '', computed: pes.computed || '', note: pes.note || pes.err || '' }; }
+  if (pes && pes.match === true) F('sig_digest_ok', 'ok', 'Dosya imzalandığı günkü haliyle (özet tutarlı)', 'İmzadaki Authenticode özeti dosyadan hesaplanan özetle aynı: imzadan sonra değiştirilmemiş.', '');
+  else if (pes && pes.match === false) F('sig_digest_bad', 'high', 'İmza özeti dosyayla UYUŞMUYOR', 'Dosya imzalandıktan sonra değiştirilmiş (virüs bulaşması, yama ya da bozuk indirme). Windows bu imzayı geçersiz sayar.', 'Dosyayı resmi kaynaktan yeniden indir; SHA-256’yı karşılaştır.');
+  else F('sig_digest_na', 'info', 'Gömülü özet karşılaştırılamadı', (pes && (pes.note || pes.err)) || 'Bilinmeyen neden', '');
+  /* 2) imza matematigi (yalniz RSA, dosya ici sertifika ile) */
+  out.math = { ok: null, why: '' };
+  try {
+    if (!sg || !sg.auth) { out.math.why = 'İmzalı öznitelikler (authenticatedAttributes) yok'; }
+    else {
+      const hashName = SIG_ALGS[sg.digestOid] || ''; const seq = sdk(blob, sdk(blob, content)[1])[0];
+      const cHash = hashName && seq ? await digest(hashName, blob.subarray(seq.s, seq.e)) : null;
+      if (cHash && sg.msgDigest) { out.msgDigestOk = cHash === sg.msgDigest; if (!out.msgDigestOk) F('sig_msgdigest', 'high', 'İmzalı özet, imzalanan içerikle UYUŞMUYOR', 'SignerInfo içindeki messageDigest, SpcIndirectDataContent’in özetinden farklı: imza yapısı kurcalanmış olabilir.', 'Dosyayı güvenme; resmi kaynaktan yeniden indir.'); }
+      if (leaf.keyAlg !== 'RSA') out.math.why = 'İmzalayan anahtar ' + (leaf.keyAlg === 'EC' ? 'ECDSA' : leaf.keyAlg) + ': bu araç yalnızca RSA imzalarını doğrular';
+      else {
+        const data = Uint8Array.from(sraw(blob, sg.auth)); data[0] = 0x31;
+        const r = await sigVerifyRsa(leaf.spki, hashName, sg.sig, data); out.math = { ok: r.ok, why: r.why || '' };
+      }
+    }
+  } catch (e) { out.math = { ok: null, why: String(e && e.message || e).slice(0, 100) }; }
+  if (out.math.ok === true) F('sig_math_ok', 'ok', 'İmza matematiği doğru', 'İmza, dosyadaki imzalayan sertifikanın açık anahtarıyla doğrulandı (RSA). Bu, kimliğe güvenmek DEĞİL; yalnızca imzanın bu sertifikayla atıldığını gösterir.', '');
+  else if (out.math.ok === false) F('sig_math_bad', 'high', 'İmza matematiği GEÇERSİZ', 'İmza değeri, sertifikanın açık anahtarıyla doğrulanamadı: imza sahte ya da bozulmuş.', 'Dosyaya güvenme.');
+  else F('sig_math_na', 'info', 'İmza matematiği doğrulanamadı', out.math.why || 'Neden belirsiz', '');
+  /* 3) zincir baglantilari (dosya icinde bulunanlar) */
+  out.links = [];
+  for (let i = 0; i + 1 < chain.length; i++) { const c = chain[i], up = chain[i + 1]; const r = up.keyAlg === 'RSA' ? await sigVerifyRsa(up.spki, SIG_HASH_OF(c.sigAlg), c.sigBits, c.tbs) : { ok: null, why: 'ECDSA' }; out.links.push({ from: c.subject.map.CN || c.subject.map.O || '?', to: up.subject.map.CN || up.subject.map.O || '?', ok: r.ok }); }
+  if (out.links.some((l) => l.ok === false)) F('sig_chain_bad', 'high', 'Zincir bağlantısı doğrulanamadı', 'Bir sertifika, bir üstündeki sertifikanın anahtarıyla imzalanmamış görünüyor: zincir sahte ya da bozuk olabilir.', 'Dosyaya güvenme.');
+  else if (chain.length > 1 && out.links.every((l) => l.ok === true)) F('sig_chain_ok', 'ok', 'Dosyadaki sertifika zinciri kendi içinde tutarlı', 'Dosyadaki ' + chain.length + ' sertifikanın her biri bir üstündekinin anahtarıyla imzalanmış. Kök sertifikanın Windows’ta güvenilir olup olmadığı BU ARAÇTA denetlenmez.', '');
+  if (!out.rootInFile && !leaf.self) F('sig_root_absent', 'info', 'Kök sertifika dosyada yok', 'Bu normaldir: Windows kök sertifikayı kendi deposundan bulur. Bu araç o depoya erişmediği için kökün güvenilir olup olmadığını söyleyemez.', 'Windows’ta Özellikler → Dijital İmzalar → Ayrıntılar ile doğrula.');
+  /* 4) zaman damgasi + sureler */
+  out.ts = sg && sg.ts ? { day: sigDay(sg.ts.ms), kind: sg.ts.kind } : null; const signTime = sg && sg.signingTime != null ? sg.signingTime : null; if (signTime != null) out.signingTime = sigDay(signTime);
+  const at = out.ts ? sg.ts.ms : null;
+  if (leaf.to != null && leaf.to < now) {
+    if (at != null && at >= (leaf.from || 0) && at <= leaf.to) F('sig_expired_ts', 'info', 'Sertifikanın süresi dolmuş ama imza zaman damgalı', 'İmza, sertifika geçerliyken atılmış (zaman damgası ' + sigDay(at) + '). Windows bunu kabul eder.', '');
+    else F('sig_expired', at != null ? 'high' : 'med', 'İmzalayan sertifikanın süresi dolmuş (' + sigDay(leaf.to) + ')', at != null ? 'Zaman damgası sertifika geçerlilik aralığının dışında.' : 'Zaman damgası olmadığı için imza, bugünün tarihiyle geçersiz sayılır.', 'Yayıncının güncel imzalı sürümünü kullan.');
+  }
+  if (leaf.from != null && leaf.from > now) F('sig_notyet', 'high', 'Sertifika henüz geçerli değil (' + sigDay(leaf.from) + ')', 'Sertifikanın başlangıç tarihi gelecekte: saat/tarih hilesi ya da sahte sertifika olabilir.', 'Dosyaya güvenme.');
+  if (at != null && leaf.from != null && at < leaf.from - 86400e3) F('sig_ts_before', 'high', 'Zaman damgası sertifikadan ÖNCE', 'İmza, sertifika üretilmeden önceki bir tarihle damgalanmış: tutarsız.', 'Dosyaya güvenme.');
+  if (!out.ts) F('sig_nots', 'low', 'Zaman damgası yok', 'Zaman damgalı olmayan imza, sertifika süresi dolunca (ya da iptal edilince) geçersiz olur. Güvenilir yayıncılar genelde zaman damgası kullanır.', '');
+  /* 5) algoritma/anahtar/amac */
+  if (/^(?:MD2|MD5|SHA1)/.test(leaf.sigAlg) || sg && (sg.digestOid === '1.3.14.3.2.26' || sg.digestOid === '1.2.840.113549.2.5')) F('sig_weak_hash', 'med', 'Zayıf özet algoritması (SHA-1/MD5)', 'SHA-1 ve MD5 ile imzalar artık güvenli sayılmaz; yeni imzalı yazılımlarda görülmemeli. Eski (2016 öncesi) dosyalarda normaldir.', '');
+  if (leaf.keyAlg === 'RSA' && leaf.keyBits && leaf.keyBits < 2048) F('sig_weak_key', 'med', 'Kısa RSA anahtarı (' + leaf.keyBits + ' bit)', '2048 bitin altındaki anahtarlar kırılabilir sayılır.', '');
+  if (!leaf.codeSign) F('sig_eku', 'high', 'Sertifika kod imzalama amaçlı değil', 'Sertifikanın kullanım amacı (EKU) kod imzalamayı içermiyor; başka bir amaç için alınmış sertifikayla imzalanmış.', 'Dosyaya güvenme.');
+  if (leaf.ca) F('sig_ca_leaf', 'high', 'İmzalayan bir sertifika otoritesi (CA) sertifikası', 'Normalde kod imzalayan sertifika CA olmaz; CA sertifikasıyla doğrudan imzalama olağan dışı.', 'Dosyaya güvenme.');
+  if (leaf.self) F('sig_self', 'med', 'Kendinden imzalı sertifika', 'Sertifikayı veren ile sahibi aynı: herkes kendi adına böyle bir sertifika üretebilir; kimliği hiçbir otorite onaylamamış.', 'Yayıncıya başka yoldan güven.');
+  if (/\b(?:test|testing|do[_ ]not[_ ]trust|dummy|sample|demo|localhost|untrusted)\b/i.test((leaf.subject.map.CN || '') + ' ' + (leaf.subject.map.O || ''))) F('sig_test', 'med', 'Test/deneme sertifikası gibi görünüyor', 'Sertifika adında test/deneme ifadesi var: geliştirme imzası canlıda kullanılıyor ya da sahte olabilir.', '');
+  /* 6) yayinci taklidi */
+  const nm = leaf.subject.map.O || leaf.subject.map.CN || ''; const bm = sigBrandMatch(nm); out.brand = bm;
+  const cf = typeof confusableName === 'function' ? confusableName(nm) : { invisible: [], mixed: [] };
+  if (cf.mixed.length || cf.invisible.length) F('sig_pub_script', 'high', 'Yayıncı adında karışık alfabe / görünmez karakter', 'İmzalayan adı farklı alfabelerden karakter karıştırıyor ya da görünmez karakter içeriyor: görsel taklit (homoglif) işareti. ' + cf.mixed.concat(cf.invisible).slice(0, 3).join(', '), 'Dosyaya güvenme.');
+  if (bm.kind === 'homoglyph') F('sig_pub_fake', 'high', 'Yayıncı adı “' + bm.brand + '” adının görsel taklidi', 'İmzalayan “' + nm + '”, “' + bm.brand + '” ile harf benzerliği (0/o, 1/l, rn/m …) üzerinden karıştırılabiliyor.', 'Dosyaya güvenme; gerçek yayıncının sitesinden indir.');
+  else if (bm.kind === 'typo') F('sig_pub_typo', 'high', 'Yayıncı adı “' + bm.brand + '” adına çok benziyor', 'İmzalayan “' + nm + '” ile “' + bm.brand + '” arasında 1-2 harflik fark var: yazım taklidi (typosquatting) olabilir.', 'Gerçek yayıncının sitesinden indir.');
+  else if (bm.kind === 'contains') F('sig_pub_contains', 'low', 'Yayıncı adı “' + bm.brand + '” markasını içeriyor ama aynı değil', 'İmzalayan “' + nm + '”. Bu, bağlı bir kuruluş olabilir ya da marka adını yanlış kullanan biri.', 'İmzalayanın gerçekten ilgili şirket olduğunu doğrula.');
+  else if (bm.kind === 'exact') {
+    if (leaf.self) F('sig_pub_selfclaim', 'high', '“' + bm.brand + '” adını taşıyan KENDİNDEN İMZALI sertifika', 'Büyük yayıncıların sertifikaları bir otoriteden gelir; kendinden imzalı olmaları imza sahteciliğidir.', 'Dosyaya güvenme.');
+    else if (bm.brand === 'Microsoft' && !/microsoft/i.test(leaf.issuer.str)) F('sig_pub_msissuer', 'med', '“Microsoft” adlı ama veren Microsoft değil', 'Windows dosyalarını imzalayan Microsoft sertifikaları Microsoft’un kendi otoritelerinden gelir. Üçüncü taraf otorite Microsoft adı taşıyan sertifika vermez (vermemelidir).', 'Dosyaya güvenme.');
+    else F('sig_pub_known', 'info', 'Tanınan yayıncı adı: ' + bm.brand, 'İmzalayan adı bilinen bir markayla aynı. Kök otoriteye güven doğrulanmadığı için bu bir onay değildir.', '');
+  }
+  if (claim.kind === 'exact' || claim.kind === 'contains') { const cb = claim.brand; if (!sigNorm(nm).includes(sigNorm(cb))) F('sig_claim_mismatch', 'med', 'Dosya “' + cb + '” gibi görünüyor ama imzalayan farklı', 'Sürüm bilgisinde üretici “' + out.company + '”, imzalayan ise “' + nm + '”.', 'Dosyanın kaynağını doğrula.'); }
+  /* 7) iptal */
+  const urls = leaf.crl.concat(leaf.ocsp); if (urls.length) F('sig_revoc', 'info', 'İptal durumu SORGULANMADI', 'Bu araç ağa bağlanmaz. Sertifikanın iptal edilip edilmediğini şu adreslerden Windows ya da başka bir araçla kontrol edebilirsin: ' + urls.slice(0, 3).join(' · '), 'Windows imza penceresi iptali kendisi denetler.');
+  else F('sig_revoc', 'info', 'İptal durumu denetlenmedi', 'Sertifikada iptal adresi (CRL/OCSP) yok ya da okunamadı; bu araç zaten ağa bağlanmaz.', '');
+  const sev = { high: 3, med: 2, low: 1, info: 0, ok: 0 }; const top = out.findings.reduce((m, f) => Math.max(m, sev[f.sev] || 0), 0);
+  out.verdict = top >= 3 ? { level: 'bad', text: 'Ciddi sorun var.' } : top === 2 ? { level: 'warn', text: 'Dikkat edilmesi gereken noktalar var.' } : { level: 'ok', text: 'Dosya içi denetimlerde sorun görülmedi (güven zinciri ve iptal doğrulanmadı).' };
+  return out;
+}
+/* ---- Paketleyici / Obfuscation Dedektoru ---- */
+const PK_STD_SEC = /^(?:\.text|\.data|\.rdata|\.rsrc|\.reloc|\.idata|\.edata|\.pdata|\.xdata|\.bss|\.tls|\.crt|\.didat|\.gfids|\.giats|\.00cfg|\.debug|\.textbss|\.code|\.sdata|\.itext|\.bindat|\.ndata|CODE|DATA|BSS|\.init|\.fini|_RDATA|\.CRT|\.orpc)$/i;
+const PK_SIGS = [
+  { id: 'upx', name: 'UPX', cat: 'packer', needles: ['UPX!'], hint: 'UPX geri açılabilir: dosyanın KOPYASINDA `upx -d` ile (çalıştırmadan) aç, sonra yeniden tara.' },
+  { id: 'mpress', name: 'MPRESS', cat: 'packer', needles: ['MPRESS1', 'MPRESS2'], hint: 'Özel açıcılar var; en güvenlisi izole bir sanal makinede dinamik açmak.' },
+  { id: 'aspack', name: 'ASPack', cat: 'packer', needles: ['ASPack', 'ASPACK'], hint: 'Bilinen açıcılar var; bellekte açılmış hali dökülerek incelenir.' },
+  { id: 'pecompact', name: 'PECompact', cat: 'packer', needles: ['PECompact2', 'PEC2TO', 'PEC2MO'], hint: 'Bellekte açılmış hali dökülerek incelenir.' },
+  { id: 'petite', name: 'Petite', cat: 'packer', needles: ['.petite'], hint: '' },
+  { id: 'nspack', name: 'NsPack', cat: 'packer', needles: ['.nsp0', '.nsp1', '.nsp2'], hint: '' },
+  { id: 'themida', name: 'Themida / WinLicense', cat: 'protector', needles: ['Themida', 'WinLicense', 'SecureEngine'], hint: 'Sanallaştırma koruyucusu: genel bir otomatik açıcı yok; dinamik analiz ve uzman araçlar gerekir.' },
+  { id: 'vmprotect', name: 'VMProtect', cat: 'protector', needles: ['VMProtect', '.vmp0', '.vmp1'], hint: 'Kodu sanal makineye çevirir; genel bir açıcı yok.' },
+  { id: 'enigma', name: 'Enigma Protector', cat: 'protector', needles: ['Enigma protector', 'The Enigma Protector', 'ENIGMA'], hint: 'Bilinen açıcı betikleri var; yine de dinamik analiz önerilir.' },
+  { id: 'obsidium', name: 'Obsidium', cat: 'protector', needles: ['Obsidium'], hint: '' },
+  { id: 'armadillo', name: 'Armadillo', cat: 'protector', needles: ['Silicon Realms', 'ARMADILLO'], hint: '' },
+  { id: 'asprotect', name: 'ASProtect', cat: 'protector', needles: ['ASProtect'], hint: '' },
+  { id: 'confuserex', name: 'ConfuserEx', cat: 'dotnet', needles: ['ConfuserEx', 'Confused by', 'ConfusedByAttribute'], hint: 'de4dot / ConfuserEx açıcılarıyla kısmen geri alınır (çalıştırmadan).' },
+  { id: 'eazfuscator', name: 'Eazfuscator.NET', cat: 'dotnet', needles: ['Eazfuscator'], hint: 'de4dot ile kısmen geri alınır.' },
+  { id: 'reactor', name: '.NET Reactor', cat: 'dotnet', needles: ['.NET Reactor', 'NETReactor', 'Eziriz'], hint: 'NETReactorSlayer / de4dot varyantları vardır.' },
+  { id: 'smartassembly', name: 'SmartAssembly', cat: 'dotnet', needles: ['SmartAssembly', 'PoweredByAttribute'], hint: 'de4dot desteği vardır.' },
+  { id: 'dotfuscator', name: 'Dotfuscator', cat: 'dotnet', needles: ['DotfuscatorAttribute', 'Dotfuscator'], hint: '' },
+  { id: 'agile', name: 'Agile.NET / CliSecure', cat: 'dotnet', needles: ['CliSecure', 'Agile.NET', 'SecureTeam'], hint: '' },
+  { id: 'babel', name: 'Babel Obfuscator', cat: 'dotnet', needles: ['BabelObfuscatorAttribute', 'Babel Obfuscator'], hint: '' },
+  { id: 'ilprotector', name: 'ILProtector', cat: 'dotnet', needles: ['ILProtector'], hint: '' },
+  { id: 'dnguard', name: 'DNGuard', cat: 'dotnet', needles: ['DNGuard'], hint: '' },
+  { id: 'cryptoobf', name: 'Crypto Obfuscator', cat: 'dotnet', needles: ['CryptoObfuscator', 'Crypto Obfuscator'], hint: '' },
+  { id: 'pyarmor', name: 'PyArmor', cat: 'script', needles: ['pyarmor', 'PYARMOR', '__pyarmor__'], hint: 'Python betiğini şifreler; açmak için çalışma zamanı gerekir.' },
+  { id: 'pyinstaller', name: 'PyInstaller', cat: 'bundle', needles: ['MEI\x0c\x0b\x0a\x0b\x0e'], hint: 'Python paketi: içindeki .pyc dosyaları çıkarılabilir (StatScan bunu zaten yapar).' },
+  { id: 'nuitka', name: 'Nuitka', cat: 'bundle', needles: ['Nuitka', 'nuitka'], hint: 'Python’u C’ye derler; kaynak geri alınamaz, davranış analizi gerekir.' },
+  { id: 'autoit', name: 'AutoIt (derlenmiş betik)', cat: 'bundle', needles: ['AU3!EA06', 'AU3!EA05', 'AutoIt v3'], hint: 'AutoIt betiği çıkarılabilir (Exe2Aut vb.). Zararlılar sık kullanır.' },
+  { id: 'nsis', name: 'NSIS yükleyici', cat: 'installer', needles: ['Nullsoft Install System'], hint: 'Kurulum paketi; 7-Zip ile içi açılabilir.' },
+  { id: 'inno', name: 'Inno Setup yükleyici', cat: 'installer', needles: ['Inno Setup Setup Data'], hint: 'Kurulum paketi; innoextract ile içi açılabilir.' }
+];
+const PK_CAT = { packer: 'Paketleyici (sıkıştırıcı)', protector: 'Koruyucu / sanallaştırıcı', dotnet: '.NET obfuscator', script: 'Betik koruyucu', bundle: 'Betik/uygulama paketi', installer: 'Kurulum paketi (zararsız olabilir)' };
+const PK_JAR = [
+  { name: 'Allatori', re: /ALLATORI|Allatori/ }, { name: 'Zelix KlassMaster (ZKM)', re: /ZKM|Zelix/ }, { name: 'Stringer', re: /Stringer|stringer/ }, { name: 'DashO', re: /DashO|PreEmptive/ }, { name: 'Skidfuscator', re: /Skidfuscator|skidfuscator/ },
+  { name: 'Radon', re: /Radon obfuscator|radon\.obf/i }, { name: 'Paramorphism', re: /Paramorphism|paramorphism/ }, { name: 'superblaubeere27', re: /superblaubeere/i }, { name: 'BozarCrypt / Bozar', re: /Bozar/ }, { name: 'JNIC', re: /JNIC|jnic/ },
+  { name: 'Caesium', re: /Caesium|caesium/ }, { name: 'Binscure', re: /Binscure/ }, { name: 'Branchlock', re: /Branchlock/i }, { name: 'ProGuard', re: /proguard|ProGuard/ }, { name: 'yGuard', re: /yGuard/ }, { name: 'Sandmark', re: /Sandmark/ }
+];
+function pkHay(u8) { const cap = 64e6; const td = new TextDecoder('latin1'); if (u8.length <= cap) return td.decode(u8); return td.decode(u8.subarray(0, cap / 2)) + '\n' + td.decode(u8.subarray(u8.length - cap / 2)); }
+async function packAudit(u8, name, opts) {
+  opts = opts || {}; const out = { name, kind: 'other', size: u8.length, evidence: [], sections: [], tools: [], notes: [], level: 'none', score: 0 };
+  const add = (id, w, title, why, kind) => { out.evidence.push({ id, w, title, why, kind: kind || 'heuristic' }); out.score += w; };
+  let p = null; if (u8.length > 64 && u8[0] === 0x4d && u8[1] === 0x5a) { try { p = parsePE(u8); } catch (e) { p = null; } }
+  const isZip = u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4b && (u8[2] === 3 || u8[2] === 5);
+  if (p) {
+    out.kind = p.clr ? 'dotnet' : 'pe'; out.is64 = p.is64; out.overlay = p.overlay; out.importCount = [...p.imports.values()].reduce((a, v) => a + v.length, 0); out.entropy = +entropy(u8).toFixed(2);
+    out.sections = p.sections.map((s) => ({ n: s.name, vsize: s.vsize, rsize: s.rsize, ent: +s.ent.toFixed(2), x: !!(s.ch & 0x20000000), w: !!(s.ch & 0x80000000), std: PK_STD_SEC.test(s.name), packer: (typeof PACKER_SEC !== 'undefined' ? PACKER_SEC.find(([re]) => re.test(s.name)) : null) }));
+    const epSec = p.ep ? p.sections.find((s) => p.ep >= s.va && p.ep < s.va + Math.max(s.vsize, s.rsize)) : null; out.ep = epSec ? epSec.name : (p.ep ? '(bölüm dışı)' : '—'); out.epIndex = epSec ? p.sections.indexOf(epSec) : -1;
+    const secSeen = new Set(); for (const s of out.sections) if (s.packer && !secSeen.has(s.packer[1])) { secSeen.add(s.packer[1]); add('sec_' + s.packer[1], 45, s.packer[1] + ' bölüm adı (' + out.sections.filter((x) => x.packer && x.packer[1] === s.packer[1]).map((x) => x.n).join(', ') + ')', 'Bölüm adı bu paketleyici/koruyucuya özgü.', 'fact'); }
+    const hiX = out.sections.filter((s) => s.x && s.ent >= 7.2 && s.rsize > 4096); if (hiX.length) add('ent_x', 22, 'Yüksek entropili çalıştırılabilir bölüm', hiX.map((s) => s.n + ' (' + s.ent + ')').join(', ') + ' — kod sıkıştırılmış/şifrelenmiş gibi.');
+    const hiAll = out.sections.filter((s) => !s.x && s.ent >= 7.4 && s.rsize > 65536); if (hiAll.length && !hiX.length) add('ent_d', 8, 'Yüksek entropili veri bölümü', hiAll.map((s) => s.n + ' (' + s.ent + ')').join(', ') + ' — gömülü sıkıştırılmış/şifreli veri (kaynak, kurulum verisi olabilir).');
+    const rwx = out.sections.filter((s) => s.x && s.w); if (rwx.length) add('rwx', 10, 'Hem yazılabilir hem çalıştırılabilir bölüm', rwx.map((s) => s.n).join(', ') + ' — kendini açan kod bu izni ister.');
+    const virt = out.sections.filter((s) => s.rsize < 512 && s.vsize > 0x10000); if (virt.length) add('virt', 16, 'Diskte boş, bellekte büyük bölüm', virt.map((s) => s.n + ' (' + Math.round(s.vsize / 1024) + ' KB sanal)').join(', ') + ' — paketleyici bellekte açılacağı alanı ayırmış.');
+    if (!p.clr && p.sections.length) { if (!epSec && p.ep) add('ep_out', 14, 'Giriş noktası bölümlerin dışında', 'Program başlangıcı normal bölümlerin dışında.'); else if (epSec && out.epIndex === p.sections.length - 1 && p.sections.length > 2) add('ep_last', 12, 'Giriş noktası SON bölümde', 'Program son bölümde başlıyor (paketleyici kalıbı).'); else if (epSec && !/^(?:\.text|CODE|\.code|\.itext)$/i.test(epSec.name) && out.epIndex > 0) add('ep_odd', 8, 'Giriş noktası olağandışı bölümde (' + epSec.name + ')', 'Normalde .text/CODE gibi bir kod bölümünde olur.'); }
+    const nstd = out.sections.filter((s) => !s.std && !s.packer); if (nstd.length >= 2 || (nstd.length && out.sections.length <= 4)) add('nonstd', 6, 'Standart olmayan bölüm adları', nstd.map((s) => s.n).join(', ') + ' — yalnızca ipucu (derleyiciye göre değişir).');
+    const APIS = new Set(); for (const fns of p.imports.values()) for (const f of fns) APIS.add(f.toLowerCase());
+    if (!p.clr && out.importCount > 0 && out.importCount <= 12 && APIS.has('getprocaddress') && (APIS.has('loadlibrarya') || APIS.has('loadlibraryw')) && u8.length > 30000) add('imp_stub', 20, 'Klasik paketleyici import kalıbı', 'Yalnızca ' + out.importCount + ' import ve LoadLibrary+GetProcAddress var: gerçek API\'ler çalışma anında çözülüyor olabilir.');
+    else if (!p.clr && out.importCount > 0 && out.importCount <= 6 && u8.length > 30000) add('imp_few', 14, 'Çok az import', out.importCount + ' import: API\'ler gizlenmiş olabilir.');
+    else if (!p.clr && out.importCount === 0 && !p.dll && u8.length > 20000) add('imp_none', 14, 'Import tablosu yok', 'Çalıştırılabilir dosya import tablosu taşımıyor.');
+    if (out.overlay > 4096 && out.overlay / u8.length > 0.3) out.notes.push('Dosyanın %' + Math.round(100 * out.overlay / u8.length) + '’i bölümlerin dışında (overlay): yükleyici/kurulum paketi ya da gömülü veri olabilir.');
+  } else if (isZip) {
+    out.kind = 'zip';
+    try {
+      const ents = readZip(u8).filter((e) => !e.dir); const cls = ents.filter((e) => /\.class$/i.test(e.name)); out.classCount = cls.length; out.entryCount = ents.length;
+      if (cls.length) {
+        const simple = cls.map((e) => e.name.replace(/\.class$/i, '').split('/').pop().split('$')[0]); const short = simple.filter((s) => s.length <= 2).length; const conf = simple.filter((s) => /^[Il1O0_]{4,}$/.test(s)).length; const nonAscii = cls.filter((e) => /[^\x20-\x7e]/.test(e.name)).length;
+        out.nameStats = { total: cls.length, shortPct: Math.round(100 * short / cls.length), confusablePct: Math.round(100 * conf / cls.length), nonAscii };
+        if (cls.length >= 8 && short / cls.length >= 0.5) add('jar_short', 28, 'Sınıf adlarının çoğu 1-2 harf (%' + out.nameStats.shortPct + ')', 'ProGuard/Allatori gibi araçların ad karıştırma izi. Küçültülmüş (minified) meşru jar’larda da görülür.');
+        if (conf >= 3) add('jar_conf', 30, 'I/l/1/O/0 karışımı sınıf adları (%' + out.nameStats.confusablePct + ')', 'Okunması bilerek zorlaştırılmış adlar (ör. IIIlIlIl).');
+        if (nonAscii) add('jar_nonascii', 18, 'ASCII dışı / görünmez karakterli sınıf adları (' + nonAscii + ')', 'Ad karıştırmanın agresif türü; bazı araçlar sınıf/paket adlarında Unicode kullanır.');
+        let scanned = 0, totalBytes = 0, notClass = 0, hi = 0; const hay = []; const tools = new Map();
+        for (const e of cls.slice(0, 600)) { if (totalBytes > 24e6) break; let d; try { d = await readEntry(u8, e, 4e6); } catch (x) { continue; } scanned++; totalBytes += d.length; if (!(d[0] === 0xca && d[1] === 0xfe && d[2] === 0xba && d[3] === 0xbe)) { notClass++; continue; } if (d.length > 4000 && entropy(d) >= 7.2) hi++; if (hay.length < 80) hay.push(new TextDecoder('latin1').decode(d.subarray(0, 60000))); }
+        const H = hay.join('\n'); for (const t of PK_JAR) if (t.re.test(H)) tools.set(t.name, 1);
+        for (const e of ents) if (/^META-INF\/(?:MANIFEST\.MF)$/i.test(e.name)) { try { const mf = new TextDecoder('latin1').decode(await readEntry(u8, e, 2e5)); for (const t of PK_JAR) if (t.re.test(mf)) tools.set(t.name, 1); const ob = /^(?:Obfuscated-By|Protected-By):\s*(.+)$/im.exec(mf); if (ob) tools.set(ob[1].trim().slice(0, 40), 1); } catch (x) { /* yoksay */ } }
+        out.jarScanned = scanned; if (notClass) add('jar_notclass', 38, scanned && notClass === scanned ? 'Hiçbir .class dosyası gerçek sınıf değil' : notClass + ' .class dosyası 0xCAFEBABE ile başlamıyor', '.class uzantılı ama bayt kodu olmayan (şifreli/sıkıştırılmış) dosyalar: özel sınıf yükleyicisiyle açılan paketleyici işareti.');
+        if (hi >= 3) add('jar_ent', 20, hi + ' sınıfta yüksek entropi', 'Bayt kodunda normalde görülmeyen rastgelelik: şifreli dizeler/gövdeler olabilir.');
+        for (const t of tools.keys()) { out.tools.push({ name: t, cat: 'java', evidence: 'dize/manifest ipucu' }); add('jar_' + t, 36, t + ' izi', 'Sınıf içeriğinde/manifestte bu araca özgü dize bulundu (ipucu; kesin kanıt değil).', 'fact'); }
+      }
+      const nested = ents.filter((e) => /\.(?:jar|exe|dll|bin|dat)$/i.test(e.name) && e.size > 20000); if (nested.length) out.notes.push('İçinde iç içe çalıştırılabilir/ikili dosya var: ' + nested.slice(0, 4).map((e) => e.name).join(', ') + '.');
+    } catch (e) { out.notes.push('Arşiv ayrıştırılamadı: ' + String(e && e.message || e).slice(0, 80)); }
+  }
+  /* bilinen koruyucu/paketleyici dizeleri (PE, .NET ve genel ikili) */
+  if (p || !isZip) {
+    const hay = pkHay(u8); const seen = new Set();
+    for (const sg of PK_SIGS) { const hit = sg.needles.find((nd) => hay.indexOf(nd) >= 0); if (!hit) continue; if (seen.has(sg.id)) continue; seen.add(sg.id); const secHit = p && out.sections.some((s) => s.packer && s.packer[1].toLowerCase().includes(sg.name.split(' ')[0].toLowerCase())); const strong = sg.id === 'upx' ? (hay.indexOf('UPX0') >= 0 || hay.indexOf('UPX1') >= 0) : true; out.tools.push({ id: sg.id, name: sg.name, cat: sg.cat, evidence: secHit ? 'bölüm adı + dize' : 'dize', hint: sg.hint }); if (sg.cat === 'installer') continue; if (!secHit) add('str_' + sg.id, strong ? 30 : 14, sg.name + ' izi (' + PK_CAT[sg.cat] + ')', 'Dosyada “' + hit.replace(/[\x00-\x1f]/g, '·') + '” dizesi bulundu' + (strong ? '' : ' (tek başına zayıf ipucu; belgeler/ürün adı olarak da geçebilir)') + '.', strong ? 'fact' : 'heuristic'); }
+    for (const s of (p ? out.sections : [])) if (s.packer && !out.tools.some((t) => t.name.toLowerCase().includes(s.packer[1].toLowerCase().split(/[\/ ]/)[0]))) { const sg = PK_SIGS.find((x) => x.name.toLowerCase().includes(s.packer[1].toLowerCase().split(/[\/ ]/)[0])); out.tools.push({ id: sg && sg.id, name: s.packer[1], cat: sg ? sg.cat : 'packer', evidence: 'bölüm adı', hint: sg ? sg.hint : '' }); }
+  }
+  out.score = Math.min(100, out.score);
+  const fact = out.evidence.some((e) => e.kind === 'fact' && e.w >= 30); out.level = out.score >= 45 && (fact || out.score >= 60) ? 'confirmed' : out.score >= 30 ? 'likely' : out.score >= 12 ? 'possible' : 'none';
+  if (out.level === 'none' && out.tools.some((t) => t.cat === 'installer')) out.notes.push('Kurulum paketi algılandı; paket içindeki dosyaları ayrıca tara.');
+  return out;
+}
+/*#endregion sectools*/
 /*#region dotnet*/
 /* ---------- v3.6: .NET meta veri (ECMA-335) ayristirma ----------
    Gercek tablo ayristirmasi: TypeRef/MemberRef/P-Invoke (ImplMap)/AssemblyRef/ManifestResource.
@@ -5619,7 +5946,7 @@ function mmReportText(r, srcName) {
   return L.join('\n');
 }
 /*#endregion modconv*/
-const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, srcScan, srcPlan, srcLangOf, srcLangName, SRC_LANGS, srcObf, srcObfSupport, ramScan, ramReportText, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '5.0.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, srcScan, srcPlan, srcLangOf, srcLangName, SRC_LANGS, srcObf, srcObfSupport, sigAudit, packAudit, sigBrandMatch, ramScan, ramReportText, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '5.0.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -6702,6 +7029,75 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Henüz yeterli kayıt yok.': 'Not enough records yet.', 'Şampiyonlar': 'Champions', 'Vizyon': 'Vision', 'Tüm kuyruklar': 'All Queues', 'Kayıt ilk güncellemeden başlar; öncesi istemciden alınamaz.': 'Records start at the first update; earlier history cannot be read from the client.',
       'Arayüz ölçeği': 'Interface scale', 'Tüm Kovan arayüzünün boyutu (%50–%200, varsayılan %100). Hazır değerlerden seç ya da kendi yüzdeni yaz (ör. 68).': 'Size of the whole Kovan interface (50%–200%, default 100%). Pick a preset or type your own percentage (e.g. 68).', 'Özel…': 'Custom…', 'Özel ölçek yüzdesi': 'Custom scale percentage', 'Sıfırla': 'Reset',
     };
+        /*#en-sectools*/
+    Object.assign(EN, {
+      'İmza ve Sertifika Denetçisi': 'Signature & Certificate Inspector',
+      'Paketleyici / Obfuscation Dedektörü': 'Packer / Obfuscation Detector',
+      'IOC Çıkarıcı': 'IOC Extractor',
+      'Bir .exe/.dll/.sys dosyasının dijital imzasını açar: imzalayan kim, sertifika zinciri, geçerlilik tarihleri, zaman damgası, imza matematiği ve yayıncı adının sahte/taklit olup olmadığı.': 'Opens the digital signature of an .exe/.dll/.sys file: who signed it, the certificate chain, validity dates, timestamp, signature math and whether the publisher name looks fake or imitated.',
+      'Dosyanın paketlenmiş (UPX, VMProtect, Themida …), koruyucuyla sarılmış ya da obfuscate edilmiş (.NET, Java) olup olmadığını bölüm adları, entropi, giriş noktası, import kalıpları ve bilinen araç izlerinden çıkarır.': 'Works out whether a file is packed (UPX, VMProtect, Themida …), wrapped by a protector or obfuscated (.NET, Java) from section names, entropy, entry point, import patterns and known tool traces.',
+      'Dosyanın (EXE/DLL, JAR, betik, arşiv, belge …) içindeki URL, IP, alan adı, Discord webhook, Telegram bot, davet, e-posta, cüzdan, kayıt defteri ve dosya yolu göstergelerini tek listede toplar; TXT/CSV/JSON/engelleme listesi olarak dışa aktarır.': 'Collects URLs, IPs, domains, Discord webhooks, Telegram bots, invites, e-mails, wallets, registry keys and file paths found inside a file (EXE/DLL, JAR, script, archive, document …) into one list; exports it as TXT/CSV/JSON/blocklist.',
+      'İmza matematiği ve sertifika zinciri bağlantıları yalnızca dosyanın İÇİNDEKİ sertifikalarla (RSA) doğrulanır. Windows’un güvenilir kök deposu ve sertifika iptal listeleri (CRL/OCSP) bu araçta YOKTUR: kök sertifikanın güvenilir olup olmadığını ve sertifikanın iptal edilip edilmediğini söyleyemez.': 'Signature math and certificate-chain links are verified only with the certificates INSIDE the file (RSA). Windows’ trusted root store and certificate revocation lists (CRL/OCSP) are NOT available here: it cannot tell whether the root is trusted or whether a certificate was revoked.',
+      'İptal adresleri (CRL/OCSP) varsa yalnızca listelenir; araç ağa bağlanmaz.': 'Revocation addresses (CRL/OCSP), if any, are only listed; the tool never connects to the network.',
+      'Çalınmış/sızdırılmış sertifika listesi yoktur: sorun görünmemesi dosyanın güvenli olduğu anlamına gelmez. “Yayıncı taklidi” denetimi bilinen bir marka listesiyle çalışır; listede olmayan markalar yakalanmaz.': 'There is no list of stolen/leaked certificates: seeing no problem does not mean the file is safe. The “publisher imitation” check uses a list of known brands; brands not on the list are not caught.',
+      'Windows’ta kesin sonuç için dosyaya sağ tık → Özellikler → Dijital İmzalar kullan.': 'For a definitive result on Windows, right-click the file → Properties → Digital Signatures.',
+      'Paketli ya da obfuscate edilmiş olmak tek başına zararlı DEĞİLDİR: oyun hileleri, lisans koruması olan programlar, kurulum paketleri ve küçültülmüş (minified) Java dosyaları da böyledir. Zararlılar ise analizi zorlaştırmak için sık kullanır.': 'Being packed or obfuscated is NOT harmful by itself: game cheats, licence-protected programs, installers and minified Java files are too. Malware, on the other hand, often uses it to hinder analysis.',
+      'Tüm sonuçlar sezgiseldir (yanlış pozitif ve yanlış negatif olur). Araç dosyayı çalıştırmaz, açmaz (unpack etmez); yalnızca ipuçlarını gösterir.': 'All results are heuristic (false positives and false negatives happen). The tool never runs or unpacks the file; it only shows hints.',
+      'Java: sınıf adlarının kısalığı, bozuk .class başlıkları ve bilinen obfuscator dizeleri aranır; kesin kanıt değil, ipucudur.': 'Java: short class names, broken .class headers and known obfuscator strings are looked for; these are hints, not proof.',
+      'Göstergeler dosya içeriğindeki metinlerden çıkarılır; hiçbirine bağlanılmaz. Listede olması kötü amaçlı olduğu anlamına GELMEZ: meşru adresler de çıkar (bilinen meşru siteler varsayılan olarak gizlenir).': 'Indicators are extracted from text inside the file; none of them is contacted. Being listed does NOT mean malicious: legitimate addresses show up too (well-known legitimate sites are hidden by default).',
+      'Discord webhook ve Telegram bot token’larının gizli kısmı kasıtlı olarak maskelenir; ekrana, panoya ve dışa aktarılan dosyalara tam token yazılmaz.': 'The secret part of Discord webhooks and Telegram bot tokens is masked on purpose; the full token is never written to the screen, clipboard or exported files.',
+      'Dışa aktarırken “güvenli yazım” (hxxp, [.]) seçersen göstergeler yanlışlıkla tıklanamaz hâle gelir.': 'If you choose “safe notation” (hxxp, [.]) when exporting, indicators can no longer be clicked by accident.',
+      'Derin tarama yapılır (arşivlerin içine de girilir); büyük dosyalarda biraz sürebilir. Karıştırılmış (şifreli/kodlanmış) dizeler görünmeyebilir.': 'A deep scan is run (archives are entered too); it can take a while on large files. Obfuscated (encrypted/encoded) strings may not show up.',
+      'Yüksek': 'High', 'Orta': 'Medium', 'Düşük': 'Low', 'Bilgi': 'Info', 'Normal': 'Normal',
+      'Kritik': 'Critical', 'Yüksek risk': 'High risk', 'Şüpheli': 'Suspicious', 'Düşük risk': 'Low risk', 'Belirgin bulgu yok': 'No clear finding', 'Hızlı': 'Quick', 'Derin': 'Deep',
+      'Zararlılık puanı': 'Maliciousness score',
+      'Zararlılık puanı (StatScan taraması)': 'Maliciousness score (StatScan scan)',
+      'Puan, dosyanın kötü amaçlı olma olasılığına dair sezgisel bir göstergedir; kesin hüküm değildir. Ayrıntı için StatScan aracını kullan.': 'The score is a heuristic indicator of how likely the file is malicious; it is not a verdict. Use the StatScan tool for details.',
+      'Dosya seç': 'Choose a file',
+      'Dosyayı buraya bırak': 'Drop the file here',
+      'Dosya çalıştırılmaz ve hiçbir yere gönderilmez · her şey bu cihazda işlenir': 'The file is never run or sent anywhere · everything is processed on this device',
+      'İnceleniyor…': 'Inspecting…',
+      'Bitti. Dosya değiştirilmedi.': 'Done. The file was not modified.',
+      'İnceleme başarısız: {0}': 'Inspection failed: {0}',
+      'İmza ayrıştırılıyor…': 'Parsing the signature…',
+      'Paketleme izleri aranıyor…': 'Looking for packing traces…',
+      'Göstergeler toplanıyor…': 'Collecting indicators…',
+      'Bu dosya bir Windows çalıştırılabilir dosyası (PE) değil; imza denetimi yalnızca PE dosyaları içindir.': 'This is not a Windows executable (PE); signature inspection only applies to PE files.',
+      'Ciddi sorun var': 'Serious problem found',
+      'Dikkat edilmesi gereken noktalar var': 'Points that need attention',
+      'Dosya içi denetimlerde sorun görülmedi': 'No problem found in the in-file checks',
+      'Dijital imza yok': 'No digital signature',
+      'Güven zinciri (kök) ve iptal durumu doğrulanmadı; bu bir “güvenli” hükmü değildir.': 'The trust chain (root) and revocation status were not verified; this is not a “safe” verdict.',
+      'İmzalayan': 'Signer', 'Sertifika adı (CN)': 'Certificate name (CN)', 'Ülke': 'Country', 'Veren': 'Issuer', 'Geçerlilik': 'Validity', 'Zaman damgası': 'Timestamp',
+      'İmza tarihi (imzalı öznitelik)': 'Signing date (signed attribute)', 'Anahtar': 'Key', 'Sertifika imza algoritması': 'Certificate signature algorithm', 'Gömülü özet': 'Embedded digest', 'İmza matematiği': 'Signature math',
+      'yok': 'none', 'doğrulandı ✓': 'verified ✓', 'GEÇERSİZ ✗': 'INVALID ✗', 'doğrulanamadı': 'could not be verified',
+      'Bulgular': 'Findings', 'Sertifika zinciri (dosyadaki)': 'Certificate chain (in the file)', 'Konu': 'Subject', 'Anahtar / algoritma': 'Key / algorithm', 'Rol': 'Role',
+      'kök (kendinden imzalı)': 'root (self-signed)', 'imzalayan': 'signer', 'Zincir bağlantıları': 'Chain links', 'İptal denetimi adresleri (sorgulanmadı)': 'Revocation check addresses (not queried)',
+      'Paketleme izi yok': 'No packing trace', 'Bilinen bir paketleyici, koruyucu ya da obfuscator izi bulunmadı. Bu, dosyanın paketsiz olduğunu KANITLAMAZ.': 'No known packer, protector or obfuscator trace was found. This does NOT prove the file is unpacked.',
+      'Olası paketleme / obfuscation': 'Possible packing / obfuscation', 'Zayıf ipuçları var (tek başına kanıt değil).': 'There are weak hints (not proof on their own).',
+      'Muhtemelen paketli / obfuscate edilmiş': 'Probably packed / obfuscated', 'Birden çok gösterge ya da güçlü bir ipucu var.': 'There are several indicators or one strong hint.',
+      'Paketleyici / koruyucu izi kesin': 'Packer / protector trace is definite', 'Bilinen bir araca özgü iz bulundu.': 'A trace specific to a known tool was found.',
+      'Paketleme göstergesi': 'Packing indicator',
+      'Bu dosya türü (PE, .NET, JAR/ZIP dışında) için yalnızca bilinen dize izleri arandı.': 'For this file type (other than PE, .NET, JAR/ZIP) only known string traces were searched.',
+      'Paketleyici (sıkıştırıcı)': 'Packer (compressor)', 'Koruyucu / sanallaştırıcı': 'Protector / virtualizer', '.NET obfuscator': '.NET obfuscator', 'Betik koruyucu': 'Script protector', 'Betik/uygulama paketi': 'Script/app bundle', 'Kurulum paketi (zararsız olabilir)': 'Installer (may be harmless)', 'Java obfuscator': 'Java obfuscator',
+      'Algılanan araçlar': 'Detected tools', 'Araç': 'Tool', 'Tür': 'Type', 'Kanıt': 'Evidence', 'Not / geri açma': 'Note / unpacking',
+      'Göstergeler': 'Indicators', 'kesin iz': 'definite trace', 'ipucu': 'hint',
+      'PE bölümleri': 'PE sections', 'Giriş noktası': 'Entry point', 'toplam entropi': 'overall entropy', 'import': 'imports',
+      'Bölüm': 'Section', 'Disk / bellek boyutu': 'Disk / memory size', 'Entropi (0–8)': 'Entropy (0–8)', 'İzin': 'Permissions', 'Not': 'Note', 'standart dışı ad': 'non-standard name',
+      'Java sınıf adları': 'Java class names', 'Sınıf sayısı': 'Class count', '1–2 harfli ad oranı': 'Share of 1–2 letter names', 'I/l/1/O/0 karışımı ad oranı': 'Share of I/l/1/O/0 look-alike names', 'ASCII dışı ad': 'Non-ASCII names', 'İncelenen sınıf': 'Classes inspected',
+      'StatScan’in ilgili bulguları': 'Related StatScan findings',
+      'Tüm türler': 'All types', 'Bilinen meşru siteleri de göster': 'Also show well-known legitimate sites', 'Güvenli yazım (hxxp, [.])': 'Safe notation (hxxp, [.])', 'bilinen meşru': 'known legitimate',
+      'İlk 500 gösteriliyor; hepsi için dışa aktar.': 'Showing the first 500; export for all of them.', 'Bu süzgeçle gösterge yok.': 'No indicators with this filter.', 'Liste 5000 ile sınırlandı.': 'The list is capped at 5000.',
+      '{0} gösterge gösteriliyor (toplam {1}, bilinen meşru: {2} gizli).': 'Showing {0} indicators (total {1}, known legitimate: {2} hidden).',
+      'Bu dosyada gösterge bulunamadı. (Karıştırılmış ya da şifreli içerik görünmeyebilir.)': 'No indicators were found in this file. (Obfuscated or encrypted content may not show.)',
+      'TXT indir': 'Download TXT', 'CSV indir': 'Download CSV', 'JSON indir': 'Download JSON', 'Engelleme listesi (alan adı/IP)': 'Blocklist (domain/IP)', 'Listeyi kopyala': 'Copy the list', 'Kopyalandı': 'Copied', 'Kopyalanamadı': 'Could not copy',
+      'Önce bilmen gerekenler': 'What to know first',
+      '{0}: çok büyük (sınır {1})': '{0}: too large (limit {1})',
+      'Dijital imzayı açar: kim imzalamış, sertifika zinciri, süre, zaman damgası, imza matematiği ve sahte/taklit yayıncı adı. Dosya çalıştırılmaz, ağa bağlanılmaz; kök güveni ve iptal durumu doğrulanmaz. Tarayıcıda ve masaüstünde çalışır.': 'Opens the digital signature: who signed it, certificate chain, validity, timestamp, signature math and fake/imitated publisher names. The file is not run and nothing goes over the network; root trust and revocation are not verified. Works in the browser and on the desktop.',
+      'Dosyanın UPX, VMProtect, Themida gibi bir paketleyici/koruyucuyla sarılıp sarılmadığını, .NET veya Java obfuscator izlerini bölüm adı, entropi, giriş noktası ve import kalıplarından çıkarır. Paketli olmak tek başına zararlı demek değildir. Dosya çalıştırılmaz. Tarayıcıda ve masaüstünde çalışır.': 'Works out whether a file is wrapped by a packer/protector such as UPX, VMProtect or Themida, and looks for .NET or Java obfuscator traces from section names, entropy, entry point and import patterns. Being packed alone does not mean malicious. The file is not run. Works in the browser and on the desktop.',
+      'Dosyadaki URL, IP, alan adı, Discord webhook, Telegram bot, e-posta, cüzdan, kayıt defteri ve yol göstergelerini tek listede toplar; TXT/CSV/JSON/engelleme listesi olarak dışa aktarır. Token’lar maskelenir. Hiçbir adrese bağlanılmaz. Tarayıcıda ve masaüstünde çalışır.': 'Collects URLs, IPs, domains, Discord webhooks, Telegram bots, e-mails, wallets, registry keys and path indicators from a file into one list; exports TXT/CSV/JSON/blocklist. Tokens are masked. No address is contacted. Works in the browser and on the desktop.'
+    });
+    /*#end-en-sectools*/
     let lang = 'tr'; try { if (localStorage.getItem('kovan.lang') === 'en') lang = 'en'; } catch (e) { /* depolama yok */ }
     function lookup(k) { return Object.prototype.hasOwnProperty.call(EN, k) ? EN[k] : undefined; }
     function fill(s, a) { return s.replace(/\{(\d+)\}/g, (m, i) => (a[+i] !== undefined ? a[+i] : m)); }
@@ -6720,7 +7116,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-ramanaliz, #app-oyunayar, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-ramanaliz, #app-oyunayar, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -6730,7 +7126,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.10';
+  const KOVAN_VER = 'beta 0.1.12';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -6990,6 +7386,138 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       for (const ev of ['dragenter', 'dragover']) zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('over'); }); for (const ev of ['dragleave', 'drop']) zone.addEventListener(ev, () => zone.classList.remove('over'));
       zone.addEventListener('drop', (e) => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (fs && fs.length) load(fs); });
     })();
+        /*#ui-sectools*/
+    /* ---- Guvenlik araclari: Imza ve Sertifika Denetcisi, Paketleyici/Obfuscation Dedektoru, IOC Cikaricisi.
+       Uc arac da tarayicida/masaustunde calisir: dosya CALISTIRILMAZ, hicbir yere GONDERILMEZ, ag istegi yapilmaz.
+       Motor: src/engine/104-sectools.js (sigAudit, packAudit) + 90-ioc.js (iocTree, iocExport). Zararlilik puani StatScan taramasindan gelir. ---- */
+    (function secToolsUI() {
+      const { sigAudit, packAudit, scanFile, iocTree, iocExport } = StatScan; const MAXB = 256e6;
+      const SEVN = { high: 'Yüksek', med: 'Orta', low: 'Düşük', info: 'Bilgi', ok: 'Normal' }; const SEVO = { high: 0, med: 1, low: 2, info: 3, ok: 4 };
+      const pill = (sev) => h('span', { class: 'sc-pill sc-' + sev }, KT(SEVN[sev] || sev));
+      const kv = (k, v) => (v == null || v === '' ? null : h('div', { class: 'sc-kv' }, h('span', {}, KT(k)), h('b', {}, v)));
+      function scoreBox(r) {
+        if (!r || typeof r.score !== 'number') return null; const s = r.score;
+        return h('div', { class: 'sc-score' + (s >= 55 ? ' hi' : s >= 30 ? ' mid' : '') },
+          h('div', { class: 'sc-num', 'aria-label': KT('Zararlılık puanı') + ' ' + s + '/100' }, String(s), h('small', {}, '/100')),
+          h('div', {}, h('strong', {}, KT('Zararlılık puanı (StatScan taraması)')), h('span', {}, KT(r.verdict) + ' · ' + KT(r.modeLabel || '')), h('span', { class: 'sc-fine' }, KT('Puan, dosyanın kötü amaçlı olma olasılığına dair sezgisel bir göstergedir; kesin hüküm değildir. Ayrıntı için StatScan aracını kullan.'))));
+      }
+      const head = (f, r) => h('div', { class: 'sc-file' }, h('strong', {}, f.name), h('span', {}, fmt(f.size) + (r && r.sha256 ? ' · SHA-256 ' + r.sha256.slice(0, 16) + '…' : '')));
+      function shell(id, cfg) {
+        const root = $('#app-' + id); root.dataset.sc = '1'; const st = { busy: false };
+        const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' }); const setLive = (x, warn) => { live.textContent = x || ''; live.classList.toggle('warn', !!warn); };
+        const input = h('input', { type: 'file', hidden: true, id: cfg.inputId, accept: cfg.accept || '' });
+        const pick = h('button', { type: 'button', class: 'cv-btn' }, KT('Dosya seç'));
+        const zone = h('div', { class: 'cv-drop', tabindex: '0', role: 'button', 'aria-label': KT('Dosya seç') }, h('div', {}, h('strong', {}, KT('Dosyayı buraya bırak')), h('span', {}, KT('Dosya çalıştırılmaz ve hiçbir yere gönderilmez · her şey bu cihazda işlenir'))), pick);
+        const res = h('div', { class: 'sc-res', hidden: true, id: cfg.resId });
+        root.append(h('header', { class: 'cv-head' }, h('h1', { 'data-focus': '', tabindex: '-1' }, cfg.title), h('p', { class: 'cv-lead' }, KT(cfg.lead))),
+          h('div', { class: 'cv-note' }, h('b', {}, KT('Önce bilmen gerekenler')), h('ul', {}, cfg.notes.map((x) => h('li', {}, KT(x))))), zone, input, live, res);
+        async function load(f) {
+          if (!f || st.busy) return; if (f.size > MAXB) { setLive(KT('{0}: çok büyük (sınır {1})', f.name, fmt(MAXB)), true); return; }
+          st.busy = true; res.hidden = true; res.replaceChildren(); setLive(KT('İnceleniyor…'));
+          try { const u8 = new Uint8Array(await f.arrayBuffer()); const node = await cfg.run(f, u8, setLive); res.replaceChildren(node); res.hidden = false; setLive(KT('Bitti. Dosya değiştirilmedi.')); }
+          catch (e) { setLive(KT('İnceleme başarısız: {0}', e && e.message ? e.message : e), true); }
+          st.busy = false;
+        }
+        pick.addEventListener('click', (e) => { e.stopPropagation(); input.click(); }); zone.addEventListener('click', () => input.click());
+        zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+        input.addEventListener('change', () => { load(input.files[0]); input.value = ''; });
+        for (const ev of ['dragenter', 'dragover']) zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('over'); }); for (const ev of ['dragleave', 'drop']) zone.addEventListener(ev, () => zone.classList.remove('over'));
+        zone.addEventListener('drop', (e) => { e.preventDefault(); const fs = e.dataTransfer && e.dataTransfer.files; if (fs && fs.length) load(fs[0]); });
+        return { root, load };
+      }
+      const scan = (f, u8, mode) => scanFile({ name: f.name, size: f.size, data: u8 }, { mode });
+      const findingList = (list) => h('ul', { class: 'sc-list' }, list.slice().sort((a, b) => (SEVO[a.sev] - SEVO[b.sev])).map((x) => h('li', { class: 'sc-f sc-' + x.sev }, pill(x.sev), h('div', {}, h('strong', {}, x.title), x.why ? h('p', {}, x.why) : null, x.act ? h('p', { class: 'sc-act' }, '→ ' + x.act) : null))));
+      /* ---------- Imza ve Sertifika Denetcisi ---------- */
+      shell('imza', {
+        inputId: 'sg-file', resId: 'sg-res', title: 'İmza ve Sertifika Denetçisi', accept: '.exe,.dll,.sys,.ocx,.scr,.cpl,.msi,.drv,.efi,.mui',
+        lead: 'Bir .exe/.dll/.sys dosyasının dijital imzasını açar: imzalayan kim, sertifika zinciri, geçerlilik tarihleri, zaman damgası, imza matematiği ve yayıncı adının sahte/taklit olup olmadığı.',
+        notes: ['İmza matematiği ve sertifika zinciri bağlantıları yalnızca dosyanın İÇİNDEKİ sertifikalarla (RSA) doğrulanır. Windows’un güvenilir kök deposu ve sertifika iptal listeleri (CRL/OCSP) bu araçta YOKTUR: kök sertifikanın güvenilir olup olmadığını ve sertifikanın iptal edilip edilmediğini söyleyemez.', 'İptal adresleri (CRL/OCSP) varsa yalnızca listelenir; araç ağa bağlanmaz.', 'Çalınmış/sızdırılmış sertifika listesi yoktur: sorun görünmemesi dosyanın güvenli olduğu anlamına gelmez. “Yayıncı taklidi” denetimi bilinen bir marka listesiyle çalışır; listede olmayan markalar yakalanmaz.', 'Windows’ta kesin sonuç için dosyaya sağ tık → Özellikler → Dijital İmzalar kullan.'],
+        async run(f, u8, setLive) {
+          const r = await scan(f, u8, 'normal'); setLive(KT('İmza ayrıştırılıyor…'));
+          const ver = r.info && r.info.version || null; const a = await sigAudit(u8, f.name, { ver });
+          const box = h('div', { class: 'sc-body' }); box.append(head(f, r), scoreBox(r));
+          if (a.kind === 'notpe') { box.append(h('p', { class: 'sc-empty' }, KT('Bu dosya bir Windows çalıştırılabilir dosyası (PE) değil; imza denetimi yalnızca PE dosyaları içindir.'))); return box; }
+          const vl = a.kind === 'unsigned' ? 'none' : a.verdict && a.verdict.level;
+          box.append(h('div', { class: 'sc-verdict sc-v-' + vl }, h('strong', {}, vl === 'bad' ? KT('Ciddi sorun var') : vl === 'warn' ? KT('Dikkat edilmesi gereken noktalar var') : vl === 'ok' ? KT('Dosya içi denetimlerde sorun görülmedi') : KT('Dijital imza yok')), vl === 'ok' ? h('span', {}, KT('Güven zinciri (kök) ve iptal durumu doğrulanmadı; bu bir “güvenli” hükmü değildir.')) : null));
+          if (a.signer) {
+            const s = a.signer; box.append(h('div', { class: 'sc-grid' },
+              kv('İmzalayan', s.o || s.cn), kv('Sertifika adı (CN)', s.cn), kv('Ülke', s.country), kv('Veren', s.issuerCn), kv('Geçerlilik', s.from + ' → ' + s.to),
+              kv('Zaman damgası', a.ts ? a.ts.day + (a.ts.kind === 'rfc3161' ? ' (RFC 3161)' : ' (karşı imza)') : KT('yok')), kv('İmza tarihi (imzalı öznitelik)', a.signingTime),
+              kv('Anahtar', s.keyAlg === 'RSA' ? 'RSA ' + s.keyBits + ' bit' : s.keyAlg === 'EC' ? 'ECDSA ' + s.curve : s.keyAlg), kv('Sertifika imza algoritması', s.sigAlg),
+              a.digest ? kv('Gömülü özet', (a.digest.alg || '—') + (a.digest.match === true ? ' ✓' : a.digest.match === false ? ' ✗' : '')) : null,
+              kv('İmza matematiği', a.math.ok === true ? KT('doğrulandı ✓') : a.math.ok === false ? KT('GEÇERSİZ ✗') : KT('doğrulanamadı'))));
+          }
+          box.append(h('h2', {}, KT('Bulgular')), findingList(a.findings));
+          if (a.chain && a.chain.length) {
+            box.append(h('h2', {}, KT('Sertifika zinciri (dosyadaki)')));
+            const tb = h('tbody'); a.chain.forEach((c, i) => tb.append(h('tr', {}, h('td', {}, String(i + 1)), h('td', {}, c.subject, h('small', {}, KT('Veren') + ': ' + c.issuer)), h('td', {}, c.from + ' → ' + c.to), h('td', {}, (c.keyAlg === 'RSA' ? 'RSA ' + c.keyBits : c.keyAlg === 'EC' ? 'EC ' + c.curve : c.keyAlg) + ' · ' + c.sigAlg), h('td', {}, c.self ? KT('kök (kendinden imzalı)') : c.ca ? 'CA' : KT('imzalayan')))));
+            box.append(h('div', { class: 'cmpwrap' }, h('table', { class: 'mtable' }, h('thead', {}, h('tr', {}, ['#', 'Konu', 'Geçerlilik', 'Anahtar / algoritma', 'Rol'].map((x) => h('th', {}, KT(x))))), tb)));
+            if (a.links && a.links.length) box.append(h('p', { class: 'sc-fine' }, KT('Zincir bağlantıları') + ': ' + a.links.map((l) => l.from + ' ← ' + l.to + ' ' + (l.ok === true ? '✓' : l.ok === false ? '✗' : '?')).join(' · ')));
+          }
+          if (a.signer && (a.signer.crl.length || a.signer.ocsp.length)) box.append(h('details', { class: 'cv-sec' }, h('summary', {}, KT('İptal denetimi adresleri (sorgulanmadı)')), h('ul', {}, a.signer.crl.concat(a.signer.ocsp).map((u) => h('li', {}, u)))));
+          if (a.limits && a.limits.length) box.append(h('p', { class: 'sc-fine' }, a.limits.join(' · ')));
+          return box;
+        }
+      });
+      /* ---------- Paketleyici / Obfuscation Dedektörü ---------- */
+      const LV = { none: ['Paketleme izi yok', 'Bilinen bir paketleyici, koruyucu ya da obfuscator izi bulunmadı. Bu, dosyanın paketsiz olduğunu KANITLAMAZ.'], possible: ['Olası paketleme / obfuscation', 'Zayıf ipuçları var (tek başına kanıt değil).'], likely: ['Muhtemelen paketli / obfuscate edilmiş', 'Birden çok gösterge ya da güçlü bir ipucu var.'], confirmed: ['Paketleyici / koruyucu izi kesin', 'Bilinen bir araca özgü iz bulundu.'] };
+      shell('paketleyici', {
+        inputId: 'pk-file', resId: 'pk-res', title: 'Paketleyici / Obfuscation Dedektörü', accept: '.exe,.dll,.sys,.scr,.jar,.zip,.bin',
+        lead: 'Dosyanın paketlenmiş (UPX, VMProtect, Themida …), koruyucuyla sarılmış ya da obfuscate edilmiş (.NET, Java) olup olmadığını bölüm adları, entropi, giriş noktası, import kalıpları ve bilinen araç izlerinden çıkarır.',
+        notes: ['Paketli ya da obfuscate edilmiş olmak tek başına zararlı DEĞİLDİR: oyun hileleri, lisans koruması olan programlar, kurulum paketleri ve küçültülmüş (minified) Java dosyaları da böyledir. Zararlılar ise analizi zorlaştırmak için sık kullanır.', 'Tüm sonuçlar sezgiseldir (yanlış pozitif ve yanlış negatif olur). Araç dosyayı çalıştırmaz, açmaz (unpack etmez); yalnızca ipuçlarını gösterir.', 'Java: sınıf adlarının kısalığı, bozuk .class başlıkları ve bilinen obfuscator dizeleri aranır; kesin kanıt değil, ipucudur.'],
+        async run(f, u8, setLive) {
+          const r = await scan(f, u8, 'normal'); setLive(KT('Paketleme izleri aranıyor…')); const a = await packAudit(u8, f.name, {});
+          const box = h('div', { class: 'sc-body' }); box.append(head(f, r), scoreBox(r));
+          const lv = LV[a.level]; box.append(h('div', { class: 'sc-verdict sc-pk-' + a.level }, h('strong', {}, KT(lv[0])), h('span', {}, KT(lv[1]) + ' · ' + KT('Paketleme göstergesi') + ': ' + a.score + '/100')));
+          if (a.kind === 'other') box.append(h('p', { class: 'sc-empty' }, KT('Bu dosya türü (PE, .NET, JAR/ZIP dışında) için yalnızca bilinen dize izleri arandı.')));
+          if (a.tools.length) { const tb = h('tbody'); for (const t of a.tools) tb.append(h('tr', {}, h('td', {}, t.name), h('td', {}, t.cat === 'java' ? 'Java obfuscator' : KT(({ packer: 'Paketleyici (sıkıştırıcı)', protector: 'Koruyucu / sanallaştırıcı', dotnet: '.NET obfuscator', script: 'Betik koruyucu', bundle: 'Betik/uygulama paketi', installer: 'Kurulum paketi (zararsız olabilir)' })[t.cat] || t.cat)), h('td', {}, t.evidence), h('td', {}, t.hint || '—'))); box.append(h('h2', {}, KT('Algılanan araçlar')), h('div', { class: 'cmpwrap' }, h('table', { class: 'mtable' }, h('thead', {}, h('tr', {}, ['Araç', 'Tür', 'Kanıt', 'Not / geri açma'].map((x) => h('th', {}, KT(x))))), tb))); }
+          if (a.evidence.length) box.append(h('h2', {}, KT('Göstergeler')), h('ul', { class: 'sc-list' }, a.evidence.map((e) => h('li', { class: 'sc-f sc-' + (e.kind === 'fact' ? 'high' : 'low') }, h('span', { class: 'sc-pill sc-' + (e.kind === 'fact' ? 'high' : 'low') }, e.kind === 'fact' ? KT('kesin iz') : KT('ipucu')), h('div', {}, h('strong', {}, e.title), h('p', {}, e.why))))));
+          if (a.sections.length) {
+            box.append(h('h2', {}, KT('PE bölümleri')), h('p', { class: 'sc-fine' }, KT('Giriş noktası') + ': ' + a.ep + ' · ' + KT('toplam entropi') + ': ' + a.entropy + ' · ' + KT('import') + ': ' + a.importCount));
+            const tb = h('tbody'); for (const s of a.sections) tb.append(h('tr', { class: s.packer ? 'sc-hot' : '' }, h('td', {}, s.n || '—'), h('td', {}, fmt(s.rsize) + ' / ' + fmt(s.vsize)), h('td', {}, h('span', { class: 'sc-ent' }, h('i', { style: 'width:' + Math.min(100, Math.round(s.ent / 8 * 100)) + '%' + (s.ent >= 7.2 ? ';background:var(--s3)' : s.ent >= 6.5 ? ';background:var(--s2)' : '') }), h('b', {}, String(s.ent)))), h('td', {}, (s.x ? 'X' : '-') + (s.w ? 'W' : '-')), h('td', {}, s.packer ? s.packer[1] : s.std ? '' : KT('standart dışı ad'))));
+            box.append(h('div', { class: 'cmpwrap' }, h('table', { class: 'mtable' }, h('thead', {}, h('tr', {}, ['Bölüm', 'Disk / bellek boyutu', 'Entropi (0–8)', 'İzin', 'Not'].map((x) => h('th', {}, KT(x))))), tb)));
+          }
+          if (a.nameStats) box.append(h('h2', {}, KT('Java sınıf adları')), h('div', { class: 'sc-grid' }, kv('Sınıf sayısı', String(a.nameStats.total)), kv('1–2 harfli ad oranı', '%' + a.nameStats.shortPct), kv('I/l/1/O/0 karışımı ad oranı', '%' + a.nameStats.confusablePct), kv('ASCII dışı ad', String(a.nameStats.nonAscii)), kv('İncelenen sınıf', String(a.jarScanned))));
+          const rel = []; (function w(n, d) { if (d > 4 || !n) return; for (const x of n.findings || []) if (/pack|highent|_ep_|fewimp|noimp|overlay|rwx|virtual|obf|deobf|bin_|jar_deep|dn_/i.test(x.id) && x.w > 0) rel.push(x); for (const c of n.children || []) w(c, d + 1); })(r, 0);
+          if (rel.length) box.append(h('details', { class: 'cv-sec' }, h('summary', {}, KT('StatScan’in ilgili bulguları') + ' (' + rel.length + ')'), h('ul', {}, rel.slice(0, 20).map((x) => h('li', {}, x.title)))));
+          if (a.notes.length) box.append(h('ul', { class: 'sc-fine' }, a.notes.map((x) => h('li', {}, x))));
+          return box;
+        }
+      });
+      /* ---------- IOC Çıkarıcı ---------- */
+      const sig = shell('ioc', {
+        inputId: 'ic-file', resId: 'ic-res', title: 'IOC Çıkarıcı', accept: '',
+        lead: 'Dosyanın (EXE/DLL, JAR, betik, arşiv, belge …) içindeki URL, IP, alan adı, Discord webhook, Telegram bot, davet, e-posta, cüzdan, kayıt defteri ve dosya yolu göstergelerini tek listede toplar; TXT/CSV/JSON/engelleme listesi olarak dışa aktarır.',
+        notes: ['Göstergeler dosya içeriğindeki metinlerden çıkarılır; hiçbirine bağlanılmaz. Listede olması kötü amaçlı olduğu anlamına GELMEZ: meşru adresler de çıkar (bilinen meşru siteler varsayılan olarak gizlenir).', 'Discord webhook ve Telegram bot token’larının gizli kısmı kasıtlı olarak maskelenir; ekrana, panoya ve dışa aktarılan dosyalara tam token yazılmaz.', 'Dışa aktarırken “güvenli yazım” (hxxp, [.]) seçersen göstergeler yanlışlıkla tıklanamaz hâle gelir.', 'Derin tarama yapılır (arşivlerin içine de girilir); büyük dosyalarda biraz sürebilir. Karıştırılmış (şifreli/kodlanmış) dizeler görünmeyebilir.'],
+        async run(f, u8, setLive) {
+          const r = await scan(f, u8, 'deep'); setLive(KT('Göstergeler toplanıyor…')); const t = iocTree(r);
+          const box = h('div', { class: 'sc-body' }); box.append(head(f, r), scoreBox(r));
+          if (!t.total) { box.append(h('p', { class: 'sc-empty' }, KT('Bu dosyada gösterge bulunamadı. (Karıştırılmış ya da şifreli içerik görünmeyebilir.)'))); return box; }
+          const st = { defang: false, benign: false, type: '' };
+          const listBox = h('div', { class: 'sc-ioc' });
+          const defangChk = h('input', { type: 'checkbox', id: 'ic-defang' }); const benignChk = h('input', { type: 'checkbox', id: 'ic-benign' });
+          const typeSel = h('select', { id: 'ic-type', 'aria-label': KT('Tür') }, h('option', { value: '' }, KT('Tüm türler')), Object.keys(t.counts).map((k) => h('option', { value: k }, (t.items.find((i) => i.type === k) || {}).label + ' (' + t.counts[k] + ')')));
+          const sum = h('p', { class: 'sc-fine', id: 'ic-sum' });
+          const vis = () => t.items.filter((i) => (st.benign || !i.benign) && (!st.type || i.type === st.type));
+          function draw() {
+            const items = vis(); listBox.replaceChildren(); const groups = new Map(); for (const i of items) { if (!groups.has(i.type)) groups.set(i.type, []); groups.get(i.type).push(i); }
+            sum.textContent = KT('{0} gösterge gösteriliyor (toplam {1}, bilinen meşru: {2} gizli).', items.length, t.total, st.benign ? 0 : t.items.filter((i) => i.benign).length) + (t.truncated ? ' ' + KT('Liste 5000 ile sınırlandı.') : '');
+            for (const [ty, arr] of groups) {
+              const ul = h('ul', {}, arr.slice(0, 500).map((i) => h('li', {}, h('code', {}, st.defang && /^(url|domain|ip|email|onion|telegram|webhook|invite)$/.test(i.type) ? i.value.replace(/^http/i, 'hxxp').replace(/\./g, '[.]').replace(/@/g, '[@]') : i.value), i.benign ? h('span', { class: 'sc-pill sc-ok' }, KT('bilinen meşru')) : null, h('small', {}, i.sources.join(', ') + (i.nsrc > i.sources.length ? ' …+' + (i.nsrc - i.sources.length) : '')))));
+              listBox.append(h('details', { class: 'cv-sec', open: '' }, h('summary', {}, arr[0].label + ' (' + arr.length + ')'), ul, arr.length > 500 ? h('p', { class: 'sc-fine' }, KT('İlk 500 gösteriliyor; hepsi için dışa aktar.')) : null));
+            }
+            if (!items.length) listBox.append(h('p', { class: 'sc-empty' }, KT('Bu süzgeçle gösterge yok.')));
+          }
+          defangChk.addEventListener('change', () => { st.defang = defangChk.checked; draw(); }); benignChk.addEventListener('change', () => { st.benign = benignChk.checked; draw(); }); typeSel.addEventListener('change', () => { st.type = typeSel.value; draw(); });
+          const exp = (fmtId, label, ext, mime) => h('button', { type: 'button', class: 'cv-btn', 'data-fmt': fmtId, onclick: () => { const txt = iocExport(t, fmtId, { defang: st.defang, includeBenign: st.benign }); saveBlob(f.name.replace(/[^\w.-]+/g, '_') + '.ioc.' + ext, new Blob([txt], { type: mime })); } }, KT(label));
+          const copyBtn = h('button', { type: 'button', class: 'cv-btn', id: 'ic-copy', onclick: async () => { const txt = iocExport(t, 'txt', { defang: st.defang, includeBenign: st.benign }); try { await navigator.clipboard.writeText(txt); copyBtn.textContent = KT('Kopyalandı'); } catch (e) { copyBtn.textContent = KT('Kopyalanamadı'); } setTimeout(() => { copyBtn.textContent = KT('Listeyi kopyala'); }, 1600); } }, KT('Listeyi kopyala'));
+          box.append(h('div', { class: 'sc-tools' }, h('label', {}, typeSel), h('label', { class: 'sc-chk' }, benignChk, h('span', {}, KT('Bilinen meşru siteleri de göster'))), h('label', { class: 'sc-chk' }, defangChk, h('span', {}, KT('Güvenli yazım (hxxp, [.])')))),
+            sum, listBox, h('div', { class: 'cv-actions' }, exp('txt', 'TXT indir', 'txt', 'text/plain'), exp('csv', 'CSV indir', 'csv', 'text/csv'), exp('json', 'JSON indir', 'json', 'application/json'), exp('blocklist', 'Engelleme listesi (alan adı/IP)', 'blocklist.txt', 'text/plain'), copyBtn));
+          draw(); return box;
+        }
+      }); void sig;
+    })();
+    /*#end-ui-sectools*/
   })();
 
   /* ---------- Erisim: kurulum kimligi, engel ekrani, sahip araclari (Notlarim + Yonetim; yalnizca masaustu ve yalnizca sahip) ----------
@@ -8467,6 +8995,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     /* Kategoriler: kenar cubugu ve Home bu sirayla gruplar. Yeni arac: MODULES girdisine cat: 'guvenlik' | 'windows' | 'minecraft' | 'kodlama' ekle. */
     const CATS = [['guvenlik', 'Güvenlik', 'shield', 'Dosya, arşiv ve betik inceleme araçları.'], ['windows', 'Windows', 'winlogo', 'Sistem izleme ve bellek analizi araçları.'], ['oyun', 'Oyun', 'gamepad', 'Oyun ayarlayıcı ve League asistanı Blitz.'], ['minecraft', 'Minecraft', 'cube', 'Doku paketi ve mod araçları.'], ['kodlama', 'Kodlama', 'code', 'Derleme ve kaynak kod araçları.']];
     const MODULES = [{ id: 'statscan', cat: 'guvenlik', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
+      { id: 'imza', cat: 'guvenlik', name: 'İmza ve Sertifika Denetçisi', icon: 'key', beta: true, desc: 'Dijital imzayı açar: kim imzalamış, sertifika zinciri, süre, zaman damgası, imza matematiği ve sahte/taklit yayıncı adı. Dosya çalıştırılmaz, ağa bağlanılmaz; kök güveni ve iptal durumu doğrulanmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
+      { id: 'paketleyici', cat: 'guvenlik', name: 'Paketleyici / Obfuscation Dedektörü', icon: 'puzzle', beta: true, desc: 'Dosyanın UPX, VMProtect, Themida gibi bir paketleyici/koruyucuyla sarılıp sarılmadığını, .NET veya Java obfuscator izlerini bölüm adı, entropi, giriş noktası ve import kalıplarından çıkarır. Paketli olmak tek başına zararlı demek değildir. Dosya çalıştırılmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
+      { id: 'ioc', cat: 'guvenlik', name: 'IOC Çıkarıcı', icon: 'note', beta: true, desc: 'Dosyadaki URL, IP, alan adı, Discord webhook, Telegram bot, e-posta, cüzdan, kayıt defteri ve yol göstergelerini tek listede toplar; TXT/CSV/JSON/engelleme listesi olarak dışa aktarır. Token’lar maskelenir. Hiçbir adrese bağlanılmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
       { id: 'texpack', cat: 'minecraft', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', cat: 'minecraft', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
       { id: 'compiler', cat: 'kodlama', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },

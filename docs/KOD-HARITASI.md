@@ -55,6 +55,12 @@ Oyuncu arama (`lol:player:search` / `lol:player:view` / `lol:friends`, sekme 'Oy
 Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşlemesi gerek), diğer kategorilerin kendi teması.
 **Gerçekte hiç denenmedi**: gerçek Windows, gerçek League istemcisi/rün uç noktaları (belgesiz, bellekten), gerçek counterpick.lol HTML'i, gerçek Meraki/CommunityDragon indirmesi (yol WebFetch ile görüldü; sandbox kabuğundan ağ yok).
 
+## Güvenlik araçları: İmza / Paketleyici / IOC (`src/engine/104-sectools.js` + `secToolsUI`)
+- Motor: `sigAudit(u8,name,opts)` (Authenticode: mini-DER, PKCS#7, sertifika alanları, RSA imza matematiği WebCrypto ile, zincir bağlantıları, EKU/süre/zayıf özet, zaman damgası, yayıncı taklidi `SIG_BRANDS`, iptal adresleri YALNIZ listelenir), `packAudit` (bölüm entropisi/RWX/ad, `PK_SIGS` iz listesi, Java `.jar` kontrolleri `PK_JAR`), `sigBrandMatch`. `api`'ye export edilir; `node tools/inject.mjs` ile içeri yerleşir.
+- Arayüz: `StatScan.html` içinde `/*#ui-sectools*/` (IIFE), `/*#css-sectools*/`, `#app-imza|paketleyici|ioc`, `/*#en-sectools*/`. IOC aracı mevcut `scanFile('deep')` + `iocTree/iocExport` kullanır; zararlılık puanı (/100) StatScan'den gelir.
+- SINIRLAR (arayüzde de yazılı): Windows kök deposu yok, CRL/OCSP sorgulanmaz, çalınmış sertifika listesi yok, ECDSA matematiği doğrulanmaz (RSA yalnız), sonuçlar sezgisel, dosya çalıştırılmaz, ağ yok. Motor bulgu metni Türkçe (EN yalnız arayüz kabuğu).
+- Testler: `node tools/test/ui-sectools.mjs` (sentetik örnekleri `tools/test/gen/build_sig.py` ve `build_packsec.py` üretir; python3 + cryptography gerekir, yoksa ATLAR).
+
 ## Testler (`tools/test/`)
 - Host: `node tools/test/lol-host.cjs` (sahte `deps.get/getBin/lcu/live/confirm`), `flow-host.cjs`, `game-host.cjs`, `mem-host.cjs`, `sys-host.cjs`, `access-host.cjs`, `compile-host.cjs`, `obf-host.cjs`, `srcobf.cjs` …
 - Arayüz (Playwright, gerçek host koduna köprü): `node tools/test/ui-lol.mjs`, `ui-flow.mjs`, `ui-shell.mjs`, `ui-lang.mjs`, `ui-conv.mjs`, `ui-game.mjs`, `ui-mem.mjs` … Playwright yolu testlerde `/home/claude/.npm-global/lib/node_modules/`. Ekran görüntüsü: `SHOT=<klasör> node tools/test/ui-lol.mjs`.
