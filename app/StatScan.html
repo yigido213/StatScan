@@ -6486,6 +6486,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Rakibin büyü hasarı dayanıklı seçimlere karşı iyi": "Opponent’s magic damage is good against durable picks",
       "Tüm şampiyonlar (rol filtresi yok)": "All champions (no role filter)",
       'Uygulama Akışı': 'App Flow',
+      "Bu özellik için Kovan’ı tamamen kapatıp yeniden aç (güncelleme yeni kuruldu).": "Fully close and reopen Kovan for this feature (the update was just installed).",
+      "Uygulamalar aranıyor…": "Searching for apps…",
+      "Tekrar dene": "Try again",
       "Otomatik güncelleyici": "Auto updater",
       "Henüz uygulama yok. “Ekle” ile Discord, Roblox gibi güncel tutmak istediklerini seç; bilgisayarda kendisi bulunur.": "No apps yet. Use “Add” to pick apps like Discord or Roblox; they are found on your computer automatically.",
       "Geri": "Back",
@@ -8078,8 +8081,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const appEl = $('#app'); const hueOf = (s) => { let x = 7; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) % 360; return x; };
     const letterBg = (name) => { const hh = hueOf(name); return 'linear-gradient(135deg, hsl(' + hh + ' 62% 46%), hsl(' + ((hh + 40) % 360) + ' 62% 32%))'; };
     const svgI = (d) => { const w = document.createElement('span'); w.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; return w.firstChild; };
-    const call = async (fn, ...a) => { try { return await Hh[fn](...a); } catch (e) { return { error: 'upd', message: String((e && e.message) || e) }; } };
-    const hostMsg = (m) => { m = String(m || ''); const mm = /^En fazla (\d+) uygulama eklenebilir\.$/.exec(m); return mm ? KT('En fazla {0} uygulama eklenebilir.', mm[1]) : KT(m); };
+    const call = async (fn, ...a) => { try { if (typeof Hh[fn] !== 'function') return { error: 'upd', message: 'Bu özellik için Kovan’ı tamamen kapatıp yeniden aç (güncelleme yeni kuruldu).' }; return await Hh[fn](...a); } catch (e) { const m = String((e && e.message) || e); return { error: 'upd', message: /No handler registered/i.test(m) ? 'Bu özellik için Kovan’ı tamamen kapatıp yeniden aç (güncelleme yeni kuruldu).' : m.slice(0, 200) }; } };
+    const hostMsg = (m) => { m = String(m || ''); const mm = /^En fazla (\d+) uygulama eklenebilir\.$/.exec(m); return mm ? KT('En fazla {0} uygulama eklenebilir.', mm[1]) : KT(m || 'İşlem başarısız.'); };
     const tileOf = (a, cls) => { const t = h('span', { class: cls || 'upd-tile' }); if (a.icon) t.append(h('img', { src: a.icon, alt: '', draggable: 'false' })); else { t.style.background = letterBg(a.name); t.append(h('span', { class: 'fl' }, [...a.name][0].toLocaleUpperCase('tr'))); } return t; };
     let apps = [], max = 30, view = 'grid', cur = null, busy = false, found = [], seq = 0; const known = new Map();
     const bar = h('button', { type: 'button', class: 'upd-bar', id: 'kv-upd-bar', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'kv-upd-pop', title: KT('Otomatik güncelleyici') }, svgI('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/><path d="M12 8.5v4.2l2.4 1.4"/>'), h('span', {}, KT('Otomatik güncelleyici')), h('i', { class: 'dot', 'aria-hidden': 'true' }));
@@ -8104,7 +8107,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         rm.addEventListener('click', async (e) => { e.stopPropagation(); const r = await call('updRemove', a.id); if (r && !r.error) { known.delete(a.id); mark(); apps = r.apps || []; draw(); } else toast(hostMsg(r && r.message)); });
         g.append(b);
       }
-      if (apps.length < max) { const add = h('button', { type: 'button', class: 'upd-app upd-add', 'aria-label': KT('Uygulama ekle'), title: KT('Uygulama ekle') }, h('span', { class: 'upd-tile' }, svgI('<path d="M12 5v14M5 12h14"/>')), h('span', { class: 'nm' }, KT('Ekle'))); add.addEventListener('click', () => { view = 'add'; found = []; draw(); discover(); }); g.append(add); }
+      if (apps.length < max) { const add = h('button', { type: 'button', class: 'upd-app upd-add', 'aria-label': KT('Uygulama ekle'), title: KT('Uygulama ekle') }, h('span', { class: 'upd-tile' }, svgI('<path d="M12 5v14M5 12h14"/>')), h('span', { class: 'nm' }, KT('Ekle'))); add.addEventListener('click', () => { view = 'add'; found = []; discover(); }); g.append(add); }
       return g;
     }
     function drawGrid() { body.replaceChildren(); if (!apps.length) body.append(h('p', { class: 'upd-empty' }, KT('Henüz uygulama yok. “Ekle” ile Discord, Roblox gibi güncel tutmak istediklerini seç; bilgisayarda kendisi bulunur.'))); body.append(grid()); }
@@ -8112,7 +8115,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
     /* ---- uygulama ekleme: Baslat menusu taramasi (kurulu klasoru kendisi bulur) ---- */
     async function discover() {
-      const my = ++seq; const r = await call('updDiscover'); if (my !== seq || view !== 'add') return; if (!r || r.error) { toast(hostMsg(r && r.message)); view = 'grid'; draw(); return; } found = r.items || []; r.windows === false && (found = []); drawAdd(r.windows !== false);
+      const my = ++seq; body.replaceChildren(h('div', { class: 'upd-detail' }, h('div', { class: 'upd-spin', role: 'img', 'aria-label': KT('Aranıyor…') }), h('p', { class: 'upd-msg sub' }, KT('Uygulamalar aranıyor…'))));
+      let r; try { r = await call('updDiscover'); } catch (e) { r = { error: 'upd', message: String((e && e.message) || e) }; }
+      if (my !== seq || view !== 'add') return;
+      if (!r || r.error) { body.replaceChildren(h('div', { class: 'upd-detail' }, h('p', { class: 'upd-msg bad' }, hostMsg(r && r.message)), h('div', { class: 'upd-row' }, backBtn(), (() => { const t = h('button', { type: 'button', class: 'cv-btn' }, KT('Tekrar dene')); t.addEventListener('click', discover); return t; })()))); return; }
+      found = Array.isArray(r.items) ? r.items : []; if (r.windows === false) found = []; try { drawAdd(r.windows !== false); } catch (e) { body.replaceChildren(h('p', { class: 'upd-msg bad' }, String((e && e.message) || e)), backBtn()); }
     }
     function drawAdd(win) {
       body.replaceChildren(); const q = h('input', { type: 'search', placeholder: KT('Uygulama ara…'), 'aria-label': KT('Uygulama ara…'), autocomplete: 'off', spellcheck: 'false' }); const list = h('ul', { class: 'upd-list' }); const msg = h('p', { class: 'upd-empty', role: 'status' });

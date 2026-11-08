@@ -1695,7 +1695,12 @@ const UPDMOD = (() => {
     const handlers = {
       'upd:list': async () => { try { return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
       'upd:discover': async () => {
-        try { sugg.clear(); const items = []; if (isWin() || deps.startMenuDirs) for (const f of scanStart()) { const sid = crypto.randomBytes(5).toString('hex'); const lc = locationOf(f.path); sugg.set(sid, f.path); items.push({ sid, name: f.name, location: lc.loc, already: state.apps.some((a) => norm(a.path) === norm(f.path) || a.name.toLowerCase() === f.name.toLowerCase()) }); }
+        try { sugg.clear(); const items = []; const t0 = Date.now(); let k = 0;
+          if (isWin() || deps.startMenuDirs) for (const f of scanStart()) {
+            const sid = crypto.randomBytes(5).toString('hex'); sugg.set(sid, f.path);
+            /* kurulu klasor: kisayol hedefi okunur; ana surec donmasin diye araya soluk verilir ve 3 sn'yi asarsa kalanlarda klasor bos kalir */
+            let lc = { loc: '' }; if (Date.now() - t0 < 3000) { lc = locationOf(f.path); if (++k % 20 === 0) await new Promise((r) => setImmediate(r)); }
+            items.push({ sid, name: f.name, location: lc.loc, already: state.apps.some((a) => norm(a.path) === norm(f.path) || a.name.toLowerCase() === f.name.toLowerCase()) }); }
           return { items, windows: isWin() || !!deps.startMenuDirs }; } catch (e) { return errE(String(e && e.message || e)); }
       },
       'upd:add': async (_e, sid) => {

@@ -86,6 +86,15 @@ const tile = (pg, n) => pg.locator('.upd-app', { hasText: n }).first();
   await pe.locator('.upd-pop .cv-btn', { hasText: 'Back' }).click(); await tile(pe, 'Steam').click(); await pe.waitForFunction(() => /No update for/.test(document.querySelector('#kv-upd-pop .upd-body').innerText)); ok(/No update for Steam yet\./.test(await txt(pe)), 'EN: "No update for Steam yet."');
   ok(pe.errs.length === 0, 'EN sayfa hatasi yok ' + pe.errs.join('|'));
 }
+// ---------- 3b) Ekle hatasi: sessizce kapanmaz, nedeni ekranda; tekrar denenir ----------
+{
+  const h = await seed('e', []); let fail = true; const orig = h.handlers['upd:discover']; h.handlers['upd:discover'] = async (...a) => (fail ? { error: 'upd', message: 'Deneme hatası' } : orig(...a));
+  const pg = await page(h); await pg.click('#kv-upd-bar'); await pg.click('.upd-add'); await pg.waitForFunction(() => /Deneme hatası/.test(document.querySelector('#kv-upd-pop .upd-body').innerText));
+  ok(await pg.locator('.upd-msg.bad').count() === 1 && await pg.locator('.upd-grid').count() === 0, 'Ekle hatasi: neden ekranda yazar, sessizce listeye donmez'); fail = false;
+  await pg.locator('.upd-pop .cv-btn', { hasText: 'Tekrar dene' }).click(); await pg.waitForSelector('.upd-find .upd-li'); ok(await pg.locator('.upd-li').count() >= 3, 'Tekrar dene: liste geldi');
+  ok(pg.errs.length === 0, 'Ekle hatasi: sayfa hatasi yok ' + pg.errs.join('|'));
+  const h2 = await seed('f', []); delete h2.handlers['upd:discover']; const p2 = await page(h2); await p2.click('#kv-upd-bar'); await p2.click('.upd-add'); await p2.waitForFunction(() => /başarısız|yeniden aç|Error/.test(document.querySelector('#kv-upd-pop .upd-body').innerText)); ok(await p2.locator('.upd-grid').count() === 0, 'kanal yoksa da ekranda hata gosterilir (cokme yok)');
+}
 // ---------- 4) masaustu disi: cubuk yok ----------
 { const ctx = await b.newContext({ viewport: { width: 1366, height: 900 } }); const pg = await ctx.newPage(); await pg.goto(URL); await sleep(400); ok(await pg.locator('#kv-upd-bar').count() === 0, 'tarayicida (host yok) cubuk olusmaz'); }
 await b.close(); console.log(bad ? '\n' + bad + ' HATA' : '\nTAMAM'); process.exit(bad ? 1 : 0);
