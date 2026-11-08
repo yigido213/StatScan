@@ -1,6 +1,6 @@
 {
-  "version": "5.0.19",
-  "url": "StatScan-5.0.19.ssu",
-  "sha256": "7359123e6491971b053fddb176269c280e1fe003229260eb732d04a9c0a2a513",
-  "notes": "5.0.19 — HOTFIX (Kovan beta 0.1.9 kaldı): Otomatik güncelleyicide 'Ekle' uygulamayı kapatıyordu; Başlat menüsü kısayol hedefleri artık çökmeyen saf JS okuyucuyla okunuyor."
+  "version": "5.0.20",
+  "url": "StatScan-5.0.20.ssu",
+  "sha256": "bebf2bb60c968db568bec5be4e4d022ff48e704ffe7cf7ccc865dce147f70f84",
+  "notes": "5.0.20 — Kovan beta 0.1.10: Blitz görünümü yenilendi (Genel bakış, Şampiyon havuzu, LP geçmişi Blitz.gg tarzı; sekmeye özel League temalı arka plan) + Ayarlar'da arayüz ölçeği (%50–200, özel yüzde)."
 }
