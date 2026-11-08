@@ -1,6 +1,6 @@
 {
-  "version": "5.0.18",
-  "url": "StatScan-5.0.18.ssu",
-  "sha256": "16a963d79528963fd942762ff8fdc1de3f757111d8a0e9c47e0b873367b1b480",
-  "notes": "5.0.18 — HOTFIX (Kovan beta 0.1.9 kaldı): Otomatik güncelleyicide 'Ekle' taraması sağlamlaştırıldı (uygulamayı dondurmaz, hata olursa nedeni ekranda yazar + Tekrar dene)."
+  "version": "5.0.19",
+  "url": "StatScan-5.0.19.ssu",
+  "sha256": "7359123e6491971b053fddb176269c280e1fe003229260eb732d04a9c0a2a513",
+  "notes": "5.0.19 — HOTFIX (Kovan beta 0.1.9 kaldı): Otomatik güncelleyicide 'Ekle' uygulamayı kapatıyordu; Başlat menüsü kısayol hedefleri artık çökmeyen saf JS okuyucuyla okunuyor."
 }
