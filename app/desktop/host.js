@@ -965,6 +965,40 @@ const LOLMOD = (() => {
     return out;
   }
 
+  /* ---------- rank kovalari: eslesme detayi (kaynaktan bagimsiz) ----------
+     Kaynak (kullanicinin muUrl adresi; ileride Lolalytics donusturucusu) rank basina KOVA verir:
+     { matchup: { patch, ranks: { emerald: { games, wr, items: { start|boots|core|slot4|slot5|slot6: [ { id, games, wr } ] } } } } }.
+     'Tum ranklar' = Emerald+ (Emerald, Diamond, Master, Grandmaster, Challenger): kovalar OYUN SAYISIYLA AGIRLIKLI toplanir (oranlarin duz ortalamasi DEGIL).
+     Yalniz sayi okunur; esya adi kaynaktan ALINMAZ (kimlikten Data Dragon adi). */
+  const MU_RANKS = ['iron', 'bronze', 'silver', 'gold', 'platinum', 'emerald', 'diamond', 'master', 'grandmaster', 'challenger'];
+  const MU_ALL = ['emerald', 'diamond', 'master', 'grandmaster', 'challenger'];
+  const MU_SLOTS = ['start', 'boots', 'core', 'slot4', 'slot5', 'slot6'];
+  const NOTE_MAX = 600; const NOTES_MAX = 300; const noteKey = (me, enemy, role) => me + '|' + enemy + '|' + role;
+  function muRankSet(sel) { if (sel === 'all') return MU_ALL.slice(); return MU_RANKS.includes(sel) ? [sel] : null; }
+  function parseMu(json) {
+    const m = json && typeof json === 'object' ? json.matchup : null; if (!m || typeof m !== 'object' || !m.ranks || typeof m.ranks !== 'object') return null; const out = {}; let n = 0;
+    for (const rk of MU_RANKS) {
+      const b = m.ranks[rk]; if (!b || typeof b !== 'object') continue; const g = Number(b.games); const wr = Number(b.wr); if (!Number.isFinite(g) || !Number.isFinite(wr) || g < 0 || g > 1e9 || wr < 0 || wr > 100) continue;
+      const items = {}; for (const slot of MU_SLOTS) {
+        const arr = b.items && Array.isArray(b.items[slot]) ? b.items[slot].slice(0, 12) : []; const L = [];
+        for (const it of arr) { if (!it || !/^\d{3,6}$/.test(String(it.id))) continue; const ig = Number(it.games); const iw = Number(it.wr); if (!Number.isFinite(ig) || !Number.isFinite(iw) || ig < 0 || ig > 1e9 || iw < 0 || iw > 100) continue; L.push({ id: String(it.id), games: Math.round(ig), wr: iw }); }
+        if (L.length) items[slot] = L;
+      }
+      out[rk] = { games: Math.round(g), wr, items }; n++;
+    }
+    if (!n) return null; const patch = /^\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(String(m.patch || '')) ? String(m.patch) : null; return { patch, ranks: out };
+  }
+  function aggMu(parsed, sel) {
+    const set = muRankSet(sel); if (!parsed || !set) return null; const used = []; const missing = []; let games = 0; let wins = 0; const slots = {};
+    for (const rk of set) {
+      const b = parsed.ranks[rk]; if (!b || !b.games) { missing.push(rk); continue; } used.push(rk); games += b.games; wins += (b.wr * b.games) / 100;
+      for (const slot of Object.keys(b.items)) { const S = slots[slot] || (slots[slot] = new Map()); for (const it of b.items[slot]) { const x = S.get(it.id) || { id: it.id, games: 0, wins: 0 }; x.games += it.games; x.wins += (it.wr * it.games) / 100; S.set(it.id, x); } }
+    }
+    if (!games) return { empty: true, rank: sel, ranksUsed: [], missing };
+    const items = {}; for (const slot of MU_SLOTS) { const S = slots[slot]; if (!S) continue; items[slot] = [...S.values()].filter((x) => x.games > 0).sort((a, b) => b.games - a.games || a.id.localeCompare(b.id)).slice(0, 6).map((x) => ({ id: x.id, games: x.games, wr: Math.round((1000 * x.wins) / x.games) / 10 })); }
+    return { rank: sel, ranksUsed: used, missing, games, wr: Math.round((1000 * wins) / games) / 10, patch: parsed.patch, items };
+  }
+
   /* ana siralama: tahmin (+ varsa dis veri) + kisisel kayit + havuz. */
   function rank(roster, enemyId, role, opts) {
     opts = opts || {}; const enemy = roster.find((c) => c.id === enemyId); if (!enemy) return { error: 'enemy' }; const Z = rosterZ(roster); const hist = opts.hist || []; const pool = opts.pool || []; const ext = opts.ext || null;
@@ -1173,8 +1207,9 @@ const LOLMOD = (() => {
     deps = deps || {}; const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'lolcounter.json') : null; const cacheDir = dataDir ? path.join(dataDir, 'lolcounter-cache') : null;
     const now = deps.now || (() => Date.now());
     const run = deps.run || ((cmd, args, ms) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: ms || 10000, windowsHide: true, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (e, so) => (e && !so ? reject(e) : resolve(String(so || '')))); }));
-    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], matches: {} }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
+    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], matches: {}, murank: 'all', muUrl: null, notes: {}, ov: { on: false, secs: 20 } }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
     if (!state.pool || typeof state.pool !== 'object') state.pool = {}; if (!Array.isArray(state.hist)) state.hist = []; if (!Array.isArray(state.lp)) state.lp = []; if (!state.matches || typeof state.matches !== 'object' || Array.isArray(state.matches)) state.matches = {};
+    if (muRankSet(state.murank) === null) state.murank = 'all'; if (!state.notes || typeof state.notes !== 'object' || Array.isArray(state.notes)) state.notes = {}; if (!state.ov || typeof state.ov !== 'object') state.ov = { on: false, secs: 20 }; state.ov = { on: state.ov.on === true, secs: clamp(Math.round(Number(state.ov.secs)) || 20, 8, 60) }; if (typeof state.muUrl !== 'string') state.muUrl = null;
     const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
 
     /* --- ag: yalniz Data Dragon (sabit sunucu) --- */
@@ -1219,6 +1254,18 @@ const LOLMOD = (() => {
 
     /* --- dis veri adresi (kullanicinin kendisi; yalniz https; sabit sablon) --- */
     function statsTemplateOk(u) { if (typeof u !== 'string' || u.length > LIM.urlLen) return null; let x; try { x = new URL(u.replace('{enemy}', 'E').replace('{role}', 'r')); } catch (e) { return null; } if (x.protocol !== 'https:' || x.username || x.password || !x.hostname.includes('.')) return null; if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[)/i.test(x.hostname)) return null; return x; }
+    /* eslesme detayi (rank kovalari): kullanicinin muUrl sablonu ({me} {enemy} {role}); yalniz GET, >=0.5 sn aralik, 6 sa onbellek, yalniz sayi */
+    const muCache = new Map(); let muLast = 0; const muDelay = deps.muDelay === undefined ? 500 : deps.muDelay;
+    const muTemplateOk = (u) => (typeof u === 'string' && u.includes('{me}') && u.includes('{enemy}') ? statsTemplateOk(u.split('{me}').join('M')) : null);
+    async function muFetch(me, enemy, role) {
+      const x = state.muUrl ? muTemplateOk(state.muUrl) : null; if (!x) return { state: 'off' };
+      const key = me + '|' + enemy + '|' + role; const hit = muCache.get(key); const t0 = Date.now(); if (hit && t0 - hit.t < hit.ttl) return hit.v;
+      const wait = muLast + muDelay - t0; if (wait > 0) await new Promise((r) => setTimeout(r, wait)); muLast = Date.now(); let v;
+      try { const u = new URL(state.muUrl.split('{me}').join(encodeURIComponent(me)).split('{enemy}').join(encodeURIComponent(enemy)).split('{role}').join(encodeURIComponent(role))); const j = JSON.parse(await httpGet(u.hostname, u.pathname + u.search, LIM.statsBody)); const p = parseMu(j); v = p ? { state: 'ok', parsed: p } : { state: 'none' }; }
+      catch (e) { v = { state: /HTTP 404/.test(String(e && e.message || e)) ? 'none' : 'net' }; }
+      muCache.set(key, { t: Date.now(), v, ttl: v.state === 'ok' ? 6 * 3600e3 : 10 * 60e3 }); return v;
+    }
+    async function muItemNames(ids) { const out = {}; const D = await loadItems(); if (D.error) return out; const by = new Map(D.list.map((q) => [q.id, q.name])); for (const id of ids) { const nm = (D.names && D.names[id]) || by.get(id); if (nm) out[id] = nm; } return out; }
     /* counterpick.lol: yalnız kullanıcı anahtarı açıkken; önbellek 6 sa, istekler arası >=1 sn, honest User-Agent; yalnız GET */
     const cpCache = new Map(); let cpLast = 0; const cpDelay = deps.cpDelay === undefined ? 1000 : deps.cpDelay;
     const cpErrs = new Map(); let runeNameIdx = null;
@@ -1367,6 +1414,35 @@ const LOLMOD = (() => {
           state.statsUrl = url; save(); return { ok: true, configured: true, host: x.hostname };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
+      /* ---- eslesme detayi: rank secimi + rank kovalarindan toplanan oran/esya (veri yoksa TAHMIN YAPILMAZ) ---- */
+      'lol:mu:cfg': async () => ({ rank: state.murank, ranks: MU_RANKS, all: MU_ALL, configured: !!(state.muUrl && muTemplateOk(state.muUrl)), host: state.muUrl && muTemplateOk(state.muUrl) ? muTemplateOk(state.muUrl).hostname : null }),
+      'lol:mu:rank': async (_e, r) => { if (muRankSet(r) === null) return errE('Rank geçersiz.'); state.murank = r; save(); return { ok: true, rank: r }; },
+      'lol:mu:url:set': async (_e, url) => {
+        try { if (url === null || url === '') { state.muUrl = null; muCache.clear(); save(); return { ok: true, configured: false }; } const x = muTemplateOk(url); if (!x) return errE('Adres geçersiz: https olmalı, genel bir sunucuya gitmeli ve {me} ile {enemy} (isteğe bağlı {role}) içermeli.');
+          if (!deps.confirm) return errE('Onay penceresi yok; kaydedilmedi.'); const okc = await deps.confirm({ title: 'Eşleşme veri adresi eklensin mi?', message: 'Eşleşme verisi için bu sunucuya şampiyon adları ve rol gönderilir:\n\n' + x.hostname + '\n\nYalnızca güvendiğin bir kaynağı ekle. Gelen veri yalnızca sayı olarak okunur (en fazla yarım saniyede 1 istek, 6 saat önbellek).', ok: 'Ekle', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
+          state.muUrl = url; muCache.clear(); save(); return { ok: true, configured: true, host: x.hostname };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:mu': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); const enemy = validChamp(req.enemy); const role = validRole(req.role); if (!me || !enemy || !role) return errE('İstek geçersiz.');
+          const sel = muRankSet(req.rank) !== null ? req.rank : state.murank; const note = state.notes[noteKey(me, enemy, role)] || ''; const base = { me, enemy, role, rank: sel, note, configured: !!(state.muUrl && muTemplateOk(state.muUrl)) };
+          const f = await muFetch(me, enemy, role); if (f.state !== 'ok') return Object.assign(base, { state: f.state });
+          const a = aggMu(f.parsed, sel); if (!a || a.empty) return Object.assign(base, { state: 'norank', missing: a ? a.missing : [], available: Object.keys(f.parsed.ranks) });
+          const ids = new Set(); for (const sl of Object.keys(a.items)) for (const it of a.items[sl]) ids.add(it.id); const names = await muItemNames([...ids]); for (const sl of Object.keys(a.items)) for (const it of a.items[sl]) it.name = names[it.id] || null;
+          return Object.assign(base, a, { state: 'ok', src: 'url' });
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      /* eslesmeye ozel KISISEL not (kendi yazdigin ipuclari; yalniz bu bilgisayarda) */
+      'lol:note:set': async (_e, req) => {
+        try { const bad = await needRoster(); if (bad) return bad; req = req || {}; const me = validChamp(req.me); const enemy = validChamp(req.enemy); const role = validRole(req.role); if (!me || !enemy || !role) return errE('İstek geçersiz.');
+          const text = String(req.text == null ? '' : req.text).replace(/\r\n/g, '\n').slice(0, NOTE_MAX).trim(); const k = noteKey(me, enemy, role);
+          if (!text) delete state.notes[k]; else { delete state.notes[k]; state.notes[k] = text; const keys = Object.keys(state.notes); if (keys.length > NOTES_MAX) for (const x of keys.slice(0, keys.length - NOTES_MAX)) delete state.notes[x]; }
+          save(); return { ok: true, saved: !!text };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      /* maç açılış bindirmesi ayarı (pencereyi ana süreç açar; burada yalnız tercih saklanır) */
+      'lol:ov:get': async () => ({ on: state.ov.on, secs: state.ov.secs }),
+      'lol:ov:set': async (_e, req) => { req = req || {}; if (typeof req.on === 'boolean') state.ov.on = req.on; if (req.secs != null) state.ov.secs = clamp(Math.round(Number(req.secs)) || 20, 8, 60); save(); return { ok: true, on: state.ov.on, secs: state.ov.secs }; },
       'lol:sync': async (_e, req) => {
         try {
           const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' };
@@ -1551,7 +1627,40 @@ const LOLMOD = (() => {
     };
     return { handlers, _state: () => state, _roster: () => roster };
   }
-  return { createLolHost, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN };
+  /* ---- mac acilis bindirmesi: yalniz STATIK mac oncesi bilgi (build/not). Dusman buyu/yetenek bekleme sayaci,
+     ulti sayaci ve durum tetikli "simdi sunu yap" uyarisi YOK (Riot politikasi). Pencereyi app.js acar. ---- */
+  function overlayDecide(prevIn, cfg, live) {
+    const inGame = !!(live && live.state === 'ingame' && live.classic !== false && live.me && live.me.champ && live.matchup && live.matchup.enemy);
+    return { inGame, open: !!(cfg && cfg.on) && inGame && !prevIn };
+  }
+  function lolOverlayHtml(secs) {
+    const s = Math.max(8, Math.min(60, Math.round(Number(secs)) || 20));
+    const js = '(function(){var H=window.statscanHost,SECS=' + s + ',$=function(i){return document.getElementById(i)};'
+      + 'function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=String(x);return e}'
+      + 'var RK=["all","iron","bronze","silver","gold","platinum","emerald","diamond","master","grandmaster","challenger"],ri=0,ctx=null,left=SECS,paused=false,pinned=false;'
+      + 'function close(){try{window.close()}catch(e){}}'
+      + 'function draw(m){var b=$("body");b.textContent="";if(!m||m.error||m.state!=="ok"){b.appendChild(el("p","dim",m&&m.state==="norank"?"Bu rank için veri yok.":"Bu eşleşme için kaynak veri yok."));if(m&&m.note)b.appendChild(el("p","note",m.note));return}'
+      + 'b.appendChild(el("p","sum",(m.wr!=null?"%"+Number(m.wr).toFixed(1)+" kazanma · ":"")+(m.games!=null?m.games+" oyun":"")+(m.patch?" · yama "+m.patch:"")));'
+      + 'var names={start:"Başlangıç",boots:"Ayakkabı",core:"Çekirdek",slot4:"4. eşya",slot5:"5. eşya",slot6:"6. eşya"};'
+      + 'Object.keys(names).forEach(function(k){var a=m.items&&m.items[k];if(!a||!a.length)return;var r=el("div","sec");r.appendChild(el("b","",names[k]));a.slice(0,4).forEach(function(it){var c=el("span","it");var im=el("img");im.width=28;im.height=28;im.alt="";c.appendChild(im);c.appendChild(el("small","",(it.name||("#"+it.id))+" · "+it.games));r.appendChild(c);if(H.lolIcon)H.lolIcon("item",it.id).then(function(x){if(x&&x.data)im.src=x.data}).catch(function(){})});b.appendChild(r)});'
+      + 'if(m.note){var n=el("div","note");n.appendChild(el("b","","Notun"));n.appendChild(el("div","",m.note));b.appendChild(n)}}'
+      + 'function load(){if(!ctx)return;$("rk").textContent=RK[ri]==="all"?"Tüm ranklar (Emerald+)":RK[ri];H.lolMu({me:ctx.me,enemy:ctx.enemy,role:ctx.role,rank:RK[ri]}).then(draw).catch(function(){draw(null)})}'
+      + 'function tick(){if(pinned||paused)return;left--;$("cd").textContent=left+" sn";if(left<=0)close()}'
+      + '$("prev").onclick=function(){ri=(ri+RK.length-1)%RK.length;load()};$("next").onclick=function(){ri=(ri+1)%RK.length;load()};'
+      + '$("pin").onclick=function(){pinned=!pinned;$("pin").textContent=pinned?"Sabit":"Sabitle";if(!pinned){left=SECS}};$("x").onclick=close;'
+      + 'document.body.onmouseenter=function(){paused=true};document.body.onmouseleave=function(){paused=false};setInterval(tick,1000);'
+      + 'Promise.all([H.lolLive(),H.lolChamps(false)]).then(function(r){var L=r[0],C=r[1];if(!L||L.state!=="ingame"||!L.matchup){$("t").textContent="Maç bilgisi yok";return}'
+      + 'var nm={};((C&&C.champs)||[]).forEach(function(c){nm[c.id]=c.name});ctx={me:L.me.champ,enemy:L.matchup.enemy,role:L.matchup.role};'
+      + '$("t").textContent=(nm[ctx.me]||ctx.me)+" vs "+(nm[ctx.enemy]||ctx.enemy);load()}).catch(function(){$("t").textContent="Veri alınamadı"});})();';
+    const css = 'html,body{margin:0;background:rgba(14,18,26,.92);color:#e8ecf3;font:13px/1.4 system-ui,sans-serif}body{padding:10px;border:1px solid #c8aa6e;border-radius:10px;box-sizing:border-box;min-height:100vh}'
+      + 'header{display:flex;gap:6px;align-items:center}header b{flex:1;font-size:15px}button{background:#1e2635;color:#e8ecf3;border:1px solid #3a4560;border-radius:6px;padding:3px 8px;cursor:pointer}'
+      + '.rows{display:flex;gap:6px;align-items:center;margin:8px 0}.rows span{flex:1;text-align:center}.sec{margin:6px 0}.sec b{display:block;color:#c8aa6e}.it{display:inline-flex;align-items:center;gap:4px;margin:2px 8px 2px 0}.it small{color:#aab}.dim{color:#99a}.sum{color:#c8aa6e;font-weight:600}.note{margin-top:8px;padding:6px;border-radius:6px;background:rgba(200,170,110,.12);white-space:pre-wrap}';
+    const csp = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
+    return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '"><title>Blitz</title><style>' + css + '</style></head><body>'
+      + '<header><b id="t">Blitz</b><span id="cd" class="dim">' + s + ' sn</span><button id="pin">Sabitle</button><button id="x">×</button></header>'
+      + '<div class="rows"><button id="prev">‹</button><span id="rk">Tüm ranklar (Emerald+)</span><button id="next">›</button></div><div id="body"></div><script>' + js + '</script></body></html>';
+  }
+  return { createLolHost, overlayDecide, lolOverlayHtml, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN, parseMu, aggMu, muRankSet, MU_RANKS, MU_ALL, MU_SLOTS };
 })();
 
 /* --- Uygulama Akisi (Kovan 'Uygulama Akisi' v0.0.1) ---

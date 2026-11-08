@@ -99,6 +99,30 @@ function start(ctx) {
 
   if (!app.requestSingleInstanceLock()) { app.quit(); return; }
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+  /* Blitz mac acilis bindirmesi: League mac baslayinca (oyun disinda -> oyunda gecisinde) kucuk, tiklanamaz-odakli pencere acar.
+     Yalniz statik mac oncesi bilgi gosterir (build/not); dusman buyu sayaci YOK. Ayar: lol:ov:get (varsayilan kapali). */
+  let ovWin = null; let ovWasIn = false; let ovTimer = null;
+  function openOverlay(secs) {
+    const { BrowserWindow, screen } = require('electron'); const { lolModule } = require('./host.js');
+    if (ovWin && !ovWin.isDestroyed()) ovWin.close();
+    const wa = screen.getPrimaryDisplay().workArea; const w = 400; const h = 520;
+    ovWin = new BrowserWindow({ width: w, height: h, x: wa.x + wa.width - w - 16, y: wa.y + 16, frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
+      webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: false } });
+    try { ovWin.setAlwaysOnTop(true, 'screen-saver'); } catch (e) { /* yoksay */ }
+    ovWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' })); ovWin.webContents.on('will-navigate', (ev) => ev.preventDefault());
+    ovWin.once('ready-to-show', () => { try { ovWin.showInactive(); } catch (e) { /* yoksay */ } });
+    ovWin.on('closed', () => { ovWin = null; });
+    ovWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(lolModule.lolOverlayHtml(secs)));
+  }
+  function startOverlay() {
+    if (ovTimer || !host || !host.handlers || !host.handlers['lol:ov:get']) return; const { lolModule } = require('./host.js'); let busy = false;
+    ovTimer = setInterval(async () => {
+      if (busy) return; busy = true;
+      try { const cfg = await host.handlers['lol:ov:get'](null); if (!cfg || !cfg.on) { ovWasIn = false; return; }
+        const live = await host.handlers['lol:live'](null); const d = lolModule.overlayDecide(ovWasIn, cfg, live); ovWasIn = d.inGame; if (d.open) openOverlay(cfg.secs);
+      } catch (e) { /* lig istemcisi yok: sessiz */ } finally { busy = false; }
+    }, 6000);
+  }
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
@@ -121,6 +145,7 @@ function start(ctx) {
         return tryIcon(p);
       }, readShortcut: (p) => { try { return process.platform === 'win32' ? shell.readShortcutLink(p) : null; } catch (e) { return null; } }, openPath: (p) => shell.openPath(p) }, game: { dataDir: app.getPath('userData'), chooseConfig: async (name) => { const r = await dialog.showOpenDialog(win || undefined, { title: (name ? name + ' — ' : '') + 'Ayar dosyasını seç (.ini / .cfg / .conf)', properties: ['openFile'], filters: [{ name: 'Ayar dosyası', extensions: ['ini', 'cfg', 'conf'] }] }); return r.canceled ? null : r.filePaths[0]; }, choosePm: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'PresentMon dosyasını seç (PresentMon-*.exe)', properties: ['openFile'], filters: [{ name: 'PresentMon', extensions: process.platform === 'win32' ? ['exe'] : ['*'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; } }, mem: { dataDir: app.getPath('userData'), engine: D.loadEngine(HTML), chooseDump: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'Bellek dökümünü seç (yalnızca okunur)', properties: ['openFile'], filters: [{ name: 'Bellek dökümü', extensions: ['raw', 'mem', 'dmp', 'vmem', 'lime'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; }, chooseVol: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'Volatility 3 dosyasını seç (vol / vol.exe / vol.py)', properties: ['openFile'], filters: [{ name: 'Volatility', extensions: process.platform === 'win32' ? ['exe', 'py'] : ['*'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; } }, access: { dataDir: app.getPath('userData'), publicKey: ctx.publicKey, chooseFile: async () => { const r = await dialog.showOpenDialog(win || undefined, { title: 'Sahip anahtarını seç (private.pem)', properties: ['openFile'], filters: [{ name: 'PEM anahtarı', extensions: ['pem', 'key'] }, { name: 'Tüm dosyalar', extensions: ['*'] }] }); return r.canceled ? null : r.filePaths[0]; } } });
     host.register(ipcMain);
+    try { startOverlay(); } catch (e) { /* bindirme acilmadi: ozellik devre disi */ }
     try { host.access && host.access.start(); } catch (e) { /* engelli liste denetimi acilmadi: engel uygulanmaz */ }
     setMenu(); createWindow();
     if (ctx.rolledBack) setTimeout(() => dialog.showMessageBox(win, { type: 'warning', title: 'Güncelleme geri alındı', message: 'Önceki güncelleme kullanılmadı; uygulamayla gelen sürüm açıldı.', detail: String(ctx.rolledBack) }), 1500);

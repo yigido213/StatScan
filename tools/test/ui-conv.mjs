@@ -10,8 +10,8 @@ fs.writeFileSync(dir + '/pack.zip', pack); fs.writeFileSync(dir + '/mod.jar', mo
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
 const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, acceptDownloads: true }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await pg.goto('file:///home/claude/statscan/app/StatScan.html'); await pg.waitForTimeout(300);
-ok((await pg.textContent('#side-ver')) === 'beta 0.1.8', 'kenar çubuğu sürümü: beta 0.1.3');
-ok((await pg.textContent('#home-facts')).includes('beta 0.1.8'), 'Home: Kovan beta 0.1.3');
+ok((await pg.textContent('#side-ver')) === 'beta 0.1.9', 'kenar çubuğu sürümü: beta 0.1.3');
+ok((await pg.textContent('#home-facts')).includes('beta 0.1.9'), 'Home: Kovan beta 0.1.3');
 // doku paketi
 await pg.evaluate(() => { location.hash = '#/texpack'; }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector("#app-texpack").hidden && document.querySelector("#app-home").hidden), "doku paketi sayfası açıldı");
 ok((await pg.title()) === 'Doku paketi dönüştürücü · Kovan', 'başlık');

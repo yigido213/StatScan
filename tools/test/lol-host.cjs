@@ -28,6 +28,7 @@ const ITEM_EN = { type: 'item', version: '16.21.1', data: {
   223075: itm('Arena Copy', 2500, ['Armor'], { FlatArmorMod: 60 }, { maps: { 11: false, 30: true } }), 3206: itm('No Map Item', 3000, ['Armor'], { FlatArmorMod: 70 }, { maps: {} }) } };
 const ITEM_TR = { data: { 3001: { name: 'Savaşçı Plaka' }, 3101: { name: 'Merkür Çizme' }, 3003: { name: 'Saf Zırh' } } };
 let itemsFail = false;
+let muBody = null; const muCalls = [];
 let calls = []; let offline = false; let extBody = null; const cpCalls = []; let cpPages = {};
 const get = async (host, p) => {
   calls.push(host + p); if (offline) throw new Error('çevrimdışı');
@@ -38,6 +39,7 @@ const get = async (host, p) => {
     const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['ESKI IPUCU ' + m[1]], passive: { name: 'Pasif', description: 'Pasif <b>metin</b><br>' + m[1] }, spells: ['Q', 'W', 'E', 'R'].map((k) => ({ name: k + ' yeteneği', cooldownBurn: '8/7/6', description: k + ' <i>güncel</i> açıklama' })) } } });
   }
   if (host === 'www.counterpick.lol') { cpCalls.push(p); if (cpPages[p] === undefined) throw new Error('HTTP 404'); return cpPages[p]; }
+  if (host === 'mu.example.org') { muCalls.push(p); if (muBody === 'fail') throw new Error('HTTP 500'); if (muBody === '404') throw new Error('HTTP 404'); return JSON.stringify(muBody); }
   if (host === 'stats.example.org') { if (extBody === 'fail') throw new Error('HTTP 500'); return JSON.stringify(extBody); }
   throw new Error('beklenmeyen: ' + host + p);
 };
@@ -368,9 +370,74 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok(Array.isArray(sg.tried) && sg.tried.some((x) => x.src === 'cp' && x.state === 'rev') && sg.tried.some((x) => x.src === 'hist') && sg.tried.some((x) => x.src === 'lcu'), 'runes:suggest: denenen kaynaklar ve neden bulunamadığı döner');
     const nCp = cpCalls.length; const hc2 = mkHost({}, path.join(tmp, 'rev2')); await hc2.handlers['lol:status'](); const sg2 = await hc2.handlers['lol:runes:suggest']({ me: 'Darius', enemy: 'Garen', role: 'top' }); ok(!sg2.error && sg2.runes === null && sg2.tried.find((x) => x.src === 'cp').state === 'off' && cpCalls.length === nCp, 'cp kapalıyken runes:suggest siteye istek göndermez, nedeni “off”'); }
   ok(L.LCU_OK.some((re) => re.test('/lol-perks/v1/recommended-pages/champion/122/position/top/map/11')) && !L.LCU_OK.some((re) => re.test('/lol-perks/v1/recommended-pages/champion/122/position/top/map/11/x')), 'LCU beyaz liste: yalnız önerilen rün sayfası GET kalıbı eklendi');
+  // ---- rank kovaları: eşleşme verisi (kaynaktan bağımsız), 'Tüm ranklar' = Emerald+ oyun sayısıyla ağırlıklı
+  { const raw = { matchup: { patch: '16.22', ranks: {
+      iron: { games: 300, wr: 80, items: { core: [{ id: 3001, games: 50, wr: 90 }] } }, platinum: { games: 500, wr: 70, items: { core: [{ id: 3001, games: 400, wr: 70 }] } },
+      emerald: { games: 400, wr: 50, items: { core: [{ id: 3001, games: 100, wr: 60 }, { id: 3003, games: 30, wr: 50 }], boots: [{ id: 3101, games: 80, wr: 55 }], start: [{ id: 3200, games: 20, wr: 50 }] } },
+      diamond: { games: 100, wr: 60, items: { core: [{ id: 3001, games: 50, wr: 40 }, { id: 3002, games: 70, wr: 50 }], boots: [{ id: 3101, games: 40, wr: 45 }] } },
+      master: { games: 50, wr: 40, items: { core: [{ id: 3003, games: 40, wr: 25 }] } } } } };
+    const pm = L.parseMu(raw); ok(pm && pm.patch === '16.22' && Object.keys(pm.ranks).length === 5, 'parseMu: beş kova okunur, yama alınır');
+    const al = L.aggMu(pm, 'all'); ok(al.games === 550 && al.wr === 50.9 && al.ranksUsed.join() === 'emerald,diamond,master' && al.missing.join() === 'grandmaster,challenger', 'Tüm ranklar = Emerald+: oyun sayısıyla ağırlıklı (400@50 + 100@60 + 50@40 → 550 maç, %50.9); Iron/Plat DAHİL DEĞİL');
+    const c3001 = al.items.core.find((x) => x.id === '3001'); ok(c3001.games === 150 && c3001.wr === 53.3 && al.items.core[0].id === '3001', 'eşya toplama: aynı eşya kovalar arası toplanır (150 maç, %53.3), oyun sayısına göre sıralı');
+    ok(al.items.core.find((x) => x.id === '3003').games === 70 && al.items.core.find((x) => x.id === '3003').wr === 35.7, 'eşya toplama: Emerald+Master (30@50 + 40@25 → %35.7)');
+    const ir = L.aggMu(pm, 'iron'); ok(ir.games === 300 && ir.wr === 80 && ir.ranksUsed.join() === 'iron' && ir.items.core.length === 1, 'tek rank seçimi: yalnız o kova (Iron 300 maç %80)');
+    ok(L.aggMu(pm, 'plat') === null && L.aggMu(pm, '../x') === null && L.aggMu(null, 'all') === null, 'aggMu: geçersiz rank/veri null');
+    ok(L.aggMu(pm, 'challenger').empty === true && L.aggMu(pm, 'gold').empty === true, 'aggMu: kovası olmayan rank boş döner (uydurma yok)');
+    ok(L.muRankSet('all').join() === L.MU_ALL.join() && L.MU_ALL.join() === 'emerald,diamond,master,grandmaster,challenger' && L.muRankSet('gold').join() === 'gold' && L.muRankSet('x') === null && L.MU_RANKS.length === 10, 'rank kümeleri: all = Emerald, Diamond, Master, Grandmaster, Challenger; 10 rank');
+    const bad = { matchup: { patch: 'x<y', ranks: { emerald: { games: 10, wr: 50, items: { core: [{ id: '../x', games: 5, wr: 50 }, { id: 3001, games: 5, wr: 140 }, { id: 3001, games: -1, wr: 50 }, { id: 3002, games: 5, wr: 50 }] } }, godlike: { games: 5, wr: 50 }, gold: { games: 5, wr: 120 }, silver: 'x' } } };
+    const pb = L.parseMu(bad); ok(pb && pb.patch === null && Object.keys(pb.ranks).join() === 'emerald' && pb.ranks.emerald.items.core.length === 1 && pb.ranks.emerald.items.core[0].id === '3002', 'parseMu: bozuk rank/oran/eşya/yama ayıklanır');
+    ok(L.parseMu(null) === null && L.parseMu({}) === null && L.parseMu({ matchup: { ranks: {} } }) === null && L.parseMu({ matchup: { ranks: { emerald: { games: 'x', wr: 5 } } } }) === null, 'parseMu: şekil bozuksa null'); }
+
+  // ---- host: eşleşme detayı (muUrl), rank seçimi, kişisel not, bindirme ayarı
+  { const dir = path.join(tmp, 'mu'); const hm = mkHost({ muDelay: 0 }, dir); const HM = hm.handlers; await HM['lol:status']();
+    let m0 = await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top' }); ok(m0.state === 'off' && m0.configured === false && m0.rank === 'all' && m0.note === '', 'lol:mu: adres yokken state=off (tahmin YOK)');
+    ok((await HM['lol:mu']({ me: '../x', enemy: 'Darius', role: 'top' })).error === 'lol' && (await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'mid2' })).error === 'lol', 'lol:mu: geçersiz şampiyon/rol reddedilir');
+    ok((await HM['lol:mu:url:set']('http://mu.example.org/{me}/{enemy}')).error === 'lol' && (await HM['lol:mu:url:set']('https://mu.example.org/{enemy}')).error === 'lol' && (await HM['lol:mu:url:set']('https://localhost/{me}/{enemy}')).error === 'lol' && (await HM['lol:mu:url:set']('https://192.168.1.5/{me}/{enemy}')).error === 'lol' && (await HM['lol:mu:url:set']('https://u:p@mu.example.org/{me}/{enemy}')).error === 'lol', 'muUrl: http / {me} eksik / yerel ağ / kimlik bilgisi reddedilir');
+    confirmAns = false; ok((await HM['lol:mu:url:set']('https://mu.example.org/{me}/{enemy}/{role}')).canceled === true && !(await HM['lol:mu:cfg']()).configured, 'muUrl: onay reddedilince kaydedilmez');
+    confirmAns = true; const us = await HM['lol:mu:url:set']('https://mu.example.org/{me}/{enemy}/{role}'); ok(us.ok && us.host === 'mu.example.org' && /mu\.example\.org/.test(confirms[confirms.length - 1].message), 'muUrl: onay penceresi sunucuyu gösterir, kaydedilir');
+    muBody = { matchup: { patch: '16.22', ranks: { emerald: { games: 400, wr: 50, items: { core: [{ id: 3001, games: 100, wr: 60 }, { id: 3999, games: 10, wr: 50 }], boots: [{ id: 3101, games: 80, wr: 55 }] } }, diamond: { games: 100, wr: 60, items: { core: [{ id: 3002, games: 70, wr: 50 }] } }, iron: { games: 300, wr: 80, items: {} } } } };
+    const cfg0 = await HM['lol:mu:cfg'](); ok(cfg0.configured && cfg0.rank === 'all' && cfg0.host === 'mu.example.org' && cfg0.ranks.length === 10, 'lol:mu:cfg: adres, varsayılan rank=all');
+    const m1 = await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top' }); ok(m1.state === 'ok' && m1.rank === 'all' && m1.games === 500 && m1.wr === 52 && m1.patch === '16.22' && m1.ranksUsed.join() === 'emerald,diamond' && m1.src === 'url', 'lol:mu: Tüm ranklar → Emerald+ kovaları toplanır (500 maç %52), Iron dışarıda');
+    ok(muCalls.length === 1 && /\/Kayle\/Darius\/top$/.test(muCalls[0]), 'lol:mu: istek şablona göre (ad/rakip/rol), tek istek');
+    const nm = (id) => m1.items.core.concat(m1.items.boots).find((x) => x.id === id); ok(nm('3001').name === 'Savaşçı Plaka' && nm('3101').name === 'Merkür Çizme' && nm('3002').name === 'Guardian Mail' && nm('3999').name === null, 'lol:mu: eşya adı kimlikten (yerel dil → en_US → yok); kaynaktan metin alınmaz');
+    await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top', rank: 'iron' }); ok(muCalls.length === 1, 'lol:mu: önbellek (rank değişince yeniden istek yok)');
+    const mi = await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top', rank: 'iron' }); ok(mi.state === 'ok' && mi.games === 300 && mi.wr === 80 && mi.rank === 'iron', 'lol:mu: tek rank (Iron 300 maç)');
+    const mg = await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top', rank: 'challenger' }); ok(mg.state === 'norank' && mg.available.join() === 'iron,emerald,diamond' && mg.missing.includes('challenger'), 'lol:mu: seçilen rankta veri yoksa norank + mevcut rankler (uydurma yok)');
+    ok((await HM['lol:mu:rank']('x')).error === 'lol' && (await HM['lol:mu:rank']('gold')).ok, 'lol:mu:rank: geçersiz reddedilir, geçerli kaydedilir');
+    ok((await mkHost({ muDelay: 0 }, dir).handlers['lol:mu:cfg']()).rank === 'gold', 'rank seçimi yeniden açılışta korunur');
+    ok((await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top' })).rank === 'gold' && (await HM['lol:mu']({ me: 'Kayle', enemy: 'Darius', role: 'top', rank: 'bogus' })).rank === 'gold', 'lol:mu: rank verilmezse/geçersizse kayıtlı seçim');
+    muBody = '404'; ok((await HM['lol:mu']({ me: 'Kayle', enemy: 'Garen', role: 'top' })).state === 'none', 'lol:mu: 404 → none');
+    muBody = 'fail'; ok((await HM['lol:mu']({ me: 'Kayle', enemy: 'Teemo', role: 'top' })).state === 'net', 'lol:mu: ağ hatası → net (çökme yok)');
+    muBody = { matchup: { ranks: {} } }; ok((await HM['lol:mu']({ me: 'Kayle', enemy: 'Zed', role: 'top' })).state === 'none', 'lol:mu: bozuk/boş yanıt → none');
+    // kişisel not
+    ok((await HM['lol:note:set']({ me: 'Ahri', enemy: 'Lux', role: 'mid', text: '  Q ile it, W sakla.  ' })).saved === true && (await HM['lol:mu']({ me: 'Ahri', enemy: 'Lux', role: 'mid' })).note === 'Q ile it, W sakla.', 'not: kaydedilir, lol:mu ile döner (veri yokken de)');
+    ok((await HM['lol:mu']({ me: 'Lux', enemy: 'Ahri', role: 'mid' })).note === '' && (await HM['lol:mu']({ me: 'Ahri', enemy: 'Lux', role: 'top' })).note === '', 'not: eşleşme + rol anahtarlı (ters yön/başka rol karışmaz)');
+    await HM['lol:note:set']({ me: 'Ahri', enemy: 'Lux', role: 'mid', text: 'x'.repeat(2000) }); ok((await HM['lol:mu']({ me: 'Ahri', enemy: 'Lux', role: 'mid' })).note.length === 600, 'not: en çok 600 karakter');
+    ok((await mkHost({ muDelay: 0 }, dir).handlers['lol:mu']({ me: 'Ahri', enemy: 'Lux', role: 'mid' })).note.length === 600, 'not: yeniden açılışta korunur');
+    ok((await HM['lol:note:set']({ me: 'Ahri', enemy: 'Lux', role: 'mid', text: '   ' })).saved === false && (await HM['lol:mu']({ me: 'Ahri', enemy: 'Lux', role: 'mid' })).note === '', 'not: boş metin notu siler');
+    ok((await HM['lol:note:set']({ me: '../x', enemy: 'Lux', role: 'mid', text: 'a' })).error === 'lol' && (await HM['lol:note:set']({ me: 'Ahri', enemy: 'Lux', role: 'mid2', text: 'a' })).error === 'lol', 'not: geçersiz şampiyon/rol reddedilir');
+    for (let i = 0; i < 4; i++) await HM['lol:note:set']({ me: 'Ahri', enemy: ['Zed', 'Garen', 'Teemo', 'Jinx'][i], role: 'mid', text: 'n' + i }); ok(Object.keys(hm._state().notes).length === 4, 'not: her eşleşme ayrı kayıt');
+    // bindirme ayarı
+    ok(JSON.stringify(await HM['lol:ov:get']()) === JSON.stringify({ on: false, secs: 20 }), 'bindirme: varsayılan KAPALI, 20 sn');
+    ok((await HM['lol:ov:set']({ on: true, secs: 500 })).secs === 60 && (await HM['lol:ov:set']({ secs: 1 })).secs === 8 && (await HM['lol:ov:set']({ on: 'evet' })).on === true, 'bindirme: süre 8–60 sn arasına sıkışır, boolean olmayan açma değeri yok sayılır');
+    ok((await mkHost({ muDelay: 0 }, dir).handlers['lol:ov:get']()).on === true, 'bindirme: ayar yeniden açılışta korunur');
+    const rawState = JSON.parse(fs.readFileSync(path.join(dir, 'lolcounter.json'), 'utf8')); ok(!/mu\.example\.org\/Kayle|Savaşçı/.test(JSON.stringify(rawState)), 'diske eşleşme verisi/eşya adı yazılmaz (yalnız adres, rank, not, bindirme ayarı)'); }
+
+  // ---- maç açılış bindirmesi: karar + sayfa
+  { const live = { state: 'ingame', classic: true, me: { champ: 'Ahri' }, matchup: { enemy: 'Veigar', role: 'mid' } };
+    const d1 = L.overlayDecide(false, { on: true }, live); ok(d1.inGame && d1.open, 'bindirme: oyun dışından oyuna geçişte açılır');
+    const d2 = L.overlayDecide(true, { on: true }, live); ok(d2.inGame && !d2.open, 'bindirme: oyun sürerken tekrar açılmaz');
+    ok(!L.overlayDecide(false, { on: false }, live).open, 'bindirme: kapalıyken açılmaz');
+    ok(!L.overlayDecide(false, { on: true }, { state: 'nogame' }).inGame, 'bindirme: maç yokken oyunda sayılmaz');
+    ok(!L.overlayDecide(false, { on: true }, Object.assign({}, live, { classic: false })).open, 'bindirme: Summoner’s Rift dışı modda açılmaz');
+    ok(!L.overlayDecide(false, { on: true }, Object.assign({}, live, { matchup: null })).open, 'bindirme: rakip bilinmiyorsa açılmaz');
+    ok(!L.overlayDecide(false, null, null).open, 'bindirme: boş girdide çökmez');
+    const h = L.lolOverlayHtml(999); ok(/SECS=60/.test(h) && /Content-Security-Policy/.test(h) && !/https?:\/\//.test(h), 'bindirme sayfası: süre 60 ile sınırlı, CSP var, dış adres yok');
+    ok(!/innerHTML|eval\(|fetch\(|XMLHttpRequest/.test(h), 'bindirme sayfası: innerHTML/eval/ağ çağrısı yok');
+    ok(!/cooldown|bekleme|flash|çarp|\bult\b/i.test(h), 'bindirme sayfası: büyü/yetenek bekleme sayacı yok'); }
   // ---- host entegrasyonu: kanallar kayıtlı, arayüz yol/URL gönderemez
   const host = createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'entegre'), get } });
-  const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu', 'lol:items'];
+  const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu', 'lol:items', 'lol:mu', 'lol:mu:cfg', 'lol:mu:rank', 'lol:mu:url:set', 'lol:note:set', 'lol:ov:get', 'lol:ov:set'];
   ok(chans.every((c) => typeof host.handlers[c] === 'function'), 'createHost: tüm lol kanalları kayıtlı');
   const hd = createHost({ service: { closeAll() {} }, lol: false }); ok(!hd.handlers['lol:status'], 'createHost: lol:false ile kanallar kapanır');
   const src = fs.readFileSync(path.join(__dirname, '../../app/desktop/host.js'), 'utf8'); const lolSrc = src.slice(src.indexOf('const LOLMOD'), src.indexOf("/* --- Oyun Ayarlayici (Kovan 'oyunayar'"));
@@ -378,6 +445,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok(wc.length === 2 && wc.every((c) => /^'\/lol-perks\/v1\/pages(\/'|')/.test(c[2])) && !/\bPOST\b|\bPUT\b|method: 'DELETE'|\bPATCH\b/.test(rest), 'kaynak: LOLMOD’da tek yazma türü var: kendi rün sayfası (POST/DELETE yalnız /lol-perks/v1/pages); PUT/PATCH yok');
     ok(L.LCU_WRITE_OK.length === 2 && L.LCU_WRITE_OK.every(([m, re]) => ['POST', 'DELETE'].includes(m) && re.source.includes('lol-perks')) && !L.LCU_WRITE_OK.some(([m, re]) => re.test('/lol-champ-select/v1/session') || re.test('/lol-perks/v1/pages/1/x')), 'yazma beyaz listesi: yalnız rün sayfaları'); }
   ok(!/child_process'\)\.exec\(|\.spawn\(|ReadProcessMemory|WriteProcessMemory/.test(lolSrc), 'kaynak: LOLMOD oyun sürecine/belleğe dokunmaz');
-  const pre = fs.readFileSync(path.join(__dirname, '../../app/desktop/preload.js'), 'utf8'); ok(/lolStatsUrlSet/.test(pre) && !/lolSuggest:[^\n]*url/i.test(pre), 'preload: dar API var, öneri çağrısı URL taşımaz');
+  const pre = fs.readFileSync(path.join(__dirname, '../../app/desktop/preload.js'), 'utf8'); ok(/lolMu:/.test(pre) && /lolNoteSet/.test(pre) && !/lolMu:[^\n]*(url|path)/i.test(pre.split('\n').filter((l) => /lolMu:/.test(l)).join('\n')), 'preload: lolMu dar API (URL/yol göndermez)');
+  ok(/lolStatsUrlSet/.test(pre) && !/lolSuggest:[^\n]*url/i.test(pre), 'preload: dar API var, öneri çağrısı URL taşımaz');
   console.log(bad ? '\n' + bad + ' BAŞARISIZ' : '\nhepsi geçti'); process.exit(bad ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(2); });
