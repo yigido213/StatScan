@@ -1,6 +1,6 @@
 {
-  "version": "5.0.21",
-  "url": "StatScan-5.0.21.ssu",
-  "sha256": "d9e0a117929d4545072508a9e2a6e57bb07e3218b9ae273c6e55947ad2b5be92",
-  "notes": "5.0.21 — HOTFIX (Kovan beta 0.1.10 kaldı): Blitz LP geçmişinde imleçle nokta yakalama, taşınan etiket ve çizim animasyonu; Şampiyon havuzu rol sütunu daraltıldı."
+  "version": "5.0.22",
+  "url": "StatScan-5.0.22.ssu",
+  "sha256": "461f8ce16c1ec37936eae74b6374c576858e0e2d5be9ddbb77fdd9e7673fcd5c",
+  "notes": "5.0.22 — Kovan beta 0.1.11: Güvenlik kategorisine 3 yeni araç: İmza ve Sertifika Denetçisi, Paketleyici / Obfuscation Dedektörü, IOC Çıkarıcı (her biri zararlılık puanı /100 gösterir)."
 }
