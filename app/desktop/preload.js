@@ -1,10 +1,12 @@
 'use strict';
 /* Sandbox'lı preload: arayuze yalnizca dar bir API verir (contextIsolation acik, node yok). */
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
 const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 const gameReq = (r) => ({ preset: r && typeof r.preset === 'string' ? r.preset : undefined, resolution: r && r.resolution ? { w: Number(r.resolution.w), h: Number(r.resolution.h) } : undefined, resIdx: r && Number.isInteger(r.resIdx) ? r.resIdx : undefined });
 contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   desktop: true,
+  /* Arayuz olcegi (Ayarlar): yalniz sayi alir; 0.4-3 disinda reddeder */
+  uiZoom: (f) => { const n = Number(f); if (!(n >= 0.4 && n <= 3)) return false; try { webFrame.setZoomFactor(n); return true; } catch (e) { return false; } },
   status: () => call('dyn:status'),
   start: (req) => call('dyn:start', req),
   job: (id) => call('dyn:job', String(id)),

@@ -1080,6 +1080,17 @@ const LOLMOD = (() => {
     const by = new Map(); for (const m of ms) { if (m.remake || !m.champ) continue; const x = by.get(m.champ) || { champ: m.champ, games: 0, wins: 0, k: 0, d: 0, a: 0, cs: 0, sec: 0, gold: 0, dmg: 0, last: 0 }; x.games++; if (m.win) x.wins++; x.k += m.k; x.d += m.d; x.a += m.a; x.cs += m.cs; x.sec += m.dur; x.gold += m.gold; x.dmg += m.dmg; x.last = Math.max(x.last, m.t); by.set(m.champ, x); }
     return [...by.values()].map((x) => ({ champ: x.champ, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), kda: r2((x.k + x.a) / Math.max(1, x.d)), k: r1(x.k / x.games), d: r1(x.d / x.games), a: r1(x.a / x.games), csm: x.sec ? r1(x.cs / (x.sec / 60)) : 0, gpm: x.sec ? Math.round(x.gold / (x.sec / 60)) : 0, dmg: Math.round(x.dmg / x.games), last: x.last })).sort((a, b) => b.games - a.games || b.wr - a.wr || a.champ.localeCompare(b.champ));
   }
+  /* Blitz 'Sampiyon havuzu': hat basina sampiyonlar (galibiyet, KDA) + yalniz KESIN hesaplanan LP farklarinin toplami (bilinmiyorsa lp:null) */
+  function roleChampStats(ms, delta) {
+    const out = [];
+    for (const role of ROLES) {
+      const rm = ms.filter((m) => m.role === role && !m.remake); if (!rm.length) continue; const wins = rm.filter((m) => m.win).length; let lp = null;
+      for (const m of rm) if (delta && delta.has(m.id)) lp = (lp || 0) + delta.get(m.id);
+      const champs = champStats(rm).slice(0, 30).map((c) => { let cl = null; for (const m of rm) if (m.champ === c.champ && delta && delta.has(m.id)) cl = (cl || 0) + delta.get(m.id); return Object.assign({}, c, { lp: cl }); });
+      out.push({ role, games: rm.length, wins, losses: rm.length - wins, lp, champs });
+    }
+    return out.sort((a, b) => b.games - a.games);
+  }
   function roleStats(ms) { const by = {}; for (const m of ms) { if (m.remake || !m.role) continue; const x = by[m.role] || (by[m.role] = { role: m.role, games: 0, wins: 0 }); x.games++; if (m.win) x.wins++; } return Object.values(by).map((x) => Object.assign(x, { wr: r1((100 * x.wins) / x.games) })).sort((a, b) => b.games - a.games); }
   function partnerStats(ms) {
     const full = ms.filter((m) => !m.partial && !m.remake); const by = new Map();
@@ -1493,7 +1504,7 @@ const LOLMOD = (() => {
       'lol:stats': async (_e, req) => {
         try {
           req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const role = ROLES.includes(req.role) ? req.role : null; const all = Object.values(state.matches).sort((a, b) => b.t - a.t).filter(mkFilter(q)); const f = role ? all.filter((m) => m.role === role) : all;
-          return { queue: q, role, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), partners: partnerStats(all) };
+          return { queue: q, role, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), roleChamps: roleChampStats(all, attrLp(all, state.lp)), partners: partnerStats(all) };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       /* başka sihirdarı ara (Riot Kimliği) ve genel profilini oku: yalnız GET, kalıcı kayıt YOK, kendi profilimizle aynı hesaplar */
