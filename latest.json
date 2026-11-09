@@ -1,6 +1,6 @@
 {
-  "version": "5.0.23",
-  "url": "StatScan-5.0.23.ssu",
-  "sha256": "16eb200563acf07346123c1b0e6bdd9bc5efa427cd282b7ce48ad7566e085781",
-  "notes": "5.0.23 — Kovan beta 0.1.12: Blitz'te Tab'a basılı tutunca oyunun üstünde altın farkı (takım toplamları, kill skoru ve hat hat fark; eşya değerine göre tahmin)."
+  "version": "5.0.24",
+  "url": "StatScan-5.0.24.ssu",
+  "sha256": "97fd9e5d9043bb8bc78ae04bfda5e23be486258fe8591b64191919f9e7bf16d8",
+  "notes": "5.0.24 — Kovan beta 0.1.12 (hotfix): Blitz oyuncu aramada maç geçmişi gelmeyince sebep ekranda yazılır, boş sonuç önbelleğe alınmaz, kayıp sayısı yoksa uydurma %100 WR/0M gösterilmez."
 }
