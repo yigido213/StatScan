@@ -1954,6 +1954,131 @@ const UPDMOD = (() => {
   return { createUpdHost, parseTable, pickRow, cleanName, MAX_APPS };
 })();
 
+/* --- Depodan dogrudan guncelleme (REPOMOD; latest.json/.ssu YERINE) ---
+ * GitHub'daki yigido213/StatScan main dalinin `app/` klasorunu dogrudan bilgisayara indirir (userData/kovan-repo/builds/<agac>), sonraki acilista
+ * app.js oradan calistirir. Surum kimligi = `app` klasorunun git agac sha'si (yalniz app/ degisince guncelleme sayilir). Ag: yalniz api.github.com +
+ * raw.githubusercontent.com (commit'e sabitli adres). Her dosya git blob sha1'i agac listesiyle ESLESMEDEN yazilmaz; yol/uzanti/boyut/mod denetimi;
+ * .js ve HTML icindeki betikler yalniz DERLENIR (calistirilmaz) — bozuk push kimsenin uygulamasini bozmasin. Acilista dosyalar yeniden dogrulanir;
+ * iki basarisiz acilistan sonra onceki yapiya (yoksa uygulamayla gelene) donulur. KABUK/EXEC YOK. UYARI: imza yok; guven kokü = GitHub hesabi/main dali. */
+const REPOMOD = (() => {
+  const fs = require('fs'); const path = require('path'); const crypto = require('crypto'); const https = require('https'); const vm = require('vm');
+  const SRC = { owner: 'yigido213', repo: 'StatScan', branch: 'main', dir: 'app' };
+  const LIM = { files: 60, file: 8 * 1024 * 1024, total: 32 * 1024 * 1024, json: 4 * 1024 * 1024, ms: 20000, tries: 2, bad: 20 };
+  const REQUIRED = ['StatScan.html', 'desktop/app.js', 'desktop/host.js', 'desktop/preload.js', 'dyn/statscan-dyn.js'];
+  const EXT_OK = /\.(js|cjs|mjs|html|json|md|ps1|png|ico|css|svg|txt)$/i; const SEG_OK = /^[A-Za-z0-9_\-][A-Za-z0-9._\-]*$/; const SHA_RE = /^[0-9a-f]{40}$/;
+  const HOSTS = new Set(['api.github.com', 'raw.githubusercontent.com']); const API = 'https://api.github.com'; const META = '.kovan-build.json';
+  const sha1Blob = (buf) => crypto.createHash('sha1').update('blob ' + buf.length + '\0').update(buf).digest('hex');
+  const rootOf = (dataDir) => path.join(dataDir, 'kovan-repo'); const buildsOf = (dataDir) => path.join(rootOf(dataDir), 'builds'); const stateFile = (dataDir) => path.join(rootOf(dataDir), 'state.json');
+  const emptyState = () => ({ v: 1, current: null, previous: null, checked: null, boot: null, bad: [], lastRollback: null });
+  function readState(dataDir) {
+    try { const s = JSON.parse(fs.readFileSync(stateFile(dataDir), 'utf8')); if (!s || typeof s !== 'object' || s.v !== 1) return emptyState();
+      const ok = (e) => e && typeof e === 'object' && SHA_RE.test(e.tree) && SHA_RE.test(e.commit) && /^[0-9a-f]{12}$/.test(e.dir);
+      return { v: 1, current: ok(s.current) ? s.current : null, previous: ok(s.previous) ? s.previous : null, checked: s.checked && SHA_RE.test(s.checked.commit) && SHA_RE.test(s.checked.tree) ? s.checked : null, boot: s.boot && SHA_RE.test(s.boot.tree) && Number.isInteger(s.boot.tries) ? s.boot : null, bad: Array.isArray(s.bad) ? s.bad.filter((x) => SHA_RE.test(x)).slice(-LIM.bad) : [], lastRollback: s.lastRollback && typeof s.lastRollback === 'object' ? { tree: String(s.lastRollback.tree || ''), why: String(s.lastRollback.why || '').slice(0, 200), at: Number(s.lastRollback.at) || 0 } : null };
+    } catch (e) { return emptyState(); }
+  }
+  function writeState(dataDir, st) { fs.mkdirSync(rootOf(dataDir), { recursive: true }); const f = stateFile(dataDir); const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(st, null, 1)); fs.renameSync(t, f); }
+  /* Yapi dosyalarini meta ile yeniden dogrular (boyut + sha1); bozuk/eksik/fazla dosya = false */
+  function buildOk(dataDir, entry) {
+    try { const dir = path.join(buildsOf(dataDir), entry.dir); const meta = JSON.parse(fs.readFileSync(path.join(dir, META), 'utf8'));
+      if (!meta || meta.tree !== entry.tree || !meta.files || typeof meta.files !== 'object') return false; const rels = Object.keys(meta.files); if (!REQUIRED.every((r) => rels.includes(r))) return false;
+      for (const r of rels) { const m = meta.files[r]; const buf = fs.readFileSync(path.join(dir, ...r.split('/'))); if (buf.length !== m.size || sha1Blob(buf) !== m.sha) return false; } return true;
+    } catch (e) { return false; }
+  }
+  function rollbackState(st, why) {
+    if (st.current) { st.bad = st.bad.concat(st.current.tree).filter((x, i, a) => a.indexOf(x) === i).slice(-LIM.bad); st.lastRollback = { tree: st.current.tree, why: String(why || '').slice(0, 200), at: Date.now() }; }
+    st.current = st.previous && !st.bad.includes(st.previous.tree) ? st.previous : null; st.previous = null; st.boot = null; return st;
+  }
+  function pruneBuilds(dataDir, st) {
+    try { const keep = new Set([st.current && st.current.dir, st.previous && st.previous.dir].filter(Boolean)); const b = buildsOf(dataDir); for (const n of fs.readdirSync(b)) if (!keep.has(n)) fs.rmSync(path.join(b, n), { recursive: true, force: true }); } catch (e) { /* klasor yok: sorun degil */ }
+  }
+  /* Acilista: gecerli yapi varsa {root, info}; yoksa null (uygulamayla gelen calisir). Her acilista sayac artar; markGood sifirlar. */
+  function pickBoot(o) {
+    const dataDir = o && o.dataDir; if (!dataDir) return null;
+    try { let st = readState(dataDir);
+      for (let i = 0; i < 3; i++) {
+        const cur = st.current; if (!cur) return null;
+        if (!buildOk(dataDir, cur)) { st = rollbackState(st, 'dosyalar dogrulanamadi'); writeState(dataDir, st); continue; }
+        const same = st.boot && st.boot.tree === cur.tree; const tries = same ? st.boot.tries : 0;
+        if (tries >= LIM.tries) { st = rollbackState(st, 'arka arkaya ' + tries + ' acilis tamamlanamadi'); writeState(dataDir, st); continue; }
+        st.boot = { tree: cur.tree, tries: tries + 1 }; writeState(dataDir, st); return { root: path.join(buildsOf(dataDir), cur.dir), info: { tree: cur.tree, commit: cur.commit, msg: cur.msg || '' } };
+      } return null;
+    } catch (e) { return null; }
+  }
+  function markGood(dataDir, tree) { try { const st = readState(dataDir); if (st.boot && st.boot.tree === tree) { st.boot.tries = 0; writeState(dataDir, st); } } catch (e) { /* yoksay */ } }
+  function rollback(dataDir, why) { try { const st = rollbackState(readState(dataDir), why); writeState(dataDir, st); pruneBuilds(dataDir, st); return st.current ? { tree: st.current.tree } : null; } catch (e) { return null; } }
+  function reset(dataDir) { try { fs.rmSync(rootOf(dataDir), { recursive: true, force: true }); return true; } catch (e) { return false; } }
+  function status(dataDir) { const st = readState(dataDir); return { current: st.current ? { tree: st.current.tree, commit: st.current.commit, msg: st.current.msg || '', at: st.current.at || 0 } : null, hasPrevious: !!st.previous, bad: st.bad.length, lastRollback: st.lastRollback }; }
+
+  /* Agac listesini dogrular; gecerli dosya listesi doner, sorun varsa Error firlatir (mesajda yol yok). */
+  function validateTree(entries) {
+    if (!Array.isArray(entries)) throw new Error('Depo agaci anlasilamadi.'); const files = []; const seen = new Set(); let total = 0;
+    for (const e of entries) {
+      if (!e || typeof e.path !== 'string') throw new Error('Depo agacinda gecersiz girdi.'); if (e.type === 'tree') continue;
+      if (e.type !== 'blob' || (e.mode !== '100644' && e.mode !== '100755')) throw new Error('Depoda desteklenmeyen girdi turu (sembolik baglanti/alt modul).');
+      const segs = e.path.split('/'); if (!segs.every((s) => SEG_OK.test(s) && s !== '.' && s !== '..')) throw new Error('Depoda gecersiz dosya yolu.');
+      if (!EXT_OK.test(e.path)) throw new Error('Depoda izin verilmeyen dosya turu: .' + (/\.([^./]+)$/.exec(e.path) || [, '?'])[1].slice(0, 12));
+      if (!SHA_RE.test(e.sha) || !Number.isInteger(e.size) || e.size < 0 || e.size > LIM.file) throw new Error('Depoda gecersiz veya cok buyuk dosya.');
+      const low = e.path.toLowerCase(); if (seen.has(low)) throw new Error('Depoda ayni adli (buyuk/kucuk harf) dosyalar var.'); seen.add(low);
+      total += e.size; if (files.length + 1 > LIM.files || total > LIM.total) throw new Error('Depo app/ klasoru beklenenden buyuk.'); files.push({ path: e.path, sha: e.sha, size: e.size });
+    }
+    for (const r of REQUIRED) if (!files.some((f) => f.path === r)) throw new Error('Depoda gerekli dosya eksik: ' + r); return files;
+  }
+  /* Yalniz DERLER (calistirmaz): .js/.cjs, HTML icindeki betikler, .json */
+  function syntaxCheck(rel, buf) {
+    const txt = buf.toString('utf8').replace(/^\uFEFF/, ''); /* BOM */
+    if (/\.(js|cjs)$/i.test(rel)) { const t2 = txt.replace(/^#![^\n]*/, ''); /* shebang: Node'un kendi yukleyicisi de atar */ try { new vm.Script('(function (exports, require, module, __filename, __dirname) {' + t2 + '\n})', { filename: rel }); } catch (e) { throw new Error(rel + ' sozdizimi bozuk: ' + String(e && e.message || e).slice(0, 120)); } }
+    else if (/\.json$/i.test(rel)) { try { JSON.parse(txt); } catch (e) { throw new Error(rel + ' gecerli JSON degil.'); } }
+    else if (/\.html$/i.test(rel)) { const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi; let m; let i = 0;
+      while ((m = re.exec(txt))) { i++; const at = m[1]; if (/\bsrc\s*=/i.test(at)) continue; const ty = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(at); if (ty && !/^(text|application)\/(javascript|ecmascript)$/i.test(ty[1])) continue;
+        try { new vm.Script(m[2], { filename: rel + '#betik' + i }); } catch (e) { throw new Error(rel + ' icindeki betik #' + i + ' sozdizimi bozuk: ' + String(e && e.message || e).slice(0, 120)); } } }
+  }
+  function netGet(url, accept, max, hops) {
+    return new Promise((resolve, reject) => {
+      let u; try { u = new URL(url); } catch (e) { return reject(new Error('Gecersiz adres.')); } if (u.protocol !== 'https:' || !HOSTS.has(u.hostname)) return reject(new Error('Yalnizca GitHub adreslerine izin verilir.'));
+      const req = https.get(u, { headers: { 'User-Agent': 'Kovan-Updater', Accept: accept }, timeout: LIM.ms }, (res) => {
+        const sc = res.statusCode;
+        if ([301, 302, 307, 308].includes(sc) && res.headers.location) { res.resume(); if ((hops || 0) >= 3) return reject(new Error('Cok fazla yonlendirme.')); let nu; try { nu = new URL(res.headers.location, u).toString(); } catch (e) { return reject(new Error('Yonlendirme gecersiz.')); } return resolve(netGet(nu, accept, max, (hops || 0) + 1)); }
+        if (sc === 403 || sc === 429) { res.resume(); return reject(new Error(sc === 429 || res.headers['x-ratelimit-remaining'] === '0' ? 'GitHub istek siniri doldu; biraz sonra tekrar dene.' : 'GitHub erisimi reddetti (HTTP ' + sc + ').')); }
+        if (sc !== 200) { res.resume(); return reject(new Error('GitHub yaniti: HTTP ' + sc)); }
+        let n = 0; const ch = []; res.on('data', (c) => { n += c.length; if (n > max) { req.destroy(new Error('Yanit cok buyuk.')); return; } ch.push(c); }); res.on('end', () => resolve(Buffer.concat(ch))); res.on('error', reject);
+      }); req.on('timeout', () => req.destroy(new Error('Zaman asimi.'))); req.on('error', reject);
+    });
+  }
+  const enc = (rel) => rel.split('/').map(encodeURIComponent).join('/');
+  /* Guncelleme denetimi + gerekirse indirme/hazirlama. Doner: {status:'current'|'staged'|'blocked', commit, tree, msg}. Hata = Error (mesaj kullaniciya gosterilebilir). */
+  async function check(deps) {
+    deps = deps || {}; const dataDir = deps.dataDir; if (!dataDir) throw new Error('dataDir gerekli');
+    const getJson = deps.getJson || (async (u) => JSON.parse((await netGet(u, 'application/vnd.github+json', LIM.json)).toString('utf8')));
+    const getBuf = deps.getBuf || ((u, max) => netGet(u, 'application/octet-stream', max)); const now = deps.now || (() => Date.now());
+    const R = '/repos/' + SRC.owner + '/' + SRC.repo; const st = readState(dataDir);
+    const ref = await getJson(API + R + '/git/ref/heads/' + SRC.branch); const commit = ref && ref.object && ref.object.sha; if (!SHA_RE.test(commit || '')) throw new Error('GitHub yaniti anlasilamadi (dal).');
+    if (st.checked && st.checked.commit === commit) { if (st.bad.includes(st.checked.tree)) return { status: 'blocked', commit, tree: st.checked.tree }; if (st.current && st.current.tree === st.checked.tree && buildOk(dataDir, st.current)) return { status: 'current', commit, tree: st.current.tree }; }
+    const cm = await getJson(API + R + '/git/commits/' + commit); const rt = cm && cm.tree && cm.tree.sha; if (!SHA_RE.test(rt || '')) throw new Error('GitHub yaniti anlasilamadi (commit).');
+    const msg = String(cm.message || '').split('\n')[0].slice(0, 160);
+    const root = await getJson(API + R + '/git/trees/' + rt); if (!root || !Array.isArray(root.tree) || root.truncated) throw new Error('Depo kok agaci okunamadi.');
+    const ent = root.tree.find((e) => e && e.path === SRC.dir && e.type === 'tree' && e.mode === '040000'); if (!ent || !SHA_RE.test(ent.sha)) throw new Error('Depoda "' + SRC.dir + '" klasoru bulunamadi.'); const tree = ent.sha;
+    st.checked = { commit, tree };
+    if (st.bad.includes(tree)) { writeState(dataDir, st); return { status: 'blocked', commit, tree, msg }; }
+    if (st.current && st.current.tree === tree && buildOk(dataDir, st.current)) { writeState(dataDir, st); return { status: 'current', commit, tree, msg }; }
+    const t = await getJson(API + R + '/git/trees/' + tree + '?recursive=1'); if (!t || t.truncated) throw new Error('Depo app/ agaci okunamadi.'); const files = validateTree(t.tree);
+    const got = [];
+    for (const f of files) {
+      const buf = await getBuf('https://raw.githubusercontent.com/' + SRC.owner + '/' + SRC.repo + '/' + commit + '/' + SRC.dir + '/' + enc(f.path), f.size + 16);
+      if (!Buffer.isBuffer(buf) || buf.length !== f.size || sha1Blob(buf) !== f.sha) throw new Error('Indirilen dosya depo listesiyle eslesmedi: ' + f.path);
+      syntaxCheck(f.path, buf); got.push({ f, buf });
+    }
+    const dirName = tree.slice(0, 12); const builds = buildsOf(dataDir); const stage = path.join(builds, 'staging-' + crypto.randomBytes(4).toString('hex')); const final = path.join(builds, dirName);
+    try {
+      fs.mkdirSync(stage, { recursive: true }); const meta = { v: 1, tree, commit, files: {} };
+      for (const { f, buf } of got) { const dest = path.join(stage, ...f.path.split('/')); if (!dest.startsWith(stage + path.sep)) throw new Error('Gecersiz yol.'); fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest, buf); meta.files[f.path] = { sha: f.sha, size: f.size }; }
+      fs.writeFileSync(path.join(stage, META), JSON.stringify(meta)); fs.rmSync(final, { recursive: true, force: true }); fs.renameSync(stage, final);
+    } catch (e) { try { fs.rmSync(stage, { recursive: true, force: true }); } catch (e2) { /* yoksay */ } throw new Error('Yeni surum diske yazilamadi: ' + String(e && e.message || e).slice(0, 120)); }
+    if (st.current && st.current.tree !== tree) st.previous = st.current; st.current = { tree, commit, dir: dirName, at: now(), msg }; st.boot = { tree, tries: 0 };
+    writeState(dataDir, st); pruneBuilds(dataDir, st); return { status: 'staged', commit, tree, msg };
+  }
+  return { check, pickBoot, markGood, rollback, reset, status, validateTree, syntaxCheck, sha1Blob, buildOk, readState, LIM, SRC, REQUIRED };
+})();
+
 /* --- Oyun Ayarlayici (Kovan 'oyunayar' v0.0.1) ---
  * Steam + Epic kutuphanelerini ve calisan oyunu algilar; anti-cheat'li oyunlara ASLA dokunmaz; bir oyunun metin ayar dosyasini (.ini/.cfg/.conf)
  * ayar oncesi YEDEKLEYEREK degistirir; FPS'i PresentMon ile olcup hedef FPS'e gore ayar onerir. Oyunu calistirmaz, oyuna kod enjekte etmez, bellegine bakmaz.
@@ -2691,4 +2816,4 @@ function createHost(deps) {
   return { handlers, obf, access, register(ipcMain) { for (const [k, fn] of Object.entries(handlers)) ipcMain.handle(k, fn); }, svc };
 }
 
-module.exports = { createHost, createWatcher, readLnkTarget, updModule: UPDMOD, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };
+module.exports = { createHost, createWatcher, readLnkTarget, updModule: UPDMOD, repoModule: REPOMOD, riskyList, VT_RE, obfModule: OBFMOD, compileModule: COMPMOD, accessModule: ACCESSMOD, sysModule: SYSMOD, memModule: MEMMOD, gameModule: GAMEMOD, lolModule: LOLMOD, flowModule: FLOWMOD };
