@@ -204,6 +204,7 @@ ok(/23 tanesinde/.test(await txt(pg, '#lg-pane-partners')) || /yalnızca bunlar 
   await pq.fill('#lg-pl-q', 'kotu'); await pq.click('#lg-pl-go'); await pq.waitForTimeout(300); ok(/Geçerli bir Riot Kimliği/.test(await txt(pq, '#lg-pl-res')), 'oyuncu ara: geçersiz kimlik uyarısı');
   await pq.fill('#lg-pl-q', 'Yok#TR1'); await pq.click('#lg-pl-go'); await pq.waitForTimeout(400); ok(/Oyuncu bulunamadı/.test(await txt(pq, '#lg-pl-res')), 'oyuncu ara: bulunamadı mesajı');
   await pq.fill('#lg-pl-q', 'arkadas#tr1'); await pq.press('#lg-pl-q', 'Enter'); await pq.waitForTimeout(600);
+  ok(await pq.evaluate(() => { const h = document.querySelector('#lg-pl-head').getBoundingClientRect(); const c = document.querySelector('#lg-pl-res .lg-cols').getBoundingClientRect(); return c.top - h.bottom >= 12; }), 'oyuncu ara: profil başlığı ile alttaki kartlar arasında boşluk var (bitişik değil)');
   const hd = await txt(pq, '#lg-pl-head'); ok(/Arkadas/.test(hd) && /#TR1/.test(hd) && /150/.test(hd) && /4 maç okundu/.test(hd), 'oyuncu ara: başlık (ad, etiket, seviye, maç sayısı)');
   ok(/Zümrüt|Emerald/i.test(await txt(pq, '#lg-plrank-solo')) && /33 LP/.test(await txt(pq, '#lg-plrank-solo')), 'oyuncu ara: derece kartı');
   ok(await pq.evaluate(() => document.querySelectorAll('#lg-pl-matches > li').length === 4 && document.querySelectorAll('#lg-pl-champs tbody tr').length === 2), 'oyuncu ara: 4 maç kartı + 2 şampiyon satırı');

@@ -1341,9 +1341,9 @@ const LOLMOD = (() => {
       return { state: 'none' };
     }
     const lcuFind = deps.lcu && deps.lcu.find ? deps.lcu.find : async () => { if ((deps.platform || process.platform) !== 'win32') return null; try { return parseLcuCmd(await run('powershell', ['-NoProfile', '-NonInteractive', '-Command', "(Get-CimInstance Win32_Process -Filter \"name='LeagueClientUx.exe'\" | Select-Object -First 1).CommandLine"], 10000)); } catch (e) { return null; } };
-    const lcuGet = deps.lcu && deps.lcu.get ? deps.lcu.get : (info, p) => new Promise((resolve, reject) => {
+    const lcuGet = deps.lcu && deps.lcu.get ? deps.lcu.get : (info, p, ms) => new Promise((resolve, reject) => {
       /* yalniz 127.0.0.1, yalniz GET; Riot'un yerel kendinden imzali sertifikasi nedeniyle dogrulama kapali (disari cikmaz) */
-      const req = https.request({ host: '127.0.0.1', port: info.port, path: p, method: 'GET', rejectUnauthorized: false, timeout: 4000, headers: { Authorization: 'Basic ' + Buffer.from('riot:' + info.token).toString('base64'), Accept: 'application/json' } }, (res) => {
+      const req = https.request({ host: '127.0.0.1', port: info.port, path: p, method: 'GET', rejectUnauthorized: false, timeout: Number(ms) > 0 ? Math.min(Number(ms), 30000) : 4000, headers: { Authorization: 'Basic ' + Buffer.from('riot:' + info.token).toString('base64'), Accept: 'application/json' } }, (res) => {
         if (res.statusCode === 404) { res.resume(); return resolve(null); } if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); } const parts = []; let n = 0; res.on('data', (d) => { n += d.length; if (n > 2 * 1024 * 1024) { req.destroy(new Error('büyük')); return; } parts.push(d); });
         res.on('end', () => { try { resolve(JSON.parse(Buffer.concat(parts).toString('utf8'))); } catch (e) { reject(e); } });
       }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject); req.end();
@@ -1374,7 +1374,7 @@ const LOLMOD = (() => {
       itemData = { list, names, version: ver }; return itemData;
     }
     /* LCU: yalniz beyaz listedeki GET uc noktalari (yazma/degistirme yok) */
-    const lcuRead = async (info, p) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p); };
+    const lcuRead = async (info, p, ms) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p, ms); };
     const lcuSend = deps.lcu && deps.lcu.write ? deps.lcu.write : (info, method, p, body) => new Promise((resolve, reject) => {
       const data = body === undefined ? null : Buffer.from(JSON.stringify(body)); const headers = { Authorization: 'Basic ' + Buffer.from('riot:' + info.token).toString('base64'), Accept: 'application/json' }; if (data) { headers['Content-Type'] = 'application/json'; headers['Content-Length'] = data.length; }
       const req = https.request({ host: '127.0.0.1', port: info.port, path: p, method, rejectUnauthorized: false, timeout: 5000, headers }, (res) => { const parts = []; res.on('data', (d) => { if (parts.length < 64) parts.push(d); }); res.on('end', () => { if (res.statusCode >= 300) return reject(new Error('HTTP ' + res.statusCode)); try { resolve(parts.length ? JSON.parse(Buffer.concat(parts).toString('utf8')) : null); } catch (e) { resolve(null); } }); });
@@ -1542,12 +1542,12 @@ const LOLMOD = (() => {
           /* maçsız (başarısız) sonuç önbellekten dönmez: yeniden arama gerçekten yeniden dener */
           const hit = playerCache.get(puuid); if (hit && hit.matches.length && now() - hit.t < PLAYER_TTL && req.fresh !== true) return { state: 'ok', player: hit.player, rank: hit.rank, cached: true, notes: hit.notes || [], view: playerView(hit, req.view), counts: { matches: hit.matches.length, details: hit.details } };
           try { const sj = await lcuRead(info, '/lol-summoner/v1/summoners-by-puuid-cached/' + puuid); if (sj && typeof sj === 'object') { if (sj.gameName) player.name = String(sj.gameName).slice(0, 30); if (sj.tagLine) player.tag = String(sj.tagLine).slice(0, 10); player.level = Math.round(Number(sj.summonerLevel)) || 0; player.icon = Math.round(Number(sj.profileIconId)) || 0; } } catch (e) { notes.push('profil: ' + msg(e)); }
-          let rank = null; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/ranked-stats/' + puuid)); rank = { solo: rk.solo, flex: rk.flex }; } catch (e) { notes.push('derece: ' + msg(e)); }
+          let rank = null; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/ranked-stats/' + puuid)); rank = { solo: rk.solo, flex: rk.flex }; for (const qk of ['solo', 'flex']) { const rr = rank[qk]; if (rr && rr.l === 0 && rr.w >= 10) rr.noL = true; /* istemci başkası için losses'ı 0 yollar: '%100 WR' uydurma */ } } catch (e) { notes.push('derece: ' + msg(e)); }
           const co = champOf(); const matches = new Map(); let budget = 10; let details = 0; let denied = false;
           for (let beg = 0; beg < 40 && !denied; beg += 20) {
             /* 404 (lcuGet null döner) ve tanınmayan yanıt SESSİZCE '0 maç' olmasın: sebep nota yazılır; 2. sayfa sorunu ilk sayfadan gelen maçları bozmaz */
-            let list = null; try { const j = await lcuRead(info, '/lol-match-history/v1/products/lol/' + puuid + '/matches?begIndex=' + beg + '&endIndex=' + (beg + 20)); list = gamesOf(j); if (list === null) { if (!matches.size) notes.push(j == null ? 'maçlar: istemci bu oyuncunun maç geçmişini vermedi (boş yanıt / 404)' : 'maçlar: istemci yanıtının biçimi tanınmadı'); denied = true; break; } } catch (e) { if (!matches.size) notes.push('maçlar: ' + msg(e)); denied = true; break; }
-            for (const g of list) { let m = normMatch(g, puuid, co); if (!m) continue; if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + Math.round(Number(g.gameId))), puuid, co); if (m2) { m = m2; details++; } } catch (e) { /* ayrıntı alınamadı */ } } matches.set(m.id, m); }
+            let list = null; try { const mp = '/lol-match-history/v1/products/lol/' + puuid + '/matches?begIndex=' + beg + '&endIndex=' + (beg + 20); let j; try { j = await lcuRead(info, mp, 15000); } catch (e1) { if (!/zaman aşımı/.test(String(e1 && e1.message || e1))) throw e1; j = await lcuRead(info, mp, 15000); } list = gamesOf(j); if (list === null) { if (!matches.size) notes.push(j == null ? 'maçlar: istemci bu oyuncunun maç geçmişini vermedi (boş yanıt / 404)' : 'maçlar: istemci yanıtının biçimi tanınmadı'); denied = true; break; } } catch (e) { if (!matches.size) notes.push('maçlar: ' + msg(e)); denied = true; break; }
+            for (const g of list) { let m = normMatch(g, puuid, co); if (!m) continue; if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + Math.round(Number(g.gameId)), 8000), puuid, co); if (m2) { m = m2; details++; } } catch (e) { /* ayrıntı alınamadı */ } } matches.set(m.id, m); }
             if (list.length < 20) break;
           }
           if (!matches.size && !notes.some((x) => /^maçlar/.test(x))) notes.push('maçlar: istemci boş liste döndürdü (oyuncu geçmişini gizli tutuyor ya da istemci başkasının geçmişini vermiyor olabilir)');
