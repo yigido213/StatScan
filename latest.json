@@ -1,6 +1,6 @@
 {
-  "version": "5.0.24",
-  "url": "StatScan-5.0.24.ssu",
-  "sha256": "97fd9e5d9043bb8bc78ae04bfda5e23be486258fe8591b64191919f9e7bf16d8",
-  "notes": "5.0.24 — Kovan beta 0.1.12 (hotfix): Blitz oyuncu aramada maç geçmişi gelmeyince sebep ekranda yazılır, boş sonuç önbelleğe alınmaz, kayıp sayısı yoksa uydurma %100 WR/0M gösterilmez."
+  "version": "5.0.25",
+  "url": "StatScan-5.0.25.ssu",
+  "sha256": "83f1d0bfefc17bd935852529d0c9b6936c37cc3ad724e7fd35dc7d6f3e786a77",
+  "notes": "5.0.25 — Geçiş paketi (Kovan beta 0.1.12 kalır): bundan sonra güncellemeler doğrudan GitHub deposundan indirilir (REPOMOD); latest.json/.ssu artık gerekmez."
 }
