@@ -1031,9 +1031,13 @@ const LOLMOD = (() => {
   const numOr0 = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
   function normRank(e) {
     if (!e || typeof e !== 'object') return null; const q = QSTAT[e.queueType]; if (!q) return null; const tier = String(e.tier || '').toUpperCase();
-    if (!TIERS.includes(tier)) return { q, unranked: true, w: numOr0(e.wins), l: numOr0(e.losses) };
-    return { q, tier, div: TIERS.indexOf(tier) >= 7 ? '' : String(e.division || '').toUpperCase().slice(0, 3), lp: numOr0(e.leaguePoints), w: numOr0(e.wins), l: numOr0(e.losses), series: e.miniSeriesProgress ? String(e.miniSeriesProgress).replace(/[^LWN]/g, '').slice(0, 7) : '' };
+    /* İstemci başka oyuncular için 'losses' vermeyebilir; 0 yazmak '%100 WR' gibi uydurma sonuç üretir → noL bayrağı (arayüz '—' gösterir) */
+    const noL = e.losses === undefined || e.losses === null; const flag = noL ? { noL: true } : {};
+    if (!TIERS.includes(tier)) return Object.assign({ q, unranked: true, w: numOr0(e.wins), l: numOr0(e.losses) }, flag);
+    return Object.assign({ q, tier, div: TIERS.indexOf(tier) >= 7 ? '' : String(e.division || '').toUpperCase().slice(0, 3), lp: numOr0(e.leaguePoints), w: numOr0(e.wins), l: numOr0(e.losses), series: e.miniSeriesProgress ? String(e.miniSeriesProgress).replace(/[^LWN]/g, '').slice(0, 7) : '' }, flag);
   }
+  /* maç listesi yanıtı: bilinen biçimler; tanınmazsa null (boş liste ile karıştırılmaz) */
+  const gamesOf = (j) => { if (!j || typeof j !== 'object') return null; const g = j.games; if (Array.isArray(g)) return g; if (g && Array.isArray(g.games)) return g.games; if (Array.isArray(j.matches)) return j.matches; return null; };
   function parseRanked(j) { const out = { solo: null, flex: null }; const qs = j && Array.isArray(j.queues) ? j.queues : []; for (const e of qs) { const r = normRank(e); if (r && !out[r.q]) out[r.q] = r; } return out; }
   function addSnap(list, r, t, cap) {
     if (!r || r.unranked) return false; let last = null; for (let i = list.length - 1; i >= 0; i--) if (list[i].q === r.q) { last = list[i]; break; }
@@ -1535,16 +1539,19 @@ const LOLMOD = (() => {
             if (!j || typeof j !== 'object' || !/^[A-Za-z0-9_-]{20,100}$/.test(String(j.puuid || ''))) return { state: notes.length ? 'error' : 'notfound', notes };
             puuid = String(j.puuid); player.puuid = puuid; if (j.gameName) player.name = String(j.gameName).slice(0, 30); if (j.tagLine) player.tag = String(j.tagLine).slice(0, 10);
           }
-          const hit = playerCache.get(puuid); if (hit && now() - hit.t < PLAYER_TTL && req.fresh !== true) return { state: 'ok', player: hit.player, rank: hit.rank, cached: true, notes: [], view: playerView(hit, req.view), counts: { matches: hit.matches.length, details: hit.details } };
+          /* maçsız (başarısız) sonuç önbellekten dönmez: yeniden arama gerçekten yeniden dener */
+          const hit = playerCache.get(puuid); if (hit && hit.matches.length && now() - hit.t < PLAYER_TTL && req.fresh !== true) return { state: 'ok', player: hit.player, rank: hit.rank, cached: true, notes: hit.notes || [], view: playerView(hit, req.view), counts: { matches: hit.matches.length, details: hit.details } };
           try { const sj = await lcuRead(info, '/lol-summoner/v1/summoners-by-puuid-cached/' + puuid); if (sj && typeof sj === 'object') { if (sj.gameName) player.name = String(sj.gameName).slice(0, 30); if (sj.tagLine) player.tag = String(sj.tagLine).slice(0, 10); player.level = Math.round(Number(sj.summonerLevel)) || 0; player.icon = Math.round(Number(sj.profileIconId)) || 0; } } catch (e) { notes.push('profil: ' + msg(e)); }
           let rank = null; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/ranked-stats/' + puuid)); rank = { solo: rk.solo, flex: rk.flex }; } catch (e) { notes.push('derece: ' + msg(e)); }
           const co = champOf(); const matches = new Map(); let budget = 10; let details = 0; let denied = false;
           for (let beg = 0; beg < 40 && !denied; beg += 20) {
-            let list = null; try { const j = await lcuRead(info, '/lol-match-history/v1/products/lol/' + puuid + '/matches?begIndex=' + beg + '&endIndex=' + (beg + 20)); list = j && j.games && Array.isArray(j.games.games) ? j.games.games : []; } catch (e) { notes.push('maçlar: ' + msg(e)); denied = true; break; }
+            /* 404 (lcuGet null döner) ve tanınmayan yanıt SESSİZCE '0 maç' olmasın: sebep nota yazılır; 2. sayfa sorunu ilk sayfadan gelen maçları bozmaz */
+            let list = null; try { const j = await lcuRead(info, '/lol-match-history/v1/products/lol/' + puuid + '/matches?begIndex=' + beg + '&endIndex=' + (beg + 20)); list = gamesOf(j); if (list === null) { if (!matches.size) notes.push(j == null ? 'maçlar: istemci bu oyuncunun maç geçmişini vermedi (boş yanıt / 404)' : 'maçlar: istemci yanıtının biçimi tanınmadı'); denied = true; break; } } catch (e) { if (!matches.size) notes.push('maçlar: ' + msg(e)); denied = true; break; }
             for (const g of list) { let m = normMatch(g, puuid, co); if (!m) continue; if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + Math.round(Number(g.gameId))), puuid, co); if (m2) { m = m2; details++; } } catch (e) { /* ayrıntı alınamadı */ } } matches.set(m.id, m); }
             if (list.length < 20) break;
           }
-          const ent = { t: now(), player, rank, matches: [...matches.values()], details }; playerKeep(puuid, ent);
+          if (!matches.size && !notes.some((x) => /^maçlar/.test(x))) notes.push('maçlar: istemci boş liste döndürdü (oyuncu geçmişini gizli tutuyor ya da istemci başkasının geçmişini vermiyor olabilir)');
+          const ent = { t: now(), player, rank, matches: [...matches.values()], details, notes: notes.slice() }; playerKeep(puuid, ent);
           return { state: 'ok', player, rank, cached: false, notes, view: playerView(ent, req.view), counts: { matches: ent.matches.length, details } };
         } catch (e) { return errE(String(e && e.message || e)); }
       },

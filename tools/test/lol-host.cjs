@@ -377,6 +377,22 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok((await HPL['lol:player:view']({ puuid: 'BILINMEYEN_puuid_abcdefghijklmnop' })).state === 'expired', 'oyuncu görünümü: önbellekte yoksa expired');
     ok((await HPL['lol:player:search']({ puuid: 'kötü kimlik!' })).error, 'oyuncu ara: geçersiz puuid reddedilir');
     const stFile = path.join(tmp, 'player', 'lolcounter.json'); ok(!fs.existsSync(stFile) || !/Rakip|OTHERpuuid/.test(fs.readFileSync(stFile, 'utf8')), 'oyuncu ara: başkasının verisi diske YAZILMAZ');
+    // ---- 'Bu filtrede maç yok' hatası: istemci başkasının geçmişini boş/farklı biçimde döndürürse sessizce 0 maç olmasın
+    { const mkP = (matchesReply, rankReply) => { const calls2 = []; const h2 = mkHost({ now: () => T0, lcu: { find: async () => ({ port: 9, token: 'abcdefgh1234' }), get: async (i, pth) => { calls2.push(pth);
+        if (pth.startsWith('/lol-summoner/v1/summoners-by-puuid-cached')) return { gameName: 'Rakip', tagLine: 'TR1', summonerLevel: 77, profileIconId: 5 };
+        if (pth === '/lol-ranked/v1/ranked-stats/' + OP) return rankReply; if (pth.includes('/products/lol/' + OP + '/matches')) return typeof matchesReply === 'function' ? matchesReply(pth) : matchesReply; return null; } } }, path.join(tmp, 'player-x' + Math.random().toString(36).slice(2))); return { h: h2.handlers, calls: calls2 }; };
+      // 1) istemci 404/boş döndürür (lcuGet null verir): 0 maç + sebep notu + önbelleğe alınmaz, yeniden arama gerçekten yeniden dener
+      let X = mkP(null, RANK); await X.h['lol:status'](); let r1 = await X.h['lol:player:search']({ puuid: OP });
+      ok(r1.state === 'ok' && r1.counts.matches === 0 && r1.notes.some((x) => /^maçlar/.test(x)), 'oyuncu ara: istemci maç geçmişini vermezse (null) sebep notu döner, sessiz "0 maç" olmaz');
+      const n1 = X.calls.filter((x) => x.includes('/matches')).length; r1 = await X.h['lol:player:search']({ puuid: OP }); ok(r1.cached === false && X.calls.filter((x) => x.includes('/matches')).length > n1, 'oyuncu ara: maçsız sonuç önbelleğe takılmaz, yeniden arama yeniden dener');
+      // 2) maç listesi doğrudan dizi olarak gelirse de okunur
+      X = mkP({ games: PG }, RANK); await X.h['lol:status'](); let r2 = await X.h['lol:player:search']({ puuid: OP }); ok(r2.state === 'ok' && r2.counts.matches === 3 && !r2.notes.some((x) => /^maçlar/.test(x)), 'oyuncu ara: games dizi biçiminde gelirse maçlar okunur');
+      // 3) tanınmayan yanıt biçimi: sebep nota yazılır
+      X = mkP({ foo: 1 }, RANK); await X.h['lol:status'](); let r3 = await X.h['lol:player:search']({ puuid: OP }); ok(r3.counts.matches === 0 && r3.notes.some((x) => /biçimi tanınmadı/.test(x)), 'oyuncu ara: tanınmayan yanıt biçimi nota yazılır');
+      // 4) istemci kayıp sayısı vermezse '%100 WR, 0M' uydurulmaz
+      X = mkP({ games: { games: PG } }, { queues: [{ queueType: 'RANKED_SOLO_5x5', tier: 'SILVER', division: 'II', leaguePoints: 52, wins: 110 }] }); await X.h['lol:status'](); let r4 = await X.h['lol:player:search']({ puuid: OP });
+      ok(r4.rank.solo && r4.rank.solo.noL === true && r4.rank.solo.w === 110, 'oyuncu ara: losses alanı yoksa derece noL ile işaretlenir (uydurma 0M yok)');
+      ok(!('noL' in (L.parseRanked({ queues: [{ queueType: 'RANKED_SOLO_5x5', tier: 'GOLD', division: 'I', leaguePoints: 10, wins: 5, losses: 3 }] }).solo)), 'derece: losses varsa noL işareti yok (kendi profil davranışı değişmedi)'); }
     const fr = await HPL['lol:friends'](); ok(fr.state === 'ok' && fr.friends.length === 2 && fr.friends[0].name === 'Rakip' && fr.friends[1].name === 'Cevrimdisi', 'arkadaşlar: bozuk kayıt atılır, çevrimiçi olanlar önce');
     ok(L.parsePlayerQuery('Rakip#TR1').tag === 'TR1' && L.parsePlayerQuery('Ad Soyad#TR1').name === 'Ad Soyad' && !L.parsePlayerQuery('a#b') && !L.parsePlayerQuery('#TAG1') && !L.parsePlayerQuery('x'.repeat(30) + '#TR1') && !L.parsePlayerQuery('Ad%#TR1') && !L.parsePlayerQuery(null), 'Riot Kimliği ayrıştırma: geçerli/geçersiz biçimler');
     ok(L.LCU_OK.some((re) => re.test('/lol-summoner/v1/alias/lookup?gameName=Rakip&tagLine=TR1')) && !L.LCU_OK.some((re) => re.test('/lol-summoner/v1/summoners?name=a/../b')) && !L.LCU_OK.some((re) => re.test('/lol-match-history/v1/products/lol/' + OP + '/matches?begIndex=0&endIndex=20&x=1')), 'LCU beyaz liste: oyuncu uçları yalnız kesin kalıplar'); }
