@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/statscan-core", "crates/statscan-cli"]
+members = ["crates/statscan-core", "crates/statscan-cli", "crates/kovan-updater"]
 
 [workspace.package]
 edition = "2024"
