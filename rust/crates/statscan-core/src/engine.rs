@@ -371,6 +371,11 @@ fn panic_msg(p: &Box<dyn std::any::Any + Send>) -> String {
     }
 }
 
+fn return_err(f: &mut Vec<Finding>, msg: &str, st: &mut St) {
+    f.push(Finding::mk("scan_err", Severity::Info, 0.0, "Analiz hatası", msg, "Dosyayı başka bir araçla da kontrol et.", vec![], ""));
+    st.unreadable += 1;
+}
+
 fn kind_label_unported(k: FileKind) -> &'static str {
     match k {
         FileKind::Pe => "Windows çalıştırılabilir (PE)",
@@ -464,6 +469,26 @@ pub fn scan_buffer(u: &[u8], name: &str, st: &mut St, depth: usize) -> ScanResul
                 type_label = "Bilinmeyen ikili".into();
                 f2.extend(text_of(u, st));
                 unknown_bin_extras(u, name, res.entropy, st, depth, &mut f2, &mut kids, &mut info);
+            }
+            FileKind::Zip => {
+                match crate::archive::analyze_zip(u, name, &ext, st, depth, &mut f2) {
+                    Ok(z) if !z.jar_unported => {
+                        type_label = z.type_label;
+                        info.insert("kind".into(), Value::String(z.info_kind));
+                        kids = z.kids;
+                        anl2.extend(z.analyses);
+                    }
+                    Ok(z) => {
+                        type_label = z.type_label;
+                        info.insert("kind".into(), Value::String(z.info_kind));
+                        f2.extend(text_of(u, st));
+                        f2.push(Finding::mk("rs_unported", Severity::Info, 0.0, "JAR/class: derin Java analizi bu motor sürümünde yok",
+                            "Arşivde Java class dosyaları var; ancak class ayrıştırma, API/akış analizi ve girdi bazlı tarama Rust motorunda henüz yazılmadı. Yalnızca arşivin ham dize/kural taraması yapıldı (sıkıştırılmış girdilerin içi görülmez); bu, dosyanın zararsız olduğu anlamına gelmez.",
+                            "Tam analiz için JS motorlu StatScan'i de kullan.", vec![], "arch").with_basis("fact"));
+                        anl2.push(Analysis::led("struct", "JAR/class yapısal analizi", "unsupported", "Rust motorunda henüz taşınmadı"));
+                    }
+                    Err(e) => return_err(&mut f2, &e, st),
+                }
             }
             FileKind::Xz => {
                 type_label = "XZ arşivi".into();

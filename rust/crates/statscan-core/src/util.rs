@@ -295,3 +295,8 @@ mod tests {
         assert!((entropy(&v) - 8.0).abs() < 1e-9);
     }
 }
+
+/// JS `td8.decode` ile ayni ama BOM korunur (TextDecoder varsayilani BOM atar; ZIP adlarinda JS de atar -> burada da atilir).
+pub fn utf8_decode_keep_bom(b: &[u8]) -> String {
+    utf8_decode(b)
+}

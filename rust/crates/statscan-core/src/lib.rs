@@ -3,6 +3,7 @@
 //! Ilkeler: dosya ASLA calistirilmaz; ag kullanilmaz; hicbir dosya degistirilmez/silinmez/tasinmaz.
 //! Girdi guvenilmezdir: tum okumalar sinirli ve panik etmeyecek sekilde yazilir.
 
+pub mod archive;
 pub mod data;
 pub mod deobf;
 pub mod engine;
@@ -14,3 +15,4 @@ pub mod score;
 pub mod rx;
 pub mod state;
 pub mod util;
+pub mod zip;
