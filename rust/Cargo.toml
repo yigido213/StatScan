@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/statscan-core", "crates/statscan-cli"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+publish = false
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+# Panik olursa tarama sonucu "scan_err" bulgusuna cevrilir (catch_unwind); bu yuzden unwind kalir.
+panic = "unwind"

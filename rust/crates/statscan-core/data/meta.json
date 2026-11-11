@@ -1,0 +1,1261 @@
+{
+ "fp": {
+  "exfil_discord": "Bazı yazılımlar çökme/kullanım istatistiğini kendi Discord kanalına bildirir. Gönderilen alanlar zararsızsa (ör. yalnızca kullanıcı adı) kritik değildir; yine de kullanıcıdan habersiz gönderiliyorsa gizlilik sorunudur.",
+  "exfil_telegram": "Bot API adresi meşru bildirim botları için de kullanılır.",
+  "exfil_paste": "Güncelleme veya yapılandırma indirmek için meşru yazılımlar da bu servisleri kullanabilir.",
+  "ip_lookup": "Sürüm/güncelleme denetimi veya sunucu bağlantısı için dış IP öğrenmek meşru da olabilir.",
+  "hardcoded_ip": "Yerel/test sunucuları veya belgelerdeki örnek adresler de bu kuralı tetikler.",
+  "browser_data": "Tarayıcı yedekleme/aktarma araçları, güvenlik yazılımları ve tarayıcı eklentileri bu yolları meşru şekilde kullanır.",
+  "mc_launcher": "Alt manager/launcher araçları bu dosyaları kendi işlevi için okur.",
+  "persist_run": "Kurulum programları ve otomatik başlayan yardımcı uygulamalar meşru şekilde Run anahtarı kullanır.",
+  "antivm": "Koruma yazılımları ve bazı oyun/lisans sistemleri sanal makine kontrolü yapar.",
+  "long_b64": "Gömülü resim, font veya veri dosyaları uzun Base64 bloğu olarak durabilir.",
+  "js_obf": "Minify/obfuscate edilmiş meşru web betikleri aynı isimlendirmeyi kullanır.",
+  "ps_download": "Yönetici betikleri ve kurulum araçları meşru indirme yapar.",
+  "lnk_cmd": "Kurulum betikleri meşru komut satırı çağrıları içerebilir.",
+  "j_exec": "Klasör açma, güncelleme veya sistem bilgisi alma gibi meşru işlerde de kullanılır.",
+  "j_dynload": "Eklenti/mod yükleyiciler ve bazı kütüphaneler (ör. performans/yardımcı kütüphaneler) sınıf yüklemeyi meşru kullanır.",
+  "j_native": "Oyun/grafik/Discord entegrasyonu için yerel kütüphane yüklemek yaygındır.",
+  "j_net": "Birçok mod güncelleme denetimi veya sunucu özelliği için ağ kullanır.",
+  "j_refl": "Mod ve istemci kodunda yansıma çok yaygındır.",
+  "j_obf": "Ticari modlar ve kapalı kaynak yazılımlar kodunu karıştırır; bu tek başına zararlı olduğu anlamına gelmez.",
+  "j_mctoken": "Alt manager veya hesap değiştirici araçlar oturum bilgisini yerel olarak okur. Dışarı gönderilip gönderilmediği asıl sorudur.",
+  "j_hosts": "Dokümantasyon, bağış veya yardım bağlantıları da burada listelenir.",
+  "pk_packer": "Lisans/koruma amaçlı paketleyiciler meşru ticari yazılımlarda da kullanılır.",
+  "pe_highent": "Sıkıştırılmış kaynaklar, kurulum paketleri ve gömülü veri yüksek entropi üretir.",
+  "pe_antidbg": "Oyun koruma sistemleri ve lisans kontrolleri anti-debug kullanır.",
+  "pe_keystate": "Oyun, kısayol ve makro araçları tuş durumunu okur.",
+  "pe_fewimp": "Küçük yükleyiciler ve bazı özel derlemeler az import kullanır.",
+  "pe_overlay": "Kurulum paketleri (NSIS, Inno) ve imzalı dosyalar overlay içerir.",
+  "pe_inject": "Hile/overlay/yardımcı araçlar ve bazı güvenlik yazılımları süreç enjeksiyonu API’lerini meşru kullanır; asıl kriter hedefin ne olduğudur.",
+  "pe_net": "Ağ erişimi tek başına kötü niyet göstermez.",
+  "zip_enc": "Parola korumalı arşivler meşru kullanımda da yaygındır.",
+  "arch_exec": "Kurulum paketleri çalıştırılabilir dosya içerir.",
+  "arch_unsupported": "Bu biçimin içi taranamadı; bu bir risk değil, bir tarama boşluğudur.",
+  "deobf_layer": "Veri gömen meşru yazılımlar da Base64 kullanır.",
+  "office_vba": "Kurumsal belgelerde meşru makrolar bulunabilir.",
+  "j_agent": "Profil çıkarma ve geliştirme araçları Java agent kullanır.",
+  "zip_dupe": "Hatalı paketleme araçları aynı girdiyi iki kez ekleyebilir.",
+  "pe_ts_zero": "Tekrarlanabilir derleme (reproducible build) araçları zaman damgasını sıfırlar.",
+  "silentnet_strings": "Bu adlar topluluk analizlerinden alınmıştır, operatör bunları değiştirebilir. Rastlantısal eşleşme düşük olasılıktır ama bir analiz notu/rapor dosyası da bu metinleri içerebilir.",
+  "known_artifacts": "Bu ad bir güvenlik raporu, tespit listesi veya temizleme aracı içinde de geçebilir (ör. “bilinen kötü adlar” listesi).",
+  "doh_resolver": "DoH birçok tarayıcı, VPN ve ağ aracı tarafından meşru olarak kullanılır.",
+  "chain_c2": "Web3/kripto uygulamaları ve oyun içi NFT/cüzdan modları aynı RPC yöntemlerini meşru olarak kullanır.",
+  "mc_logfile": "Çökme raporlayıcılar ve log görüntüleme modları latest.log dosyasını okur.",
+  "launcher_tokens": "Feather/Lunar/Essential entegrasyonu olan meşru modlar bu istemcilerin adlarını ve hesap yapılarını anar.",
+  "persist_startup": "Kurulum/güncelleme araçları ve masaüstü uygulamaları başlangıç klasörünü veya servis kaydını meşru kullanır.",
+  "addr_regex": "Cüzdan adresi doğrulayan meşru kripto araçları aynı kalıpları içerir.",
+  "j_tls_custom": "Geliştirme/test araçları, proxy’ler ve bazı eski sunucularla konuşan istemciler özel TrustManager kullanır. Asıl risk doğrulamanın gerçekten kapatılıp kapatılmadığıdır; bu araç bunu bytecode düzeyinde çözümlemez.",
+  "j_jar_rewrite": "Mod yükleyiciler, paketleyiciler ve güncelleme araçları jar dosyası yazar.",
+  "pe_dpapi": "Tarayıcılar, parola yöneticileri, e‑posta/VPN istemcileri kendi verilerini çözmek için CryptUnprotectData kullanır.",
+  "pe_java_launcher": "Minecraft başlatıcıları ve Java tabanlı yazılımların kurulum/başlatma programları aynı şeyi yapar.",
+  "pe_cert_enum": "Ağ istemcileri ve güvenlik yazılımları sertifika deposunu okur.",
+  "combo_mc_session_exfil": "Alt manager/giriş araçları meşru olarak oturum bilgisiyle sunucuya bağlanır; kritik olan verinin kontrolünüz dışındaki bir adrese gidip gitmediğidir.",
+  "combo_c2_resolver": "Blokzincirden/DoH ile adres çözen meşru Web3 uygulamaları da bu birleşimi gösterebilir.",
+  "combo_paste_loader": "Güncelleme/yapılandırma indiren meşru araçlar da paste servislerinden içerik çeker.",
+  "combo_clipper": "Cüzdan uzantıları ve kripto araçları pano ile adres doğrulaması yapar.",
+  "combo_dpapi_net": "Tarayıcılar ve parola yöneticileri bu API’leri ağla birlikte meşru kullanır.",
+  "pe_sig_mismatch": "İndirme sırasında bozulan dosyalar, imzadan sonra veri ekleyen bazı kurulum/yama araçları ve nadir PE düzenleri aynı sonucu verebilir. Önce dosyayı resmi kaynaktan yeniden indirip SHA-256 değerlerini karşılaştır.",
+  "pe_sig_bad": "İmza bloğu bozuk, kesilmiş veya bu aracın desteklemediği bir biçimde olabilir; bu bir risk değil, bir doğrulama boşluğudur.",
+  "pe_sig_self": "Geliştirici/test araçları kendinden imzalı sertifika kullanır.",
+  "jf_steal_known": "Oturum doğrulayan meşru modlar bu kalıbı gösterir; adresler bilinen-güvenli listede olduğu için puan düşürüldü. Liste sınırlıdır ve hesabın gerçekten güvenli olduğunu göstermez.",
+  "combo_trust_steal": "Geliştirme araçları ve kendi imzalı sertifikalı sunucularla konuşan meşru istemciler doğrulamayı kapatabilir; asıl risk hassas verinin bu bağlantıdan gitmesidir."
+ },
+ "fp_cat": {
+  "dl": "Meşru güncelleyiciler ve kurulum araçları da dosya indirir.",
+  "cred": "Kimlik verisi yolları yedekleme ve güvenlik araçlarında da geçer.",
+  "obf": "Gizleme tek başına zararlılık kanıtı değildir."
+ },
+ "benign_hosts": {
+  "src": "(^|\\.)(w3\\.org|java\\.sun\\.com|sun\\.com|oracle\\.com|apache\\.org|eclipse\\.org|xml\\.org|xmlpull\\.org|json\\.org|slf4j\\.org|mojang\\.com|minecraft\\.net|minecraftforge\\.net|fabricmc\\.net|quiltmc\\.org|neoforged\\.net|spongepowered\\.org|github\\.com|githubusercontent\\.com|google\\.com|googleapis\\.com|gstatic\\.com|curseforge\\.com|modrinth\\.com|maven\\.org|sonatype\\.org|jetbrains\\.com|kotlinlang\\.org|openjdk\\.org|java\\.net|ietf\\.org|mozilla\\.org|discord\\.com|discord\\.gg|discordapp\\.com|youtube\\.com|twitter\\.com|t\\.me|patreon\\.com|ko-fi\\.com|paypal\\.com|spigotmc\\.org|papermc\\.io|bukkit\\.org|md-5\\.net|lwjgl\\.org|opengl\\.org|khronos\\.org|unicode\\.org|gnu\\.org|creativecommons\\.org|baritone\\.leijurv\\.com|leijurv\\.com)$",
+  "flags": "i"
+ },
+ "never_led": [
+  {
+   "id": "dyn",
+   "label": "Dinamik/davranış analizi ve emülasyon",
+   "status": "unsupported",
+   "note": "Statik taramada dosya çalıştırılmaz. İsteğe bağlı Windows Sandbox analizi ayrıdır ve yalnızca onayınla çalışır."
+  },
+  {
+   "id": "yara",
+   "label": "Çoklu antivirüs motoru / itibar sorgusu",
+   "status": "unsupported",
+   "note": "Hiçbir dosya içeriği veya özet bu araçtan dışarı gönderilmez."
+  }
+ ],
+ "office_re": "^(docx|xlsx|pptx|docm|xlsm|pptm|dotx|dotm|xltx|xltm|xlam|ppsx|ppsm|potx|potm|ppam|sldm|sldx)$",
+ "exe_ext": [
+  "exe",
+  "dll",
+  "scr",
+  "com",
+  "pif",
+  "sys",
+  "ocx",
+  "cpl",
+  "msi",
+  "jar",
+  "bat",
+  "cmd",
+  "ps1",
+  "vbs",
+  "vbe",
+  "js",
+  "jse",
+  "wsf",
+  "hta",
+  "lnk",
+  "so",
+  "dylib"
+ ],
+ "text_ext": [
+  "json",
+  "yml",
+  "yaml",
+  "toml",
+  "properties",
+  "txt",
+  "xml",
+  "js",
+  "sh",
+  "bat",
+  "cmd",
+  "ps1",
+  "vbs",
+  "py",
+  "cfg",
+  "conf",
+  "info",
+  "mf",
+  "html",
+  "htm",
+  "hta"
+ ],
+ "decoy_ext": [
+  "txt",
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "pdf",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "mp3",
+  "mp4",
+  "ico",
+  "bmp",
+  "csv",
+  "rtf",
+  "ppt",
+  "pptx"
+ ],
+ "one_magic": [
+  228,
+  82,
+  92,
+  123,
+  140,
+  216,
+  167,
+  77,
+  174,
+  177,
+  83,
+  120,
+  208,
+  41,
+  150,
+  211
+ ],
+ "fact_ids": [
+  "name_rtlo",
+  "name_double",
+  "name_scr",
+  "ext_mismatch",
+  "pe_bad",
+  "pe_rwx",
+  "pe_ep_out",
+  "pe_ep_last",
+  "pe_noimp",
+  "pe_fewimp",
+  "pe_overlay",
+  "pe_overlay_mz",
+  "pe_embedded",
+  "xor_pe",
+  "zip_slip",
+  "zip_dupe",
+  "zip_enc",
+  "pe_sig_ok",
+  "pe_sig_mismatch",
+  "pe_sig_bad",
+  "pe_sig_self",
+  "pe_signed",
+  "pe_ts_future",
+  "pe_ts_zero",
+  "pe_noaslr",
+  "pe_tls",
+  "office_vba",
+  "office_remote",
+  "ole_vba",
+  "hta",
+  "deobf_pe",
+  "deobf_zip",
+  "deobf_layer",
+  "arch_exec",
+  "arch_unsupported",
+  "pk_hidden_pe",
+  "pe_fw",
+  "too_big",
+  "scan_err",
+  "pe_virtual",
+  "jf_trustall",
+  "j_ver",
+  "j_badclass",
+  "j_hidden_class",
+  "j_modinfo",
+  "tg_link"
+ ],
+ "heur_ids": [
+  "pe_highent",
+  "bin_highent",
+  "txt_oneline",
+  "js_escape",
+  "long_b64",
+  "js_obf",
+  "bat_obf",
+  "ps_obf",
+  "pe_dynapi",
+  "pk_packer",
+  "pe_rsrc_blob",
+  "zip_bomb",
+  "j_obf",
+  "j_blob",
+  "pe_net_obf",
+  "hardcoded_ip"
+ ],
+ "tech": {
+  "T1055.008": "Ptrace System Calls",
+  "T1098.004": "SSH Authorized Keys",
+  "T1003.008": "/etc/passwd and /etc/shadow",
+  "T1070.003": "Clear Command History",
+  "T1555.001": "Keychain",
+  "T1553.001": "Gatekeeper Bypass",
+  "T1543.001": "Launch Agent",
+  "T1059.002": "AppleScript",
+  "T1056.002": "GUI Input Capture",
+  "T1574.004": "Dylib Hijacking",
+  "T1574.006": "Dynamic Linker Hijacking",
+  "T1098": "Account Manipulation",
+  "T1005": "Data from Local System",
+  "T1016": "System Network Configuration Discovery",
+  "T1016.001": "Internet Connection Discovery",
+  "T1027": "Obfuscated Files or Information",
+  "T1027.002": "Software Packing",
+  "T1027.007": "Dynamic API Resolution",
+  "T1027.009": "Embedded Payloads",
+  "T1027.010": "Command Obfuscation",
+  "T1036": "Masquerading",
+  "T1036.002": "Right-to-Left Override",
+  "T1036.007": "Double File Extension",
+  "T1036.008": "Masquerade File Type",
+  "T1047": "Windows Management Instrumentation",
+  "T1053": "Scheduled Task/Job",
+  "T1053.005": "Scheduled Task",
+  "T1055": "Process Injection",
+  "T1055.001": "Dynamic-link Library Injection",
+  "T1055.004": "Asynchronous Procedure Call",
+  "T1055.012": "Process Hollowing",
+  "T1056": "Input Capture",
+  "T1056.001": "Keylogging",
+  "T1057": "Process Discovery",
+  "T1059": "Command and Scripting Interpreter",
+  "T1059.001": "PowerShell",
+  "T1059.003": "Windows Command Shell",
+  "T1059.004": "Unix Shell",
+  "T1059.005": "Visual Basic",
+  "T1059.006": "Python",
+  "T1059.007": "JavaScript",
+  "T1070": "Indicator Removal",
+  "T1070.001": "Clear Windows Event Logs",
+  "T1071": "Application Layer Protocol",
+  "T1071.001": "Web Protocols",
+  "T1082": "System Information Discovery",
+  "T1090": "Proxy",
+  "T1090.003": "Multi-hop Proxy",
+  "T1095": "Non-Application Layer Protocol",
+  "T1102": "Web Service",
+  "T1102.001": "Dead Drop Resolver",
+  "T1105": "Ingress Tool Transfer",
+  "T1106": "Native API",
+  "T1112": "Modify Registry",
+  "T1115": "Clipboard Data",
+  "T1113": "Screen Capture",
+  "T1129": "Shared Modules",
+  "T1134": "Access Token Manipulation",
+  "T1137": "Office Application Startup",
+  "T1140": "Deobfuscate/Decode Files or Information",
+  "T1203": "Exploitation for Client Execution",
+  "T1204": "User Execution",
+  "T1204.002": "Malicious File",
+  "T1218": "System Binary Proxy Execution",
+  "T1218.005": "Mshta",
+  "T1221": "Template Injection",
+  "T1486": "Data Encrypted for Impact",
+  "T1490": "Inhibit System Recovery",
+  "T1496": "Resource Hijacking",
+  "T1497": "Virtualization/Sandbox Evasion",
+  "T1497.001": "System Checks",
+  "T1518": "Software Discovery",
+  "T1528": "Steal Application Access Token",
+  "T1543": "Create or Modify System Process",
+  "T1543.002": "Systemd Service",
+  "T1543.003": "Windows Service",
+  "T1547": "Boot or Logon Autostart Execution",
+  "T1547.001": "Registry Run Keys / Startup Folder",
+  "T1548": "Abuse Elevation Control Mechanism",
+  "T1548.002": "Bypass User Account Control",
+  "T1553": "Subvert Trust Controls",
+  "T1553.002": "Code Signing",
+  "T1555": "Credentials from Password Stores",
+  "T1555.003": "Credentials from Web Browsers",
+  "T1562": "Impair Defenses",
+  "T1562.001": "Disable or Modify Tools",
+  "T1567": "Exfiltration Over Web Service",
+  "T1567.004": "Exfiltration Over Webhook",
+  "T1574": "Hijack Execution Flow",
+  "T1574.002": "DLL Side-Loading",
+  "T1620": "Reflective Code Loading",
+  "T1622": "Debugger Evasion",
+  "T1003": "OS Credential Dumping",
+  "T1068": "Exploitation for Privilege Escalation",
+  "T1014": "Rootkit",
+  "T1176": "Browser Extensions",
+  "T1204.001": "Malicious Link",
+  "T1489": "Service Stop",
+  "T1546": "Event Triggered Execution",
+  "T1571": "Non-Standard Port",
+  "T1573": "Encrypted Channel",
+  "T1041": "Exfiltration Over C2 Channel",
+  "T1083": "File and Directory Discovery",
+  "T1012": "Query Registry",
+  "T1033": "System Owner/User Discovery",
+  "T1552": "Unsecured Credentials",
+  "T1552.001": "Credentials In Files"
+ },
+ "mitre": {
+  "exfil_discord": [
+   "T1567.004"
+  ],
+  "exfil_telegram": [
+   "T1567"
+  ],
+  "dl_exe_url": [
+   "T1105"
+  ],
+  "exfil_paste": [
+   "T1102",
+   "T1567"
+  ],
+  "ip_lookup": [
+   "T1016.001"
+  ],
+  "onion": [
+   "T1090.003"
+  ],
+  "powershell_enc": [
+   "T1059.001",
+   "T1027.010"
+  ],
+  "ps_hidden": [
+   "T1059.001"
+  ],
+  "ps_download": [
+   "T1105",
+   "T1059.001"
+  ],
+  "ps_iex": [
+   "T1059.001"
+  ],
+  "ps_reflect": [
+   "T1620",
+   "T1059.001"
+  ],
+  "ps_obf": [
+   "T1027.010"
+  ],
+  "defender_off": [
+   "T1562.001"
+  ],
+  "amsi_patch": [
+   "T1562.001"
+  ],
+  "certutil": [
+   "T1105",
+   "T1218"
+  ],
+  "wmic_exec": [
+   "T1047"
+  ],
+  "persist_run": [
+   "T1547.001",
+   "T1053.005"
+  ],
+  "shadow_del": [
+   "T1490"
+  ],
+  "uac_bypass": [
+   "T1548.002"
+  ],
+  "evt_clear": [
+   "T1070.001"
+  ],
+  "disable_tools": [
+   "T1562.001"
+  ],
+  "av_kill": [
+   "T1562.001"
+  ],
+  "revshell": [
+   "T1059",
+   "T1095"
+  ],
+  "browser_data": [
+   "T1555.003"
+  ],
+  "wallet_data": [
+   "T1005"
+  ],
+  "discord_tok": [
+   "T1528"
+  ],
+  "telegram_tdata": [
+   "T1005"
+  ],
+  "steam_data": [
+   "T1005"
+  ],
+  "mc_launcher": [
+   "T1528"
+  ],
+  "antivm": [
+   "T1497.001"
+  ],
+  "ransom": [
+   "T1486"
+  ],
+  "miner": [
+   "T1496"
+  ],
+  "long_b64_exe": [
+   "T1027.009",
+   "T1140"
+  ],
+  "long_b64": [
+   "T1027"
+  ],
+  "js_active": [
+   "T1059.007"
+  ],
+  "vbs_exec": [
+   "T1059.005"
+  ],
+  "sh_pipe": [
+   "T1105",
+   "T1059.004"
+  ],
+  "py_exec": [
+   "T1059.006",
+   "T1027"
+  ],
+  "py_ctypes": [
+   "T1106"
+  ],
+  "js_obf": [
+   "T1027"
+  ],
+  "bat_obf": [
+   "T1027.010"
+  ],
+  "lnk_cmd": [
+   "T1204.002",
+   "T1059"
+  ],
+  "lnk_shell": [
+   "T1204.002",
+   "T1059"
+  ],
+  "office_macro": [
+   "T1204.002",
+   "T1059.005"
+  ],
+  "office_vba": [
+   "T1204.002",
+   "T1059.005"
+  ],
+  "ole_vba": [
+   "T1204.002",
+   "T1059.005"
+  ],
+  "office_remote": [
+   "T1221"
+  ],
+  "hta": [
+   "T1218.005"
+  ],
+  "hardcoded_ip": [
+   "T1071.001"
+  ],
+  "persist_startup": [
+   "T1547.001"
+  ],
+  "pe_inject": [
+   "T1055"
+  ],
+  "pe_hollow": [
+   "T1055.012"
+  ],
+  "pe_keylog": [
+   "T1056.001"
+  ],
+  "pe_dlexec": [
+   "T1105"
+  ],
+  "pe_antidbg": [
+   "T1622"
+  ],
+  "pe_priv": [
+   "T1134"
+  ],
+  "pe_service": [
+   "T1543.003"
+  ],
+  "pe_ransom_api": [
+   "T1486"
+  ],
+  "pe_clip": [
+   "T1115"
+  ],
+  "pe_screen": [
+   "T1113"
+  ],
+  "pe_dynapi": [
+   "T1027.007"
+  ],
+  "pe_dpapi": [
+   "T1555.003"
+  ],
+  "pe_net_obf": [
+   "T1027"
+  ],
+  "pe_net_load": [
+   "T1620"
+  ],
+  "pk_packer": [
+   "T1027.002"
+  ],
+  "pe_highent": [
+   "T1027.002"
+  ],
+  "pe_embedded": [
+   "T1027.009"
+  ],
+  "pe_overlay_mz": [
+   "T1027.009"
+  ],
+  "xor_pe": [
+   "T1027",
+   "T1140"
+  ],
+  "deobf_pe": [
+   "T1140",
+   "T1027.009"
+  ],
+  "deobf_zip": [
+   "T1140"
+  ],
+  "deobf_layer": [
+   "T1140"
+  ],
+  "pe_sig_mismatch": [
+   "T1553.002"
+  ],
+  "ext_mismatch": [
+   "T1036.008"
+  ],
+  "name_double": [
+   "T1036.007"
+  ],
+  "name_rtlo": [
+   "T1036.002"
+  ],
+  "pk_hidden_pe": [
+   "T1036.008",
+   "T1027.009"
+  ],
+  "js_eval": [
+   "T1059.007",
+   "T1027"
+  ],
+  "js_escape": [
+   "T1027"
+  ],
+  "pdf_active": [
+   "T1204.002",
+   "T1203"
+  ],
+  "combo_dropper": [
+   "T1105"
+  ],
+  "combo_loader": [
+   "T1620"
+  ],
+  "combo_persist_net": [
+   "T1547.001"
+  ],
+  "combo_evasion": [
+   "T1497"
+  ],
+  "combo_obf_risk": [
+   "T1027"
+  ]
+ },
+ "basis_label": {
+  "fact": "Gözlem",
+  "inference": "Çıkarım",
+  "heuristic": "Sezgisel"
+ },
+ "led": {
+  "done": "Tamamlandı",
+  "partial": "Kısmi",
+  "skipped": "Bu modda yapılmadı",
+  "unsupported": "Yapılamıyor",
+  "na": "Uygulanamaz"
+ },
+ "skip_labels": {
+  "enc": "Şifreli (parola korumalı) girdi",
+  "unreadable": "Okunamayan, bozuk veya desteklenmeyen sıkıştırmalı girdi",
+  "entrysize": "Tek girdi boyut sınırını aşan girdi",
+  "bytes": "Toplam açılan veri sınırı nedeniyle okunmayan girdi",
+  "classcap": "Sınıf sayısı sınırı nedeniyle ayrıştırılmayan class",
+  "entries": "Girdi sayısı sınırı nedeniyle taranmayan girdi",
+  "depth": "İç içe derinlik sınırı nedeniyle açılmayan dosya",
+  "stopped": "Süre/iptal nedeniyle taranmayan girdi",
+  "media": "Medya/veri girdisi (resim, ses, font…): içerik taranmadı (yalnızca bazı türlerde MZ başlığı denetlendi)",
+  "ext": "Bu modun kapsamı dışında kalan uzantılı girdi (içerik okunmadı)",
+  "bigtext": "2 MB üstü metin girdisi (bu modda taranmadı)",
+  "flowcap": "Metot sayısı sınırı nedeniyle bytecode akış analizine alınmayan metot",
+  "sighash": "Boyut sınırı nedeniyle imza özeti hesaplanmayan PE"
+ },
+ "refs": {
+  "silentnet_strings": {
+   "src": [
+    "S2",
+    "S3"
+   ],
+   "mitre": [
+    "T1071.001"
+   ],
+   "conf": "düşük–orta"
+  },
+  "known_artifacts": {
+   "src": [
+    "S4",
+    "S5"
+   ],
+   "mitre": [],
+   "conf": "orta"
+  },
+  "doh_resolver": {
+   "src": [
+    "S2",
+    "S3"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "chain_c2": {
+   "src": [
+    "S2",
+    "S3"
+   ],
+   "mitre": [
+    "T1102.001"
+   ],
+   "conf": "düşük"
+  },
+  "mc_logfile": {
+   "src": [
+    "S2"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "launcher_tokens": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "orta"
+  },
+  "persist_startup": {
+   "src": [
+    "S4"
+   ],
+   "mitre": [
+    "T1547.001",
+    "T1543.002"
+   ],
+   "conf": "orta"
+  },
+  "addr_regex": {
+   "src": [
+    "S4"
+   ],
+   "mitre": [
+    "T1115"
+   ],
+   "conf": "düşük"
+  },
+  "exfil_discord": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1567.004"
+   ],
+   "conf": "orta"
+  },
+  "exfil_paste": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1102.001"
+   ],
+   "conf": "düşük"
+  },
+  "browser_data": {
+   "src": [
+    "S6"
+   ],
+   "mitre": [
+    "T1555.003"
+   ],
+   "conf": "orta"
+  },
+  "discord_tok": {
+   "src": [
+    "S5",
+    "S6"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "orta"
+  },
+  "mc_launcher": {
+   "src": [
+    "S2",
+    "S5"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "düşük"
+  },
+  "j_mctoken": {
+   "src": [
+    "S2",
+    "S5"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "düşük"
+  },
+  "j_tls_custom": {
+   "src": [
+    "S2"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "j_jar_rewrite": {
+   "src": [
+    "S4"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "antivm": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1497"
+   ],
+   "conf": "düşük"
+  },
+  "defender_off": {
+   "src": [
+    "S6"
+   ],
+   "mitre": [
+    "T1562.001"
+   ],
+   "conf": "yüksek"
+  },
+  "persist_run": {
+   "src": [
+    "S4",
+    "S6"
+   ],
+   "mitre": [
+    "T1547.001"
+   ],
+   "conf": "orta"
+  },
+  "pe_dpapi": {
+   "src": [
+    "S6"
+   ],
+   "mitre": [
+    "T1555.003"
+   ],
+   "conf": "düşük"
+  },
+  "pe_java_launcher": {
+   "src": [
+    "S2"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "pe_cert_enum": {
+   "src": [
+    "S2"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "pe_clip": {
+   "src": [
+    "S4"
+   ],
+   "mitre": [
+    "T1115"
+   ],
+   "conf": "düşük"
+  },
+  "pe_screen": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1113"
+   ],
+   "conf": "düşük"
+  },
+  "pe_keylog": {
+   "src": [
+    "S6"
+   ],
+   "mitre": [
+    "T1056.001"
+   ],
+   "conf": "orta"
+  },
+  "pe_inject": {
+   "src": [
+    "S6"
+   ],
+   "mitre": [
+    "T1055"
+   ],
+   "conf": "orta"
+  },
+  "combo_stealer": {
+   "src": [
+    "S2",
+    "S4",
+    "S5"
+   ],
+   "mitre": [
+    "T1555.003",
+    "T1528"
+   ],
+   "conf": "orta"
+  },
+  "combo_mc_session_exfil": {
+   "src": [
+    "S2",
+    "S5"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "orta"
+  },
+  "combo_c2_resolver": {
+   "src": [
+    "S2",
+    "S3"
+   ],
+   "mitre": [
+    "T1102.001"
+   ],
+   "conf": "düşük–orta"
+  },
+  "combo_paste_loader": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1105",
+    "T1102.001"
+   ],
+   "conf": "orta"
+  },
+  "combo_clipper": {
+   "src": [
+    "S4"
+   ],
+   "mitre": [
+    "T1115"
+   ],
+   "conf": "orta"
+  },
+  "combo_dpapi_net": {
+   "src": [
+    "S6"
+   ],
+   "mitre": [
+    "T1555.003"
+   ],
+   "conf": "orta"
+  },
+  "combo_dropper": {
+   "src": [
+    "S4",
+    "S5"
+   ],
+   "mitre": [
+    "T1105"
+   ],
+   "conf": "orta"
+  },
+  "pe_sig_ok": {
+   "src": [
+    "S7"
+   ],
+   "mitre": [],
+   "conf": "orta (yalnızca özet tutarlılığı)"
+  },
+  "pe_sig_mismatch": {
+   "src": [
+    "S7",
+    "S6"
+   ],
+   "mitre": [
+    "T1553.002"
+   ],
+   "conf": "orta"
+  },
+  "pe_sig_bad": {
+   "src": [
+    "S7"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "pe_sig_self": {
+   "src": [
+    "S7"
+   ],
+   "mitre": [],
+   "conf": "düşük"
+  },
+  "jf_steal": {
+   "src": [
+    "S2",
+    "S4",
+    "S5"
+   ],
+   "mitre": [
+    "T1528",
+    "T1041"
+   ],
+   "conf": "orta"
+  },
+  "jf_steal_known": {
+   "src": [
+    "S2",
+    "S5"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "düşük"
+  },
+  "jf_dlexec": {
+   "src": [
+    "S4",
+    "S5"
+   ],
+   "mitre": [
+    "T1105"
+   ],
+   "conf": "orta"
+  },
+  "jf_payload": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1027"
+   ],
+   "conf": "düşük–orta"
+  },
+  "jf_spy": {
+   "src": [
+    "S5"
+   ],
+   "mitre": [
+    "T1113",
+    "T1115",
+    "T1056.001"
+   ],
+   "conf": "düşük"
+  },
+  "jf_trustall": {
+   "src": [
+    "S2"
+   ],
+   "mitre": [],
+   "conf": "orta (bytecode’dan doğrulandı; zararlılık kanıtı değil)"
+  },
+  "combo_trust_steal": {
+   "src": [
+    "S2"
+   ],
+   "mitre": [
+    "T1528"
+   ],
+   "conf": "düşük–orta"
+  }
+ },
+ "src": {
+  "S1": {
+   "t": "Symantec/Broadcom Protection Bulletin: “SilentNet – A RAT/Stealer masquerading as a Minecraft Hack Client”",
+   "url": "https://www.broadcom.com/support/security-center/protection-bulletin/silentnet-a-rat-stealer-masquerading-as-a-minecraft-hack-client",
+   "date": "tarih sayfadan doğrulanamadı",
+   "conf": "orta",
+   "note": "Yalnızca başlık/sınıflandırma (RAT + stealer, Minecraft hile istemcisi kılığı) doğrulanabildi; bülten gövdesi bu araştırmada okunamadı, davranış ayrıntıları bu kaynaktan alınmadı."
+  },
+  "S2": {
+   "t": "digitalforensiker/silentnet-analysis (GitHub README)",
+   "url": "https://github.com/digitalforensiker/silentnet-analysis",
+   "date": "v2 güncellemesi 2025-07-15",
+   "conf": "düşük–orta",
+   "note": "Bağımsız/topluluk analizi. Zincir: Rust Launcher.exe → Fabric mod.jar (obfuscated sınıflar, XOR’lu metinler, oturum token’ı + latest.log gönderimi, null TrustManager) → Python stager. 3. aşama elde edilmediği için orada anlatılanlar çıkarım. C2 adresinin Polygon akıllı sözleşmesinden (eth_call) okunduğu ve DoH ile çözüldüğü bildiriliyor; birkaç nokta README içinde tutarsız."
+  },
+  "S3": {
+   "t": "destiny-creates/silentnet (GitHub README)",
+   "url": "https://github.com/destiny-creates/silentnet",
+   "date": "tarih yok",
+   "conf": "düşük",
+   "note": "MaaS stealer iddiası; Java launcher + Nuitka/mypyc ile derlenmiş Python çekirdek, tarayıcı/Discord/cüzdan/Minecraft verisi hedefleri. Birçok sayı ve atıf bağımsız doğrulanamadı; yalnızca ikinci bir görüş olarak kullanıldı."
+  },
+  "S4": {
+   "t": "BleepingComputer: Fractureiser malware used CurseForge Minecraft mods to infect Windows, Linux",
+   "url": "https://www.bleepingcomputer.com/news/security/new-fractureiser-malware-used-curseforge-minecraft-mods-to-infect-windows-linux/",
+   "date": "2023-06-07",
+   "conf": "orta–yüksek",
+   "note": "İkincil haber kaynağı; aşamalar (dl.jar → loader → client.jar), diğer .jar dosyalarına bulaşma, Run anahtarı/başlangıç kısayolu/systemd kalıcılığı, tarayıcı/Discord/Minecraft kimlik bilgisi ve pano cüzdan değiştirme. 2023 kampanyası: ad ve altyapı güncel olmayabilir."
+  },
+  "S5": {
+   "t": "CyberInsider (Check Point Research bulgularına atıfla): Fake Minecraft Mods Deliver Data-Stealing Malware to Players",
+   "url": "https://cyberinsider.com/fake-minecraft-mods-deliver-data-stealing-malware-to-players/",
+   "date": "2025-06-18",
+   "conf": "orta",
+   "note": "Stargazers Ghost Network: sahte mod → Java yükleyici (sanal makine/Wireshark/TCPView kontrolü, Pastebin’den Base64 yük) → Java stealer (Feather/Essential/Lunar, Discord, Telegram) → .NET stealer (tarayıcı, cüzdan, VPN, Steam, ekran/pano, Discord webhook). İkincil kaynak; birincil Check Point raporu bu araştırmada okunmadı."
+  },
+  "S7": {
+   "t": "Microsoft: Windows Authenticode Portable Executable Signature Format (2008)",
+   "url": "https://download.microsoft.com/download/9/c/5/9c5b2167-8017-4bae-9fde-d599bac8184a/authenticode_pe.docx",
+   "date": "2008",
+   "conf": "yüksek (şartname); bu araştırmada belge gövdesi okunamadı",
+   "note": "PE imza özetinin hesaplanma yöntemi için. Belgenin varlığı ve adı signify belgelerinden doğrulandı; hesaplama, Microsoft imzalı 4 gerçek DLL üzerinde bağımsız bir Python/openssl hesabıyla çapraz denetlendi. Yalnızca özet tutarlılığına bakılır; sertifika zinciri/iptal/imza doğrulaması yapılmaz."
+  },
+  "S6": {
+   "t": "MITRE ATT&CK (T1555.003 ve T1102 sayfaları doğrulandı; diğer teknik kimlikleri taksonomi olarak kullanıldı)",
+   "url": "https://attack.mitre.org/",
+   "date": "güncel sürüm",
+   "conf": "yüksek (taksonomi)",
+   "note": "Teknik adlandırma/sınıflandırma için; belirli bir aileyi kanıtlamaz."
+  }
+ },
+ "axes": [
+  [
+   "net",
+   "Ağ / sızdırma"
+  ],
+  [
+   "data",
+   "Veri toplama"
+  ],
+  [
+   "exec",
+   "Kod çalıştırma"
+  ],
+  [
+   "hide",
+   "Gizleme"
+  ],
+  [
+   "persist",
+   "Kalıcılık"
+  ],
+  [
+   "evade",
+   "Kaçınma / yıkım"
+  ]
+ ],
+ "cat_axis": {
+  "exfil": "net",
+  "net": "net",
+  "dl": "net",
+  "cred": "data",
+  "steal": "data",
+  "spy": "data",
+  "proc": "exec",
+  "inject": "exec",
+  "dyn": "exec",
+  "office": "exec",
+  "obf": "hide",
+  "pe": "hide",
+  "arch": "hide",
+  "persist": "persist",
+  "priv": "persist",
+  "evade": "evade",
+  "ransom": "evade"
+ },
+ "sev_rank": {
+  "info": 0,
+  "low": 1,
+  "med": 2,
+  "high": 3,
+  "crit": 4
+ },
+ "ioc_pats": {
+  "url": {
+   "src": "https?:\\/\\/[^\\s\"'<>\\\\)\\]\\u0000-\\u001f]{4,220}",
+   "flags": "gi"
+  },
+  "ip": {
+   "src": "\\b(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\b",
+   "flags": "g"
+  },
+  "email": {
+   "src": "\\b[\\w.+-]{2,40}@[A-Za-z0-9-]{2,40}\\.[A-Za-z]{2,10}\\b",
+   "flags": "g"
+  },
+  "reg": {
+   "src": "\\b(?:HKEY_[A-Z_]+|HKLM|HKCU)\\\\[\\w\\\\ .{}-]{4,120}",
+   "flags": "g"
+  },
+  "path": {
+   "src": "\\b[A-Za-z]:\\\\(?:[\\w .$-]+\\\\)*[\\w .$-]{2,60}",
+   "flags": "g"
+  },
+  "btc": {
+   "src": "\\b(?:bc1[a-z0-9]{25,60}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\\b",
+   "flags": "g"
+  },
+  "eth": {
+   "src": "\\b0x[a-fA-F0-9]{40}\\b",
+   "flags": "g"
+  },
+  "webhook": {
+   "src": "https?:\\/\\/(?:ptb\\.|canary\\.)?discord(?:app)?\\.com\\/api\\/(?:v\\d+\\/)?webhooks\\/\\d+\\/[\\w-]+",
+   "flags": "gi"
+  },
+  "telegram": {
+   "src": "api\\.telegram\\.org\\/bot\\d+:[\\w-]{20,}",
+   "flags": "gi"
+  },
+  "onion": {
+   "src": "\\b[a-z2-7]{16,56}\\.onion\\b",
+   "flags": "gi"
+  },
+  "invite": {
+   "src": "\\bdiscord(?:\\.gg|(?:app)?\\.com\\/invite)\\/[\\w-]{2,32}",
+   "flags": "gi"
+  }
+ },
+ "detect": [
+  {
+   "name": "SilentNet (RAT/stealer, Minecraft hile istemcisi kılığı)",
+   "src": [
+    "S1",
+    "S2",
+    "S3"
+   ],
+   "looks": [
+    "Minecraft oturum token’ı/UUID erişimi + ağ gönderimi (+ latest.log, özel TLS TrustManager)",
+    "C2 çözümleme göstergeleri: DNS‑over‑HTTPS, blokzincir RPC (eth_call)",
+    "Raporlarda geçen uç nokta adları (aile adı değil; davranışlarla birlikte puanlanır)",
+    "PE: javaw ile .jar başlatan çalıştırılabilir, sertifika deposu/ağ API’leri",
+    "Metot düzeyi (normal/derin): token/yol erişimi ile ağ gönderimi aynı metotta veya yakın çağrı zincirinde; bytecode’dan doğrulanmış boş TrustManager/HostnameVerifier",
+    "Gizleme: rastgele sınıf adları, metin çözücü metodlar, XOR (derin modda)"
+   ],
+   "limits": "Python/Nuitka 3. aşaması elde edilmemiş, davranışı çıkarım; domain/IP/cüzdan adresleri değişebilir ve bilerek imza yapılmadı."
+  },
+  {
+   "name": "Fractureiser (CurseForge/Bukkit mod bulaşması)",
+   "src": [
+    "S4"
+   ],
+   "looks": [
+    "Ağ + çalışma anında kod yükleme + jar/zip yeniden yazma",
+    "Metot düzeyi: indir + dosya yaz + çalıştır/yükle aynı metotta veya yakın zincirde",
+    "Run anahtarı, Başlangıç klasörü, systemd servisi ile kalıcılık",
+    "Pano cüzdan adresi değiştirme kalıpları",
+    "Raporlanmış dosya/servis adları (yalnızca ipucu)"
+   ],
+   "limits": "2023 kampanyası; adlar ve altyapı değişmiş olabilir. Bulaşmış bir jar’da eklenen fonksiyon küçükse sinyal zayıf kalabilir."
+  },
+  {
+   "name": "Stargazers Ghost Network (sahte mod → Java + .NET stealer)",
+   "src": [
+    "S5"
+   ],
+   "looks": [
+    "Pastebin tipi servisten yük çekme + dinamik yükleme/çalıştırma",
+    "Analiz aracı/VM adı kontrolleri (Wireshark, TCPView, VirtualBox vb.)",
+    "Feather/Essential/Lunar istemci hesap verisine başvuru, Discord/Telegram token ve webhook",
+    "Cüzdan, VPN, Steam yolları; ekran görüntüsü ve pano API’leri"
+   ],
+   "limits": "İkincil kaynak; yük adları ve servisler değişebilir. Derlenmiş .NET stealer’lar için yalnızca import/metin tabanlı sinyaller."
+  },
+  {
+   "name": "Genel info‑stealer / RAT davranışı",
+   "src": [
+    "S6"
+   ],
+   "looks": [
+    "Tarayıcı kimlik/çerez yolları, DPAPI (CryptUnprotectData) ile şifre çözme",
+    "Discord/Telegram/cüzdan verisi + dışarı gönderim kanalı (webhook, bot API)",
+    "Süreç enjeksiyonu, keylogger, indir‑çalıştır, Defender/AMSI kapatma, kalıcılık",
+    "Gizleme: paketleyici, yüksek entropi, Base64/XOR ile gömülü PE"
+   ],
+   "limits": "Her bulgu tek başına kesin hüküm vermez; birleşimler (örn. veri erişimi + gönderim kanalı) puanı yükseltir."
+  }
+ ],
+ "version": "5.0.0"
+}
