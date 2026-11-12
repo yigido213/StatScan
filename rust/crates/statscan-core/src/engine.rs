@@ -493,6 +493,15 @@ pub fn scan_buffer(u: &[u8], name: &str, st: &mut St, depth: usize) -> ScanResul
                     Err(e) => return_err(&mut f2, &e, st),
                 }
             }
+            FileKind::Pe => {
+                let r = crate::pe::analyze_pe(u, name, st, depth, &mut f2);
+                type_label = r.kind;
+                for (k, v) in r.info {
+                    info.insert(k, v);
+                }
+                kids = r.children;
+                anl2.extend(r.analyses);
+            }
             FileKind::Class => {
                 type_label = "Java class".into();
                 if let Some(c) = crate::java::parse_class(u, false) {

@@ -10,6 +10,7 @@ pub mod engine;
 pub mod ioc;
 pub mod java;
 pub mod model;
+pub mod pe;
 pub mod report;
 pub mod rules;
 pub mod score;
