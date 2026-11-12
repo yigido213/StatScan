@@ -746,8 +746,8 @@ mod tests {
         assert!(r.findings.iter().any(|f| f.id == "name_double"));
         let r = scan("photo.png", &pe, "normal");
         assert!(r.findings.iter().any(|f| f.id == "ext_mismatch"));
-        // PE henuz tasinmadi: acikca belirtilmeli
-        assert!(r.findings.iter().any(|f| f.id == "rs_unported"));
+        // Yalniz "MZ" iceren dosya gecerli PE degil: JS motoru gibi pe_bad
+        assert!(r.findings.iter().any(|f| f.id == "pe_bad"));
     }
 
     #[test]
