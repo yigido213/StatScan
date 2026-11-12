@@ -8,6 +8,7 @@ pub mod data;
 pub mod deobf;
 pub mod engine;
 pub mod ioc;
+pub mod java;
 pub mod model;
 pub mod report;
 pub mod rules;

@@ -475,6 +475,9 @@ pub fn scan_buffer(u: &[u8], name: &str, st: &mut St, depth: usize) -> ScanResul
                     Ok(z) if !z.jar_unported => {
                         type_label = z.type_label;
                         info.insert("kind".into(), Value::String(z.info_kind));
+                        for (k, v) in z.info {
+                            info.insert(k, v);
+                        }
                         kids = z.kids;
                         anl2.extend(z.analyses);
                     }
@@ -488,6 +491,17 @@ pub fn scan_buffer(u: &[u8], name: &str, st: &mut St, depth: usize) -> ScanResul
                         anl2.push(Analysis::led("struct", "JAR/class yapısal analizi", "unsupported", "Rust motorunda henüz taşınmadı"));
                     }
                     Err(e) => return_err(&mut f2, &e, st),
+                }
+            }
+            FileKind::Class => {
+                type_label = "Java class".into();
+                if let Some(c) = crate::java::parse_class(u, false) {
+                    let mut hits = Hits::new();
+                    let ids = crate::deobf::st_ids(st);
+                    run_rules(&c.utf8.join("\n"), &mut hits, &c.name, Kind::Other, ids.as_ref());
+                    hits_to_findings(&hits, &mut f2);
+                } else {
+                    return_err(&mut f2, "Java class ayrıştırılamadı (bozuk veya kesik dosya)", st);
                 }
             }
             FileKind::Xz => {

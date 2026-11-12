@@ -65,6 +65,10 @@ pub struct Finding {
     pub conf: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cls: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<usize>,
     #[serde(skip_serializing_if = "is_false")]
     pub user: bool,
     #[serde(skip_serializing_if = "is_false")]
@@ -90,6 +94,8 @@ impl Finding {
             mitre: None,
             conf: None,
             fp: None,
+            cls: None,
+            count: None,
             user: false,
             exempt: false,
             java_target: false,

@@ -23,7 +23,7 @@ static PATS: LazyLock<Vec<Pat>> = LazyLock::new(|| {
         .collect()
 });
 
-static BENIGN: LazyLock<Rx> =
+pub static BENIGN: LazyLock<Rx> =
     LazyLock::new(|| Rx::new(&META.benign_hosts.src, &META.benign_hosts.flags).expect("benign_hosts"));
 
 static PRIVATE_IP: LazyLock<Rx> = LazyLock::new(|| {

@@ -45,6 +45,8 @@ pub struct ZipOut {
     pub analyses: Vec<Analysis>,
     /// true: JAR (class iceren) — derin Java analizi henuz yok
     pub jar_unported: bool,
+    /// JAR analizinin ek bilgi alanlari (JS `Object.assign(res.info, r.info)`).
+    pub info: serde_json::Map<String, Value>,
 }
 
 pub fn analyze_zip(u: &[u8], name: &str, ext: &str, st: &mut St, depth: usize, f: &mut Vec<Finding>) -> Result<ZipOut, String> {
@@ -62,7 +64,7 @@ pub fn analyze_zip(u: &[u8], name: &str, ext: &str, st: &mut St, depth: usize, f
         "ZIP arşivi"
     }
     .to_string();
-    let mut out = ZipOut { info_kind: type_label.clone(), type_label, kids: vec![], analyses: vec![], jar_unported: false };
+    let mut out = ZipOut { info_kind: type_label.clone(), type_label, kids: vec![], analyses: vec![], jar_unported: false, info: serde_json::Map::new() };
     let total: f64 = entries.iter().map(|e| e.size as f64).sum();
     if total > 4e9 || (entries.len() > 20 && total / (u.len().max(1) as f64) > 900.0 && total > 2e8) {
         let ratio = (total / u.len().max(1) as f64).round();
@@ -71,7 +73,10 @@ pub fn analyze_zip(u: &[u8], name: &str, ext: &str, st: &mut St, depth: usize, f
         return Ok(out);
     }
     if has_class {
-        out.jar_unported = true;
+        let r = crate::java::analyze_jar(u, &entries, st, depth, name);
+        f.extend(r.findings);
+        out.kids = r.children;
+        out.info = r.info;
         return Ok(out);
     }
     let mut hits = Hits::new();

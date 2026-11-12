@@ -63,6 +63,10 @@ impl Hits {
     pub fn is_empty(&self) -> bool {
         self.order.is_empty()
     }
+    /// JS: tum eslesmelerin sayac toplami.
+    pub fn total(&self) -> usize {
+        self.order.iter().map(|h| h.count).sum()
+    }
 }
 
 /// Cok buyuk metinlerde regex maliyetini sinirlamak icin 1 MB'lik pencerelerle calisir (JS ile ayni sinir).
