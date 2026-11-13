@@ -16,6 +16,10 @@ function repoHandOff(ctx) {
   try { m.start(Object.assign({}, ctx, { root: b.root, repoRoot: b.root, repo: b.info })); return true; } catch (e) { R.rollback(ud, 'baslatilamadi: ' + String(e && e.message || e).slice(0, 120)); try { app.relaunch(); } catch (e2) { /* yoksay */ } app.exit(0); return true; }
 }
 
+/* Acilis suresi olcumu: userData/kovan-startup.log (son 20 satir; yalniz sure, kisisel veri yok). */
+const T0 = Date.now() - Math.round(process.uptime() * 1000);
+function tmark(label) { try { const f = path.join(app.getPath('userData'), 'kovan-startup.log'); let old = ''; try { old = fs.readFileSync(f, 'utf8'); } catch (e) { old = ''; } const lines = old.split('\n').filter(Boolean).slice(-19); lines.push(new Date().toISOString().slice(0, 19) + '  +' + (Date.now() - T0) + ' ms  ' + label); fs.writeFileSync(f, lines.join('\n') + '\n'); } catch (e) { /* olcum yazilamazsa sessiz */ } }
+
 function start(ctx) {
   if (!ctx.repoRoot && repoHandOff(ctx)) return;
   const D = require(path.join(ctx.root, 'dyn', 'statscan-dyn.js'));
@@ -99,10 +103,13 @@ function start(ctx) {
       width: 1280, height: 900, minWidth: 900, minHeight: 640, show: false, backgroundColor: '#0b1118', title: 'Kovan', icon: ICON,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: !app.isPackaged }
     });
-    win.once('ready-to-show', () => { if (process.argv.includes('--autostart') && appConfig().startMinimized) { win.showInactive(); win.minimize(); } else win.show(); });
+    const quietStart = process.argv.includes('--autostart') && appConfig().startMinimized;
+    if (!quietStart) win.show(); /* koyu arka planli pencere hemen gorunur; icerik hazir olunca dolar */
+    tmark('pencere olusturuldu');
+    win.once('ready-to-show', () => { tmark('ilk cizim hazir'); if (process.argv.includes('--autostart') && appConfig().startMinimized) { win.showInactive(); win.minimize(); } else win.show(); });
     win.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
     win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file://')) e.preventDefault(); });
-    win.webContents.once('did-finish-load', () => setTimeout(() => { try { if (ctx.repo) repoModule.markGood(app.getPath('userData'), ctx.repo.tree); U.markGood(app.getPath('userData')); U.cleanOld(app.getPath('userData'), ctx.source === 'update' ? ctx.version : ''); } catch (e) { /* yoksay */ } }, 4000));
+    win.webContents.once('did-finish-load', () => { tmark('sayfa yuklendi'); }); win.webContents.once('did-finish-load', () => setTimeout(() => { try { if (ctx.repo) repoModule.markGood(app.getPath('userData'), ctx.repo.tree); U.markGood(app.getPath('userData')); U.cleanOld(app.getPath('userData'), ctx.source === 'update' ? ctx.version : ''); } catch (e) { /* yoksay */ } }, 4000));
     win.loadFile(HTML);
     win.on('closed', () => { win = null; });
   }
