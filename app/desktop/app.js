@@ -9,6 +9,8 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell, session } = require('e
 function repoEnabled() { try { const c = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'statscan-app.config.json'), 'utf8')); return !(c && c.update && c.update.repo === false); } catch (e) { return true; } }
 function repoHandOff(ctx) {
   let R; try { R = require('./host.js').repoModule; } catch (e) { return false; } if (!R || !repoEnabled()) return false;
+  /* Ikinci kopya (ornegin yeniden baslat sirasinda) acilis sayacini ARTIRMASIN: kilit pickBoot'tan once alinir (ayni surecte tekrar istemek zararsiz). */
+  if (!app.requestSingleInstanceLock()) { app.quit(); return true; }
   const ud = app.getPath('userData'); const b = R.pickBoot({ dataDir: ud }); if (!b) return false;
   let m; try { m = require(path.join(b.root, 'desktop', 'app.js')); } catch (e) { R.rollback(ud, 'yuklenemedi: ' + String(e && e.message || e).slice(0, 120)); return false; }
   try { m.start(Object.assign({}, ctx, { root: b.root, repoRoot: b.root, repo: b.info })); return true; } catch (e) { R.rollback(ud, 'baslatilamadi: ' + String(e && e.message || e).slice(0, 120)); try { app.relaunch(); } catch (e2) { /* yoksay */ } app.exit(0); return true; }
