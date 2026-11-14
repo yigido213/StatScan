@@ -32,7 +32,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- HOTFIX: Blitz oyuncu profili HTTP 400 — Codex: başladı.
+- HOTFIX: Blitz oyuncu profili HTTP 400 — Codex: bitti. Kadro araması Riot Kimliğini önceliklendirir. LCU profili/geçmişi alınamazsa mevcut Riot API yapılandırmasıyla yeniden çözümlenir.
 - HOTFIX: Blitz maç analizinden oyuncu profiline geçiş — Codex: bitti. Kadroda oyuncu adı ve portresi mevcut profil görünümünü açar. İstemci kapalıyken kayıtlı oyuncu kimliği gösterilir.
 - HOTFIX: Blitz oyuncu büyü/rün simgelerini satırın ortasına taşıma — Codex: bitti. Rün PNG için CommunityDragon yedeği eklenir.
 - Blitz kadrolarında oyuncu büyüleri ve rünleri — Codex: bitti. Her oyuncunun iki büyüsü, ana rünü ve ikincil rün yolu kendi eşya satırının üstünde. LCU ve Riot eşitlemesi eski maçları tamamlar. Kovan beta 0.1.16.

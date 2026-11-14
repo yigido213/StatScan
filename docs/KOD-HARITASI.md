@@ -43,7 +43,7 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 - Maç ekranı tıklanınca kurulur. Geri düğmesi veya Escape, mevcut listeyi filtre ve kaydırma konumuyla geri getirir. Grafikler kompakt kutularda yer alır. Kadrolarda geniş portreler, büyük yazı ve ayrı bir eşya satırı bulunur. Dar ekranda takımlar alt alta dizilir.
 
-- Analiz kadrosunda oyuncu adı ve portresi, kayıtlı PUUID veya Riot Kimliği ile oyuncu profilini açar. İstemci kapalıyken kayıtlı kimlik gösterilir.
+- Analiz kadrosunda oyuncu adı ve portresi, önce Riot Kimliği, yoksa kayıtlı PUUID ile oyuncu profilini açar. LCU kullanılamadığında yapılandırılmış Riot API denenir; ikisi de sonuç vermezse kayıtlı kimlik gösterilir.
 
 - Analiz kadrosu oyuncu başına D/F büyülerini, ana rünü ve ikincil yolu geniş ekranda oyuncu adı ile KDA arasındaki sütunda, dar ekranda KDA altında gösterir. Riot CDN rün simgesi alınamazsa aynı varlık için CommunityDragon denenir. Eski kadro kayıtları bir sonraki eşitlemede oyuncuya göre tamamlanır.
 

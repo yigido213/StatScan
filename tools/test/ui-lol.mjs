@@ -257,7 +257,7 @@ rich = (p) => { if (p === '/lol-summoner/v1/current-summoner') return { puuid: '
 const hr = mkHost(path.join(tmp, 'rich'));
 let selectedRosterId;
 hr.handlers['lol:player:search'] = async (_event, req) => {
-  selectedRosterId = req.puuid;
+  selectedRosterId = req.query;
   return { state: 'noclient' };
 };
 pg = await page(null, hr); await pg.goto(URL + '#/lolcounter'); await ready(pg, /Güncellendi/); await pg.waitForTimeout(500);
@@ -274,7 +274,7 @@ ok(await pg.evaluate(() => [...document.querySelectorAll('#lg-match-screen .bz-p
 ok(/2 yeni maç/.test(await txt(pg, '#lc-live')), 'senkron mesajı: 2 yeni maç');
 await pg.locator('[data-team="theirs"] .bz-player-portrait').first().click();
 await pg.waitForFunction(() => /Oyuncu6#EUW/.test(document.querySelector('#lg-pl-res')?.textContent || ''));
-ok(selectedRosterId === 'player_fixture_identity_6' && await pg.locator('#lg-match-screen').isHidden(),
+ok(selectedRosterId === 'Oyuncu6#EUW' && await pg.locator('#lg-match-screen').isHidden(),
   'rakip portresi doğru oyuncunun profilini açar ve istemci kapalıyken kayıtlı kimliği gösterir');
 { const r2 = await hr.handlers['lol:sync'](null, { deep: false }); ok(r2 && r2.added === 0, 'tekrar güncelle: yinelenen maç eklenmez'); }
 await hr.handlers['lol:data:clear'](null); await pg.waitForTimeout(100); ok(true, 'Verileri silme (host kanalı; arayüzde düğme yok)');

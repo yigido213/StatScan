@@ -1430,6 +1430,50 @@ const LOLMOD = (() => {
         participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
       const idn = String(info.gameId || ''); return { gameId: Number(idn), gameCreation: info.gameCreation, gameDuration: info.gameDuration, queueId: info.queueId, participants, participantIdentities };
     }
+    async function riotProfile(who, puuid, view, notes) {
+      if (!riot.key || Date.now() < riotBlock) return null;
+      const platform = riot.region + '.api.riotgames.com';
+      const region = RIOT_REG[riot.region] + '.api.riotgames.com';
+      try {
+        // Resolve Riot ID through the same API that will receive the resulting PUUID.
+        const accountPath = who ? '/riot/account/v1/accounts/by-riot-id/' +
+          encodeURIComponent(who.name) + '/' + encodeURIComponent(who.tag) :
+          '/riot/account/v1/accounts/by-puuid/' + encodeURIComponent(puuid);
+        const account = await riotCall(region, accountPath);
+        if (!/^[A-Za-z0-9_-]{20,100}$/.test(String(account?.puuid || ''))) return null;
+        puuid = account.puuid;
+        const player = { puuid, name: String(account.gameName || who?.name || '').slice(0, 30),
+          tag: String(account.tagLine || who?.tag || '').slice(0, 10), level: 0, icon: 0 };
+        const issues = [];
+        let rank = null;
+        try {
+          const entries = await riotCall(platform, '/lol/league/v4/entries/by-puuid/' + puuid);
+          rank = parseRanked({ queues: (Array.isArray(entries) ? entries : []).map((r) => ({ ...r, division: r.rank })) });
+        } catch (e) { if (e.fatal) throw e; issues.push('derece: ' + e.message); }
+        const ids = await riotCall(region, '/lol/match/v5/matches/by-puuid/' + puuid + '/ids?start=0&count=' + RIOT_MATCHES);
+        const matches = [];
+        const co = champOf();
+        for (const id of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) {
+          if (typeof id !== 'string' || !/^[A-Z0-9]+_\d{5,14}$/.test(id)) continue;
+          try {
+            const match = await riotCall(region, '/lol/match/v5/matches/' + id);
+            const game = match?.info && riotGame({ ...match.info, gameId: Number(id.split('_')[1]) }, puuid);
+            const normalized = game && normMatch(game, puuid, co);
+            if (normalized) matches.push(normalized);
+          } catch (e) {
+            issues.push('maçlar: ' + e.message);
+            if (e.fatal) break;
+          }
+        }
+        const ent = { t: now(), player, rank, matches, details: matches.filter((m) => !m.partial).length, notes: issues };
+        playerKeep(puuid, ent);
+        return { state: 'ok', player, rank, cached: false, notes: issues, view: playerView(ent, view),
+          counts: { matches: matches.length, details: ent.details } };
+      } catch (e) {
+        notes.push(String(e.message || e).slice(0, 120));
+        return null;
+      }
+    }
     async function riotSync(force) {
       if (!riotReady()) return { state: 'noclient' }; const t = now();
       if (Date.now() < riotBlock) return { state: 'ok', source: 'riot', throttled: true, added: 0, snaps: 0, notes: ['Riot API sınırı: biraz bekleniyor.'], me: state.me, total: Object.keys(state.matches).length };
@@ -1638,14 +1682,14 @@ const LOLMOD = (() => {
         try {
           const bad = await needRoster(); if (bad) return bad; req = req || {}; let who = null; let puuid = null;
           if (req.puuid != null) { puuid = String(req.puuid); if (!/^[A-Za-z0-9_-]{20,100}$/.test(puuid)) return errE('Oyuncu kimliği geçersiz.'); } else { who = parsePlayerQuery(req.query); if (!who) return { state: 'badquery' }; }
-          const info = await lcuFind(); if (!info) return { state: 'noclient' };
+          const info = await lcuFind(); if (!info) { const notes = []; return await riotProfile(who, puuid, req.view, notes) || { state: notes.length ? 'unavailable' : 'noclient', notes }; }
           const wait = lastLookup + 1000 - now(); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); lastLookup = now();
           const msg = (e) => String(e && e.message || e).slice(0, 80); const nf = (e) => /404|not.?found/i.test(String(e && e.message || e)); const notes = [];
           let player = { puuid, name: who ? who.name : '', tag: who ? who.tag : '', level: 0, icon: 0 };
           if (!puuid) {
             let j = null; try { j = await lcuRead(info, '/lol-summoner/v1/alias/lookup?gameName=' + encodeURIComponent(who.name) + '&tagLine=' + encodeURIComponent(who.tag)); } catch (e) { if (!nf(e)) notes.push('arama: ' + msg(e)); }
             if (!j || !j.puuid) { try { j = await lcuRead(info, '/lol-summoner/v1/summoners?name=' + encodeURIComponent(who.name + '#' + who.tag)); } catch (e) { if (!nf(e)) notes.push('arama2: ' + msg(e)); } }
-            if (!j || typeof j !== 'object' || !/^[A-Za-z0-9_-]{20,100}$/.test(String(j.puuid || ''))) return { state: notes.length ? 'error' : 'notfound', notes };
+            if (!j || typeof j !== 'object' || !/^[A-Za-z0-9_-]{20,100}$/.test(String(j.puuid || ''))) return await riotProfile(who, null, req.view, notes) || { state: notes.length ? 'unavailable' : 'notfound', notes };
             puuid = String(j.puuid); player.puuid = puuid; if (j.gameName) player.name = String(j.gameName).slice(0, 30); if (j.tagLine) player.tag = String(j.tagLine).slice(0, 10);
           }
           /* maçsız (başarısız) sonuç önbellekten dönmez: yeniden arama gerçekten yeniden dener */
@@ -1658,6 +1702,11 @@ const LOLMOD = (() => {
             let list = null; try { const mp = '/lol-match-history/v1/products/lol/' + puuid + '/matches?begIndex=' + beg + '&endIndex=' + (beg + 20); let j; try { j = await lcuRead(info, mp, 15000); } catch (e1) { if (!/zaman aşımı/.test(String(e1 && e1.message || e1))) throw e1; j = await lcuRead(info, mp, 15000); } list = gamesOf(j); if (list === null) { if (!matches.size) notes.push(j == null ? 'maçlar: istemci bu oyuncunun maç geçmişini vermedi (boş yanıt / 404)' : 'maçlar: istemci yanıtının biçimi tanınmadı'); denied = true; break; } } catch (e) { if (!matches.size) notes.push('maçlar: ' + msg(e)); denied = true; break; }
             for (const g of list) { let m = normMatch(g, puuid, co); if (!m) continue; if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + Math.round(Number(g.gameId)), 8000), puuid, co); if (m2) { m = m2; details++; } } catch (e) { /* ayrıntı alınamadı */ } } matches.set(m.id, m); }
             if (list.length < 20) break;
+          }
+          if (!matches.size && denied) {
+            const fallback = await riotProfile(who, puuid, req.view, notes);
+            if (fallback) return fallback;
+            if (!player.name) return { state: 'unavailable', notes };
           }
           if (!matches.size && !notes.some((x) => /^maçlar/.test(x))) notes.push('maçlar: istemci boş liste döndürdü (oyuncu geçmişini gizli tutuyor ya da istemci başkasının geçmişini vermiyor olabilir)');
           const ent = { t: now(), player, rank, matches: [...matches.values()], details, notes: notes.slice() }; playerKeep(puuid, ent);

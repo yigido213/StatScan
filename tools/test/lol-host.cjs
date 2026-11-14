@@ -531,6 +531,17 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const n1 = rcalls.length; const r2 = await hr.handlers['lol:sync']({}); ok(r2.throttled === true && rcalls.length === n1, 'riot: 2 dakikadan sık istek atılmaz (3 sn otomatik yenileme Riot\'u yormaz)');
     const r3 = await hr.handlers['lol:sync']({ force: true }); ok(r3.added === 0 && rcalls.filter((c) => /matches\/TR1_/.test(c)).length === 2, 'riot: aynı maç iki kez indirilmez/eklenmez');
     ok(rcalls.every((c) => /^(europe|tr1)\.api\.riotgames\.com\//.test(c)), 'riot: yalnız beklenen Riot adreslerine gidildi');
+    const rejectLcu = mkHost({ now: () => NOW, lcu: {
+      find: async () => ({ port: 9, token: 'abcdefgh1234' }),
+      get: async (_info, p) => {
+        if (p.includes('/alias/lookup')) return { puuid: 'local-identifier-' + 'y'.repeat(30) };
+        throw new Error('HTTP 400');
+      }
+    }, riot: { get: rget } }, dd);
+    const lookedUp = await rejectLcu.handlers['lol:player:search']({ query: 'Ben#TR1' });
+    ok(lookedUp.state === 'ok' && lookedUp.player.name === 'Ben' && lookedUp.counts.matches === 2 &&
+      lookedUp.player.puuid === 'PU-ME-' + 'x'.repeat(30),
+      'oyuncu profili: LCU HTTP 400 sonrası Riot Kimliği ile profil ve maçlar yüklenir');
     const oldStore = JSON.parse(fs.readFileSync(path.join(dd,'lolcounter.json'),'utf8')); for(const m of Object.values(oldStore.matches)) { delete m.spells; m.players = m.players.map((p) => { const x = Object.assign({}, p); for (const k of ['k','d','a','cs','gold','dmg','vision','items']) delete x[k]; return x; }); } fs.writeFileSync(path.join(dd,'lolcounter.json'), JSON.stringify(oldStore));
     const backfill = mkHost({now:()=>NOW,lcu:{find:async()=>null},riot:{get:rget}},dd); const br=await backfill.handlers['lol:sync']({force:true}); const bm=await backfill.handlers['lol:matches']({});
     ok(br.added===0 && br.updated===2 && bm.rows.every((m)=>JSON.stringify(m.spells)==='[12,4]'), 'eski Riot kaydı: büyüler tamamlanır, maçlar yeniden eklenmiş sayılmaz');

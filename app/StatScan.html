@@ -8650,8 +8650,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           })) : null;
           const displayName = p.name || nameOf(p.champ);
           const identity = displayName + (p.name && p.tag ? '#' + p.tag : '');
-          const request = /^[A-Za-z0-9_-]{20,100}$/.test(p.puuid || '') ? { puuid: p.puuid } :
-            p.name && p.tag ? { query: p.name + '#' + p.tag } : null;
+          const request = p.name && p.tag ? { query: p.name + '#' + p.tag } :
+            /^[A-Za-z0-9_-]{20,100}$/.test(p.puuid || '') ? { puuid: p.puuid } : null;
           const profileButton = (content, portrait = false) => h('button', {
             type: 'button', class: 'bz-player-profile' + (portrait ? ' bz-player-portrait' : ''),
             'aria-label': KT('{0} profilini aç', identity), onclick: () => openProfile(request, p)
@@ -8862,11 +8862,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const r = await call(H.lolPlayerSearch, req); st.pl.busy = false; if (st.tab !== 'player') return; const res2 = $('#lg-pl-res', panes.player); if (!res2) return;
       if (!r || r.error) { put(res2, h('p', { class: 'lg-sub warn' }, failMsg(r))); return; }
       if (r.state === 'badquery') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Geçerli bir Riot Kimliği yaz (Ad#ETİKET).'))); return; }
-      if (r.state === 'noclient') {
+      if (r.state === 'noclient' || (r.state !== 'ok' && recordedPlayer && (r.state === 'unavailable' || r.state === 'notfound'))) {
         if (recordedPlayer) {
           const identity = (recordedPlayer.name || nameOf(recordedPlayer.champ)) + (recordedPlayer.tag ? '#' + recordedPlayer.tag : '');
           put(res2, h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, identity),
-            h('p', { class: 'lg-sub' }, KT('Tam profili görmek için League istemcisini aç.'))));
+            h('p', { class: 'lg-sub' }, KT(r.state === 'noclient' ? 'Tam profili görmek için League istemcisini aç.' : 'Bu oyuncunun maç geçmişi alınamadı.')),
+            r.notes?.length ? h('p', { class: 'lg-sub' }, r.notes.join(' · ')) : null));
         } else put(res2, h('p', { class: 'lg-sub warn' }, KT('League istemcisi bulunamadı (açık mı?).')));
         return;
       }
