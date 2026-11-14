@@ -37,6 +37,8 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
 
+- Maç kartında boş alan içerikleri yaymaz: `.bz-stats` içerik genişliğinde `max-content` sütunlar/14px aralık, `.bz-row` soldan flex/12px aralık, büyü/eşya grubu 12px aralık. Geniş kartta ana bilgi alanı en çok 460px; takım listesi bitişiğinde, kalan yer sağda boş kalır. 701–780px kartlarda orta sütun daralır; ≤700px takımlar alt satıra geçer.
+
 - Maç büyüleri/rünleri: `normMatch` iki büyüyü D/F sırasında `spells` olarak kaydeder; Riot match-v5 `summoner1Id/2Id` aynı yola çevrilir. Eski kayıtların eksik alanları sonraki senkronizasyonda tamamlanır. Kartta istatistik/eşya arasında 2×2: solda iki büyü, sağda ana rün ve ikincil ağaç. `lol:icon` spell/rune türlerini yalnız Data Dragon metadata kimliği→izinli PNG yolu ile çözer; sürümlü spell, `/cdn/img/perk-images/` rün yolu; isim tooltip/erişilebilir etikette. Eksik maç verisi tahmin edilmez.
 
 - Blitz metin seçimi kapalı (`user-select:none`); input/textarea/contenteditable yazı seçimi açık. Maç kartı: 52px portre, esnek istatistik/eşya alanı, 158px iki takım sütunu. `.lg-matches` container query: ≤700px takım altta, ≤440px eşyalar istatistik altına geçer. Eşikler/gerçek maç verileri korunur.
