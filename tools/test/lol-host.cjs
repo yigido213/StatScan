@@ -210,6 +210,22 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   // istatistik
   const sx = await HP['lol:stats']({ queue: 'all' }); ok(sx.overview.games === 5 && sx.overview.wins === 3 && sx.overview.wr === 60 && sx.overview.losses === 2, 'istatistik: yeniden başlatma hariç 5 maç, 3 galibiyet, %60');
   ok(sx.overview.kda === 2.19 && sx.overview.k === 4.2 && sx.overview.csm > 5 && sx.overview.gpm > 300 && sx.overview.fav === 'top', 'istatistik: KDA, CS/dk, altın/dk, favori hat');
+  {
+    const dir = path.join(tmp, 'pool-roles');
+    fs.mkdirSync(dir);
+    const base = L.normMatch(GAMES[0], 'P-ME', String);
+    const cases = [
+      { role: 'support' }, { role: 'bot' }, { role: 'mid' },
+      { role: 'jungle', spells: [4, 11] }, { role: 'jungle', spells: [11, 4] }, { role: 'top' },
+      { role: 'jungle', champ: 'Kayle' }, { role: 'top', queue: 'aram', champ: 'Kayle' }
+    ];
+    const matches = Object.fromEntries(cases.map((entry, i) => [i, { ...base, id: String(i), spells: [4, 12], ...entry }]));
+    fs.writeFileSync(path.join(dir, 'lolcounter.json'), JSON.stringify({ v: 1, matches }));
+    const result = await mkHost({}, dir).handlers['lol:stats']({ queue: 'all' });
+    ok(JSON.stringify(result.roleChamps.map((group) => group.role)) === JSON.stringify(['top', 'jungle', 'mid', 'bot', 'support', null]) &&
+      result.roleChamps[1].games === 2 && result.roleChamps[5].champs[0].champ === 'Kayle' && result.roleChamps[5].games === 2,
+      'havuz: sabit rol sırası, Çarpsız eski orman ve ARAM yanlış koridora yazılmaz');
+  }
   const stRanked = await HP['lol:stats']({ queue: 'ranked' }); ok(stRanked.overview.games === 4 && stRanked.overview.streak.win === false && stRanked.overview.streak.n === 1, 'istatistik: dereceli filtre (solo+flex 4 maç, son maç yenilgi serisi 1)');
   const dc = sx.champs.find((c) => c.champ === 'Darius'); ok(dc.games === 4 && dc.wins === 2 && dc.wr === 50 && sx.champs[0].champ === 'Darius' && sx.champs.find((c) => c.champ === 'Garen').games === 1, 'şampiyon performansı: Darius 4 maç %50, Garen 1');
   ok(sx.roles[0].role === 'top' && sx.roles[0].games === 5 && sx.roles[0].wr === 60, 'hat istatistiği: top 5 maç %60');

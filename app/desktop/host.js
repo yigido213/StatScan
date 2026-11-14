@@ -1078,7 +1078,7 @@ const LOLMOD = (() => {
     const stat = (v, max) => { const n = Number(v); return v != null && Number.isFinite(n) && n >= 0 && n <= max ? Math.floor(n) : null; };
     const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; const ps = p.stats || {}; const cs = stat(ps.totalMinionsKilled, 1000000); const jungle = stat(ps.neutralMinionsKilled, 1000000); return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline), spells: matchSpells(p), keystone: matchChoiceId(ps.perk0), secondary: matchChoiceId(ps.perkSubStyle), k: stat(ps.kills, 100000), d: stat(ps.deaths, 100000), a: stat(ps.assists, 100000), cs: cs === null || jungle === null ? null : cs + jungle, gold: stat(ps.goldEarned, 100000000), dmg: stat(ps.totalDamageDealtToChampions, 100000000), vision: stat(ps.visionScore, 100000), items: Array.from({ length: 7 }, (_, i) => stat(ps['item' + i], 999999)).filter((x) => x !== null && x > 0) }; }) : [];
     const opp = role && full ? ((players.find((x) => !x.me && x.team !== numOr0(me.teamId) && x.role === role) || {}).champ || null) : null;
-    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes, spells: matchSpells(me) };
+    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, positionConfirmed: !!(role && me.teamPositionConfirmed), k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes, spells: matchSpells(me) };
   }
   const wlOf = (ms) => { const r = ms.filter((m) => !m.remake); const w = r.filter((m) => m.win).length; return { w, l: r.length - w }; };
   const r1 = (x) => Math.round(x * 10) / 10; const r2 = (x) => Math.round(x * 100) / 100;
@@ -1096,15 +1096,26 @@ const LOLMOD = (() => {
     return [...by.values()].map((x) => ({ champ: x.champ, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), kda: r2((x.k + x.a) / Math.max(1, x.d)), k: r1(x.k / x.games), d: r1(x.d / x.games), a: r1(x.a / x.games), csm: x.sec ? r1(x.cs / (x.sec / 60)) : 0, gpm: x.sec ? Math.round(x.gold / (x.sec / 60)) : 0, dmg: Math.round(x.dmg / x.games), last: x.last })).sort((a, b) => b.games - a.games || b.wr - a.wr || a.champ.localeCompare(b.champ));
   }
   /* Blitz 'Sampiyon havuzu': hat basina sampiyonlar (galibiyet, KDA) + yalniz KESIN hesaplanan LP farklarinin toplami (bilinmiyorsa lp:null) */
+  const POSITION_QUEUES = new Set(['solo', 'flex', 'draft', 'blind', 'swift', 'quick', 'clash', 'custom']);
+  function poolRole(match) {
+    if (!POSITION_QUEUES.has(match.queue) || !ROLES.includes(match.role)) return null;
+    if (match.positionConfirmed) return match.role;
+    const spells = match.spells || match.players?.find((player) => player?.me)?.spells;
+    // Legacy timeline roles can mislabel lanes. Only trust a jungle label with Smite,
+    // and never use Smite alone to move a match into a different role.
+    const hasSmite = Array.isArray(spells) && spells.includes(11);
+    if ((match.role === 'jungle') !== hasSmite) return null;
+    return match.role;
+  }
   function roleChampStats(ms, delta) {
     const out = [];
-    for (const role of ROLES) {
-      const rm = ms.filter((m) => m.role === role && !m.remake); if (!rm.length) continue; const wins = rm.filter((m) => m.win).length; let lp = null;
+    for (const role of [...ROLES, null]) {
+      const rm = ms.filter((m) => poolRole(m) === role && !m.remake); if (!rm.length) continue; const wins = rm.filter((m) => m.win).length; let lp = null;
       for (const m of rm) if (delta && delta.has(m.id)) lp = (lp || 0) + delta.get(m.id);
       const champs = champStats(rm).slice(0, 30).map((c) => { let cl = null; for (const m of rm) if (m.champ === c.champ && delta && delta.has(m.id)) cl = (cl || 0) + delta.get(m.id); return Object.assign({}, c, { lp: cl }); });
       out.push({ role, games: rm.length, wins, losses: rm.length - wins, lp, champs });
     }
-    return out.sort((a, b) => b.games - a.games);
+    return out;
   }
   function roleStats(ms) { const by = {}; for (const m of ms) { if (m.remake || !m.role) continue; const x = by[m.role] || (by[m.role] = { role: m.role, games: 0, wins: 0 }); x.games++; if (m.win) x.wins++; } return Object.values(by).map((x) => Object.assign(x, { wr: r1((100 * x.wins) / x.games) })).sort((a, b) => b.games - a.games); }
   function partnerStats(ms) {
@@ -1427,7 +1438,7 @@ const LOLMOD = (() => {
       info.participants.slice(0, 10).forEach((p, i) => { const id = i + 1; const st = (p.perks && Array.isArray(p.perks.styles)) ? p.perks.styles : []; const sel = (k) => (st[k] && Array.isArray(st[k].selections) ? st[k].selections.map((x) => x && x.perk) : []);
         const perks = sel(0).slice(0, 4).concat(sel(1).slice(0, 2)); const stats = { kills: p.kills, deaths: p.deaths, assists: p.assists, totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled, goldEarned: p.goldEarned, totalDamageDealtToChampions: p.totalDamageDealtToChampions, visionScore: p.visionScore, champLevel: p.champLevel, win: p.win === true, gameEndedInEarlySurrender: p.gameEndedInEarlySurrender === true, perkPrimaryStyle: st[0] && st[0].style, perkSubStyle: st[1] && st[1].style };
         for (let k = 0; k < 7; k++) stats['item' + k] = p['item' + k]; for (let k = 0; k < 6; k++) stats['perk' + k] = perks[k];
-        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
+        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null, teamPositionConfirmed: !!POS[p.teamPosition] }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
       const idn = String(info.gameId || ''); return { gameId: Number(idn), gameCreation: info.gameCreation, gameDuration: info.gameDuration, queueId: info.queueId, participants, participantIdentities };
     }
     async function riotProfile(who, puuid, view, notes) {
@@ -1486,7 +1497,7 @@ const LOLMOD = (() => {
         state.me = { puuid, name: String(acc.gameName || gn).slice(0, 40), tag: String(acc.tagLine || tg).slice(0, 10), level: prev.level || 0, icon: prev.icon || 0 };
         let snaps = 0; try { const ent = await riotCall(plat, '/lol/league/v4/entries/by-puuid/' + encodeURIComponent(puuid)); const rk = parseRanked({ queues: (Array.isArray(ent) ? ent : []).map((e) => Object.assign({}, e, { division: e && e.rank })) }); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { if (e.fatal) throw e; notes.push('derece: ' + msg(e)); }
         let added = 0; let updated = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
-          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; const old = state.matches[num]; const fullStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k]))); if (!/^\d{5,14}$/.test(num) || (old && old.spells !== undefined && fullStats(old.players) && hasPlayerChoices(old.players))) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!old) added++; else updated++; state.matches[nm.id] = nm; } }
+          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; const old = state.matches[num]; const fullStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k]))); if (!/^\d{5,14}$/.test(num) || (old && old.spells !== undefined && fullStats(old.players) && hasPlayerChoices(old.players) && old.positionConfirmed !== undefined)) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!old) added++; else updated++; state.matches[nm.id] = nm; } }
           const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
         } catch (e) { if (e.fatal) throw e; notes.push('maçlar: ' + msg(e)); }
         save(); return { state: 'ok', source: 'riot', me: state.me, added, updated, snaps, notes, total: Object.keys(state.matches).length };

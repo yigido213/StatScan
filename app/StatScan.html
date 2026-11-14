@@ -6484,6 +6484,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Sabitle": "Pin",
       "{0} sabitlemesini kaldır": "Unpin {0}",
       "Tüm araçlar sabitlendi": "All tools pinned",
+      "Rolü belirsiz": "Unknown role",
       "Maç geçmişine dön": "Back to match history",
       "{0} profilini aç": "Open {0} profile",
       "Tam profili görmek için League istemcisini aç.": "Open the League client to see the full profile.",
@@ -8923,7 +8924,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       if (!groups.length) { put(panes.champs, top, empty(KT('Şampiyon verisi yok'), KT('Maç geçmişi okununca burada şampiyon başına galibiyet oranı, KDA ve CS/dk görünür.'))); return; }
       const tile = (c) => { const wr = Math.round(c.wr); const cl = wr > 50 ? 'hi' : wr < 50 ? 'lo' : ''; return h('div', { class: 'bz-tile', 'data-champ': c.champ, title: nameOf(c.champ) }, champIc(c.champ), h('b', { class: 'bz-wr ' + cl }, '%' + wr + ' WR'), h('span', { class: 'bz-wl' }, KT('{0}G - {1}M', c.wins, c.games - c.wins)), h('span', { class: 'bz-kda' }, dec1(c.kda) + ' KDA'), h('span', { class: 'bz-tlp' }, c.lp === null || c.lp === undefined ? '' : (c.lp > 0 ? '+' : '') + c.lp + ' LP')); };
       const sec = (g) => h('section', { class: 'bz-role', 'data-role': g.role || 'all' },
-        h('div', { class: 'bz-rolehead' }, roleIcon(g.role), h('div', {}, h('h2', { class: 'bz-rn' }, g.role ? KT(RTR[g.role]) : KT('Şampiyonlar')), g.lp === null || g.lp === undefined ? null : h('b', { class: 'bz-rlp' }, (g.lp > 0 ? '+' : '') + g.lp + ' LP'), h('span', { class: 'bz-rwl' }, KT('{0}G - {1}M', g.wins, g.losses)))),
+        h('div', { class: 'bz-rolehead' }, roleIcon(g.role), h('div', {}, h('h2', { class: 'bz-rn' }, g.role === 'bot' ? 'ADC' : g.role ? KT(RTR[g.role]) : KT('Rolü belirsiz')), g.lp === null || g.lp === undefined ? null : h('b', { class: 'bz-rlp' }, (g.lp > 0 ? '+' : '') + g.lp + ' LP'), h('span', { class: 'bz-rwl' }, KT('{0}G - {1}M', g.wins, g.losses)))),
         h('div', { class: 'bz-grid' }, ...g.champs.map(tile)));
       put(panes.champs, top, h('div', { class: 'bz-roles', id: 'lg-pool' }, ...groups.map(sec)));
     }
