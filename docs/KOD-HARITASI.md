@@ -37,7 +37,9 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
 
-- Blitz metin seçimi kapalı (`user-select:none`); input/textarea/contenteditable yazı seçimi açık. Maç kartı: 52px portre, esnek istatistik/eşya alanı, 158px iki takım sütunu. `.lg-matches` container query: ≤650px takım altta, ≤440px eşyalar istatistik altına geçer. Eşikler/gerçek maç verileri korunur.
+- Maç büyüleri/rünleri: `normMatch` iki büyüyü D/F sırasında `spells` olarak kaydeder; Riot match-v5 `summoner1Id/2Id` aynı yola çevrilir. Eski kayıtların eksik alanları sonraki senkronizasyonda tamamlanır. Kartta istatistik/eşya arasında 2×2: solda iki büyü, sağda ana rün ve ikincil ağaç. `lol:icon` spell/rune türlerini yalnız Data Dragon metadata kimliği→izinli PNG yolu ile çözer; sürümlü spell, `/cdn/img/perk-images/` rün yolu; isim tooltip/erişilebilir etikette. Eksik maç verisi tahmin edilmez.
+
+- Blitz metin seçimi kapalı (`user-select:none`); input/textarea/contenteditable yazı seçimi açık. Maç kartı: 52px portre, esnek istatistik/eşya alanı, 158px iki takım sütunu. `.lg-matches` container query: ≤700px takım altta, ≤440px eşyalar istatistik altına geçer. Eşikler/gerçek maç verileri korunur.
 
 - Maç kartı KDA rengi (`matchCard`, `.bz-st.k`): <5 gri (#aeb7c4), 5–<10 tok sarı (#ffa500), 10–<15 açık mavi (#55c7ff), ≥15 zümrüt (#1edb96). Eşikler yuvarlanmamış (K+A)/max(1,D) değeriyle hesaplanır. KDA referansa uygun 14px/700 Segoe UI/Arial, -.15px harf aralığıyla gösterilir; diğer maç istatistikleri 800 ağırlıktadır. Blitz geri bağlantısı absolute konumlanır, lg-wrap üst dolgusu 52px: sticky arka plan bölümün en üstünden başlar, bağlantının marjı boş şerit oluşturmaz.
 

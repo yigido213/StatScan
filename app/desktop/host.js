@@ -1065,9 +1065,10 @@ const LOLMOD = (() => {
     for (const p of parts) { const pl = idOf.get(p && p.participantId) || {}; if (myPuuid && pl.puuid === myPuuid) { me = p; break; } } if (!me && parts.length === 1) me = parts[0]; if (!me || !me.stats) return null;
     const s = me.stats; const rn = parseRunes({ perks: [0, 1, 2, 3, 4, 5].map((i) => s['perk' + i]), primary: s.perkPrimaryStyle, secondary: s.perkSubStyle }); const runes = rn && rn.perks.length === 6 ? rn : null; let t = numOr0(g.gameCreation); if (!t && g.gameCreationDate) t = Date.parse(g.gameCreationDate) || 0; const dur = numOr0(g.gameDuration); const remake = !!s.gameEndedInEarlySurrender || (dur > 0 && dur < 240);
     const win = s.win === true || s.win === 'Win'; const role = laneRole(me.timeline); const full = parts.length >= 2;
+    const spellIds = [me.spell1Id, me.spell2Id].map((x) => { const n = Number(x); return Number.isInteger(n) && n > 0 && n <= 999999 ? n : null; });
     const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline) }; }) : [];
     const opp = role && full ? ((players.find((x) => !x.me && x.team !== numOr0(me.teamId) && x.role === role) || {}).champ || null) : null;
-    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes };
+    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes, spells: spellIds.some(Boolean) ? spellIds : null };
   }
   const wlOf = (ms) => { const r = ms.filter((m) => !m.remake); const w = r.filter((m) => m.win).length; return { w, l: r.length - w }; };
   const r1 = (x) => Math.round(x * 10) / 10; const r2 = (x) => Math.round(x * 100) / 100;
@@ -1357,11 +1358,26 @@ const LOLMOD = (() => {
       }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject); req.end();
     });
     const liveRead = async (p) => { if (!LIVE_OK.test(p)) throw new Error('izin verilmeyen uç nokta'); return liveGet(p); };
-    let runeMap = null;
-    async function loadRunes() {
+    let runeMap = null; let runePending = null; let spellMap = null; let spellPending = null;
+    const safeRuneIcon = (v) => typeof v === 'string' && /^perk-images\/[A-Za-z0-9_/-]+\.png$/.test(v) && v.length < 240 ? v : null;
+    const safeSpellIcon = (v) => typeof v === 'string' && /^[A-Za-z0-9_-]+\.png$/.test(v) && v.length < 100 ? v : null;
+    async function loadSpells() {
+      if (spellMap) return spellMap; if (spellPending) return spellPending;
+      spellPending = (async () => {
+        const nm = 'summoner-' + rosterMeta.version + '-' + rosterMeta.locale + '.json'; let j = cacheRead(nm);
+        if (!j) { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/summoner.json', LIM.body)); cacheWrite(nm, j); }
+        const out = {}; for (const r of Object.values((j && j.data) || {})) { const id = Number(r && r.key); const image = safeSpellIcon(r && r.image && r.image.full); if (Number.isInteger(id) && id > 0 && id <= 999999 && image) out[id] = { name: String(r.name || '').slice(0, 60), image }; }
+        spellMap = out; return out;
+      })().finally(() => { spellPending = null; }); return spellPending;
+    }
+    function loadRunes() {
+      if (runeMap) return Promise.resolve(runeMap); if (runePending) return runePending;
+      runePending = readRunes().finally(() => { runePending = null; }); return runePending;
+    }
+    async function readRunes() {
       if (runeMap) return runeMap; const nm = 'runes-' + rosterMeta.version + '-' + rosterMeta.locale + '.json'; let j = cacheRead(nm);
       if (!j) { try { j = JSON.parse(await httpGet(DD_HOST, '/cdn/' + rosterMeta.version + '/data/' + rosterMeta.locale + '/runesReforged.json', LIM.body)); cacheWrite(nm, j); } catch (e) { return errE('Rün verisi alınamadı (' + String(e && e.message || e) + ').'); } }
-      const m = { perks: {}, trees: {}, idx: {} }; for (const tr of Array.isArray(j) ? j : []) { if (!tr || !Number.isInteger(tr.id)) continue; m.trees[tr.id] = String(tr.name || '').slice(0, 30); (tr.slots || []).forEach((sl, si) => { for (const r of sl.runes || []) if (r && Number.isInteger(r.id)) { m.perks[r.id] = String(r.name || '').slice(0, 40); m.idx[r.id] = { t: tr.id, s: si }; } }); }
+      const m = { perks: {}, trees: {}, idx: {}, icons: {} }; for (const tr of Array.isArray(j) ? j : []) { if (!tr || !Number.isInteger(tr.id)) continue; m.trees[tr.id] = String(tr.name || '').slice(0, 30); if (safeRuneIcon(tr.icon)) m.icons[tr.id] = tr.icon; (tr.slots || []).forEach((sl, si) => { for (const r of sl.runes || []) if (r && Number.isInteger(r.id)) { m.perks[r.id] = String(r.name || '').slice(0, 40); m.idx[r.id] = { t: tr.id, s: si }; if (safeRuneIcon(r.icon)) m.icons[r.id] = r.icon; } }); }
       runeMap = m; return m;
     }
     /* esya verisi: mantik icin en_US item.json (aciklama metni 'Grievous Wounds' vb. icin), gorunen adlar icin yerel dil; yalniz kucuk ozet onbellege yazilir */
@@ -1401,7 +1417,7 @@ const LOLMOD = (() => {
       info.participants.slice(0, 10).forEach((p, i) => { const id = i + 1; const st = (p.perks && Array.isArray(p.perks.styles)) ? p.perks.styles : []; const sel = (k) => (st[k] && Array.isArray(st[k].selections) ? st[k].selections.map((x) => x && x.perk) : []);
         const perks = sel(0).slice(0, 4).concat(sel(1).slice(0, 2)); const stats = { kills: p.kills, deaths: p.deaths, assists: p.assists, totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled, goldEarned: p.goldEarned, totalDamageDealtToChampions: p.totalDamageDealtToChampions, visionScore: p.visionScore, champLevel: p.champLevel, win: p.win === true, gameEndedInEarlySurrender: p.gameEndedInEarlySurrender === true, perkPrimaryStyle: st[0] && st[0].style, perkSubStyle: st[1] && st[1].style };
         for (let k = 0; k < 7; k++) stats['item' + k] = p['item' + k]; for (let k = 0; k < 6; k++) stats['perk' + k] = perks[k];
-        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, stats, timeline: POS[p.teamPosition] || null }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
+        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
       const idn = String(info.gameId || ''); return { gameId: Number(idn), gameCreation: info.gameCreation, gameDuration: info.gameDuration, queueId: info.queueId, participants, participantIdentities };
     }
     async function riotSync(force) {
@@ -1415,11 +1431,11 @@ const LOLMOD = (() => {
         const puuid = String(acc.puuid).slice(0, 90); const prev = state.me && state.me.puuid === puuid ? state.me : {};
         state.me = { puuid, name: String(acc.gameName || gn).slice(0, 40), tag: String(acc.tagLine || tg).slice(0, 10), level: prev.level || 0, icon: prev.icon || 0 };
         let snaps = 0; try { const ent = await riotCall(plat, '/lol/league/v4/entries/by-puuid/' + encodeURIComponent(puuid)); const rk = parseRanked({ queues: (Array.isArray(ent) ? ent : []).map((e) => Object.assign({}, e, { division: e && e.rank })) }); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { if (e.fatal) throw e; notes.push('derece: ' + msg(e)); }
-        let added = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
-          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; if (!/^\d{5,14}$/.test(num) || state.matches[num]) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { state.matches[nm.id] = nm; added++; } }
+        let added = 0; let updated = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
+          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; if (!/^\d{5,14}$/.test(num) || (state.matches[num] && state.matches[num].spells !== undefined)) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!state.matches[nm.id]) added++; else updated++; state.matches[nm.id] = nm; } }
           const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
         } catch (e) { if (e.fatal) throw e; notes.push('maçlar: ' + msg(e)); }
-        save(); return { state: 'ok', source: 'riot', me: state.me, added, snaps, notes, total: Object.keys(state.matches).length };
+        save(); return { state: 'ok', source: 'riot', me: state.me, added, updated, snaps, notes, total: Object.keys(state.matches).length };
       } catch (e) { return { state: 'ok', source: 'riot', added: 0, snaps: 0, notes: [msg(e)], me: state.me, total: Object.keys(state.matches).length, riotError: msg(e) }; }
     }
     const lcuSend = deps.lcu && deps.lcu.write ? deps.lcu.write : (info, method, p, body) => new Promise((resolve, reject) => {
@@ -1526,14 +1542,22 @@ const LOLMOD = (() => {
           let sum = null; try { sum = await lcuRead(info, '/lol-summoner/v1/current-summoner'); } catch (e) { notes.push('profil: ' + msg(e)); }
           if (sum && typeof sum === 'object' && sum.puuid) state.me = { puuid: String(sum.puuid).slice(0, 90), name: String(sum.gameName || sum.displayName || sum.summonerName || '').slice(0, 40), tag: String(sum.tagLine || '').slice(0, 10), level: Math.round(Number(sum.summonerLevel)) || 0, icon: Math.round(Number(sum.profileIconId)) || 0 };
           let snaps = 0; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/current-ranked-stats')); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { notes.push('derece: ' + msg(e)); }
-          let added = 0; const me = state.me; const want = req && req.deep === true ? 100 : 20;
+          let added = 0; let updated = 0; const me = state.me; const want = req && req.deep === true ? 100 : 20;
           if (me) {
             let budget = LIM.details;
             for (let beg = 0; beg < want; beg += 20) {
               let list = null; try { const j = await lcuRead(info, '/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=' + beg + '&endIndex=' + (beg + 20)); list = j && j.games && Array.isArray(j.games.games) ? j.games.games : []; } catch (e) { notes.push('maçlar: ' + msg(e)); break; }
               for (const g of list) {
                 const id = String(Math.round(Number(g && g.gameId))); const old = state.matches[id];
-                if (old && !old.partial) { if (old.runes === undefined) { const mr = normMatch(g, me.puuid, co); let rr = mr ? mr.runes : null; let again = false; if (!rr && budget > 0) { budget--; try { const m3 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); rr = m3 ? m3.runes : null; } catch (e) { again = true; } } else if (!rr) again = true; if (!again) old.runes = rr || null; } continue; }
+                if (old && !old.partial) {
+                  if (old.runes === undefined || old.spells === undefined) {
+                    let mr = normMatch(g, me.puuid, co); let retry = false;
+                    const missing = () => !mr || (old.runes === undefined && !mr.runes) || (old.spells === undefined && !mr.spells);
+                    if (missing()) { if (budget > 0) { budget--; try { const detail = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); if (detail) mr = detail; } catch (e) { retry = true; } } else retry = true; }
+                    if (!retry) { updated++; if (old.runes === undefined) old.runes = mr ? mr.runes : null; if (old.spells === undefined) old.spells = mr ? mr.spells : null; }
+                  }
+                  continue;
+                }
                 let m = normMatch(g, me.puuid, co); if (!m) continue;
                 if (m.partial && budget > 0) { budget--; try { const m2 = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); if (m2) m = m2; } catch (e) { /* ayrinti alinamadi */ } }
                 if (!old) added++; state.matches[id] = m;
@@ -1542,7 +1566,7 @@ const LOLMOD = (() => {
             }
             const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
           }
-          save(); return { state: 'ok', me: state.me, added, snaps, notes, total: Object.keys(state.matches).length };
+          save(); return { state: 'ok', me: state.me, added, updated, snaps, notes, total: Object.keys(state.matches).length };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:riot:get': async () => ({ hasKey: !!riot.key, id: riot.id, region: riot.region, regions: Object.keys(RIOT_REG) }),
@@ -1635,13 +1659,17 @@ const LOLMOD = (() => {
       },
       'lol:icon': async (_e, req) => {
         try {
-          req = req || {}; const kind = req.kind; const id = String(req.id); let p; let host = DD_HOST; let max = LIM.icon; let ver = '';
+          req = req || {}; const kind = req.kind; const id = String(req.id); let p; let host = DD_HOST; let max = LIM.icon; let ver = ''; let name = ''; let unversioned = false;
           if (kind === 'rank') { if (!TIERS.map((x) => x.toLowerCase()).includes(id)) return errE('Derece geçersiz.'); host = CD_HOST; max = LIM.rank; p = CD_RANK + 'emblem-' + id + '.png'; } else { const bad = await needRoster(); if (bad) return bad; ver = rosterMeta.version; }
-          if (kind === 'rank') { /* yukarida */ } else if (kind === 'champion') { if (!validChamp(id)) return errE('Şampiyon bulunamadı.'); p = 'champion/' + id + '.png'; } else if (kind === 'item') { if (!/^\d{3,6}$/.test(id)) return errE('Eşya geçersiz.'); p = 'item/' + id + '.png'; } else if (kind === 'profile') { if (!/^\d{1,6}$/.test(id)) return errE('Simge geçersiz.'); p = 'profileicon/' + id + '.png'; } else return errE('Simge türü geçersiz.');
-          const key = kind + '-' + id + (ver ? '-' + ver : ''); if (iconMem.has(key)) return { data: iconMem.get(key) };
+          if (kind === 'rank') { /* yukarida */ } else if (kind === 'champion') { if (!validChamp(id)) return errE('Şampiyon bulunamadı.'); p = 'champion/' + id + '.png'; } else if (kind === 'item') { if (!/^\d{3,6}$/.test(id)) return errE('Eşya geçersiz.'); p = 'item/' + id + '.png'; } else if (kind === 'profile') { if (!/^\d{1,6}$/.test(id)) return errE('Simge geçersiz.'); p = 'profileicon/' + id + '.png'; } else if (kind === 'spell') {
+            if (!/^\d{1,6}$/.test(id)) return errE('Büyü geçersiz.'); const spells = await loadSpells(); const entry = spells[id]; if (!entry) return errE('Büyü bulunamadı.'); p = 'spell/' + entry.image; name = entry.name;
+          } else if (kind === 'rune') {
+            if (!/^\d{4}$/.test(id)) return errE('Rün geçersiz.'); const R = await loadRunes(); if (R.error || !R.icons[id]) return errE('Rün bulunamadı.'); p = '/cdn/img/' + R.icons[id]; name = R.perks[id] || R.trees[id] || ''; unversioned = true;
+          } else return errE('Simge türü geçersiz.');
+          const key = kind + '-' + id + (ver ? '-' + ver : ''); if (iconMem.has(key)) return { data: iconMem.get(key), name };
           const isPng = (b) => Buffer.isBuffer(b) && b.length >= 64 && b[0] === 0x89 && b[1] === 0x50; const file = cacheDir ? path.join(cacheDir, 'icons', key + '.png') : null; let buf = null; if (file) { try { buf = fs.readFileSync(file); } catch (e) { buf = null; } if (!isPng(buf)) buf = null; }
-          if (!buf) { buf = await iconSlot(() => httpBin(host, kind === 'rank' ? p : '/cdn/' + ver + '/img/' + p, max)); if (!isPng(buf)) return errE('Simge alınamadı.'); if (file) { try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, buf); } catch (e) { /* onbellek zorunlu degil */ } } }
-          const d = 'data:image/png;base64,' + buf.toString('base64'); if (iconMem.size > 800) iconMem.clear(); iconMem.set(key, d); return { data: d };
+          if (!buf) { buf = await iconSlot(() => httpBin(host, kind === 'rank' || unversioned ? p : '/cdn/' + ver + '/img/' + p, max)); if (!isPng(buf)) return errE('Simge alınamadı.'); if (file) { try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, buf); } catch (e) { /* onbellek zorunlu degil */ } } }
+          const d = 'data:image/png;base64,' + buf.toString('base64'); if (iconMem.size > 800) iconMem.clear(); iconMem.set(key, d); return { data: d, name };
         } catch (e) { return errE('Simge alınamadı (' + String(e && e.message || e).slice(0, 60) + ').'); }
       },
       'lol:data:clear': async () => {

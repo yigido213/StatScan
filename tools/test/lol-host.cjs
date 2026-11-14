@@ -35,7 +35,8 @@ const get = async (host, p) => {
   if (host === 'ddragon.leagueoflegends.com') {
     if (p === '/api/versions.json') return JSON.stringify(['16.21.1', '16.20.1']); if (/\/data\/tr_TR\/champion\.json$/.test(p)) return JSON.stringify(champJson);
     if (/\/data\/(en_US|tr_TR)\/item\.json$/.test(p)) { if (itemsFail) throw new Error('HTTP 500'); return JSON.stringify(/en_US/.test(p) ? ITEM_EN : ITEM_TR); }
-    if (/\/data\/tr_TR\/runesReforged\.json$/.test(p)) return JSON.stringify([{ id: 8000, name: 'İlham', slots: [{ runes: [{ id: 8010, name: 'Fatih' }] }, { runes: [{ id: 9111, name: 'Zafer' }] }, { runes: [{ id: 9104, name: 'Efsane' }] }, { runes: [{ id: 8299, name: 'Son Direniş' }] }] }, { id: 8400, name: 'Direniş', slots: [{ runes: [{ id: 8437, name: 'Eller' }] }, { runes: [{ id: 8444, name: 'Şahlanış' }] }, { runes: [{ id: 8473, name: 'Kemik' }] }, { runes: [{ id: 8451, name: 'Taşma' }] }] }]);
+    if (/\/data\/tr_TR\/summoner\.json$/.test(p)) return JSON.stringify({ data: { Flash: { key: '4', name: 'Sıçra', image: { full: 'SummonerFlash.png' } }, TP: { key: '12', name: 'Işınlan', image: { full: 'SummonerTeleport.png' } }, Bad: { key: '9', name: 'Bad', image: { full: '../../secret.png' } } } });
+    if (/\/data\/tr_TR\/runesReforged\.json$/.test(p)) return JSON.stringify([{ id: 8000, name: 'İlham', slots: [{ runes: [{ id: 8010, name: 'Fatih', icon: 'perk-images/Styles/Precision/Conqueror/Conqueror.png' }] }, { runes: [{ id: 9111, name: 'Zafer' }] }, { runes: [{ id: 9104, name: 'Efsane' }] }, { runes: [{ id: 8299, name: 'Son Direniş', icon: 'perk-images/../bad.png' }] }] }, { id: 8400, name: 'Direniş', icon: 'perk-images/Styles/7204_Resolve.png', slots: [{ runes: [{ id: 8437, name: 'Eller' }] }, { runes: [{ id: 8444, name: 'Şahlanış' }] }, { runes: [{ id: 8473, name: 'Kemik' }] }, { runes: [{ id: 8451, name: 'Taşma' }] }] }]);
     const m = /\/champion\/([A-Za-z0-9]+)\.json$/.exec(p); if (m) return JSON.stringify({ data: { [m[1]]: { name: m[1], enemytips: ['ESKI IPUCU ' + m[1]], passive: { name: 'Pasif', description: 'Pasif <b>metin</b><br>' + m[1] }, spells: ['Q', 'W', 'E', 'R'].map((k) => ({ name: k + ' yeteneği', cooldownBurn: '8/7/6', description: k + ' <i>güncel</i> açıklama' })) } } });
   }
   if (host === 'www.counterpick.lol') { cpCalls.push(p); if (cpPages[p] === undefined) throw new Error('HTTP 404'); return cpPages[p]; }
@@ -172,7 +173,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   const ID = (n) => ({ participantId: n, player: { puuid: n === 1 ? 'P-ME' : 'P-' + n, gameName: n === 1 ? 'retired toplane' : (n === 2 ? 'Duoboy' : 'Oyuncu' + n), tagLine: n === 1 ? 'yigit' : 'TR1' } });
   function game(id, start, durSec, queueId, win, o) {
     o = o || {}; const champs = o.champs || ['Darius', 'Duo', 'Ahri', 'Jinx', 'Lux', 'Garen', 'Teemo', 'Zed', 'Vayne', 'Sion']; const ck = (n) => (champs[n - 1] === 'Duo' ? KEY.Kayle : KEY[champs[n - 1]]);
-    const parts = []; for (let n = 1; n <= 10; n++) parts.push({ participantId: n, teamId: n <= 5 ? 100 : 200, championId: ck(n), timeline: n === 1 || n === 6 ? { lane: 'TOP', role: 'SOLO' } : { lane: 'NONE', role: 'NONE' },
+    const parts = []; for (let n = 1; n <= 10; n++) parts.push({ participantId: n, teamId: n <= 5 ? 100 : 200, championId: ck(n), spell1Id: 4, spell2Id: 12, timeline: n === 1 || n === 6 ? { lane: 'TOP', role: 'SOLO' } : { lane: 'NONE', role: 'NONE' },
       stats: n === 1 ? { win, kills: o.k == null ? 5 : o.k, deaths: o.d == null ? 2 : o.d, assists: o.a == null ? 3 : o.a, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 18, champLevel: 16, item0: 3074, item1: 3053, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3340, gameEndedInEarlySurrender: !!o.remake } : { win: !win, kills: 1, deaths: 1, assists: 1 } });
     return { gameId: id, gameCreation: start, gameDuration: durSec, queueId, participants: parts, participantIdentities: parts.map((x) => ID(x.participantId)) };
   }
@@ -328,6 +329,24 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   ok(L.absLp('PLATINUM', 'III', 99) === 1799 && L.absLp('MASTER', '', 120) === 2920 && L.absLp('CHALLENGER', '', 0) === 2800 && L.absLp('BOZUK', 'I', 1) === null, 'absLp: kademe/lig/LP birleşik sayı, usta+ ortak ölçek');
   ok(L.normRank({ queueType: 'RANKED_SOLO_5x5', tier: '', wins: 3, losses: 2 }).unranked === true && L.normRank({ queueType: 'RANKED_TFT', tier: 'GOLD' }) === null && L.parseRanked(null).solo === null, 'derece ayrıştırma: derecesiz, TFT yok sayılır, bozuk girdi güvenli');
   ok(L.laneRole({ lane: 'BOTTOM', role: 'DUO_SUPPORT' }) === 'support' && L.laneRole({ lane: 'BOTTOM', role: 'DUO_CARRY' }) === 'bot' && L.laneRole({ lane: 'MIDDLE' }) === 'mid' && L.laneRole(null) === null, 'hat çıkarımı: destek/nişancı/orta');
+  {
+    const ng = game(9090, T0, 1800, 420, true); const nm = L.normMatch(ng, 'P-ME', (id) => String(id));
+    ok(JSON.stringify(nm.spells) === '[4,12]', 'maç büyüleri: gerçek D/F sırası korunur (Flash/TP)');
+    delete ng.participants[0].spell1Id; ok(JSON.stringify(L.normMatch(ng, 'P-ME', String).spells) === '[null,12]', 'maç büyüleri: eksik ilk büyüde ikinci büyü yer değiştirmez');
+    ng.participants[0].spell2Id = '../bad'; ok(L.normMatch(ng, 'P-ME', String).spells === null, 'maç büyüleri: eksik/geçersiz veri tahmin edilmez');
+    const before = bins.length;
+    const [flash, tp, rune, tree] = await Promise.all([['spell', '4'], ['spell', '12'], ['rune', '8010'], ['rune', '8400']].map(([kind,id]) => HP['lol:icon']({kind,id})));
+    ok(flash.data && flash.name === 'Sıçra' && tp.name === 'Işınlan' && rune.name === 'Fatih' && tree.name === 'Direniş', 'büyü/rün simgeleri: Data Dragon isimleri ve PNG');
+    ok(bins.slice(before).includes('/cdn/16.21.1/img/spell/SummonerFlash.png') && bins.slice(before).includes('/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png') && bins.slice(before).includes('/cdn/img/perk-images/Styles/7204_Resolve.png'), 'büyü sürümlü, rün ve ikincil ağaç sürümsüz resmi CDN yolundan');
+    const cached = bins.length; await HP['lol:icon']({kind:'spell',id:'4'}); await HP['lol:icon']({kind:'rune',id:'8010'}); ok(bins.length === cached, 'büyü/rün simgeleri bellekten döner');
+    const invalid = await Promise.all([['spell','../4'],['spell','9'],['rune','8299'],['rune','9999'],['rune','https://x']].map(([kind,id]) => HP['lol:icon']({kind,id})));
+    ok(invalid.every((r) => r.error) && bins.length === cached, 'büyü/rün: bilinmeyen kimlik, URL ve metadata yol geçişi ağ isteği yapmadan reddedilir');
+    const old = L.normMatch(GAMES[0], 'P-ME', String); delete old.spells;
+    const md = path.join(tmp, 'spells-migration'); fs.mkdirSync(md); fs.writeFileSync(path.join(md,'lolcounter.json'), JSON.stringify({v:1,me:SUM,matches:{[old.id]:old}}));
+    const mh = mkHost({now:()=>NOW,lcu:{find:async()=>({port:9,token:'abcdefgh1234'}),get:lcuG}},md);
+    const migrationSync = await mh.handlers['lol:sync'](); ok(migrationSync.updated > 0, 'eski kayıt tamamlama arayüz yenilemesini tetikler'); const migrated = await mh.handlers['lol:matches']({});
+    ok(JSON.stringify(migrated.rows.find((m)=>m.id===old.id).spells)==='[4,12]', 'eski LCU kaydı: sonraki senkronizasyonda büyüler tamamlanır');
+  }
   ok(L.normMatch({ gameId: 'x' }, 'P', () => null) === null && L.normMatch(null, 'P', () => null) === null && L.normMatch({ gameId: 1, participants: [{ participantId: 1, stats: { win: true } }, { participantId: 2, stats: {} }], participantIdentities: [] }, 'P', () => null) === null, 'maç ayrıştırma: bozuk/benim olmayan veri null');
 
   // ---- esya onerisi
@@ -489,7 +508,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok(!/cooldown|bekleme|flash|çarp|\bult\b/i.test(h), 'bindirme sayfası: büyü/yetenek bekleme sayacı yok'); }
   // ---- Riot API (istemci kapaliyken): sahte Riot, gercek ag yok
   { const KEY = 'RGAPI-e9b4a092-2fba-4951-b69d-2320e9c025e4'; const rcalls = []; let rmode = 'ok';
-    const mkMatch = (n, win) => ({ info: { gameCreation: 1.7e12 + n * 1e6, gameDuration: 1800, queueId: 420, participants: Array.from({ length: 10 }, (_, i) => ({ puuid: i === 0 ? 'PU-ME-' + 'x'.repeat(30) : 'PU-O' + i, riotIdGameName: i === 0 ? 'Ben' : 'Op' + i, riotIdTagline: 'TR1', teamId: i < 5 ? 100 : 200, championId: i === 0 ? 122 : 86, teamPosition: i === 0 ? 'TOP' : ['JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 4], kills: 7, deaths: 2, assists: 5, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 25, champLevel: 16, win: i < 5 ? win : !win, item0: 3001, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3201, perks: { styles: [{ style: 8000, selections: [{ perk: 8010 }, { perk: 9111 }, { perk: 9104 }, { perk: 8014 }] }, { style: 8200, selections: [{ perk: 8226 }, { perk: 8210 }] }] } })) } });
+    const mkMatch = (n, win) => ({ info: { gameCreation: 1.7e12 + n * 1e6, gameDuration: 1800, queueId: 420, participants: Array.from({ length: 10 }, (_, i) => ({ puuid: i === 0 ? 'PU-ME-' + 'x'.repeat(30) : 'PU-O' + i, riotIdGameName: i === 0 ? 'Ben' : 'Op' + i, riotIdTagline: 'TR1', teamId: i < 5 ? 100 : 200, championId: i === 0 ? 122 : 86, summoner1Id: 12, summoner2Id: 4, teamPosition: i === 0 ? 'TOP' : ['JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 4], kills: 7, deaths: 2, assists: 5, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 25, champLevel: 16, win: i < 5 ? win : !win, item0: 3001, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3201, perks: { styles: [{ style: 8000, selections: [{ perk: 8010 }, { perk: 9111 }, { perk: 9104 }, { perk: 8014 }] }, { style: 8200, selections: [{ perk: 8226 }, { perk: 8210 }] }] } })) } });
     const rget = async (host, pth, key) => { rcalls.push(host + pth); if (key !== KEY) return { status: 401, body: null, retry: 0 }; if (rmode === '429') return { status: 429, body: null, retry: 10 }; if (rmode === '401') return { status: 401, body: null, retry: 0 };
       if (/by-riot-id\/Ben\/TR1$/.test(pth)) return { status: 200, body: { puuid: 'PU-ME-' + 'x'.repeat(30), gameName: 'Ben', tagLine: 'TR1' }, retry: 0 };
       if (/entries\/by-puuid/.test(pth)) return { status: 200, body: [{ queueType: 'RANKED_SOLO_5x5', tier: 'GOLD', rank: 'II', leaguePoints: 47, wins: 30, losses: 20 }], retry: 0 };
@@ -506,9 +525,13 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const r1 = await hr.handlers['lol:sync']({}); ok(r1.state === 'ok' && r1.source === 'riot' && r1.added === 2 && r1.snaps >= 1, 'riot: istemci kapalıyken senkron: 2 maç + derece (' + JSON.stringify(r1.notes) + ')');
     const pr = await hr.handlers['lol:profile'](); ok(pr.rank && pr.rank.solo && pr.rank.solo.tier === 'GOLD' && pr.rank.solo.div === 'II' && pr.rank.solo.lp === 47 && pr.matches === 2 && pr.me.name === 'Ben', 'riot: profil derece (GOLD II 47 LP) + 2 maç');
     const ml = await hr.handlers['lol:matches']({}); ok(ml.rows.length === 2 && ml.rows[0].champ === 'Darius' && ml.rows[0].role === 'top' && ml.rows[0].k === 7 && ml.rows[0].queue === 'solo' && ml.rows[0].runes && ml.rows[0].runes.perks.length === 6, 'riot: maç biçimi (şampiyon/hat/KDA/kuyruk/rün) LCU maçıyla aynı');
+    ok(JSON.stringify(ml.rows[0].spells) === '[12,4]', 'Riot match-v5: summoner1Id/2Id D/F sırasıyla saklanır');
     const n1 = rcalls.length; const r2 = await hr.handlers['lol:sync']({}); ok(r2.throttled === true && rcalls.length === n1, 'riot: 2 dakikadan sık istek atılmaz (3 sn otomatik yenileme Riot\'u yormaz)');
     const r3 = await hr.handlers['lol:sync']({ force: true }); ok(r3.added === 0 && rcalls.filter((c) => /matches\/TR1_/.test(c)).length === 2, 'riot: aynı maç iki kez indirilmez/eklenmez');
     ok(rcalls.every((c) => /^(europe|tr1)\.api\.riotgames\.com\//.test(c)), 'riot: yalnız beklenen Riot adreslerine gidildi');
+    const oldStore = JSON.parse(fs.readFileSync(path.join(dd,'lolcounter.json'),'utf8')); for(const m of Object.values(oldStore.matches)) delete m.spells; fs.writeFileSync(path.join(dd,'lolcounter.json'), JSON.stringify(oldStore));
+    const backfill = mkHost({now:()=>NOW,lcu:{find:async()=>null},riot:{get:rget}},dd); const br=await backfill.handlers['lol:sync']({force:true}); const bm=await backfill.handlers['lol:matches']({});
+    ok(br.added===0 && br.updated===2 && bm.rows.every((m)=>JSON.stringify(m.spells)==='[12,4]'), 'eski Riot kaydı: büyüler tamamlanır, maçlar yeniden eklenmiş sayılmaz');
     rmode = '401'; const r4 = await hr.handlers['lol:sync']({ force: true }); ok(r4.riotError && /geçersiz|süresi/.test(r4.riotError) && !JSON.stringify(r4).includes('RGAPI'), 'riot: 401 → anlaşılır hata, anahtar sızmaz');
     rmode = '429'; const r5 = await hr.handlers['lol:sync']({ force: true }); const n2 = rcalls.length; const r6 = await hr.handlers['lol:sync']({ force: true }); ok(r5.riotError && r6.throttled && rcalls.length === n2, 'riot: 429 → geri çekilme, yeniden vurmaz');
     const cl = await hr.handlers['lol:riot:set']({ clear: true }); ok(cl.ok && !cl.hasKey && (await hr.handlers['lol:sync']({})).state === 'noclient', 'riot: anahtar silinince yine noclient');

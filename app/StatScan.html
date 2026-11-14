@@ -952,12 +952,17 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-pt small { position: absolute; right: -5px; bottom: -5px; min-width: 20px; text-align: center; padding: 0 4px; border-radius: 99px; background: #070b10; border: 1px solid var(--rc); font: 700 10.5px var(--f-body); color: #e9edf4; }
 .bz-main { display: grid; gap: 14px; min-width: 0; } .bz-mh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; font-size: 11px; color: var(--muted); }
 .bz-res { font: 700 16px var(--f-display); color: var(--rc); } .bz-d { font-weight: 700; color: var(--lg-win); } .bz-d.dn { color: var(--lg-loss); } .bz-dot { font-style: normal; opacity: .7; }
-.bz-row { display: grid; grid-template-columns: minmax(0, 1fr) 105px; gap: 14px; align-items: start; } .bz-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+.bz-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; } .bz-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
 .bz-st { display: grid; align-content: start; gap: 2px; min-width: 0; font-variant-numeric: tabular-nums; } .bz-st b { font: 700 14px/1.4 var(--f-display); color: #e9edf4; white-space: nowrap; } .bz-st.k b { font: 700 14px/1.4 "Segoe UI", Arial, sans-serif; letter-spacing: -.15px; color: #aeb7c4; } .bz-st.k.kda-gold b { color: #ffa500; } .bz-st.k.kda-blue b { color: #55c7ff; } .bz-st.k.kda-emerald b { color: #1edb96; } .bz-st small { color: #8c95a6; font-size: 11px; font-weight: 500; white-space: nowrap; }
 .bz-items { display: grid; grid-template-columns: repeat(4, 24px); gap: 3px; margin: 0; } .bz-items .lg-ic, .bz-items i { width: 24px; height: 24px; border-radius: 5px; border: 1px solid rgba(255,255,255,.1); background: rgba(5,8,16,.6); }
+.bz-gear { display: flex; gap: 14px; align-items: start; }
+.bz-loadout { display: grid; grid-template-columns: repeat(2, 22px); grid-template-rows: repeat(2, 22px); gap: 4px; }
+.bz-loadout .lg-ic { width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(255,255,255,.12); background: rgba(5,8,16,.5); }
+.bz-loadout .lg-ic:nth-child(2n) { border-radius: 50%; border-color: transparent; background: transparent; }
+.bz-loadout .lg-ic:nth-child(2n) img { object-fit: contain; }
 .bz-chips { display: flex; flex-wrap: wrap; gap: 6px; } .bz-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px 3px 8px; border-radius: 9px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); font: 600 12px var(--f-body); color: #d3d9e4; } .bz-chip .lg-ic { width: 18px; height: 18px; border-radius: 4px; }
 .bz-match .lg-pl { grid-column: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 11px; gap: 1px 8px; align-self: start; } .bz-match .lg-pl .lg-ic { width: 18px; height: 18px; } .bz-match .lg-pl div { gap: 4px; padding: 0; }
-@container (max-width: 650px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr); } .bz-match .lg-pl { grid-column: 2; } }
+@container (max-width: 700px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr); } .bz-match .lg-pl { grid-column: 2; } }
 @container (max-width: 440px) { .bz-match { padding: 12px; gap: 10px; } .bz-row { grid-template-columns: minmax(0, 1fr); gap: 10px; } .bz-match .bz-st b { font-size: 12px; } .bz-stats { gap: 6px; } .bz-st small { font-size: 10px; } .bz-match .lg-pl { grid-column: 1 / -1; } }
 /* şampiyon havuzu */
 .bz-pooltop { display: flex; align-items: center; gap: 12px; } .bz-roles { display: grid; gap: 14px; }
@@ -6287,6 +6292,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Henüz maç yok": "No matches yet",
       "Henüz veri yok": "No data yet",
       "KDA ({0}/{1}/{2})": "KDA ({0}/{1}/{2})",
+      "Maç büyüleri ve rünleri": "Match spells and runes",
+      "Sihirdar büyüsü": "Summoner spell",
+      "Ana rün": "Keystone rune",
+      "İkincil rün yolu": "Secondary rune path",
       "Kayıt sayısı": "Records",
       "Kayıt süresince lig/kademe değişimi olmadı.": "No rank change during the recorded period.",
       "Kayıt {0} tarihinde başladı; öncesi istemciden alınamaz.": "Tracking started on {0}; earlier history cannot be read from the client.",
@@ -8223,11 +8232,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
 
     /* ---- ikonlar (host data: URI verir; yoksa bas harf) ---- */
-    const icoCache = new Map();
+    const icoCache = new Map(); const icoNames = new Map();
     function icon(kind, id, label, cls) {
       const box = h('span', { class: 'lg-ic' + (cls ? ' ' + cls : ''), 'aria-hidden': 'true' }, h('b', {}, String(label || '').slice(0, 1).toUpperCase())); if (!id && id !== 0) return box;
-      const k = kind + ':' + id; if (!icoCache.has(k)) icoCache.set(k, call(H.lolIcon, kind, String(id)).then((r) => (r && r.data ? r.data : null)));
-      icoCache.get(k).then((d) => { if (d) put(box, h('img', { src: d, alt: '', draggable: 'false' })); }); return box;
+      const k = kind + ':' + id; if (!icoCache.has(k)) icoCache.set(k, call(H.lolIcon, kind, String(id)).then((r) => { if (r && r.name) icoNames.set(k, r.name); return r && r.data ? r.data : null; }));
+      icoCache.get(k).then((d) => { if (d) put(box, h('img', { src: d, alt: '', draggable: 'false' })); if (kind === 'spell' || kind === 'rune') { box.removeAttribute('aria-hidden'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', icoNames.get(k) || label); box.title = icoNames.get(k) || label; } }); return box;
     }
     const champIc = (id, cls) => icon('champion', id, nameOf(id), cls);
     /* Amblem PNG'sinin saydam kenar boslugunu kirpar (yoksa derece simgesi kucuk gorunur). Basarisizsa orijinal kalir. */
@@ -8342,7 +8351,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       if (st.busy) return; st.busy = true; if (!quiet) say(KT('League istemcisinden okunuyor…'));
       const r = await call(H.lolSync, false); st.busy = false;
       if (!r || r.error) { say(failMsg(r), true); st.client = null; } else if (r.source === 'riot') { st.client = false; st.riot = true; if (r.riotError) say(r.riotError, true); else if (!quiet || r.added || r.snaps) say(KT('Riot API ile güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); } else if (r.state === 'noclient') { st.client = false; st.riot = false; if (!quiet) say(KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.')); } else { st.client = true; st.riot = false; if (!quiet || r.added || r.snaps) say(KT('Güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); }
-      st.sync = Date.now(); await refreshProf(); if (!quiet || (r && (r.added || r.snaps))) load(st.tab);
+      st.sync = Date.now(); await refreshProf(); if (!quiet || (r && (r.added || r.updated || r.snaps))) load(st.tab);
     }
 
     /* ---- genel bakis ---- */
@@ -8406,10 +8415,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const head = h('div', { class: 'bz-mh' }, h('b', { class: 'bz-res' }, res), dl ? dot() : null, dl, dot(), h('span', {}, KT(QN[m.queue] || 'Diğer')), dot(), h('span', {}, mmss(sec)), dot(), h('span', {}, ago(m.t)));
       const stats = h('div', { class: 'bz-stats' }, h('div', { class: 'bz-st k ' + kdaClass }, h('b', {}, dec1(kdaV) + ' KDA'), h('small', {}, m.k + ' / ' + m.d + ' / ' + m.a)), h('div', { class: 'bz-st' }, h('b', {}, dec1(m.cs / mins) + ' CS/' + KT('dk')), h('small', {}, m.cs + ' CS')), h('div', { class: 'bz-st' }, h('b', {}, num(Math.round(m.gold / mins)) + ' GPM'), h('small', {}, num(m.gold) + ' ' + KT('Altın'))));
       const items = h('div', { class: 'bz-items lg-items', 'aria-label': KT('Eşyalar') }, ...(m.items || []).map((it) => icon('item', it, '·')));
+      const spells = Array.isArray(m.spells) ? m.spells : []; const runeIds = [m.runes && m.runes.perks && m.runes.perks[0], m.runes && m.runes.secondary];
+      const choice = (kind, id, label) => id ? icon(kind, id, KT(label)) : h('span', { class: 'bz-choice-empty', 'aria-hidden': 'true' });
+      const loadout = spells.some(Boolean) || runeIds.some(Boolean) ? h('div', { class: 'bz-loadout', 'aria-label': KT('Maç büyüleri ve rünleri') }, choice('spell', spells[0], 'Sihirdar büyüsü'), choice('rune', runeIds[0], 'Ana rün'), choice('spell', spells[1], 'Sihirdar büyüsü'), choice('rune', runeIds[1], 'İkincil rün yolu')) : null;
+      const gear = h('div', { class: 'bz-gear' }, loadout, items);
       const chips = [m.role ? h('span', { class: 'bz-chip' }, KT(RTR[m.role])) : null, m.opp ? h('span', { class: 'bz-chip' }, champIc(m.opp), 'vs ' + nameOf(m.opp)) : null, m.dmg ? h('span', { class: 'bz-chip' }, KT('Hasar') + ' ' + (m.dmg / 1000).toFixed(1) + 'k') : null, m.vision ? h('span', { class: 'bz-chip' }, KT('Vizyon') + ' ' + m.vision) : null].filter(Boolean);
       return h('li', { class: 'bz-match lg-match ' + cls, 'data-id': m.id },
         h('div', { class: 'bz-pt lg-mc' }, champIc(m.champ), m.lvl ? h('small', {}, String(m.lvl)) : null),
-        h('div', { class: 'bz-main' }, head, h('div', { class: 'bz-row' }, stats, items), chips.length ? h('div', { class: 'bz-chips' }, ...chips) : null),
+        h('div', { class: 'bz-main' }, head, h('div', { class: 'bz-row' }, stats, gear), chips.length ? h('div', { class: 'bz-chips' }, ...chips) : null),
         h('div', { class: 'lg-pl' }, ...(rows.length ? rows : [h('div', { class: 'nd' }, KT('Oyuncu ayrıntısı alınamadı'))])));
     }
 
