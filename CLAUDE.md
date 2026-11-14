@@ -32,6 +32,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz çok daha animasyonlu ve güzel (kullanıcı istedi, 2026-11-14: "blitzi genel olarak daha çok animasyonlu yap, çok fazla animasyon olsun ve güzel olsun") — claude-a: BAŞLADI (branch claude-a-blitz-animasyon, main c338bae üstünden; az önce geri alınan Codex 5e24d39 animasyonundan daha zengin: ambiyans parçacıkları/aurora, imleç ışığı, kart parlama süpürmesi, yaylı giriş, rank amblemi süzülme, grafik/çubuk dolumu; hepsi hareket azaltma + Ayarlar'daki animasyon anahtarına saygılı). Dokunacağı yerler: app/StatScan.html (yalnız Blitz CSS bloğu + kovanLol'da küçük bzxEnter/imleç yardımcıları), tools/test/ui-lol.mjs, ui-conv.mjs, docs/KOD-HARITASI.md.
 - HOTFIX: Blitz şampiyon havuzunda sabit rol sırası ve doğrulanamayan rollerin ayrı gösterimi — Codex: bitti.
 - HOTFIX: Sabitlenen araçlar kategori sayfasındaki tam araç kartıyla gösterilir — Codex: bitti.
 - Ana sayfada Sabitlenenler — Codex: bitti. Araç seçme, tek tıkla açma, kaldırma ve yerel kalıcılık. Kovan beta 0.1.17.
