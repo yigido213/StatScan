@@ -103,7 +103,7 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Ana sayfada Sabitlenenler
 
-Ana sayfa araç seçicisinde normal Kovan araçları listelenir. Eklenen kısayollar araç rotasını açar, × işareti sabitlemeyi kaldırır. Araç kimlikleri `kovan.home.pins` altında yerelde saklanır.
+Ana sayfa araç seçicisinde normal Kovan araçları listelenir. Sabitlenenler kategori sayfalarıyla aynı araç kartını kullanır. Kart aracı açar, köşesindeki × sabitlemeyi kaldırır. Araç kimlikleri `kovan.home.pins` altında yerelde saklanır.
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - (ESKİ yol; yalnız tek seferlik geçiş paketi için) Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.

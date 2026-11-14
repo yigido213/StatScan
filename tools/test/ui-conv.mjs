@@ -21,14 +21,14 @@ await pg.selectOption('#home-pin-select', 'lolcounter');
 await pg.click('#home-pin-add');
 await pg.reload();
 const pins = pg.locator('#home-pin-list');
-ok(await pins.getByRole('link', { name: 'StatScan' }).isVisible() &&
-  await pins.getByRole('link', { name: 'Blitz' }).isVisible(), 'ana sayfa: sabitlenen araçlar yeniden yüklemede durur');
-await pins.getByRole('link', { name: 'StatScan' }).click();
+ok(await pins.locator('.toolcard[data-open=statscan]').isVisible() &&
+  await pins.locator('.toolcard[data-open=lolcounter]').isVisible(), 'ana sayfa: sabitlenen araçlar yeniden yüklemede durur');
+await pins.locator('.toolcard[data-open=statscan]').click();
 await pg.locator('#app-statscan').waitFor({ state: 'visible' });
 ok(await pg.locator('#app-statscan').isVisible(), 'ana sayfa: sabitlenen araç açılır');
 await pg.evaluate(() => { location.hash = '#/home'; });
 await pins.getByRole('button', { name: 'StatScan sabitlemesini kaldır' }).click();
-ok(await pins.getByRole('link', { name: 'StatScan' }).count() === 0 &&
+ok(await pins.locator('.toolcard[data-open=statscan]').count() === 0 &&
   await pg.locator('#home-pin-select option[value="statscan"]').count() === 1, 'ana sayfa: kaldırılan araç tekrar seçilebilir');
 // doku paketi
 await pg.evaluate(() => { location.hash = '#/texpack'; }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector("#app-texpack").hidden && document.querySelector("#app-home").hidden), "doku paketi sayfası açıldı");

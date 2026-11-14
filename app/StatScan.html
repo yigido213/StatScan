@@ -1287,12 +1287,10 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
 .home-pins { margin-bottom: 24px; }
 .home .home-pins .tools-row { margin: 0 0 10px; flex-wrap: wrap; }
 .home-pins select { max-width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; color: inherit; background: var(--surface); font: inherit; }
-.home-pin-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.home-pin { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 2px 4px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
-.home-pin a { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 600; padding: 7px 9px; }
-.home-pin a:hover { text-decoration: underline; }
-.home-pin svg { width: 17px; height: 17px; flex: none; }
-.home-pins .home-pin-remove { padding: 6px 10px; }
+.home-pin { position: relative; display: flex; min-width: 0; }
+.home-pin > .toolcard { width: 100%; }
+.home-pin > .toolcard h3 { overflow-wrap: anywhere; }
+.home-pin-remove { position: absolute; top: 10px; right: 10px; padding: 4px 9px; line-height: 1.25; }
 </style>
 </head>
 <body>
@@ -1317,7 +1315,7 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
       <select id="home-pin-select" aria-label="Sabitlenecek araç"></select>
       <button type="submit" id="home-pin-add">Sabitle</button>
     </form>
-    <div class="home-pin-list" id="home-pin-list"></div>
+    <div class="toolgrid" id="home-pin-list"></div>
   </section>
   <h2>Araçlar</h2>
   <div class="toolgrid" id="toolgrid"></div>
@@ -9361,9 +9359,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const n = MODULES.filter((m) => !m.owner && m.cat === cid).length; const cc = mk('button', { type: 'button', class: 'toolcard', 'data-open': 'c-' + cid }, '<span class="ic">' + svg(cicon) + '</span><h3></h3><p></p><span class="row"><span class="chip"></span><span>Aç →</span></span>');
       cc.querySelector('h3').textContent = KT(cname); cc.querySelector('p').textContent = KT(cdesc); cc.querySelector('.chip').textContent = KT('{0} araç', n); cc.addEventListener('click', () => go('c-' + cid)); grid.append(cc);
     }
-    for (const m of MODULES) {
+    function makeToolCard(m) {
       const c = mk('button', { type: 'button', class: 'toolcard', 'data-open': m.id }, '<span class="ic">' + svg(m.icon) + '</span><h3></h3><p></p><span class="row"><span class="chip">' + (m.beta ? 'Beta' : 'Hazır') + (m.ver ? ' · v' + m.ver : '') + '</span><span>Aç →</span></span>');
       c.querySelector('h3').textContent = m.name; c.querySelector('p').textContent = m.desc; c.addEventListener('click', () => go(m.id));
+      return c;
+    }
+    for (const m of MODULES) {
+      const c = makeToolCard(m);
       if (m.owner) { const a = mk('a', { class: 'nav-item', href: '#/' + m.id, 'data-route': m.id }, svg(m.icon) + '<span></span>'); a.querySelector('span').textContent = m.name; a.title = m.name; ownerBox.append(a); linkOf[m.id] = a; grid.append(c); a.hidden = true; c.hidden = true; m.nodes = [a, c]; }
       else if (catOf(m)) { catGrid[m.cat].append(c); const cn = CATS.find((x) => x[0] === m.cat)[1]; const sec = $('#app-' + m.id); if (sec) { const bk = mk('a', { class: 'kv-back', href: '#/c-' + m.cat }); bk.textContent = '← ' + KT(cn); sec.prepend(bk); } }
     }
@@ -9395,8 +9397,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       pinList.replaceChildren(...pinned.map((id) => {
         const tool = pinTools.find((candidate) => candidate.id === id);
         const chip = mk('div', { class: 'home-pin' });
-        const link = mk('a', { href: '#/' + id }, svg(tool.icon)); link.addEventListener('click', (event) => { event.preventDefault(); go(id); });
-        link.append(document.createTextNode(KT(tool.name)));
+        const card = makeToolCard(tool);
         const label = KT('{0} sabitlemesini kaldır', KT(tool.name));
         const remove = mk('button', { type: 'button', class: 'home-pin-remove', 'aria-label': label, title: label });
         remove.textContent = '×';
@@ -9406,7 +9407,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           renderPins();
           pinSelect.focus();
         });
-        chip.append(link, remove);
+        chip.append(card, remove);
         return chip;
       }));
     }
@@ -9417,7 +9418,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       pinned.push(id);
       LS.set(pinKey, JSON.stringify(pinned));
       renderPins();
-      pinList.lastElementChild.querySelector('a').focus();
+      pinList.lastElementChild.querySelector('.toolcard').focus();
     });
     renderPins();
     const facts = $('#home-facts'); const desktop = !!(window.statscanHost && window.statscanHost.desktop);
