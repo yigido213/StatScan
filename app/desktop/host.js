@@ -1375,6 +1375,53 @@ const LOLMOD = (() => {
     }
     /* LCU: yalniz beyaz listedeki GET uc noktalari (yazma/degistirme yok) */
     const lcuRead = async (info, p, ms) => { if (!LCU_OK.some((re) => re.test(p))) throw new Error('izin verilmeyen uç nokta'); return lcuGet(info, p, ms); };
+    /* ---- Riot API (istemci KAPALIYKEN, kullanicinin KENDI kisisel anahtariyla; yalniz GET, anahtar yalniz bu bilgisayarda lolriot.json (0600), arayuze/loga ASLA donmez) ---- */
+    const RIOT_REG = { tr1: 'europe', euw1: 'europe', eun1: 'europe', ru: 'europe', me1: 'europe', na1: 'americas', br1: 'americas', la1: 'americas', la2: 'americas', oc1: 'sea', kr: 'asia', jp1: 'asia', sg2: 'sea', ph2: 'sea', th2: 'sea', tw2: 'sea', vn2: 'sea' };
+    const RIOT_KEY_RE = /^RGAPI-[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/; const RIOT_ID_RE = /^[^#\/\\?%\s][^#\/\\?%]{1,30}#[A-Za-z0-9]{2,6}$/;
+    const riotFile = dataDir ? path.join(dataDir, 'lolriot.json') : null; let riot = { key: '', id: '', region: 'tr1' }; let riotAt = 0; let riotBlock = 0; const RIOT_EVERY = 120000; const RIOT_MATCHES = 10;
+    try { if (riotFile && fs.existsSync(riotFile)) { const j = JSON.parse(fs.readFileSync(riotFile, 'utf8')); if (j && typeof j === 'object') riot = { key: RIOT_KEY_RE.test(String(j.key || '')) ? String(j.key) : '', id: RIOT_ID_RE.test(String(j.id || '')) ? String(j.id) : '', region: RIOT_REG[j.region] ? j.region : 'tr1' }; } } catch (e) { /* ayar okunamadi: bos */ }
+    const riotSave = () => { if (!riotFile) return; try { fs.mkdirSync(path.dirname(riotFile), { recursive: true }); const t = riotFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(riot), { mode: 0o600 }); fs.renameSync(t, riotFile); } catch (e) { /* bellekte kalir */ } };
+    const riotReady = () => !!(riot.key && riot.id);
+    const riotGet = deps.riot && deps.riot.get ? deps.riot.get : (host, p, key) => new Promise((resolve, reject) => {
+      const req = https.get({ host, path: p, headers: { 'X-Riot-Token': key, Accept: 'application/json', 'User-Agent': 'Kovan' }, timeout: 10000 }, (res) => {
+        const parts = []; let n = 0; res.on('data', (d) => { n += d.length; if (n > 2e6) { req.destroy(new Error('yanit cok buyuk')); return; } parts.push(d); });
+        res.on('end', () => { let j = null; try { j = JSON.parse(Buffer.concat(parts).toString('utf8')); } catch (e) { j = null; } resolve({ status: res.statusCode, body: j, retry: Number(res.headers['retry-after']) || 0 }); });
+      }); req.on('timeout', () => req.destroy(new Error('zaman asimi'))); req.on('error', reject);
+    });
+    const riotCall = async (host, p) => { /* host listesi sabit: yalniz api.riotgames.com altlari */
+      if (!/^[a-z0-9]+\.api\.riotgames\.com$/.test(host)) throw new Error('izin verilmeyen adres'); const r = await riotGet(host, p, riot.key);
+      if (r.status === 401 || r.status === 403) throw Object.assign(new Error('Riot API anahtarı geçersiz ya da süresi dolmuş.'), { fatal: true });
+      if (r.status === 429) { riotBlock = Date.now() + Math.min(Math.max(r.retry, 5), 120) * 1000; throw Object.assign(new Error('Riot API istek sınırına takıldı; birazdan tekrar denenecek.'), { fatal: true }); }
+      if (r.status === 404) return null; if (r.status !== 200) throw new Error('Riot API ' + r.status); return r.body;
+    };
+    /* match-v5 -> LCU biciminde oyun nesnesi (normMatch ayni yolu kullanir; tek hesap kodu) */
+    function riotGame(info, myPuuid) {
+      if (!info || typeof info !== 'object' || !Array.isArray(info.participants)) return null; const POS = { TOP: { lane: 'TOP' }, JUNGLE: { lane: 'JUNGLE' }, MIDDLE: { lane: 'MIDDLE' }, BOTTOM: { lane: 'BOTTOM', role: 'CARRY' }, UTILITY: { lane: 'BOTTOM', role: 'SUPPORT' } };
+      const participants = []; const participantIdentities = [];
+      info.participants.slice(0, 10).forEach((p, i) => { const id = i + 1; const st = (p.perks && Array.isArray(p.perks.styles)) ? p.perks.styles : []; const sel = (k) => (st[k] && Array.isArray(st[k].selections) ? st[k].selections.map((x) => x && x.perk) : []);
+        const perks = sel(0).slice(0, 4).concat(sel(1).slice(0, 2)); const stats = { kills: p.kills, deaths: p.deaths, assists: p.assists, totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled, goldEarned: p.goldEarned, totalDamageDealtToChampions: p.totalDamageDealtToChampions, visionScore: p.visionScore, champLevel: p.champLevel, win: p.win === true, gameEndedInEarlySurrender: p.gameEndedInEarlySurrender === true, perkPrimaryStyle: st[0] && st[0].style, perkSubStyle: st[1] && st[1].style };
+        for (let k = 0; k < 7; k++) stats['item' + k] = p['item' + k]; for (let k = 0; k < 6; k++) stats['perk' + k] = perks[k];
+        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, stats, timeline: POS[p.teamPosition] || null }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
+      const idn = String(info.gameId || ''); return { gameId: Number(idn), gameCreation: info.gameCreation, gameDuration: info.gameDuration, queueId: info.queueId, participants, participantIdentities };
+    }
+    async function riotSync(force) {
+      if (!riotReady()) return { state: 'noclient' }; const t = now();
+      if (Date.now() < riotBlock) return { state: 'ok', source: 'riot', throttled: true, added: 0, snaps: 0, notes: ['Riot API sınırı: biraz bekleniyor.'], me: state.me, total: Object.keys(state.matches).length };
+      if (!force && riotAt && Date.now() - riotAt < RIOT_EVERY) return { state: 'ok', source: 'riot', throttled: true, added: 0, snaps: 0, notes: [], me: state.me, total: Object.keys(state.matches).length };
+      riotAt = Date.now(); const notes = []; const msg = (e) => String(e && e.message || e).slice(0, 120); const reg = RIOT_REG[riot.region]; const plat = riot.region + '.api.riotgames.com'; const regional = reg + '.api.riotgames.com'; const co = champOf();
+      try {
+        const [gn, tg] = riot.id.split('#'); const acc = await riotCall(regional, '/riot/account/v1/accounts/by-riot-id/' + encodeURIComponent(gn) + '/' + encodeURIComponent(tg));
+        if (!acc || !acc.puuid) return { state: 'ok', source: 'riot', added: 0, snaps: 0, notes: ['Riot Kimliği bulunamadı: ' + riot.id], me: state.me, total: Object.keys(state.matches).length };
+        const puuid = String(acc.puuid).slice(0, 90); const prev = state.me && state.me.puuid === puuid ? state.me : {};
+        state.me = { puuid, name: String(acc.gameName || gn).slice(0, 40), tag: String(acc.tagLine || tg).slice(0, 10), level: prev.level || 0, icon: prev.icon || 0 };
+        let snaps = 0; try { const ent = await riotCall(plat, '/lol/league/v4/entries/by-puuid/' + encodeURIComponent(puuid)); const rk = parseRanked({ queues: (Array.isArray(ent) ? ent : []).map((e) => Object.assign({}, e, { division: e && e.rank })) }); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { if (e.fatal) throw e; notes.push('derece: ' + msg(e)); }
+        let added = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
+          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; if (!/^\d{5,14}$/.test(num) || state.matches[num]) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { state.matches[nm.id] = nm; added++; } }
+          const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
+        } catch (e) { if (e.fatal) throw e; notes.push('maçlar: ' + msg(e)); }
+        save(); return { state: 'ok', source: 'riot', me: state.me, added, snaps, notes, total: Object.keys(state.matches).length };
+      } catch (e) { return { state: 'ok', source: 'riot', added: 0, snaps: 0, notes: [msg(e)], me: state.me, total: Object.keys(state.matches).length, riotError: msg(e) }; }
+    }
     const lcuSend = deps.lcu && deps.lcu.write ? deps.lcu.write : (info, method, p, body) => new Promise((resolve, reject) => {
       const data = body === undefined ? null : Buffer.from(JSON.stringify(body)); const headers = { Authorization: 'Basic ' + Buffer.from('riot:' + info.token).toString('base64'), Accept: 'application/json' }; if (data) { headers['Content-Type'] = 'application/json'; headers['Content-Length'] = data.length; }
       const req = https.request({ host: '127.0.0.1', port: info.port, path: p, method, rejectUnauthorized: false, timeout: 5000, headers }, (res) => { const parts = []; res.on('data', (d) => { if (parts.length < 64) parts.push(d); }); res.on('end', () => { if (res.statusCode >= 300) return reject(new Error('HTTP ' + res.statusCode)); try { resolve(parts.length ? JSON.parse(Buffer.concat(parts).toString('utf8')) : null); } catch (e) { resolve(null); } }); });
@@ -1474,7 +1521,7 @@ const LOLMOD = (() => {
       },
       'lol:sync': async (_e, req) => {
         try {
-          const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' };
+          const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return riotReady() ? await riotSync(req && req.force === true) : { state: 'noclient' };
           const notes = []; const t = now(); const co = champOf(); const msg = (e) => String(e && e.message || e).slice(0, 80);
           let sum = null; try { sum = await lcuRead(info, '/lol-summoner/v1/current-summoner'); } catch (e) { notes.push('profil: ' + msg(e)); }
           if (sum && typeof sum === 'object' && sum.puuid) state.me = { puuid: String(sum.puuid).slice(0, 90), name: String(sum.gameName || sum.displayName || sum.summonerName || '').slice(0, 40), tag: String(sum.tagLine || '').slice(0, 10), level: Math.round(Number(sum.summonerLevel)) || 0, icon: Math.round(Number(sum.profileIconId)) || 0 };
@@ -1496,6 +1543,15 @@ const LOLMOD = (() => {
             const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
           }
           save(); return { state: 'ok', me: state.me, added, snaps, notes, total: Object.keys(state.matches).length };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      'lol:riot:get': async () => ({ hasKey: !!riot.key, id: riot.id, region: riot.region, regions: Object.keys(RIOT_REG) }),
+      'lol:riot:set': async (_e, req) => {
+        try { req = req || {}; if (req.clear === true) { riot = { key: '', id: riot.id, region: riot.region }; riotSave(); return { ok: true, hasKey: false }; }
+          if (typeof req.key === 'string' && req.key.trim()) { const k = req.key.trim(); if (!RIOT_KEY_RE.test(k)) return errE('Anahtar biçimi geçersiz (RGAPI-… ile başlayan 36 karakterlik anahtar).'); riot.key = k; }
+          if (typeof req.id === 'string' && req.id.trim()) { const v = req.id.trim(); if (!RIOT_ID_RE.test(v)) return errE('Riot Kimliği "Ad#ETİKET" biçiminde olmalı.'); riot.id = v; }
+          if (typeof req.region === 'string' && req.region) { if (!RIOT_REG[req.region]) return errE('Bölge geçersiz.'); riot.region = req.region; }
+          riotSave(); riotAt = 0; riotBlock = 0; return { ok: true, hasKey: !!riot.key, id: riot.id, region: riot.region };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:profile': async () => {

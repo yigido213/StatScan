@@ -78,8 +78,12 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - (ESKİ yol; yalnız tek seferlik geçiş paketi için) Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.12. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
+- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.13. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).
 - Kullanıcı Türkçe konuşur (Yiğit); dürüst ol: denenmeyeni "denenmedi" yaz, tahmini "tahmin" diye etiketle.
+
+
+## Blitz: Riot API (istemci kapalıyken)
+`host.js` LOLMOD içinde (`lcuSend`'den önce): kullanıcının KENDİ kişisel Riot anahtarı (`lolriot.json`, 0600, arayüze geri dönmez; preload yalnız `lolRiotGet/lolRiotSet`). `lol:sync` istemci yoksa ve anahtar+Riot Kimliği (Ad#ETİKET)+bölge varsa `riotSync()` çalıştırır: account-v1 → league-v4 (derece) → match-v5 (son 10 maç; `riotGame` maçı LCU biçimine çevirir, `normMatch` aynı yolu kullanır). En fazla 2 dakikada bir Riot'a gidilir (3 sn otomatik yenileme Riot'u yormaz); 429'da geri çekilir; 401'de anlaşılır hata. Yalnız `*.api.riotgames.com`, yalnız GET. Kişisel anahtar Riot kuralı gereği YALNIZ sahibinin kullanımı içindir (başkalarına dağıtılamaz). Test: `lol-host.cjs` (sahte Riot, 19 kontrol). Arayüz: `kovanLol` içinde `riotCard()` (hero altında açılır kart).

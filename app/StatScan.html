@@ -850,6 +850,7 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-notes li { padding: 8px 12px; border-radius: 10px; background: rgba(5,8,16,.5); border-left: 3px solid var(--lg-gold); font-size: 14px; } .lg-notes li.enemy { border-left-color: var(--lg-loss); }
 .lg-why { list-style: none; margin: 6px 0 10px; padding: 0; display: grid; gap: 4px; } .lg-why li { color: var(--muted); font-size: 13px; padding-left: 16px; position: relative; } .lg-why li::before { content: '–'; position: absolute; left: 4px; opacity: .7; }
 .lg-plbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .lg-plin { flex: 1 1 240px; min-width: 0; background: rgba(9,15,29,.7); border: 1px solid var(--line); border-radius: 11px; color: var(--ink); padding: 10px 12px; font: 500 15px var(--f-body); } .lg-plin:focus-visible { outline: 2px solid var(--lg-gold); outline-offset: 1px; } .lg-plhead { display: flex; gap: 14px; align-items: center; } .lg-frl { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; max-height: 260px; overflow: auto; } .lg-fr { appearance: none; width: 100%; display: flex; gap: 8px; align-items: center; text-align: left; padding: 7px 10px; border: 1px solid var(--line); border-radius: 11px; background: rgba(9,15,29,.6); color: var(--ink); cursor: pointer; font: 500 14px var(--f-body); } .lg-fr:hover, .lg-fr:focus-visible { border-color: var(--lg-gold); } .lg-fr.on { border-color: var(--lg-teal); } .lg-fr small { color: var(--muted); } .lg-fr .lg-ic { width: 28px; height: 28px; border-radius: 8px; flex: none; }
+.lg-riot { padding: 10px 14px; } .lg-riot > summary { cursor: pointer; font-weight: 600; } .lg-riotf { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin: 8px 0; } .lg-riotf input, .lg-riotf select { flex: 1 1 160px; min-width: 0; padding: 8px 10px; background: rgba(255,255,255,.05); color: inherit; border: 1px solid rgba(255,255,255,.16); border-radius: 8px; font: inherit; } .lg-riotf select { flex: 0 0 auto; }
 .lg-psearch { padding: 12px 14px; } .lg-plic { display: none; } .lg-psearch .lg-plbar { display: flex; flex-wrap: nowrap; gap: 10px; align-items: stretch; } .lg-psearch .lg-plin { flex: 1 1 auto; min-width: 0; max-width: none; } #lg-pl-fr:not(:empty) { margin-top: 10px; }
 .lg-stack { display: grid; gap: 20px; min-width: 0; } .lg-stack > * { min-width: 0; } #lg-pl-res { display: grid; gap: 16px; min-width: 0; } #lg-pl-res > * { min-width: 0; } .lg-plhead > div > p { margin: 0; } .lg-plhead > div > p + p { margin-top: 5px; }
 #lg-pane-counter .lg-card > :empty { display: none; } #lg-pane-counter .lg-card > * + * { margin-top: 14px; } #lg-pane-counter .lg-card > h2.lg-h + * { margin-top: 12px; }
@@ -6400,6 +6401,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "İstemci aranıyor…": "Looking for the client…",
       "İstemci bağlı": "Client connected",
       "İstemci kapalı": "Client closed",
+      "İstemci kapalı · Riot API": "Client closed · Riot API",
+      "Riot API ile güncellendi: {0} yeni maç, {1} yeni derece kaydı.": "Updated via Riot API: {0} new matches, {1} new rank records.",
+      "Riot API (istemci kapalıyken)": "Riot API (when the client is closed)",
+      "Kendi kişisel Riot API anahtarını gir; League istemcisi kapalıyken derece ve son maçlar Riot'tan alınır. Anahtar yalnız bu bilgisayarda saklanır, hiçbir yere gönderilmez (Riot dışında).": "Enter your own personal Riot API key; while the League client is closed, rank and recent matches are fetched from Riot. The key is stored only on this computer and is never sent anywhere except Riot.",
+      "API anahtarı": "API key",
+      "Anahtar kayıtlı. Değiştirmek için yenisini yaz.": "A key is saved. Type a new one to replace it.",
+      "Riot Kimliği (Ad#ETİKET)": "Riot ID (Name#TAG)",
+      "Bölge": "Region",
+      "Kaydet": "Save",
+      "Anahtarı sil": "Remove key",
+      "Kaydedildi.": "Saved.",
+      "Anahtar silindi.": "Key removed.",
       "Şampiyon performansı": "Champion performance",
       "Şampiyon verisi yok": "No champion data",
       "“Güncelle” ile maç geçmişini istemciden oku.": "Press “Update” to read match history from the client.",
@@ -7126,7 +7139,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.12';
+  const KOVAN_VER = 'beta 0.1.13';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8292,9 +8305,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const SCN = { overview: ['ruins', 11], champs: ['jungle', 23], lp: ['abyss', 37], live: ['ember', 41], partners: ['arcane', 53], counter: ['gold', 67] }; const scEls = {};
     const bgEl = h('div', { class: 'lg-bg', 'aria-hidden': 'true' }, ...Object.keys(SCN).map((k) => { scEls[k] = h('div', { class: 'lg-sc sc-' + k }, h('div', { class: 'gl' }), artSvg(SCN[k][0], SCN[k][1]), h('div', { class: 'lg-lattice' })); return scEls[k]; }), h('div', { class: 'lg-mist a' }), h('div', { class: 'lg-mist b' }), h('div', { class: 'lg-vig' }));
     function paintScene(id) { const k = id === 'player' ? 'overview' : id; for (const n of Object.keys(scEls)) scEls[n].classList.toggle('on', n === k); }
-    root.append(bgEl, h('div', { class: 'lg-wrap' }, hero, todayEl, tiltEl, psearch, tabsEl, ...TABS.map(([id]) => panes[id]), live)); paintScene('overview');
+    const riotEl = riotCard();
+    root.append(bgEl, h('div', { class: 'lg-wrap' }, hero, todayEl, tiltEl, riotEl, psearch, tabsEl, ...TABS.map(([id]) => panes[id]), live)); paintScene('overview');
     function setTab(id) { st.tab = id; paintScene(id); for (const [k] of TABS) { const on = k === id; panes[k].hidden = !on; const b = $('#lg-tab-' + k); if (b) { b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } } if (location.hash.startsWith('#/lolcounter')) { /* sekme adresi yok; yalniz iç durum */ } load(id); }
     const load = (id) => ({ overview: drawOverview, live: drawLive, champs: drawChamps, lp: drawLp, partners: drawPartners, player: drawPlayer, counter: drawCounter }[id] || (() => {}))();
+    /* ---- Riot API ayari (istemci kapaliyken): anahtar yalniz host'a gider, bir daha geri okunmaz ---- */
+    function riotCard() {
+      const keyI = h('input', { type: 'password', id: 'lg-rk', autocomplete: 'off', spellcheck: 'false', placeholder: 'RGAPI-…', 'aria-label': KT('API anahtarı') }); const idI = h('input', { type: 'text', id: 'lg-rid', autocomplete: 'off', spellcheck: 'false', placeholder: 'Ad#ETİKET', 'aria-label': KT('Riot Kimliği (Ad#ETİKET)') });
+      const regS = h('select', { id: 'lg-rreg', 'aria-label': KT('Bölge') }); const msg = h('p', { class: 'lg-sub', id: 'lg-rmsg', role: 'status' }); const hint = h('p', { class: 'lg-sub', id: 'lg-rhint' });
+      const say2 = (t, bad) => { msg.textContent = t || ''; msg.className = 'lg-sub' + (bad ? ' warn' : ''); };
+      const fill = async () => { const r = await call(H.lolRiotGet); if (!r || r.error) return; put(regS, ...(r.regions || []).map((x) => h('option', { value: x, selected: x === r.region ? 'selected' : null }, x.toUpperCase()))); regS.value = r.region; idI.value = r.id || ''; hint.textContent = r.hasKey ? KT('Anahtar kayıtlı. Değiştirmek için yenisini yaz.') : ''; };
+      const save = async () => { const r = await call(H.lolRiotSet, { key: keyI.value, id: idI.value, region: regS.value }); if (!r || r.error) { say2(r && r.message || 'Hata', true); return; } keyI.value = ''; say2(KT('Kaydedildi.')); await fill(); doSync(false); };
+      const clear = async () => { const r = await call(H.lolRiotSet, { clear: true }); if (!r || r.error) { say2(r && r.message || 'Hata', true); return; } keyI.value = ''; say2(KT('Anahtar silindi.')); await fill(); };
+      const d = h('details', { class: 'lg-card lg-riot', id: 'lg-riot' }, h('summary', {}, KT('Riot API (istemci kapalıyken)')), h('p', { class: 'lg-sub' }, KT('Kendi kişisel Riot API anahtarını gir; League istemcisi kapalıyken derece ve son maçlar Riot\'tan alınır. Anahtar yalnız bu bilgisayarda saklanır, hiçbir yere gönderilmez (Riot dışında).')), h('div', { class: 'lg-riotf' }, keyI, idI, regS, btn('lg-rsave', KT('Kaydet'), save, { class: 'cv-btn lg-primary' }), btn('lg-rclear', KT('Anahtarı sil'), clear)), hint, msg);
+      if (H.lolRiotGet) fill(); return d;
+    }
     const empty = (title, text, act) => h('div', { class: 'lg-empty' }, h('b', {}, title), h('p', {}, text), act || null);
 
     /* ---- profil basligi ---- */
@@ -8303,7 +8328,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       put(nameEl, me && me.name ? me.name : 'Blitz', me && me.tag ? h('span', { class: 'lg-tag' }, '#' + me.tag) : null);
       put(avaBox, icon('profile', me && me.icon, me && me.name || 'L'), me && me.level ? h('span', { class: 'lg-lvl' }, String(me.level)) : null);
       const on = st.client === true;
-      put(chipsEl, st.liveOn ? h('button', { type: 'button', class: 'lg-chip on live', id: 'lg-livechip', onclick: () => setTab('live') }, h('i'), KT('Maçtasın')) : null, h('span', { class: 'lg-chip' + (on ? ' on' : ''), id: 'lg-client' }, h('i'), on ? KT('İstemci bağlı') : st.client === false ? KT('İstemci kapalı') : KT('İstemci aranıyor…')), p && p.lastSync ? h('span', { class: 'lg-chip' }, KT('Son güncelleme: {0}', ago(p.lastSync))) : null, p ? h('span', { class: 'lg-chip' }, KT('{0} maç kayıtlı', num(p.matches))) : null);
+      put(chipsEl, st.liveOn ? h('button', { type: 'button', class: 'lg-chip on live', id: 'lg-livechip', onclick: () => setTab('live') }, h('i'), KT('Maçtasın')) : null, h('span', { class: 'lg-chip' + (on ? ' on' : ''), id: 'lg-client' }, h('i'), on ? KT('İstemci bağlı') : st.client === false ? (st.riot ? KT('İstemci kapalı · Riot API') : KT('İstemci kapalı')) : KT('İstemci aranıyor…')), p && p.lastSync ? h('span', { class: 'lg-chip' }, KT('Son güncelleme: {0}', ago(p.lastSync))) : null, p ? h('span', { class: 'lg-chip' }, KT('{0} maç kayıtlı', num(p.matches))) : null);
       const t = p && p.today; todayEl.hidden = !(t && (t.games || (t.lp && (t.lp.solo || t.lp.flex))));
       if (!todayEl.hidden) { const lpv = (v, n) => (!v ? null : h('span', { class: v > 0 ? 'up' : v < 0 ? 'dn' : '' }, n + ' ' + (v > 0 ? '+' : '') + v + ' LP')); put(todayEl, h('b', {}, KT('Bugün')), h('span', {}, KT('{0} maç: {1} G – {2} M', t.games, t.w, t.l)), lpv(t.lp.solo, KT('Tekli/Çiftli')), lpv(t.lp.flex, KT('Esnek')), p.streak && p.streak.n >= 2 ? h('span', {}, p.streak.win ? KT('{0} galibiyet serisi', p.streak.n) : KT('{0} mağlubiyet serisi', p.streak.n)) : null); }
       tiltEl.hidden = !(p && p.tilt); tiltEl.textContent = p && p.tilt ? KT('Üst üste 3 mağlubiyet. Kısa bir mola vermeyi düşün.') : '';
@@ -8312,7 +8337,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     async function doSync(quiet) {
       if (st.busy) return; st.busy = true; if (!quiet) say(KT('League istemcisinden okunuyor…'));
       const r = await call(H.lolSync, false); st.busy = false;
-      if (!r || r.error) { say(failMsg(r), true); st.client = null; } else if (r.state === 'noclient') { st.client = false; if (!quiet) say(KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.')); } else { st.client = true; if (!quiet || r.added || r.snaps) say(KT('Güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); }
+      if (!r || r.error) { say(failMsg(r), true); st.client = null; } else if (r.source === 'riot') { st.client = false; st.riot = true; if (r.riotError) say(r.riotError, true); else if (!quiet || r.added || r.snaps) say(KT('Riot API ile güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); } else if (r.state === 'noclient') { st.client = false; st.riot = false; if (!quiet) say(KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.')); } else { st.client = true; st.riot = false; if (!quiet || r.added || r.snaps) say(KT('Güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); }
       st.sync = Date.now(); await refreshProf(); if (!quiet || (r && (r.added || r.snaps))) load(st.tab);
     }
 

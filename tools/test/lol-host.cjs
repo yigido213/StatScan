@@ -487,6 +487,33 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const h = L.lolOverlayHtml(999); ok(/SECS=60/.test(h) && /Content-Security-Policy/.test(h) && !/https?:\/\//.test(h), 'bindirme sayfası: süre 60 ile sınırlı, CSP var, dış adres yok');
     ok(!/innerHTML|eval\(|fetch\(|XMLHttpRequest/.test(h), 'bindirme sayfası: innerHTML/eval/ağ çağrısı yok');
     ok(!/cooldown|bekleme|flash|çarp|\bult\b/i.test(h), 'bindirme sayfası: büyü/yetenek bekleme sayacı yok'); }
+  // ---- Riot API (istemci kapaliyken): sahte Riot, gercek ag yok
+  { const KEY = 'RGAPI-e9b4a092-2fba-4951-b69d-2320e9c025e4'; const rcalls = []; let rmode = 'ok';
+    const mkMatch = (n, win) => ({ info: { gameCreation: 1.7e12 + n * 1e6, gameDuration: 1800, queueId: 420, participants: Array.from({ length: 10 }, (_, i) => ({ puuid: i === 0 ? 'PU-ME-' + 'x'.repeat(30) : 'PU-O' + i, riotIdGameName: i === 0 ? 'Ben' : 'Op' + i, riotIdTagline: 'TR1', teamId: i < 5 ? 100 : 200, championId: i === 0 ? 122 : 86, teamPosition: i === 0 ? 'TOP' : ['JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 4], kills: 7, deaths: 2, assists: 5, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 25, champLevel: 16, win: i < 5 ? win : !win, item0: 3001, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3201, perks: { styles: [{ style: 8000, selections: [{ perk: 8010 }, { perk: 9111 }, { perk: 9104 }, { perk: 8014 }] }, { style: 8200, selections: [{ perk: 8226 }, { perk: 8210 }] }] } })) } });
+    const rget = async (host, pth, key) => { rcalls.push(host + pth); if (key !== KEY) return { status: 401, body: null, retry: 0 }; if (rmode === '429') return { status: 429, body: null, retry: 10 }; if (rmode === '401') return { status: 401, body: null, retry: 0 };
+      if (/by-riot-id\/Ben\/TR1$/.test(pth)) return { status: 200, body: { puuid: 'PU-ME-' + 'x'.repeat(30), gameName: 'Ben', tagLine: 'TR1' }, retry: 0 };
+      if (/entries\/by-puuid/.test(pth)) return { status: 200, body: [{ queueType: 'RANKED_SOLO_5x5', tier: 'GOLD', rank: 'II', leaguePoints: 47, wins: 30, losses: 20 }], retry: 0 };
+      if (/matches\/by-puuid\/.+\/ids/.test(pth)) return { status: 200, body: ['TR1_1000000001', 'TR1_1000000002'], retry: 0 };
+      const m = /matches\/TR1_(\d+)$/.exec(pth); if (m) return { status: 200, body: mkMatch(Number(m[1]) % 10, m[1].endsWith('1')), retry: 0 }; return { status: 404, body: null, retry: 0 }; };
+    const dd = path.join(tmp, 'riot'); const hr = mkHost({ now: () => NOW, lcu: { find: async () => null }, riot: { get: rget } }, dd);
+    ok((await hr.handlers['lol:sync']({})).state === 'noclient', 'riot: anahtar yok + istemci yok → noclient');
+    ok((await hr.handlers['lol:riot:set']({ key: 'bozuk' })).error, 'riot: geçersiz anahtar biçimi reddedilir');
+    ok((await hr.handlers['lol:riot:set']({ id: 'bozukid' })).error, 'riot: geçersiz Riot Kimliği reddedilir');
+    ok((await hr.handlers['lol:riot:set']({ region: '../evil' })).error, 'riot: geçersiz bölge reddedilir');
+    const sv = await hr.handlers['lol:riot:set']({ key: KEY, id: 'Ben#TR1', region: 'tr1' }); ok(sv.ok && sv.hasKey, 'riot: kaydedildi');
+    const gj = JSON.stringify(await hr.handlers['lol:riot:get']()); ok(!gj.includes('RGAPI') && !gj.includes(KEY.slice(6)), 'riot: anahtar arayüze geri DÖNMEZ');
+    const f = path.join(dd, 'lolriot.json'); ok(fs.existsSync(f) && (process.platform === 'win32' || (fs.statSync(f).mode & 0o077) === 0), 'riot: ayar dosyası yalnız sahibine açık');
+    const r1 = await hr.handlers['lol:sync']({}); ok(r1.state === 'ok' && r1.source === 'riot' && r1.added === 2 && r1.snaps >= 1, 'riot: istemci kapalıyken senkron: 2 maç + derece (' + JSON.stringify(r1.notes) + ')');
+    const pr = await hr.handlers['lol:profile'](); ok(pr.rank && pr.rank.solo && pr.rank.solo.tier === 'GOLD' && pr.rank.solo.div === 'II' && pr.rank.solo.lp === 47 && pr.matches === 2 && pr.me.name === 'Ben', 'riot: profil derece (GOLD II 47 LP) + 2 maç');
+    const ml = await hr.handlers['lol:matches']({}); ok(ml.rows.length === 2 && ml.rows[0].champ === 'Darius' && ml.rows[0].role === 'top' && ml.rows[0].k === 7 && ml.rows[0].queue === 'solo' && ml.rows[0].runes && ml.rows[0].runes.perks.length === 6, 'riot: maç biçimi (şampiyon/hat/KDA/kuyruk/rün) LCU maçıyla aynı');
+    const n1 = rcalls.length; const r2 = await hr.handlers['lol:sync']({}); ok(r2.throttled === true && rcalls.length === n1, 'riot: 2 dakikadan sık istek atılmaz (3 sn otomatik yenileme Riot\'u yormaz)');
+    const r3 = await hr.handlers['lol:sync']({ force: true }); ok(r3.added === 0 && rcalls.filter((c) => /matches\/TR1_/.test(c)).length === 2, 'riot: aynı maç iki kez indirilmez/eklenmez');
+    ok(rcalls.every((c) => /^(europe|tr1)\.api\.riotgames\.com\//.test(c)), 'riot: yalnız beklenen Riot adreslerine gidildi');
+    rmode = '401'; const r4 = await hr.handlers['lol:sync']({ force: true }); ok(r4.riotError && /geçersiz|süresi/.test(r4.riotError) && !JSON.stringify(r4).includes('RGAPI'), 'riot: 401 → anlaşılır hata, anahtar sızmaz');
+    rmode = '429'; const r5 = await hr.handlers['lol:sync']({ force: true }); const n2 = rcalls.length; const r6 = await hr.handlers['lol:sync']({ force: true }); ok(r5.riotError && r6.throttled && rcalls.length === n2, 'riot: 429 → geri çekilme, yeniden vurmaz');
+    const cl = await hr.handlers['lol:riot:set']({ clear: true }); ok(cl.ok && !cl.hasKey && (await hr.handlers['lol:sync']({})).state === 'noclient', 'riot: anahtar silinince yine noclient');
+    const hr2 = mkHost({ now: () => NOW, lcu: { find: async () => null }, riot: { get: rget } }, dd); ok((await hr2.handlers['lol:riot:get']()).hasKey === false && (await hr2.handlers['lol:riot:get']()).id === 'Ben#TR1', 'riot: ayar yeniden açılışta korunur (silinen anahtar yok)');
+  }
   // ---- host entegrasyonu: kanallar kayıtlı, arayüz yol/URL gönderemez
   const host = createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'entegre'), get } });
   const chans = ['lol:status', 'lol:champs', 'lol:pool', 'lol:pool:set', 'lol:suggest', 'lol:tips', 'lol:log', 'lol:hist', 'lol:hist:undo', 'lol:hist:clear', 'lol:statsurl:get', 'lol:statsurl:set', 'lol:lcu', 'lol:items', 'lol:mu', 'lol:mu:cfg', 'lol:mu:rank', 'lol:mu:url:set', 'lol:note:set', 'lol:ov:get', 'lol:ov:set', 'lol:gold', 'lol:gold:get', 'lol:gold:set'];
