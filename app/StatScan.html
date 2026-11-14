@@ -979,6 +979,26 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 @container (min-width: 701px) and (max-width: 780px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr) 158px; } }
 @container (max-width: 700px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr); } .bz-match .lg-pl { grid-column: 2; } }
 @container (max-width: 440px) { .bz-match { padding: 12px; gap: 10px; } .bz-row { gap: 10px; } .bz-match .bz-st b { font-size: 12px; } .bz-stats { gap: 6px; } .bz-st small { font-size: 10px; } .bz-match .lg-pl { grid-column: 1 / -1; } }
+.bz-match { cursor: pointer; transition: border-color .18s ease, filter .18s ease; } .bz-match:hover { filter: brightness(1.08); } .bz-match:focus-within { border-color: color-mix(in srgb, var(--rc) 58%, transparent); }
+.bz-detail-toggle { appearance: none; border: 1px solid rgba(122,212,230,.22); border-radius: 999px; background: rgba(73,197,216,.07); color: #b8dbe1; padding: 4px 9px; font: 600 11px var(--f-body); cursor: pointer; } .bz-detail-toggle:hover { background: rgba(73,197,216,.15); color: #fff; }
+.bz-detail { grid-column: 1 / -1; min-width: 0; margin-top: 8px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.09); cursor: default; display: grid; gap: 14px; } .bz-detail[hidden] { display: none; }
+.bz-detail-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; } .bz-detail-head b { color: #e8edf5; font-size: 14px; } .bz-detail-head small { color: var(--muted); font-size: 11px; }
+.bz-compare { display: grid; gap: 7px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.07); border-radius: 12px; background: rgba(3,8,14,.32); }
+.bz-compare-row { display: grid; grid-template-columns: minmax(86px,.55fr) minmax(90px,1fr) minmax(90px,1fr); gap: 10px; align-items: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+.bz-compare-label { color: #aeb7c4; } .bz-compare-value { display: grid; grid-template-columns: 42px minmax(24px,1fr); gap: 7px; align-items: center; color: #e8edf5; } .bz-compare-value em { font-style: normal; text-align: right; }
+.bz-mbar { height: 5px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.09); } .bz-mbar i { display: block; height: 100%; width: var(--w,0%); border-radius: inherit; background: var(--bc); }
+.bz-mbar.ours { --bc: #1cc8d7; } .bz-mbar.theirs { --bc: #fa655e; }
+.bz-compare-missing { grid-column: 2 / -1; color: var(--muted); font-size: 10.5px; }
+.bz-teams { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.bz-team { min-width: 0; padding: 12px; border: 1px solid rgba(255,255,255,.07); border-radius: 12px; background: rgba(3,8,14,.24); }
+.bz-teamhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; color: #dfe6ef; font-size: 12px; font-weight: 700; }
+.bz-teamhead small { color: var(--muted); font-size: 10px; font-weight: 500; }
+.bz-player { display: grid; grid-template-columns: 22px minmax(72px,1fr) auto auto minmax(0,auto); gap: 7px; align-items: center; min-height: 32px; border-top: 1px solid rgba(255,255,255,.045); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.bz-player .lg-ic { width: 21px; height: 21px; border-radius: 5px; } .bz-player-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #dfe6ef; } .bz-player-name small { color: var(--muted); margin-left: 4px; } .bz-player-name small.bz-player-extra { display: block; margin: 1px 0 2px; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+.bz-player-kda { color: #c5cedb; white-space: nowrap; } .bz-player-cs { color: var(--muted); white-space: nowrap; }
+.bz-player-items { display: flex; gap: 2px; } .bz-player-items .lg-ic { width: 19px; height: 19px; }
+@container (max-width: 700px) { .bz-teams { grid-template-columns: 1fr; } }
+@container (max-width: 440px) { .bz-compare-row { grid-template-columns: 64px minmax(0,1fr) minmax(0,1fr); gap: 5px; font-size: 10px; } .bz-compare-value { grid-template-columns: 34px minmax(16px,1fr); gap: 4px; } .bz-team { padding: 9px; } .bz-player { grid-template-columns: 20px minmax(54px,1fr) auto auto; gap: 5px; } .bz-player-items { grid-column: 2 / -1; padding-bottom: 4px; } }
 /* şampiyon havuzu */
 .bz-pooltop { display: flex; align-items: center; gap: 12px; } .bz-roles { display: grid; gap: 14px; }
 .bz-role { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 18px; padding: 20px; border-radius: 16px; background: rgba(14,18,24,.86); border: 1px solid rgba(255,255,255,.055); }
@@ -6393,6 +6413,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Henüz maç yok": "No matches yet",
       "Henüz veri yok": "No data yet",
       "KDA ({0}/{1}/{2})": "KDA ({0}/{1}/{2})",
+      "Takım karşılaştırması": "Team comparison",
+      "Maç sonu toplamları": "Match-end totals",
+      "Skor": "Kills",
+      "Vizyon": "Vision",
+      "Minyon": "CS",
+      "Bizim takım": "Your team",
+      "Rakip takım": "Enemy team",
+      "Kazandı": "Won",
+      "Kaybetti": "Lost",
+      "Detayları göster": "Show details",
+      "Detayları gizle": "Hide details",
+      "Maç analizi": "Match analysis",
+      "Dakika dakika zaman çizgisi bu maç kaydında bulunmuyor; grafik maç sonu verilerini karşılaştırır.": "A minute-by-minute timeline is not available for this match; charts compare end-of-game stats.",
+      "Eksik maç verisi · {0}/{1} ve {2}/{3} oyuncu": "Incomplete match data · {0}/{1} and {2}/{3} players",
+      "Bu maç için iki takımın kadro verisi bulunmuyor.": "Team rosters are unavailable for this match.",
+      "{0} skor": "{0} kills",
+      "İstatistik yok": "No stats",
       "Maç büyüleri ve rünleri": "Match spells and runes",
       "Sihirdar büyüsü": "Summoner spell",
       "Ana rün": "Keystone rune",
@@ -7253,7 +7290,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.13';
+  const KOVAN_VER = 'beta 0.1.14';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8505,6 +8542,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const ul = $('#lg-matches', feedEl); if (!ul) return; if (reset) put(ul, ); for (const x of m.rows) ul.append(matchCard(x)); st.off += m.rows.length;
       const more = $('#lg-more', feedEl); put(more, st.off < st.total ? btn('lg-morebtn', 'Daha fazla göster', () => drawFeed(false)) : null);
     }
+    function matchDetails(m) {
+      const players = Array.isArray(m.players) ? m.players : []; const ids = [...new Set(players.map((p) => p.team))].slice(0, 2); const sides = ids.map((id) => ({ id, rows: players.filter((p) => p.team === id), ours: id === m.team, label: KT(id === m.team ? 'Bizim takım' : 'Rakip takım'), result: m.remake ? '' : ((id === m.team) === m.win ? KT('Kazandı') : KT('Kaybetti')) })).sort((a, b) => Number(b.ours) - Number(a.ours));
+      const metrics = [['k', 'Skor'], ['gold', 'Altın'], ['dmg', 'Hasar'], ['vision', 'Vizyon'], ['cs', 'Minyon']];
+      const metricData = metrics.map(([key, label]) => { const vals = sides.map((s) => ({ side: s, complete: s.rows.length > 0 && s.rows.every((p) => typeof p[key] === 'number' && Number.isFinite(p[key])), count: s.rows.filter((p) => typeof p[key] === 'number' && Number.isFinite(p[key])).length, total: s.rows.reduce((a, p) => a + (typeof p[key] === 'number' && Number.isFinite(p[key]) ? p[key] : 0), 0) })); return { key, label, vals }; });
+      const compare = h('section', { class: 'bz-compare', 'aria-label': KT('Takım karşılaştırması') }, h('div', { class: 'bz-detail-head' }, h('b', {}, KT('Takım karşılaştırması')), h('small', {}, KT('Maç sonu toplamları'))), ...metricData.map((mtr) => {
+        const both = mtr.vals.length === 2 && mtr.vals.every((v) => v.complete); const max = both ? Math.max(1, ...mtr.vals.map((v) => v.total)) : 1;
+        return h('div', { class: 'bz-compare-row', 'data-metric': mtr.key }, h('span', { class: 'bz-compare-label' }, KT(mtr.label)), ...(both ? mtr.vals.map((v) => h('span', { class: 'bz-compare-value ' + (v.side.ours ? 'ours' : 'theirs'), title: v.side.label }, h('em', {}, num(v.total)), h('span', { class: 'bz-mbar ' + (v.side.ours ? 'ours' : 'theirs') }, h('i', { style: '--w:' + Math.max(2, 100 * v.total / max).toFixed(1) + '%' })))) : [h('span', { class: 'bz-compare-missing' }, KT('Eksik maç verisi · {0}/{1} ve {2}/{3} oyuncu', mtr.vals[0] ? mtr.vals[0].count : 0, mtr.vals[0] ? mtr.vals[0].side.rows.length : 0, mtr.vals[1] ? mtr.vals[1].count : 0, mtr.vals[1] ? mtr.vals[1].side.rows.length : 0))]));
+      }));
+      const teamCards = sides.map((side) => {
+        const kills = side.rows.length && side.rows.every((p) => typeof p.k === 'number') ? side.rows.reduce((a, p) => a + p.k, 0) : null;
+        return h('section', { class: 'bz-team', 'data-team': side.ours ? 'ours' : 'theirs' }, h('div', { class: 'bz-teamhead' }, h('span', {}, side.label), h('small', {}, [kills === null ? null : KT('{0} skor', kills), side.result].filter(Boolean).join(' · '))), ...side.rows.map((p) => {
+          const kda = [p.k, p.d, p.a].every((x) => typeof x === 'number') ? p.k + ' / ' + p.d + ' / ' + p.a : KT('İstatistik yok');
+          const cs = typeof p.cs === 'number' ? num(p.cs) + ' ' + KT('CS') : '—'; const items = Array.isArray(p.items) ? p.items : [];
+          const extra = [typeof p.dmg === 'number' ? (p.dmg / 1000).toFixed(1) + 'k ' + KT('Hasar') : null, typeof p.gold === 'number' ? num(p.gold) + ' ' + KT('Altın') : null, typeof p.vision === 'number' ? KT('Vizyon') + ' ' + p.vision : null].filter(Boolean).join(' · ');
+          return h('div', { class: 'bz-player' }, champIc(p.champ), h('span', { class: 'bz-player-name', title: (p.name || nameOf(p.champ)) + (p.tag ? '#' + p.tag : '') }, h('span', {}, p.name || nameOf(p.champ)), p.role ? h('small', {}, KT(RTR[p.role] || p.role)) : null, extra ? h('small', { class: 'bz-player-extra' }, extra) : null), h('span', { class: 'bz-player-kda', title: KT('KDA') }, kda), h('span', { class: 'bz-player-cs', title: KT('Minyon') }, cs), h('span', { class: 'bz-player-items', 'aria-label': KT('Eşyalar') }, ...items.slice(0, 7).map((it) => icon('item', it, '·'))));
+        }));
+      });
+      const note = players.length < 2 ? h('p', { class: 'bz-compare-missing' }, KT('Bu maç için iki takımın kadro verisi bulunmuyor.')) : null;
+      return h('section', { class: 'bz-detail', hidden: true, id: 'bz-detail-' + String(m.id).replace(/[^a-zA-Z0-9_-]/g, '') }, h('div', { class: 'bz-detail-head' }, h('b', {}, KT('Maç analizi')), h('small', {}, KT('Dakika dakika zaman çizgisi bu maç kaydında bulunmuyor; grafik maç sonu verilerini karşılaştırır.'))), note, players.length >= 2 ? compare : null, h('div', { class: 'bz-teams' }, ...teamCards));
+    }
     function matchCard(m) {
       const cls = m.remake ? 'remake' : m.win ? 'win' : 'loss'; const res = m.remake ? KT('Yeniden') : m.win ? KT('Zafer') : KT('Yenilgi'); const sec = Math.max(1, m.dur); const mins = sec / 60;
       const dl = m.lpDelta === null || m.lpDelta === undefined ? null : h('b', { class: 'bz-d ' + (m.lpDelta >= 0 ? 'up' : 'dn') }, (m.lpDelta > 0 ? '+' : '') + m.lpDelta + ' LP'); const dot = () => h('i', { class: 'bz-dot', 'aria-hidden': 'true' }, '•');
@@ -8520,11 +8577,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const choice = (kind, id, label) => id ? icon(kind, id, KT(label)) : h('span', { class: 'bz-choice-empty', 'aria-hidden': 'true' });
       const loadout = spells.some(Boolean) || runeIds.some(Boolean) ? h('div', { class: 'bz-loadout', 'aria-label': KT('Maç büyüleri ve rünleri') }, choice('spell', spells[0], 'Sihirdar büyüsü'), choice('rune', runeIds[0], 'Ana rün'), choice('spell', spells[1], 'Sihirdar büyüsü'), choice('rune', runeIds[1], 'İkincil rün yolu')) : null;
       const gear = h('div', { class: 'bz-gear' }, loadout, items);
-      const chips = [m.role ? h('span', { class: 'bz-chip' }, KT(RTR[m.role])) : null, m.opp ? h('span', { class: 'bz-chip' }, champIc(m.opp), 'vs ' + nameOf(m.opp)) : null, m.dmg ? h('span', { class: 'bz-chip' }, KT('Hasar') + ' ' + (m.dmg / 1000).toFixed(1) + 'k') : null, m.vision ? h('span', { class: 'bz-chip' }, KT('Vizyon') + ' ' + m.vision) : null].filter(Boolean);
-      return h('li', { class: 'bz-match lg-match ' + cls, 'data-id': m.id },
+      const details = h('section', { class: 'bz-detail', hidden: true, id: 'bz-detail-' + String(m.id).replace(/[^a-zA-Z0-9_-]/g, '') }); let detailBuilt = false; let detailBtn;
+      const toggleDetails = () => { const opening = details.hidden; if (opening && !detailBuilt) { const content = matchDetails(m); details.replaceChildren(...content.childNodes); detailBuilt = true; } details.hidden = !opening; detailBtn.setAttribute('aria-expanded', details.hidden ? 'false' : 'true'); detailBtn.textContent = KT(details.hidden ? 'Detayları göster' : 'Detayları gizle'); };
+      detailBtn = h('button', { type: 'button', class: 'bz-detail-toggle', 'aria-expanded': 'false', 'aria-controls': details.id, onclick: (e) => { e.stopPropagation(); toggleDetails(); } }, KT('Detayları göster'));
+      const chips = [m.role ? h('span', { class: 'bz-chip' }, KT(RTR[m.role])) : null, m.opp ? h('span', { class: 'bz-chip' }, champIc(m.opp), 'vs ' + nameOf(m.opp)) : null, m.dmg ? h('span', { class: 'bz-chip' }, KT('Hasar') + ' ' + (m.dmg / 1000).toFixed(1) + 'k') : null, m.vision ? h('span', { class: 'bz-chip' }, KT('Vizyon') + ' ' + m.vision) : null, detailBtn].filter(Boolean);
+      return h('li', { class: 'bz-match lg-match ' + cls, 'data-id': m.id, onclick: (e) => { if (!e.target.closest('.bz-detail')) toggleDetails(); } },
         h('div', { class: 'bz-pt lg-mc' }, champIc(m.champ), m.lvl ? h('small', {}, String(m.lvl)) : null),
         h('div', { class: 'bz-main' }, head, h('div', { class: 'bz-row' }, stats, gear), chips.length ? h('div', { class: 'bz-chips' }, ...chips) : null),
-        h('div', { class: 'lg-pl' }, ...(rows.length ? rows : [h('div', { class: 'nd' }, KT('Oyuncu ayrıntısı alınamadı'))])));
+        h('div', { class: 'lg-pl' }, ...(rows.length ? rows : [h('div', { class: 'nd' }, KT('Oyuncu ayrıntısı alınamadı'))])), details);
     }
 
 

@@ -6,7 +6,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const HTML = path.resolve(here, '../../app/StatScan.html');
 export function loadEngine(file = HTML) {
   const html = fs.readFileSync(file, 'utf8');
-  const a = html.indexOf('<script>\n/* StatScan engine');
+  const a = html.search(/<script>\r?\n\/\* StatScan engine/);
   if (a < 0) throw new Error('motor betigi bulunamadi');
   const b = html.indexOf('</script>', a);
   const code = html.slice(a + 8, b);

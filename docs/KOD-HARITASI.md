@@ -39,6 +39,10 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 - Maç kartında boş alan içerikleri yaymaz: `.bz-stats` içerik genişliğinde `max-content` sütunlar/14px aralık, `.bz-row` soldan flex/12px aralık, büyü/eşya grubu 12px aralık. Geniş kartta ana bilgi alanı en çok 460px; takım listesi bitişiğinde, kalan yer sağda boş kalır. 701–780px kartlarda orta sütun daralır; ≤700px takımlar alt satıra geçer.
 
+- Maç ayrıntısı: karta tıkla veya `Detayları göster` düğmesiyle `.bz-detail` açılır; `matchDetails()` bizim takım/rakip takım kadrolarını, oyuncu KDA/CS/eşyalarını ve maç sonu toplam kill/altın/hasar/vizyon/minyon karşılaştırma çubuklarını gösterir. `normMatch()` tam maç kaydındaki oyuncu istatistiklerini sınırlandırıp `players[]` içine yazar; eski LCU/Riot maçları yeni veriyi sonraki eşitlemede tamamlar. Eski/eksik kayıtta tahmin yerine kapsama adedi gösterilir. LCU ve mevcut Riot match akışı dakika dakika timeline/objektif olaylarını sağlamadığından zaman çizgisi grafiği üretilmez.
+
+- Yeni detay paneli ilk açılışa kadar tembel kurulur; her eski kartta gizli ikon/host istekleri başlatılmaz. Kart tıklaması ve erişilebilir `Detayları göster/gizle` düğmesi aynı paneli açıp kapatır; detaylar responsive iki sütun (dar kartta tek sütun) olur.
+
 - Maç büyüleri/rünleri: `normMatch` iki büyüyü D/F sırasında `spells` olarak kaydeder; Riot match-v5 `summoner1Id/2Id` aynı yola çevrilir. Eski kayıtların eksik alanları sonraki senkronizasyonda tamamlanır. Kartta istatistik/eşya arasında 2×2: solda iki büyü, sağda ana rün ve ikincil ağaç. `lol:icon` spell/rune türlerini yalnız Data Dragon metadata kimliği→izinli PNG yolu ile çözer; sürümlü spell, `/cdn/img/perk-images/` rün yolu; isim tooltip/erişilebilir etikette. Eksik maç verisi tahmin edilmez.
 
 - Blitz metin seçimi kapalı (`user-select:none`); input/textarea/contenteditable yazı seçimi açık. Maç kartı: 52px portre, esnek istatistik/eşya alanı, 158px iki takım sütunu. `.lg-matches` container query: ≤700px takım altta, ≤440px eşyalar istatistik altına geçer. Eşikler/gerçek maç verileri korunur.
@@ -95,7 +99,7 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - (ESKİ yol; yalnız tek seferlik geçiş paketi için) Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.13. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
+- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.14. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).

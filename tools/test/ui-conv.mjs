@@ -1,17 +1,20 @@
 // Kovan donusturucu arayuzleri (Playwright): dosya sec -> algila -> donustur -> indir -> cikti dogrula
-import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
-import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { spawnSync } from 'node:child_process'; import { loadEngine } from './engine.mjs';
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
+import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { spawnSync } from 'node:child_process'; import { loadEngine } from './engine.mjs'; import { fileURLToPath, pathToFileURL } from 'node:url';
 const E = loadEngine(); let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
 const enc = (s) => new TextEncoder().encode(s); const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'uc-'));
 const T = 'assets/minecraft/textures/';
 const pack = await E.mzWrite([['pack.mcmeta', '{"pack":{"pack_format":3,"description":"x"}}'], [T + 'blocks/dirt.png', 'PNGd'], [T + 'items/apple.png', 'PNGa']].map(([name, d]) => ({ name, data: enc(d) })));
 const mod = await E.mzWrite([['fabric.mod.json', JSON.stringify({ id: 'foo', version: '1.0', depends: { minecraft: '~1.20' } })], ['a/B.class', new Uint8Array([0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 61])]].map(([name, d]) => ({ name, data: typeof d === 'string' ? enc(d) : d })));
 fs.writeFileSync(dir + '/pack.zip', pack); fs.writeFileSync(dir + '/mod.jar', mod); fs.writeFileSync(dir + '/bad.zip', enc('not a zip at all, definitely'.repeat(3))); fs.writeFileSync(dir + '/nomc.zip', await E.mzWrite([{ name: 'a.txt', data: enc('x') }]));
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const launchOptions = { args: process.platform === 'linux' ? ['--no-sandbox'] : [] };
+if (process.env.PW_EXECUTABLE) launchOptions.executablePath = process.env.PW_EXECUTABLE;
+else if (process.platform === 'linux') launchOptions.executablePath = '/opt/pw-browsers/chromium';
+const b = await chromium.launch(launchOptions);
 const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, acceptDownloads: true }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
-await pg.goto('file:///home/claude/statscan/app/StatScan.html'); await pg.waitForTimeout(300);
-ok((await pg.textContent('#side-ver')) === 'beta 0.1.13', 'kenar çubuğu sürümü: beta 0.1.3');
-ok((await pg.textContent('#home-facts')).includes('beta 0.1.13'), 'Home: Kovan beta 0.1.3');
+await pg.goto(pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../app/StatScan.html')).href); await pg.waitForTimeout(300);
+ok((await pg.textContent('#side-ver')) === 'beta 0.1.14', 'kenar çubuğu sürümü: beta 0.1.14');
+ok((await pg.textContent('#home-facts')).includes('beta 0.1.14'), 'Home: Kovan beta 0.1.14');
 // doku paketi
 await pg.evaluate(() => { location.hash = '#/texpack'; }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector("#app-texpack").hidden && document.querySelector("#app-home").hidden), "doku paketi sayfası açıldı");
 ok((await pg.title()) === 'Doku paketi dönüştürücü · Kovan', 'başlık');
