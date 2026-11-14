@@ -32,6 +32,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- HOTFIX: Blitz oyuncu büyü/rün simgelerini satırın ortasına taşıma — Codex: başladı.
 - Blitz kadrolarında oyuncu büyüleri ve rünleri — Codex: bitti. Her oyuncunun iki büyüsü, ana rünü ve ikincil rün yolu kendi eşya satırının üstünde. LCU ve Riot eşitlemesi eski maçları tamamlar. Kovan beta 0.1.16.
 - HOTFIX: Blitz maç analizinde kadro okunabilirliği — Codex: bitti. Grafikler daha kompakt, takım başlıkları ve oyuncu satırları büyütüldü. Dar ekranda takımlar alt alta; eşyalar satır içinde sarılır.
 - Blitz maç analizi ekranı — Codex: BİTTİ (`codex/blitz-match-screen`). Maç kartı ayrı analiz ekranı açar; altın ve hasar grafikleri üstte geniş, skor/vizyon/minyon ve kadrolar altta. Geri/Escape listeyi geri getirir. Kovan beta 0.1.15.
