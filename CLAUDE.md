@@ -32,6 +32,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz kadrolarında oyuncu büyüleri ve rünleri — Codex: başladı.
 - HOTFIX: Blitz maç analizinde kadro okunabilirliği — Codex: bitti. Grafikler daha kompakt, takım başlıkları ve oyuncu satırları büyütüldü. Dar ekranda takımlar alt alta; eşyalar satır içinde sarılır.
 - Blitz maç analizi ekranı — Codex: BİTTİ (`codex/blitz-match-screen`). Maç kartı ayrı analiz ekranı açar; altın ve hasar grafikleri üstte geniş, skor/vizyon/minyon ve kadrolar altta. Geri/Escape listeyi geri getirir. Kovan beta 0.1.15.
 - Blitz maç detay paneli: kart tıklamasıyla açılan ferah iki takım/10 oyuncu görünümü; KDA, CS, eşyalar, oyuncu hasar/altın/vizyonu ve maç sonu takım karşılaştırma çubukları. Tam maç verisi saklanır, eski LCU/Riot kayıtları sonraki eşitlemede doldurulur; zaman çizgisi/objektif olayı kaynakta olmadığından uydurulmaz. Kovan beta 0.1.14 — Codex: BİTTİ (`codex/blitz-match-details`, `8c41854` üstünde). Testler: `lol-host.cjs`, Chromium `ui-lol.mjs` (390/768/900/1366/1920 px, tıklayarak aç/kapa, tam ve eksik veri, İngilizce), `ui-conv.mjs`, host/HTML sözdizimi, `git diff --check` geçti. Gerçek Windows/Electron/LCU/Riot maçında denenmedi.
