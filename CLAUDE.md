@@ -23,6 +23,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - `KOVAN_VER` (görünen etiket) ile artık 'paket numarası' diye bir şey yok: sürüm kimliği = `app/` git ağaç sha'sı (arayüz/Hakkında'da commit'in ilk 7 hanesi).
 
 ## Hotfix kuralı (kullanıcı kararı)
+- **Blitz sürümü:** Blitz’e yayınlanan bir özellik veya hata düzeltmesi geldiğinde `app/StatScan.html` dosyasındaki `MODULES` → `lolcounter.ver` değerini aynı değişiklikte artır. Yeni özellikte minor, düzeltmede patch artır. Bu etiket Kovan’ın `KOVAN_VER` değerinden bağımsızdır.
 - Hata düzeltmeleri (hotfix) Kovan sürüm etiketini (`KOVAN_VER`) ARTIRMAZ (ör. "beta 0.0.3" kalır). Yeni özellik/araç eklenirse Kovan etiketi artar. Günlükte "HOTFIX" yazın. (Eskiden hotfix'te paket numarasının son hanesi de yükseltilirdi; depodan güncellemede paket numarası yok — `app/` değişince güncelleme zaten görülür.)
 
 ## Teslim biçimi (kullanıcı kararı, 2026-11-07)
@@ -32,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz kart sürümü 0.1.0 oldu. Sonraki Blitz yayınları için kart sürümünü artırma kuralı eklendi — Codex: bitti.
 - Blitz çok daha animasyonlu ve güzel (kullanıcı istedi, 2026-11-14: "blitzi genel olarak daha çok animasyonlu yap, çok fazla animasyon olsun ve güzel olsun") — claude-a: BİTTİ (branch claude-a-blitz-animasyon, main c338bae üstünden; Kovan beta 0.1.18; az önce geri alınan Codex 5e24d39 animasyonundan daha zengin: ambiyans parçacıkları/aurora, imleç ışığı, kart parlama süpürmesi, yaylı giriş, rank amblemi süzülme, grafik/çubuk dolumu; hepsi hareket azaltma + Ayarlar'daki animasyon anahtarına saygılı; girişler yalnız .bzx-in iken, 3 sn'lik yenilemede tekrar oynamaz). Testler: ui-lol (hareket/giriş/azaltma/anahtar), ui-conv, ui-fx, ui-shell, ui-lang geçti; ui-lol hareket serbestken çalıştırılınca yalnız hareket-azaltma ve anlık ölçüm testleri (boşluk, 390px) doğal olarak düşer. DENENMEDİ: gerçek Windows/Electron ve gerçek League verisiyle göz kontrolü. Dokunulan yerler: app/StatScan.html (yalnız Blitz CSS bloğu + kovanLol'da küçük bzxEnter/imleç yardımcıları), tools/test/ui-lol.mjs, ui-conv.mjs, docs/KOD-HARITASI.md.
 - HOTFIX: Blitz şampiyon havuzunda sabit rol sırası ve doğrulanamayan rollerin ayrı gösterimi — Codex: bitti.
 - HOTFIX: Sabitlenen araçlar kategori sayfasındaki tam araç kartıyla gösterilir — Codex: bitti.
