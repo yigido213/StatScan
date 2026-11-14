@@ -1059,17 +1059,26 @@ const LOLMOD = (() => {
   const QG = { ranked: ['solo', 'flex'], normal: ['draft', 'blind', 'quick', 'swift'] }; const FILTERS = ['all', 'ranked', 'solo', 'flex', 'normal', 'aram', 'other'];
   const mkFilter = (q) => { if (!q || q === 'all') return () => true; if (QG[q]) return (m) => QG[q].includes(m.queue); if (q === 'other') return (m) => !['solo', 'flex', 'draft', 'blind', 'quick', 'swift', 'aram'].includes(m.queue); return (m) => m.queue === q; };
   const laneRole = (tl) => { if (!tl) return null; const lane = String(tl.lane || '').toUpperCase(); const role = String(tl.role || '').toUpperCase(); if (lane === 'TOP') return 'top'; if (lane === 'JUNGLE') return 'jungle'; if (lane === 'MIDDLE' || lane === 'MID') return 'mid'; if (lane === 'BOTTOM' || lane === 'BOT') return role.includes('SUPPORT') ? 'support' : 'bot'; if (role.includes('SUPPORT')) return 'support'; return null; };
+  const matchChoiceId = (value) => {
+    const id = Number(value);
+    return Number.isInteger(id) && id > 0 && id <= 999999 ? id : null;
+  };
+  const matchSpells = (p) => {
+    const spells = [p.spell1Id, p.spell2Id].map(matchChoiceId);
+    return spells.some(Boolean) ? spells : null;
+  };
+  const hasPlayerChoices = (players) => Array.isArray(players) && players.length >= 2 &&
+    players.every((p) => p && p.spells !== undefined && p.keystone !== undefined && p.secondary !== undefined);
   function normMatch(g, myPuuid, champOf) {
     if (!g || typeof g !== 'object' || !Number.isFinite(Number(g.gameId))) return null; const parts = Array.isArray(g.participants) ? g.participants : []; const ids = Array.isArray(g.participantIdentities) ? g.participantIdentities : [];
     const idOf = new Map(ids.map((x) => [x && x.participantId, (x && x.player) || {}])); let me = null;
     for (const p of parts) { const pl = idOf.get(p && p.participantId) || {}; if (myPuuid && pl.puuid === myPuuid) { me = p; break; } } if (!me && parts.length === 1) me = parts[0]; if (!me || !me.stats) return null;
     const s = me.stats; const rn = parseRunes({ perks: [0, 1, 2, 3, 4, 5].map((i) => s['perk' + i]), primary: s.perkPrimaryStyle, secondary: s.perkSubStyle }); const runes = rn && rn.perks.length === 6 ? rn : null; let t = numOr0(g.gameCreation); if (!t && g.gameCreationDate) t = Date.parse(g.gameCreationDate) || 0; const dur = numOr0(g.gameDuration); const remake = !!s.gameEndedInEarlySurrender || (dur > 0 && dur < 240);
     const win = s.win === true || s.win === 'Win'; const role = laneRole(me.timeline); const full = parts.length >= 2;
-    const spellIds = [me.spell1Id, me.spell2Id].map((x) => { const n = Number(x); return Number.isInteger(n) && n > 0 && n <= 999999 ? n : null; });
     const stat = (v, max) => { const n = Number(v); return v != null && Number.isFinite(n) && n >= 0 && n <= max ? Math.floor(n) : null; };
-    const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; const ps = p.stats || {}; const cs = stat(ps.totalMinionsKilled, 1000000); const jungle = stat(ps.neutralMinionsKilled, 1000000); return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline), k: stat(ps.kills, 100000), d: stat(ps.deaths, 100000), a: stat(ps.assists, 100000), cs: cs === null || jungle === null ? null : cs + jungle, gold: stat(ps.goldEarned, 100000000), dmg: stat(ps.totalDamageDealtToChampions, 100000000), vision: stat(ps.visionScore, 100000), items: Array.from({ length: 7 }, (_, i) => stat(ps['item' + i], 999999)).filter((x) => x !== null && x > 0) }; }) : [];
+    const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; const ps = p.stats || {}; const cs = stat(ps.totalMinionsKilled, 1000000); const jungle = stat(ps.neutralMinionsKilled, 1000000); return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline), spells: matchSpells(p), keystone: matchChoiceId(ps.perk0), secondary: matchChoiceId(ps.perkSubStyle), k: stat(ps.kills, 100000), d: stat(ps.deaths, 100000), a: stat(ps.assists, 100000), cs: cs === null || jungle === null ? null : cs + jungle, gold: stat(ps.goldEarned, 100000000), dmg: stat(ps.totalDamageDealtToChampions, 100000000), vision: stat(ps.visionScore, 100000), items: Array.from({ length: 7 }, (_, i) => stat(ps['item' + i], 999999)).filter((x) => x !== null && x > 0) }; }) : [];
     const opp = role && full ? ((players.find((x) => !x.me && x.team !== numOr0(me.teamId) && x.role === role) || {}).champ || null) : null;
-    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes, spells: spellIds.some(Boolean) ? spellIds : null };
+    return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes, spells: matchSpells(me) };
   }
   const wlOf = (ms) => { const r = ms.filter((m) => !m.remake); const w = r.filter((m) => m.win).length; return { w, l: r.length - w }; };
   const r1 = (x) => Math.round(x * 10) / 10; const r2 = (x) => Math.round(x * 100) / 100;
@@ -1433,7 +1442,7 @@ const LOLMOD = (() => {
         state.me = { puuid, name: String(acc.gameName || gn).slice(0, 40), tag: String(acc.tagLine || tg).slice(0, 10), level: prev.level || 0, icon: prev.icon || 0 };
         let snaps = 0; try { const ent = await riotCall(plat, '/lol/league/v4/entries/by-puuid/' + encodeURIComponent(puuid)); const rk = parseRanked({ queues: (Array.isArray(ent) ? ent : []).map((e) => Object.assign({}, e, { division: e && e.rank })) }); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { if (e.fatal) throw e; notes.push('derece: ' + msg(e)); }
         let added = 0; let updated = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
-          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; const old = state.matches[num]; const fullStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k]))); if (!/^\d{5,14}$/.test(num) || (old && old.spells !== undefined && fullStats(old.players))) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!old) added++; else updated++; state.matches[nm.id] = nm; } }
+          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; const old = state.matches[num]; const fullStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k]))); if (!/^\d{5,14}$/.test(num) || (old && old.spells !== undefined && fullStats(old.players) && hasPlayerChoices(old.players))) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!old) added++; else updated++; state.matches[nm.id] = nm; } }
           const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
         } catch (e) { if (e.fatal) throw e; notes.push('maçlar: ' + msg(e)); }
         save(); return { state: 'ok', source: 'riot', me: state.me, added, updated, snaps, notes, total: Object.keys(state.matches).length };
@@ -1552,11 +1561,29 @@ const LOLMOD = (() => {
                 const id = String(Math.round(Number(g && g.gameId))); const old = state.matches[id];
                 if (old && !old.partial) {
                   const hasTeamStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k])));
-                  if (old.runes === undefined || old.spells === undefined || !hasTeamStats(old.players)) {
+                  if (old.runes === undefined || old.spells === undefined || !hasTeamStats(old.players) || !hasPlayerChoices(old.players)) {
                     let mr = normMatch(g, me.puuid, co); let retry = false;
-                    const missing = () => !mr || (old.runes === undefined && !mr.runes) || (old.spells === undefined && !mr.spells) || (!hasTeamStats(old.players) && !hasTeamStats(mr.players));
+                    const missing = () => !mr || (old.runes === undefined && !mr.runes) || (old.spells === undefined && !mr.spells) || (!hasTeamStats(old.players) && !hasTeamStats(mr.players)) || (!hasPlayerChoices(old.players) && !hasPlayerChoices(mr.players));
                     if (missing()) { if (budget > 0) { budget--; try { const detail = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); if (detail) mr = detail; } catch (e) { retry = true; } } else retry = true; }
-                    if (!retry) { updated++; if (old.runes === undefined) old.runes = mr ? mr.runes : null; if (old.spells === undefined) old.spells = mr ? mr.spells : null; if (!hasTeamStats(old.players) && hasTeamStats(mr && mr.players)) old.players = mr.players; }
+                    if (!retry && mr) {
+                      updated++;
+                      if (old.runes === undefined) old.runes = mr.runes;
+                      if (old.spells === undefined) old.spells = mr.spells;
+                      if ((!Array.isArray(old.players) || old.players.length < 2 ||
+                        !hasTeamStats(old.players) && hasTeamStats(mr.players)) && hasPlayerChoices(mr.players)) {
+                        old.players = mr.players;
+                      }
+                      else if (!hasPlayerChoices(old.players) && hasPlayerChoices(mr && mr.players)) {
+                        old.players = old.players.map((p) => {
+                          if (!p) return p;
+                          const matches = mr.players.filter((fresh) => p.puuid ? fresh.puuid === p.puuid :
+                            (p.me && fresh.me) || (p.name && fresh.name === p.name && fresh.team === p.team && fresh.champ === p.champ));
+                          const fresh = matches.length === 1 ? matches[0] : null;
+                          return { ...p, spells: fresh?.spells ?? p.spells ?? null,
+                            keystone: fresh?.keystone ?? p.keystone ?? null, secondary: fresh?.secondary ?? p.secondary ?? null };
+                        });
+                      }
+                    }
                   }
                   continue;
                 }

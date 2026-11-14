@@ -43,6 +43,8 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 - Maç ekranı tıklanınca kurulur. Geri düğmesi veya Escape, mevcut listeyi filtre ve kaydırma konumuyla geri getirir. Grafikler kompakt kutularda yer alır. Kadrolarda geniş portreler, büyük yazı ve ayrı bir eşya satırı bulunur. Dar ekranda takımlar alt alta dizilir.
 
+- Analiz kadrosu oyuncu başına D/F büyülerini, ana rünü ve ikincil yolu KDA ile eşya satırı arasında gösterir. Eski kadro kayıtları bir sonraki eşitlemede oyuncuya göre tamamlanır.
+
 - Maç büyüleri/rünleri: `normMatch` iki büyüyü D/F sırasında `spells` olarak kaydeder; Riot match-v5 `summoner1Id/2Id` aynı yola çevrilir. Eski kayıtların eksik alanları sonraki senkronizasyonda tamamlanır. Kartta istatistik/eşya arasında 2×2: solda iki büyü, sağda ana rün ve ikincil ağaç. `lol:icon` spell/rune türlerini yalnız Data Dragon metadata kimliği→izinli PNG yolu ile çözer; sürümlü spell, `/cdn/img/perk-images/` rün yolu; isim tooltip/erişilebilir etikette. Eksik maç verisi tahmin edilmez.
 
 - Blitz metin seçimi kapalı (`user-select:none`); input/textarea/contenteditable yazı seçimi açık. Maç kartı: 52px portre, esnek istatistik/eşya alanı, 158px iki takım sütunu. `.lg-matches` container query: ≤700px takım altta, ≤440px eşyalar istatistik altına geçer. Eşikler/gerçek maç verileri korunur.
@@ -99,7 +101,7 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - (ESKİ yol; yalnız tek seferlik geçiş paketi için) Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.15. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
+- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.16. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).

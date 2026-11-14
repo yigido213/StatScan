@@ -1016,7 +1016,9 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-player-name .bz-player-extra { display: block; margin: 4px 0 0; line-height: 1.45; }
 .bz-player-kda { color: #e8edf5; font-weight: 700; white-space: nowrap; }
 .bz-player-cs { color: #aeb7c4; white-space: nowrap; }
-.bz-player-items { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 5px; }
+.bz-player-choices, .bz-player-items { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 5px; }
+.bz-player-choices .lg-ic { width: 28px; height: 28px; border-radius: 5px; }
+.bz-player-choices .bz-rune-start { margin-left: 5px; }
 .bz-player-items .lg-ic { width: 34px; height: 34px; border-radius: 6px; }
 @container (max-width: 760px) { .bz-teams { grid-template-columns: minmax(0,1fr); } }
 @container (max-width: 440px) {
@@ -7319,7 +7321,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.15';
+  const KOVAN_VER = 'beta 0.1.16';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8608,7 +8610,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           const kda = [p.k, p.d, p.a].every((x) => typeof x === 'number') ? p.k + ' / ' + p.d + ' / ' + p.a : KT('İstatistik yok');
           const cs = typeof p.cs === 'number' ? num(p.cs) + ' ' + KT('CS') : '—'; const items = Array.isArray(p.items) ? p.items : [];
           const extra = [typeof p.dmg === 'number' ? (p.dmg / 1000).toFixed(1) + 'k ' + KT('Hasar') : null, typeof p.gold === 'number' ? num(p.gold) + ' ' + KT('Altın') : null, typeof p.vision === 'number' ? KT('Vizyon') + ' ' + p.vision : null].filter(Boolean).join(' · ');
-          return h('div', { class: 'bz-player' }, champIc(p.champ), h('span', { class: 'bz-player-name', title: (p.name || nameOf(p.champ)) + (p.tag ? '#' + p.tag : '') }, h('span', {}, p.name || nameOf(p.champ)), p.role ? h('small', {}, KT(RTR[p.role] || p.role)) : null, extra ? h('small', { class: 'bz-player-extra' }, extra) : null), h('span', { class: 'bz-player-kda', title: KT('KDA') }, kda), h('span', { class: 'bz-player-cs', title: KT('Minyon') }, cs), h('span', { class: 'bz-player-items', 'aria-label': KT('Eşyalar') }, ...items.slice(0, 7).map((it) => icon('item', it, '·'))));
+          const spells = p.spells ?? (p.me ? m.spells : null);
+          const choices = [
+            ['spell', spells?.[0], 'Sihirdar büyüsü'],
+            ['spell', spells?.[1], 'Sihirdar büyüsü'],
+            ['rune', p.keystone ?? (p.me ? m.runes?.perks?.[0] : null), 'Ana rün'],
+            ['rune', p.secondary ?? (p.me ? m.runes?.secondary : null), 'İkincil rün yolu']
+          ].filter(([, id]) => id);
+          const playerChoices = choices.length ? h('span', {
+            class: 'bz-player-choices', 'aria-label': KT('Maç büyüleri ve rünleri')
+          }, ...choices.map(([kind, id, label], index) => {
+            const choice = icon(kind, id, KT(label));
+            if (kind === 'rune' && choices[index - 1]?.[0] === 'spell') choice.classList.add('bz-rune-start');
+            return choice;
+          })) : null;
+          return h('div', { class: 'bz-player' }, champIc(p.champ), h('span', { class: 'bz-player-name', title: (p.name || nameOf(p.champ)) + (p.tag ? '#' + p.tag : '') }, h('span', {}, p.name || nameOf(p.champ)), p.role ? h('small', {}, KT(RTR[p.role] || p.role)) : null, extra ? h('small', { class: 'bz-player-extra' }, extra) : null), h('span', { class: 'bz-player-kda', title: KT('KDA') }, kda), h('span', { class: 'bz-player-cs', title: KT('Minyon') }, cs), playerChoices, h('span', { class: 'bz-player-items', 'aria-label': KT('Eşyalar') }, ...items.slice(0, 7).map((it) => icon('item', it, '·'))));
         }));
       });
       const note = players.length < 2 ? h('p', { class: 'bz-compare-missing' }, KT('Bu maç için iki takımın kadro verisi bulunmuyor.')) : null;
