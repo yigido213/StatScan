@@ -41,7 +41,7 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 - Maç ayrıntısı: karta veya `Detayları göster` düğmesine tıklanınca Blitz içinde ayrı `#lg-match-screen` ekranı açılır. Üstte maç özeti ve beş maç sonu karşılaştırma grafiği, altta iki takımın kadrosu ve oyuncu istatistikleri yer alır. Eksik kayıtlarda veri kapsamı gösterilir.
 
-- Maç ekranı tıklanınca kurulur. Geri düğmesi veya Escape, mevcut listeyi filtre ve kaydırma konumuyla geri getirir. Grafikler ve kadrolar dar ekranda tek sütuna geçer.
+- Maç ekranı tıklanınca kurulur. Geri düğmesi veya Escape, mevcut listeyi filtre ve kaydırma konumuyla geri getirir. Grafikler kompakt kutularda yer alır. Kadrolarda geniş portreler, büyük yazı ve ayrı bir eşya satırı bulunur. Dar ekranda takımlar alt alta dizilir.
 
 - Maç büyüleri/rünleri: `normMatch` iki büyüyü D/F sırasında `spells` olarak kaydeder; Riot match-v5 `summoner1Id/2Id` aynı yola çevrilir. Eski kayıtların eksik alanları sonraki senkronizasyonda tamamlanır. Kartta istatistik/eşya arasında 2×2: solda iki büyü, sağda ana rün ve ikincil ağaç. `lol:icon` spell/rune türlerini yalnız Data Dragon metadata kimliği→izinli PNG yolu ile çözer; sürümlü spell, `/cdn/img/perk-images/` rün yolu; isim tooltip/erişilebilir etikette. Eksik maç verisi tahmin edilmez.
 
