@@ -1697,7 +1697,18 @@ const LOLMOD = (() => {
           } else return errE('Simge türü geçersiz.');
           const key = kind + '-' + id + (ver ? '-' + ver : ''); if (iconMem.has(key)) return { data: iconMem.get(key), name };
           const isPng = (b) => Buffer.isBuffer(b) && b.length >= 64 && b[0] === 0x89 && b[1] === 0x50; const file = cacheDir ? path.join(cacheDir, 'icons', key + '.png') : null; let buf = null; if (file) { try { buf = fs.readFileSync(file); } catch (e) { buf = null; } if (!isPng(buf)) buf = null; }
-          if (!buf) { buf = await iconSlot(() => httpBin(host, kind === 'rank' || unversioned ? p : '/cdn/' + ver + '/img/' + p, max)); if (!isPng(buf)) return errE('Simge alınamadı.'); if (file) { try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, buf); } catch (e) { /* onbellek zorunlu degil */ } } }
+          if (!buf) {
+            const iconPath = kind === 'rank' || unversioned ? p : '/cdn/' + ver + '/img/' + p;
+            buf = await iconSlot(async () => {
+              if (kind !== 'rune') return httpBin(host, iconPath, max);
+              const riotIcon = await httpBin(host, iconPath, max).catch(() => null);
+              if (isPng(riotIcon)) return riotIcon;
+              const asset = iconPath.slice('/cdn/img/'.length).toLowerCase();
+              return httpBin(CD_HOST, '/latest/plugins/rcp-be-lol-game-data/global/default/v1/' + asset, max).catch(() => null);
+            });
+            if (!isPng(buf)) return { ...errE('Simge alınamadı.'), name };
+            if (file) { try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, buf); } catch (e) { /* onbellek zorunlu degil */ } }
+          }
           const d = 'data:image/png;base64,' + buf.toString('base64'); if (iconMem.size > 800) iconMem.clear(); iconMem.set(key, d); return { data: d, name };
         } catch (e) { return errE('Simge alınamadı (' + String(e && e.message || e).slice(0, 60) + ').'); }
       },

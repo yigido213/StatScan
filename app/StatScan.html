@@ -1008,7 +1008,7 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-team[data-team="theirs"] { --team-color: #fa655e; }
 .bz-teamhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 5px 12px; margin-bottom: 12px; color: #e8edf5; font-size: 22px; font-weight: 700; }
 .bz-teamhead small { color: var(--team-color); font-size: 13px; font-weight: 600; }
-.bz-player { display: grid; grid-template-columns: 48px minmax(0,1fr) auto auto; gap: 8px 12px; align-items: center; padding: 13px 0; border-top: 1px solid rgba(255,255,255,.09); font-size: 15px; font-variant-numeric: tabular-nums; }
+.bz-player { display: grid; grid-template-columns: 48px minmax(0,1fr) minmax(0,132px) auto auto; gap: 8px 12px; align-items: center; padding: 13px 0; border-top: 1px solid rgba(255,255,255,.09); font-size: 15px; font-variant-numeric: tabular-nums; }
 .bz-player > .lg-ic { width: 48px; height: 48px; border-radius: 9px; }
 .bz-player-name { min-width: 0; color: #e8edf5; overflow-wrap: anywhere; }
 .bz-player-name > span { font-weight: 700; }
@@ -1016,16 +1016,23 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-player-name .bz-player-extra { display: block; margin: 4px 0 0; line-height: 1.45; }
 .bz-player-kda { color: #e8edf5; font-weight: 700; white-space: nowrap; }
 .bz-player-cs { color: #aeb7c4; white-space: nowrap; }
-.bz-player-choices, .bz-player-items { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 5px; }
+.bz-player-name { grid-column: 2; }
+.bz-player-kda { grid-column: 4; grid-row: 1; }
+.bz-player-cs { grid-column: 5; grid-row: 1; }
+.bz-player-choices, .bz-player-items { display: flex; flex-wrap: wrap; gap: 5px; }
+.bz-player-choices { grid-column: 3; grid-row: 1; justify-content: center; }
+.bz-player-items { grid-column: 2 / -1; }
+.bz-player-choices .lg-ic[data-unavailable] { color: #aeb7c4; }
 .bz-player-choices .lg-ic { width: 28px; height: 28px; border-radius: 5px; }
 .bz-player-choices .bz-rune-start { margin-left: 5px; }
 .bz-player-items .lg-ic { width: 34px; height: 34px; border-radius: 6px; }
-@container (max-width: 760px) { .bz-teams { grid-template-columns: minmax(0,1fr); } }
+@container (max-width: 1020px) { .bz-teams { grid-template-columns: minmax(0,1fr); } }
 @container (max-width: 440px) {
   .bz-player { grid-template-columns: 42px minmax(0,1fr) auto; gap: 6px 9px; }
   .bz-player > .lg-ic { width: 42px; height: 42px; }
-  .bz-player-kda { grid-column: 2; }
-  .bz-player-cs { grid-column: 3; }
+  .bz-player-kda { grid-column: 2; grid-row: 2; }
+  .bz-player-cs { grid-column: 3; grid-row: 2; }
+  .bz-player-choices { grid-column: 2 / -1; grid-row: 3; justify-content: flex-start; }
   .bz-player-name { grid-column: 2 / -1; }
   .bz-player-items .lg-ic { width: 30px; height: 30px; }
 }
@@ -8405,7 +8412,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     function icon(kind, id, label, cls) {
       const box = h('span', { class: 'lg-ic' + (cls ? ' ' + cls : ''), 'aria-hidden': 'true' }, h('b', {}, String(label || '').slice(0, 1).toUpperCase())); if (!id && id !== 0) return box;
       const k = kind + ':' + id; if (!icoCache.has(k)) icoCache.set(k, call(H.lolIcon, kind, String(id)).then((r) => { if (r && r.name) icoNames.set(k, r.name); return r && r.data ? r.data : null; }));
-      icoCache.get(k).then((d) => { if (d) put(box, h('img', { src: d, alt: '', draggable: 'false' })); if (kind === 'spell' || kind === 'rune') { box.removeAttribute('aria-hidden'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', icoNames.get(k) || label); box.title = icoNames.get(k) || label; } }); return box;
+      icoCache.get(k).then((d) => { if (d) put(box, h('img', { src: d, alt: '', draggable: 'false' })); if ((kind === 'spell' || kind === 'rune') && !d) {
+        icoCache.delete(k);
+        box.dataset.unavailable = '';
+        if (box.closest('.bz-player-choices')) box.textContent = '—';
+      } if (kind === 'spell' || kind === 'rune') { box.removeAttribute('aria-hidden'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', icoNames.get(k) || label); box.title = icoNames.get(k) || label; } }); return box;
     }
     const champIc = (id, cls) => icon('champion', id, nameOf(id), cls);
     /* Amblem PNG'sinin saydam kenar boslugunu kirpar (yoksa derece simgesi kucuk gorunur). Basarisizsa orijinal kalir. */

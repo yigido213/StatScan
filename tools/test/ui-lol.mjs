@@ -261,8 +261,9 @@ await pg.click('#lg-matches .bz-detail-toggle');
 ok(await pg.evaluate(() => { const c=document.querySelector('#lg-match-screen'); return c && c.querySelectorAll('.bz-player').length===10 && c.querySelectorAll('.bz-team').length===2 && c.querySelectorAll('.bz-compare-row[data-metric="dmg"] .bz-compare-value').length===2 && [...c.querySelectorAll('.bz-compare-row[data-metric="gold"] .bz-compare-value em')].every((x)=>Number(x.textContent.replace(/\D/g,''))>0); }), 'maç analizi: gerçek ayrıntıdan iki takım ve hasar/altın karşılaştırma çubukları');
 ok(await pg.evaluate(() => [...document.querySelectorAll('#lg-match-screen .bz-player')].every((p) =>
   p.querySelector('.bz-player-choices')?.children.length === 4 &&
-  p.querySelector('.bz-player-choices').nextElementSibling === p.querySelector('.bz-player-items'))),
-  'iki takımda oyuncuya ait iki büyü ve iki rün simgesi eşyalardan önce gösterilir');
+  p.querySelector('.bz-player-choices').getBoundingClientRect().right <= p.querySelector('.bz-player-kda').getBoundingClientRect().left &&
+  Math.abs(p.querySelector('.bz-player-choices').getBoundingClientRect().top - p.querySelector('.bz-player-kda').getBoundingClientRect().top) < 20)),
+  'iki takımda oyuncu büyüleri ve rünleri KDA ile aynı satırın ortasında');
 { const vp=pg.viewportSize(); await pg.setViewportSize({width:390,height:900}); await pg.waitForTimeout(150); ok(await noOverflow(pg) && await pg.evaluate(() => { const c=document.querySelector('#lg-match-screen'); return c.scrollWidth<=c.clientWidth+1; }), 'gerçek maç verili açık detay paneli: 390 px’te yatay taşma yok'); await pg.setViewportSize(vp); if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + '/match-details.png', fullPage: true }); }
 ok(/2 yeni maç/.test(await txt(pg, '#lc-live')), 'senkron mesajı: 2 yeni maç');
 { const r2 = await hr.handlers['lol:sync'](null, { deep: false }); ok(r2 && r2.added === 0, 'tekrar güncelle: yinelenen maç eklenmez'); }

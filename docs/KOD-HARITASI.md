@@ -43,7 +43,7 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 - Maç ekranı tıklanınca kurulur. Geri düğmesi veya Escape, mevcut listeyi filtre ve kaydırma konumuyla geri getirir. Grafikler kompakt kutularda yer alır. Kadrolarda geniş portreler, büyük yazı ve ayrı bir eşya satırı bulunur. Dar ekranda takımlar alt alta dizilir.
 
-- Analiz kadrosu oyuncu başına D/F büyülerini, ana rünü ve ikincil yolu KDA ile eşya satırı arasında gösterir. Eski kadro kayıtları bir sonraki eşitlemede oyuncuya göre tamamlanır.
+- Analiz kadrosu oyuncu başına D/F büyülerini, ana rünü ve ikincil yolu geniş ekranda oyuncu adı ile KDA arasındaki sütunda, dar ekranda KDA altında gösterir. Riot CDN rün simgesi alınamazsa aynı varlık için CommunityDragon denenir. Eski kadro kayıtları bir sonraki eşitlemede oyuncuya göre tamamlanır.
 
 - Maç büyüleri/rünleri: `normMatch` iki büyüyü D/F sırasında `spells` olarak kaydeder; Riot match-v5 `summoner1Id/2Id` aynı yola çevrilir. Eski kayıtların eksik alanları sonraki senkronizasyonda tamamlanır. Kartta istatistik/eşya arasında 2×2: solda iki büyü, sağda ana rün ve ikincil ağaç. `lol:icon` spell/rune türlerini yalnız Data Dragon metadata kimliği→izinli PNG yolu ile çözer; sürümlü spell, `/cdn/img/perk-images/` rün yolu; isim tooltip/erişilebilir etikette. Eksik maç verisi tahmin edilmez.
 

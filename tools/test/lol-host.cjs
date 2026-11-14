@@ -189,7 +189,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     m = /games\/(\d+)$/.exec(p); if (m) return GAMES.find((g) => String(g.gameId) === m[1]) || null; return null;
   };
   const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(120, 7)]); let binCalls = 0; const bins = [];
-  const hp = mkHost({ now: () => NOW, lcu: { find: async () => (clientUp ? { port: 9, token: 'abcdefgh1234' } : null), get: lcuG }, getBin: async (h, p) => { binCalls++; bins.push(p); if (/item\/9999/.test(p)) throw new Error('HTTP 404'); return PNG; } }, path.join(tmp, 'profil')); const HP = hp.handlers;
+  const hp = mkHost({ now: () => NOW, lcu: { find: async () => (clientUp ? { port: 9, token: 'abcdefgh1234' } : null), get: lcuG }, getBin: async (h, p) => { binCalls++; bins.push(p); if (/item\/9999/.test(p) || (h === 'ddragon.leagueoflegends.com' && p.endsWith('/Conqueror.png'))) throw new Error('HTTP 404'); return PNG; } }, path.join(tmp, 'profil')); const HP = hp.handlers;
   clientUp = false; ok((await HP['lol:sync']()).state === 'noclient', 'sync: istemci kapalıyken noclient, çökme yok'); clientUp = true;
   let sy = await HP['lol:sync'](); ok(sy.state === 'ok' && sy.added === 4 && sy.snaps === 2 && sy.me.name === 'retired toplane' && sy.me.tag === 'yigit' && sy.me.level === 108, 'sync: profil, 4 maç, 2 derece anlık görüntüsü (solo+flex; TFT yok sayıldı)');
   ok(lcuCalls.every((p) => L.LCU_OK.some((re) => re.test(p))) && lcuCalls.filter((p) => /games\/\d+$/.test(p)).length === 4, 'sync: yalnız beyaz listedeki GET uç noktaları; kısmi maçlar için ayrıntı çekildi');
@@ -338,7 +338,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const before = bins.length;
     const [flash, tp, rune, tree] = await Promise.all([['spell', '4'], ['spell', '12'], ['rune', '8010'], ['rune', '8400']].map(([kind,id]) => HP['lol:icon']({kind,id})));
     ok(flash.data && flash.name === 'Sıçra' && tp.name === 'Işınlan' && rune.name === 'Fatih' && tree.name === 'Direniş', 'büyü/rün simgeleri: Data Dragon isimleri ve PNG');
-    ok(bins.slice(before).includes('/cdn/16.21.1/img/spell/SummonerFlash.png') && bins.slice(before).includes('/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png') && bins.slice(before).includes('/cdn/img/perk-images/Styles/7204_Resolve.png'), 'büyü sürümlü, rün ve ikincil ağaç sürümsüz resmi CDN yolundan');
+    ok(bins.slice(before).includes('/cdn/16.21.1/img/spell/SummonerFlash.png') && bins.slice(before).includes('/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png') && bins.slice(before).includes('/latest/plugins/rcp-be-lol-game-data/global/default/v1/perk-images/styles/precision/conqueror/conqueror.png') && bins.slice(before).includes('/cdn/img/perk-images/Styles/7204_Resolve.png'), 'büyü ve ikincil ağaç Riot CDN, başarısız ana rün CommunityDragon yedeği');
     const cached = bins.length; await HP['lol:icon']({kind:'spell',id:'4'}); await HP['lol:icon']({kind:'rune',id:'8010'}); ok(bins.length === cached, 'büyü/rün simgeleri bellekten döner');
     const invalid = await Promise.all([['spell','../4'],['spell','9'],['rune','8299'],['rune','9999'],['rune','https://x']].map(([kind,id]) => HP['lol:icon']({kind,id})));
     ok(invalid.every((r) => r.error) && bins.length === cached, 'büyü/rün: bilinmeyen kimlik, URL ve metadata yol geçişi ağ isteği yapmadan reddedilir');
