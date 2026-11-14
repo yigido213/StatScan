@@ -129,7 +129,9 @@ const hs = mkHost(seedDir); pg = await page(null, hs); await pg.goto(URL + '#/lo
 await pg.waitForFunction(() => [...document.querySelectorAll('.bz-match:first-child .bz-loadout .lg-ic')].length === 4 && [...document.querySelectorAll('.bz-match:first-child .bz-loadout .lg-ic')].every((e) => e.querySelector('img') && e.title));
 ok(await pg.evaluate(() => [...document.querySelector('.bz-loadout').children].map((e)=>e.title).join('|') === 'Flash|Fatih|Teleport|Direniş'), 'maç kartı: iki büyü D/F sırasında, ana rün ve ikincil ağaç 2×2 doğru sırada; isimli tooltip');
 await pg.click('.bz-match:first-child .bz-detail-toggle');
-ok(await pg.evaluate(() => { const c=document.querySelector('.bz-match:first-child'); return !c.querySelector('.bz-detail').hidden && c.querySelectorAll('.bz-team').length===2 && c.querySelectorAll('.bz-player').length===10 && c.querySelectorAll('.bz-compare-row').length===5 && /Eksik maç verisi/.test(c.querySelector('.bz-detail').textContent); }), 'maç kartı: detay açılır, iki 5 kişilik takım ve eksik eski istatistik açıkça gösterilir');
+ok(await pg.evaluate(() => { const c=document.querySelector('#lg-match-screen'); return !c.hidden && document.querySelector('.lg-wrap').hidden && !document.querySelector('.bz-match .bz-detail') && c.querySelectorAll('.bz-team').length===2 && c.querySelectorAll('.bz-player').length===10 && c.querySelectorAll('.bz-compare-row').length===5 && /Eksik maç verisi/.test(c.querySelector('.bz-detail').textContent); }), 'maç kartı: detay açılır, iki 5 kişilik takım ve eksik eski istatistik açıkça gösterilir');
+await pg.keyboard.press('Escape');
+ok(await pg.locator('#lg-match-screen').isHidden(), 'Escape returns to match history');
 for (const width of [390,768,900,1366,1920]) {
   await pg.setViewportSize({width,height:900});
   const good = await pg.evaluate(() => {
@@ -137,10 +139,12 @@ for (const width of [390,768,900,1366,1920]) {
     const choices=[...card.querySelector('.bz-loadout').children].map((x)=>x.getBoundingClientRect());
     return document.documentElement.scrollWidth<=innerWidth+1 && card.scrollWidth<=card.clientWidth+1 && loadout.right<=items.left && choices[0].left===choices[2].left && choices[1].left===choices[3].left && choices[0].top===choices[1].top && choices[2].top>choices[0].top && (box.width<=700 || (stats.right<=loadout.left && items.right<=teams.left));
   });
-  ok(good,'maç büyü/rün/eşya/takım yerleşimi ve açık analiz panelinde taşma yok: '+width+'px');
+  ok(good,'maç büyü/rün/eşya/takım yerleşimi taşma yok: '+width+'px');
 }
 await pg.click('.bz-match:first-child .bz-mh');
-ok(await pg.evaluate(() => document.querySelector('.bz-match:first-child .bz-detail').hidden && document.querySelector('.bz-match:first-child .bz-detail-toggle').getAttribute('aria-expanded') === 'false'), 'maç kartının gövdesine yeniden tıkla: detay kapanır');
+ok(await pg.locator('#lg-match-screen').isVisible(), 'match body opens the separate analysis screen');
+await pg.click('.bz-screen-back');
+ok(await pg.locator('.bz-match:first-child').isVisible(), 'back button restores match history');
 await pg.setViewportSize({width:1366,height:900});
 
 ok(/Yiğit/.test(await txt(pg, '.lg-name')) && /#717/.test(await txt(pg, '.lg-name')) && (await txt(pg, '.lg-lvl')) === '312', 'profil başlığı: ad, etiket (#717), seviye 312');
@@ -254,8 +258,8 @@ const hr = mkHost(path.join(tmp, 'rich')); pg = await page(null, hr); await pg.g
 ok(/Test Oyuncu/.test(await txt(pg, '.lg-name')) && /#EUW/.test(await txt(pg, '.lg-name')) && (await txt(pg, '.lg-lvl')) === '77' && /İstemci bağlı/.test(await txt(pg, '#lg-client')), 'açılışta otomatik senkron: profil, seviye, “İstemci bağlı”');
 ok(/Zümrüt 4/.test(await txt(pg, '#lg-rank-solo')) && /33 LP/.test(await txt(pg, '#lg-rank-solo')) && await pg.evaluate(() => document.querySelectorAll('#lg-matches .lg-match').length === 2), 'senkron: Zümrüt IV, 33 LP, 2 maç; rank/maç kartları çizildi');
 await pg.click('#lg-matches .bz-detail-toggle');
-ok(await pg.evaluate(() => { const c=document.querySelector('#lg-matches .bz-match'); return c && c.querySelectorAll('.bz-player').length===10 && c.querySelectorAll('.bz-team').length===2 && c.querySelectorAll('.bz-compare-row[data-metric="dmg"] .bz-compare-value').length===2 && [...c.querySelectorAll('.bz-compare-row[data-metric="gold"] .bz-compare-value em')].every((x)=>Number(x.textContent.replace(/\D/g,''))>0); }), 'maç analizi: gerçek ayrıntıdan iki takım ve hasar/altın karşılaştırma çubukları');
-{ const vp=pg.viewportSize(); await pg.setViewportSize({width:390,height:900}); await pg.waitForTimeout(150); ok(await noOverflow(pg) && await pg.evaluate(() => { const c=document.querySelector('#lg-matches .bz-match'); return c.scrollWidth<=c.clientWidth+1; }), 'gerçek maç verili açık detay paneli: 390 px’te yatay taşma yok'); await pg.setViewportSize(vp); if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + '/match-details.png', fullPage: true }); }
+ok(await pg.evaluate(() => { const c=document.querySelector('#lg-match-screen'); return c && c.querySelectorAll('.bz-player').length===10 && c.querySelectorAll('.bz-team').length===2 && c.querySelectorAll('.bz-compare-row[data-metric="dmg"] .bz-compare-value').length===2 && [...c.querySelectorAll('.bz-compare-row[data-metric="gold"] .bz-compare-value em')].every((x)=>Number(x.textContent.replace(/\D/g,''))>0); }), 'maç analizi: gerçek ayrıntıdan iki takım ve hasar/altın karşılaştırma çubukları');
+{ const vp=pg.viewportSize(); await pg.setViewportSize({width:390,height:900}); await pg.waitForTimeout(150); ok(await noOverflow(pg) && await pg.evaluate(() => { const c=document.querySelector('#lg-match-screen'); return c.scrollWidth<=c.clientWidth+1; }), 'gerçek maç verili açık detay paneli: 390 px’te yatay taşma yok'); await pg.setViewportSize(vp); if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + '/match-details.png', fullPage: true }); }
 ok(/2 yeni maç/.test(await txt(pg, '#lc-live')), 'senkron mesajı: 2 yeni maç');
 { const r2 = await hr.handlers['lol:sync'](null, { deep: false }); ok(r2 && r2.added === 0, 'tekrar güncelle: yinelenen maç eklenmez'); }
 await hr.handlers['lol:data:clear'](null); await pg.waitForTimeout(100); ok(true, 'Verileri silme (host kanalı; arayüzde düğme yok)');
@@ -304,8 +308,9 @@ ok(/Overview/.test(await txt(pe, '#lg-tab-overview')) && /Champion Pool/.test(aw
 ok(/Ranked Solo/.test(await txt(pe, '#lg-rank-solo')) && /Gold 2/.test(await txt(pe, '#lg-rank-solo')) && /41W - 35L/.test(await txt(pe, '#lg-rank-solo')) && /53\.9% WR/.test(await txt(pe, '#lg-rank-solo')), 'English: rank kartı (Gold 2, 41W - 35L, 53.9% WR)');
 ok(/Victory|Defeat/.test(await txt(pe, '#lg-matches')) && /Show more/.test(await txt(pe, '#lg-more')), 'English: maç kartları ve düğmeler');
 await pe.click('#lg-matches .bz-detail-toggle');
-ok(await pe.evaluate(() => { const t=document.querySelector('#lg-matches .bz-detail').textContent; return /Match analysis/.test(t) && /Team comparison/.test(t) && /Match-end totals/.test(t) && /Your team/.test(t) && /Enemy team/.test(t) && /Incomplete match data/.test(t) && !/Maç analizi|Takım karşılaştırması|Bizim takım|Rakip takım|Eksik maç verisi/.test(t); }), 'English: karttaki maç analizi, takım başlıkları ve grafik çevirileri');
+ok(await pe.evaluate(() => { const t=document.querySelector('#lg-match-screen').textContent; return /Match analysis/.test(t) && /Team comparison/.test(t) && /Match-end totals/.test(t) && /Your team/.test(t) && /Enemy team/.test(t) && /Incomplete match data/.test(t) && !/Maç analizi|Takım karşılaştırması|Bizim takım|Rakip takım|Eksik maç verisi/.test(t); }), 'English: karttaki maç analizi, takım başlıkları ve grafik çevirileri');
 liveData = { activePlayer: { riotId: 'Yigit#TR1', riotIdGameName: 'Yigit' }, gameData: { gameMode: 'CLASSIC', gameTime: 61 }, allPlayers: [P('Darius', 'Yigit', 'ORDER', ['Flash', 'Teleport'], 'TOP'), P('Nunu', 'M', 'ORDER', ['Flash', 'Smite']), P('Ahri', 'A', 'ORDER', ['Flash', 'Ignite']), P('Jinx', 'K', 'ORDER', ['Flash', 'Heal']), P('Lux', 'D', 'ORDER', ['Flash', 'Exhaust']), P('Garen', 'F1', 'CHAOS', ['Flash', 'Teleport']), P('MonkeyKing', 'F2', 'CHAOS', ['Flash', 'Smite']), P('Zed', 'F3', 'CHAOS', ['Flash', 'Ignite']), P('Kaisa', 'F4', 'CHAOS', ['Flash', 'Heal']), P('Teemo', 'F5', 'CHAOS', ['Flash', 'Exhaust'])] };
+await pe.click('.bz-screen-back');
 await pe.click('#lg-tab-live'); await pe.waitForTimeout(500);
 ok(await pe.evaluate(() => { const x = document.querySelector('#lg-pane-live').textContent; return /Live match/.test(document.querySelector('#lg-tab-live').textContent) && /Enemy team/.test(x) && /My team/.test(x) && /Lane matchup/.test(x) && /Teleport/.test(x) && /guess \d+%/.test(x) && !/Takımım|Rakip takım|Hat eşleşmesi|Işınlan|tahmin/.test(x); }), 'English: canlı maç sekmesi çevrildi');
 await pe.waitForFunction(() => document.querySelector('#lg-items .lg-isec'), null, { timeout: 8000 }).catch(() => {});
