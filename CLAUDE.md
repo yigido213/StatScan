@@ -32,6 +32,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz animasyonları — Codex: bitti. Sekme, kadro, maç analizi, grafik ve arka plan hareketleri. Sistem ve Kovan hareket ayarları uygulanır. Kovan beta 0.1.18.
 - HOTFIX: Blitz şampiyon havuzunda sabit rol sırası ve doğrulanamayan rollerin ayrı gösterimi — Codex: bitti.
 - HOTFIX: Sabitlenen araçlar kategori sayfasındaki tam araç kartıyla gösterilir — Codex: bitti.
 - Ana sayfada Sabitlenenler — Codex: bitti. Araç seçme, tek tıkla açma, kaldırma ve yerel kalıcılık. Kovan beta 0.1.17.
