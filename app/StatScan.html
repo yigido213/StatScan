@@ -1291,47 +1291,6 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
 .home-pin > .toolcard { width: 100%; }
 .home-pin > .toolcard h3 { overflow-wrap: anywhere; }
 .home-pin-remove { position: absolute; top: 10px; right: 10px; padding: 4px 9px; line-height: 1.25; }
-/* Blitz motion: short entrances, capped stagger, and no layout shifts. */
-@keyframes blitz-enter {
-  from { opacity: .35; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes blitz-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes blitz-line { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-@keyframes blitz-light { from { opacity: .25; } to { opacity: .8; } }
-@media (prefers-reduced-motion: no-preference) {
-  html:not([data-fx="off"]) #app-lolcounter:not([hidden]) :is(.lg-hero, .lg-pane:not([hidden]), .bz-match-screen:not([hidden])) {
-    animation: blitz-enter .36s cubic-bezier(.2,.75,.3,1) both;
-  }
-  html:not([data-fx="off"]) #app-lolcounter:not([hidden]) :is(.bz-match:nth-child(-n+6), .bz-role, .bz-tile:nth-child(-n+12), .bz-compare-row, .bz-team, .bz-player) {
-    animation: blitz-enter .35s cubic-bezier(.2,.75,.3,1) both;
-    animation-delay: var(--bz-delay, 0ms);
-  }
-  #app-lolcounter :is(.bz-match, .bz-role, .bz-tile, .bz-compare-row, .bz-team, .bz-player):nth-child(2n) { --bz-delay: 45ms; }
-  #app-lolcounter :is(.bz-match, .bz-role, .bz-tile, .bz-compare-row, .bz-player):nth-child(3n) { --bz-delay: 90ms; }
-  #app-lolcounter :is(.bz-match, .bz-role, .bz-tile, .bz-compare-row, .bz-player):nth-child(5n) { --bz-delay: 125ms; }
-  html:not([data-fx="off"]) #app-lolcounter:not([hidden]) .bz-mbar i {
-    transform-origin: left; animation: blitz-fill .66s cubic-bezier(.2,.75,.3,1) 90ms both;
-  }
-  html:not([data-fx="off"]) #app-lolcounter:not([hidden]) .bz-chart .ln {
-    stroke-dasharray: 1; animation: blitz-line .85s cubic-bezier(.2,.75,.3,1) both;
-  }
-  html:not([data-fx="off"]) #app-lolcounter:not([hidden]) .lg-sc.on .gl {
-    animation: blitz-light 5s ease-in-out infinite alternate;
-  }
-  html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab, .lg-fbtn, .bz-tile, .bz-match .lg-ic, .bz-player .lg-ic, .bz-detail-toggle) {
-    transition: scale .2s ease, translate .2s ease, background-color .2s ease, box-shadow .2s ease;
-  }
-  @media (hover: hover) {
-    html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab, .lg-fbtn, .bz-tile, .bz-detail-toggle):hover {
-      translate: 0 -3px; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 20%, transparent);
-    }
-    html:not([data-fx="off"]) #app-lolcounter :is(.bz-tile, .bz-match, .bz-player) .lg-ic:hover { scale: 1.13; }
-  }
-  html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab, .bz-detail-toggle):active { scale: .95; }
-}
-html[data-fx="off"] #app-lolcounter *, html[data-fx="off"] #app-lolcounter *::before,
-html[data-fx="off"] #app-lolcounter *::after { animation: none !important; transition: none !important; }
 </style>
 </head>
 <body>
@@ -7396,7 +7355,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.18';
+  const KOVAN_VER = 'beta 0.1.17';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
