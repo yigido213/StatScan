@@ -1009,9 +1009,13 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-teamhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 5px 12px; margin-bottom: 12px; color: #e8edf5; font-size: 22px; font-weight: 700; }
 .bz-teamhead small { color: var(--team-color); font-size: 13px; font-weight: 600; }
 .bz-player { display: grid; grid-template-columns: 48px minmax(0,1fr) minmax(0,132px) auto auto; gap: 8px 12px; align-items: center; padding: 13px 0; border-top: 1px solid rgba(255,255,255,.09); font-size: 15px; font-variant-numeric: tabular-nums; }
-.bz-player > .lg-ic { width: 48px; height: 48px; border-radius: 9px; }
+.bz-player > .lg-ic, .bz-player-portrait .lg-ic { width: 48px; height: 48px; border-radius: 9px; }
 .bz-player-name { min-width: 0; color: #e8edf5; overflow-wrap: anywhere; }
-.bz-player-name > span { font-weight: 700; }
+.bz-player-profile { appearance: none; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+.bz-player-profile:hover { color: #55dbe7; text-decoration: underline; }
+.bz-player-profile:focus-visible { outline: 2px solid #55dbe7; outline-offset: 3px; border-radius: 4px; }
+.bz-player-portrait { display: grid; }
+.bz-player-name > span, .bz-player-name > button { font-weight: 700; }
 .bz-player-name small { color: #aeb7c4; margin-left: 6px; font-size: 13px; }
 .bz-player-name .bz-player-extra { display: block; margin: 4px 0 0; line-height: 1.45; }
 .bz-player-kda { color: #e8edf5; font-weight: 700; white-space: nowrap; }
@@ -1029,7 +1033,7 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 @container (max-width: 1020px) { .bz-teams { grid-template-columns: minmax(0,1fr); } }
 @container (max-width: 440px) {
   .bz-player { grid-template-columns: 42px minmax(0,1fr) auto; gap: 6px 9px; }
-  .bz-player > .lg-ic { width: 42px; height: 42px; }
+  .bz-player > .lg-ic, .bz-player-portrait .lg-ic { width: 42px; height: 42px; }
   .bz-player-kda { grid-column: 2; grid-row: 2; }
   .bz-player-cs { grid-column: 3; grid-row: 2; }
   .bz-player-choices { grid-column: 2 / -1; grid-row: 3; justify-content: flex-start; }
@@ -6461,6 +6465,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Kaybetti": "Lost",
       "Detayları göster": "Show details",
       "Maç geçmişine dön": "Back to match history",
+      "{0} profilini aç": "Open {0} profile",
+      "Tam profili görmek için League istemcisini aç.": "Open the League client to see the full profile.",
       "Detayları gizle": "Hide details",
       "Maç analizi": "Match analysis",
       "Dakika dakika zaman çizgisi bu maç kaydında bulunmuyor; grafik maç sonu verilerini karşılaştırır.": "A minute-by-minute timeline is not available for this match; charts compare end-of-game stats.",
@@ -8516,7 +8522,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         for (const [el, top] of scrollPositions) el.scrollTop = top;
       };
       const back = h('button', { type: 'button', class: 'bz-detail-toggle bz-screen-back', onclick: close }, '← ' + KT('Maç geçmişine dön'));
-      matchScreen.replaceChildren(back, matchDetails(m));
+      const openProfile = (request, recordedPlayer) => {
+        if (st.pl.busy) return;
+        close();
+        plInp.value = recordedPlayer.tag ? recordedPlayer.name + '#' + recordedPlayer.tag : '';
+        plSearch(request, recordedPlayer);
+        plInp.focus();
+      };
+      matchScreen.replaceChildren(back, matchDetails(m, openProfile));
       overviewScreen.hidden = true;
       matchScreen.hidden = false;
       matchScreen.onkeydown = (event) => { if (event.key === 'Escape') { event.stopPropagation(); close(); } };
@@ -8607,7 +8620,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const ul = $('#lg-matches', feedEl); if (!ul) return; if (reset) put(ul, ); for (const x of m.rows) ul.append(matchCard(x)); st.off += m.rows.length;
       const more = $('#lg-more', feedEl); put(more, st.off < st.total ? btn('lg-morebtn', 'Daha fazla göster', () => drawFeed(false)) : null);
     }
-    function matchDetails(m) {
+    function matchDetails(m, openProfile) {
       const players = Array.isArray(m.players) ? m.players : []; const ids = [...new Set(players.map((p) => p.team))].slice(0, 2); const sides = ids.map((id) => ({ id, rows: players.filter((p) => p.team === id), ours: id === m.team, label: KT(id === m.team ? 'Bizim takım' : 'Rakip takım'), result: m.remake ? '' : ((id === m.team) === m.win ? KT('Kazandı') : KT('Kaybetti')) })).sort((a, b) => Number(b.ours) - Number(a.ours));
       const metrics = [['gold', 'Altın'], ['dmg', 'Hasar'], ['k', 'Skor'], ['vision', 'Vizyon'], ['cs', 'Minyon']];
       const metricData = metrics.map(([key, label]) => { const vals = sides.map((s) => ({ side: s, complete: s.rows.length > 0 && s.rows.every((p) => typeof p[key] === 'number' && Number.isFinite(p[key])), count: s.rows.filter((p) => typeof p[key] === 'number' && Number.isFinite(p[key])).length, total: s.rows.reduce((a, p) => a + (typeof p[key] === 'number' && Number.isFinite(p[key]) ? p[key] : 0), 0) })); return { key, label, vals }; });
@@ -8635,7 +8648,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
             if (kind === 'rune' && choices[index - 1]?.[0] === 'spell') choice.classList.add('bz-rune-start');
             return choice;
           })) : null;
-          return h('div', { class: 'bz-player' }, champIc(p.champ), h('span', { class: 'bz-player-name', title: (p.name || nameOf(p.champ)) + (p.tag ? '#' + p.tag : '') }, h('span', {}, p.name || nameOf(p.champ)), p.role ? h('small', {}, KT(RTR[p.role] || p.role)) : null, extra ? h('small', { class: 'bz-player-extra' }, extra) : null), h('span', { class: 'bz-player-kda', title: KT('KDA') }, kda), h('span', { class: 'bz-player-cs', title: KT('Minyon') }, cs), playerChoices, h('span', { class: 'bz-player-items', 'aria-label': KT('Eşyalar') }, ...items.slice(0, 7).map((it) => icon('item', it, '·'))));
+          const displayName = p.name || nameOf(p.champ);
+          const identity = displayName + (p.name && p.tag ? '#' + p.tag : '');
+          const request = /^[A-Za-z0-9_-]{20,100}$/.test(p.puuid || '') ? { puuid: p.puuid } :
+            p.name && p.tag ? { query: p.name + '#' + p.tag } : null;
+          const profileButton = (content, portrait = false) => h('button', {
+            type: 'button', class: 'bz-player-profile' + (portrait ? ' bz-player-portrait' : ''),
+            'aria-label': KT('{0} profilini aç', identity), onclick: () => openProfile(request, p)
+          }, content);
+          const portrait = champIc(p.champ);
+          return h('div', { class: 'bz-player' }, request ? profileButton(portrait, true) : portrait, h('span', {
+            class: 'bz-player-name', title: identity
+          }, request ? profileButton(displayName) : h('span', {}, displayName), p.role ? h('small', {}, KT(RTR[p.role] || p.role)) : null, extra ? h('small', { class: 'bz-player-extra' }, extra) : null), h('span', { class: 'bz-player-kda', title: KT('KDA') }, kda), h('span', { class: 'bz-player-cs', title: KT('Minyon') }, cs), playerChoices, h('span', { class: 'bz-player-items', 'aria-label': KT('Eşyalar') }, ...items.slice(0, 7).map((it) => icon('item', it, '·'))));
         }));
       });
       const note = players.length < 2 ? h('p', { class: 'bz-compare-missing' }, KT('Bu maç için iki takımın kadro verisi bulunmuyor.')) : null;
@@ -8833,12 +8857,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       if (!r.friends.length) { put(box, h('p', { class: 'lg-sub' }, KT('Arkadaş listesi boş ya da okunamadı.'))); return; }
       put(box, h('ul', { class: 'lg-frl', id: 'lg-frl' }, ...r.friends.slice(0, 60).map((f) => h('li', {}, h('button', { type: 'button', class: 'lg-fr' + (f.status === 'offline' ? '' : ' on'), 'data-puuid': f.puuid, onclick: () => { st.pl.q = f.name + (f.tag ? '#' + f.tag : ''); plInp.value = st.pl.q; box.dataset.open = ''; put(box); plSearch({ puuid: f.puuid }); } }, icon('profile', f.icon, f.name), h('b', {}, f.name), f.tag ? h('small', {}, '#' + f.tag) : null)))));
     }
-    async function plSearch(req) {
+    async function plSearch(req, recordedPlayer) {
       if (st.pl.busy) return; if (st.tab !== 'player') setTab('player'); const res = $('#lg-pl-res', panes.player); if (!res) return; st.pl.busy = true; put(res, h('p', { class: 'lg-sub', role: 'status' }, KT('Okunuyor…')));
       const r = await call(H.lolPlayerSearch, req); st.pl.busy = false; if (st.tab !== 'player') return; const res2 = $('#lg-pl-res', panes.player); if (!res2) return;
       if (!r || r.error) { put(res2, h('p', { class: 'lg-sub warn' }, failMsg(r))); return; }
       if (r.state === 'badquery') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Geçerli bir Riot Kimliği yaz (Ad#ETİKET).'))); return; }
-      if (r.state === 'noclient') { put(res2, h('p', { class: 'lg-sub warn' }, KT('League istemcisi bulunamadı (açık mı?).'))); return; }
+      if (r.state === 'noclient') {
+        if (recordedPlayer) {
+          const identity = (recordedPlayer.name || nameOf(recordedPlayer.champ)) + (recordedPlayer.tag ? '#' + recordedPlayer.tag : '');
+          put(res2, h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, identity),
+            h('p', { class: 'lg-sub' }, KT('Tam profili görmek için League istemcisini aç.'))));
+        } else put(res2, h('p', { class: 'lg-sub warn' }, KT('League istemcisi bulunamadı (açık mı?).')));
+        return;
+      }
       if (r.state === 'notfound') { put(res2, empty(KT('Oyuncu bulunamadı'), KT('Ad ve etiketi kontrol et (büyük/küçük harf fark etmez).'))); return; }
       if (r.state !== 'ok') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Oyuncu okunamadı.'))); return; }
       st.pl.data = r; st.pl.puuid = r.player.puuid; st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); st.pl.filt = 'all'; drawPlayerRes();

@@ -252,9 +252,15 @@ await pg.context().close();
 
 // ---- istemciden senkron (sahte League istemcisi) + veri silme
 rich = (p) => { if (p === '/lol-summoner/v1/current-summoner') return { puuid: 'P-ME', gameName: 'Test Oyuncu', tagLine: 'EUW', summonerLevel: 77, profileIconId: 29 }; if (p === '/lol-ranked/v1/current-ranked-stats') return { queues: [{ queueType: 'RANKED_SOLO_5x5', tier: 'EMERALD', division: 'IV', leaguePoints: 33, wins: 10, losses: 8 }] };
-  const g = (id, win) => { const parts = []; for (let n = 1; n <= 10; n++) parts.push({ participantId: n, spell1Id: n <= 5 ? 4 : 12, spell2Id: n <= 5 ? 12 : 4, teamId: n <= 5 ? 100 : 200, championId: [122, 86, 17, 145, 238, 103, 62, 20, 222, 122][n - 1], timeline: n === 1 || n === 6 ? { lane: 'TOP', role: 'SOLO' } : { lane: 'NONE', role: 'NONE' }, stats: { perk0: n <= 5 ? 8010 : 8005, perkSubStyle: n <= 5 ? 8400 : 8100, win: n <= 5 ? win : !win, kills: n, deaths: 10 - n, assists: 2 * n, totalMinionsKilled: 100 + n * 10, neutralMinionsKilled: 5, goldEarned: 8000 + n * 100, totalDamageDealtToChampions: 12000 + n * 500, visionScore: 10 + n, champLevel: 15, item0: n === 1 ? 3071 : 3001 } }); return { gameId: id, gameCreation: Date.now() - 3600e3 * id % 1e9, gameDuration: 1700, queueId: 420, participants: parts, participantIdentities: parts.map((x) => ({ participantId: x.participantId, player: { puuid: x.participantId === 1 ? 'P-ME' : 'P-' + x.participantId, gameName: x.participantId === 1 ? 'Test Oyuncu' : 'Oyuncu' + x.participantId, tagLine: 'EUW' } })) }; };
+  const g = (id, win) => { const parts = []; for (let n = 1; n <= 10; n++) parts.push({ participantId: n, spell1Id: n <= 5 ? 4 : 12, spell2Id: n <= 5 ? 12 : 4, teamId: n <= 5 ? 100 : 200, championId: [122, 86, 17, 145, 238, 103, 62, 20, 222, 122][n - 1], timeline: n === 1 || n === 6 ? { lane: 'TOP', role: 'SOLO' } : { lane: 'NONE', role: 'NONE' }, stats: { perk0: n <= 5 ? 8010 : 8005, perkSubStyle: n <= 5 ? 8400 : 8100, win: n <= 5 ? win : !win, kills: n, deaths: 10 - n, assists: 2 * n, totalMinionsKilled: 100 + n * 10, neutralMinionsKilled: 5, goldEarned: 8000 + n * 100, totalDamageDealtToChampions: 12000 + n * 500, visionScore: 10 + n, champLevel: 15, item0: n === 1 ? 3071 : 3001 } }); return { gameId: id, gameCreation: Date.now() - 3600e3 * id % 1e9, gameDuration: 1700, queueId: 420, participants: parts, participantIdentities: parts.map((x) => ({ participantId: x.participantId, player: { puuid: x.participantId === 1 ? 'P-ME' : 'player_fixture_identity_' + x.participantId, gameName: x.participantId === 1 ? 'Test Oyuncu' : 'Oyuncu' + x.participantId, tagLine: 'EUW' } })) }; };
   const games = [g(11, true), g(12, false)]; let m = /matches\?begIndex=(\d+)/.exec(p); if (m) return { games: { games: Number(m[1]) === 0 ? games.map((x) => Object.assign({}, x, { participants: [x.participants[0]], participantIdentities: [x.participantIdentities[0]] })) : [] } }; m = /games\/(\d+)$/.exec(p); if (m) return games.find((x) => String(x.gameId) === m[1]) || null; return null; };
-const hr = mkHost(path.join(tmp, 'rich')); pg = await page(null, hr); await pg.goto(URL + '#/lolcounter'); await ready(pg, /Güncellendi/); await pg.waitForTimeout(500);
+const hr = mkHost(path.join(tmp, 'rich'));
+let selectedRosterId;
+hr.handlers['lol:player:search'] = async (_event, req) => {
+  selectedRosterId = req.puuid;
+  return { state: 'noclient' };
+};
+pg = await page(null, hr); await pg.goto(URL + '#/lolcounter'); await ready(pg, /Güncellendi/); await pg.waitForTimeout(500);
 ok(/Test Oyuncu/.test(await txt(pg, '.lg-name')) && /#EUW/.test(await txt(pg, '.lg-name')) && (await txt(pg, '.lg-lvl')) === '77' && /İstemci bağlı/.test(await txt(pg, '#lg-client')), 'açılışta otomatik senkron: profil, seviye, “İstemci bağlı”');
 ok(/Zümrüt 4/.test(await txt(pg, '#lg-rank-solo')) && /33 LP/.test(await txt(pg, '#lg-rank-solo')) && await pg.evaluate(() => document.querySelectorAll('#lg-matches .lg-match').length === 2), 'senkron: Zümrüt IV, 33 LP, 2 maç; rank/maç kartları çizildi');
 await pg.click('#lg-matches .bz-detail-toggle');
@@ -266,6 +272,10 @@ ok(await pg.evaluate(() => [...document.querySelectorAll('#lg-match-screen .bz-p
   'iki takımda oyuncu büyüleri ve rünleri KDA ile aynı satırın ortasında');
 { const vp=pg.viewportSize(); await pg.setViewportSize({width:390,height:900}); await pg.waitForTimeout(150); ok(await noOverflow(pg) && await pg.evaluate(() => { const c=document.querySelector('#lg-match-screen'); return c.scrollWidth<=c.clientWidth+1; }), 'gerçek maç verili açık detay paneli: 390 px’te yatay taşma yok'); await pg.setViewportSize(vp); if (process.env.SHOT) await pg.screenshot({ path: process.env.SHOT + '/match-details.png', fullPage: true }); }
 ok(/2 yeni maç/.test(await txt(pg, '#lc-live')), 'senkron mesajı: 2 yeni maç');
+await pg.locator('[data-team="theirs"] .bz-player-portrait').first().click();
+await pg.waitForFunction(() => /Oyuncu6#EUW/.test(document.querySelector('#lg-pl-res')?.textContent || ''));
+ok(selectedRosterId === 'player_fixture_identity_6' && await pg.locator('#lg-match-screen').isHidden(),
+  'rakip portresi doğru oyuncunun profilini açar ve istemci kapalıyken kayıtlı kimliği gösterir');
 { const r2 = await hr.handlers['lol:sync'](null, { deep: false }); ok(r2 && r2.added === 0, 'tekrar güncelle: yinelenen maç eklenmez'); }
 await hr.handlers['lol:data:clear'](null); await pg.waitForTimeout(100); ok(true, 'Verileri silme (host kanalı; arayüzde düğme yok)');
 const afterWipe = await hr.handlers['lol:profile'](); ok(afterWipe.matches === 0 && afterWipe.me === null, 'silme: host tarafında maç ve profil kalmadı'); await pg.context().close(); rich = null;
