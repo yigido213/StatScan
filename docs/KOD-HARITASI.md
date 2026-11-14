@@ -37,6 +37,8 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
 
+- Maç kartı KDA rengi (`matchCard`, `.bz-st.k`): <5 gri (#b6bfce), 5–<10 tok sarı (#e5b62f), 10–<15 açık mavi (#7dd3fc), ≥15 zümrüt (#34d399). Eşikler yuvarlanmamış (K+A)/max(1,D) değeriyle hesaplanır.
+
 Adı arayüzde **Blitz**; araç kimliği/rota hâlâ `lolcounter` (`#/lolcounter`, `#app-lolcounter`, `lolcounter.json`), host kanalları `lol:*`. Kategorisi **Oyun** (`#/c-oyun`; Oyun Ayarlayıcı da burada). 'Geçmişi derin tara' düğmeleri kaldırıldı (host `lol:sync` hâlâ `deep` alanını kabul eder ama arayüz hep `false` yollar). Profil başlığındaki **Güncelle / Otomatik yenile / Verileri sil** düğmeleri kullanıcı isteğiyle KALDIRILDI (arayüzde yok; host `lol:data:clear` kanalı duruyor ama düğmesi yok). Yenileme kendiliğinden: `setAutoSync()` zamanlayıcısı varsayılan 3 sn'de bir `doSync(true)` çağırır (sessiz kip: yalnız yeni maç/derece varsa mesaj + sekmeyi yeniden çizer), meşgulken atlar, sekme gizliyken durur, istemci bulunamadıysa 15 sn'de bir dener. Aralık gizli ayarla değişir: `localStorage 'kovan.lgauto'` = 0 (kapalı) / 1 / 2 / 3 sn; arayüzde seçici yok. Veri yokken boş durumda küçük bir 'Güncelle' düğmesi (`#lg-sync2`) kaldı. Testte varsayılanı kapatmak için `ui-lol.mjs` `page()` yardımcısı `kovan.lgauto='0'` yazar.
 Veri akışı (hepsi arka planda, tarayıcı açmaz; yalnız sabit sunucular):
 - **Data Dragon** (`ddragon.leagueoflegends.com`): şampiyon listesi/istatistikleri (`champion.json`, yerel dil tr_TR→en_US), yetenek metinleri (`champion/<id>.json`; `enemytips` KULLANILMAZ — Riot güncellemiyor), rünler (`runesReforged.json`), şampiyon/eşya simgeleri.
