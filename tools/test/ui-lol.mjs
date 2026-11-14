@@ -247,7 +247,7 @@ for (const w of [900, 390]) { const p2 = await page({ width: w, height: 800 }, h
 await pg.context().close();
 
 // ---- gercek hareket: arka plan animasyonu calisir; Ayarlar'dan animasyon kapaliysa durur
-{ const pm = await page(null, hs, false, 'no-preference'); await pm.goto(URL + '#/lolcounter'); await ready(pm); ok(await pm.evaluate(() => getComputedStyle(document.querySelector('.lg-lattice')).animationName !== 'none' && getComputedStyle(document.querySelector('.lg-pane:not([hidden])')).animationName === 'blitz-enter'), 'hareket serbestken: arka plan örgüsü animasyonlu');
+{ const pm = await page(null, hs, false, 'no-preference'); await pm.goto(URL + '#/lolcounter'); await ready(pm); await pm.waitForSelector("#lg-pane-overview:not([hidden])"); ok(await pm.evaluate(() => getComputedStyle(document.querySelector('.lg-lattice')).animationName !== 'none' && getComputedStyle(document.querySelector('.lg-pane:not([hidden])')).animationName === 'blitz-enter'), 'hareket serbestken: arka plan örgüsü animasyonlu');
   await pm.evaluate(() => document.documentElement.setAttribute('data-fx', 'off')); ok(await pm.evaluate(() => getComputedStyle(document.querySelector('.lg-lattice')).animationName === 'none' && getComputedStyle(document.querySelector('.lg-pane:not([hidden])')).animationName === 'none'), '“Arayüz animasyonları” kapalıyken arka plan sabit'); await pm.context().close(); }
 
 // ---- istemciden senkron (sahte League istemcisi) + veri silme
