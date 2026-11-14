@@ -1284,6 +1284,15 @@ html[data-fx="off"] .flow *, html[data-fx="off"] .flow *::after, html[data-fx="o
 .upd-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); } .upd-li b { display: block; font: 600 13px var(--f-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .upd-li small { display: block; color: var(--muted); font: 11px var(--f-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
 html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"] .upd-pop * { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) { .upd-bar *, .upd-pop, .upd-pop * { animation: none !important; transition: none !important; } }
+.home-pins { margin-bottom: 24px; }
+.home .home-pins .tools-row { margin: 0 0 10px; flex-wrap: wrap; }
+.home-pins select { max-width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; color: inherit; background: var(--surface); font: inherit; }
+.home-pin-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-pin { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 2px 4px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.home-pin a { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 600; padding: 7px 9px; }
+.home-pin a:hover { text-decoration: underline; }
+.home-pin svg { width: 17px; height: 17px; flex: none; }
+.home-pins .home-pin-remove { padding: 6px 10px; }
 </style>
 </head>
 <body>
@@ -1302,6 +1311,14 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
   <h1 id="home-title" data-focus tabindex="-1"><span class="sr">Welcome home, yigit717</span><span class="tw" id="tw" aria-hidden="true"><span class="ghost">Welcome home, yigit717</span><span><span class="typed">Welcome home, yigit717</span><span class="caret"></span></span></span></h1>
   <p class="lead">Kovan, araçlarını tek yerde toplayan çalışma alanın. Araçlar kategorilere ayrıldı: Güvenlik (StatScan), Windows (Görev Yöneticisi, Ağ İzleyici), Minecraft (doku paketi dönüştürücü, mod sürüm ayarlayıcı) ve Kodlama (derleyici).</p>
   <div class="tools-row" id="tools-row"><button type="button" id="home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>Ara veya komut çalıştır <kbd>Ctrl K</kbd></button><span id="name-slot"><button type="button" id="name-edit">Adı değiştir</button></span></div>
+  <section class="home-pins" aria-labelledby="home-pins-title">
+    <h2 id="home-pins-title">Sabitlenenler</h2>
+    <form class="tools-row" id="home-pin-form">
+      <select id="home-pin-select" aria-label="Sabitlenecek araç"></select>
+      <button type="submit" id="home-pin-add">Sabitle</button>
+    </form>
+    <div class="home-pin-list" id="home-pin-list"></div>
+  </section>
   <h2>Araçlar</h2>
   <div class="toolgrid" id="toolgrid"></div>
   <h2>Çalışma alanı</h2>
@@ -6464,6 +6481,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Kazandı": "Won",
       "Kaybetti": "Lost",
       "Detayları göster": "Show details",
+      "Sabitlenenler": "Pinned",
+      "Sabitlenecek araç": "Tool to pin",
+      "Sabitle": "Pin",
+      "{0} sabitlemesini kaldır": "Unpin {0}",
+      "Tüm araçlar sabitlendi": "All tools pinned",
       "Maç geçmişine dön": "Back to match history",
       "{0} profilini aç": "Open {0} profile",
       "Tam profili görmek için League istemcisini aç.": "Open the League client to see the full profile.",
@@ -7334,7 +7356,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.16';
+  const KOVAN_VER = 'beta 0.1.17';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -9347,6 +9369,57 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     }
     for (const [cid] of CATS) if (!catGrid[cid].children.length) catGrid[cid].append(mk('div', { class: 'toolcard empty' }, '<span class="ic">' + svg('plus') + '</span><h3>Yeni araçlar için yer ayrıldı</h3><p>Henüz eklenmiş başka araç yok. Eklendiğinde burada ve kenar çubuğunda görünür.</p>'));
     const parentOf = (x) => { const m = MODULES.find((q) => q.id === x); return m && !m.owner && catOf(m) ? 'c-' + m.cat : null; };
+    const pinTools = MODULES.filter((tool) => !tool.owner);
+    const pinSelect = $('#home-pin-select');
+    const pinAdd = $('#home-pin-add');
+    const pinList = $('#home-pin-list');
+    const pinKey = 'kovan.home.pins';
+    let pinned = [];
+    try {
+      const saved = JSON.parse(LS.get(pinKey));
+      if (Array.isArray(saved)) pinned = [...new Set(saved.filter((id) => pinTools.some((tool) => tool.id === id)))];
+    } catch (e) { /* bozuk kayıt boş liste olarak açılır */ }
+    function renderPins() {
+      const available = pinTools.filter((tool) => !pinned.includes(tool.id));
+      pinSelect.replaceChildren(...available.map((tool) => {
+        const option = mk('option', { value: tool.id });
+        option.textContent = KT(tool.name);
+        return option;
+      }));
+      if (!available.length) {
+        const option = mk('option', { value: '' });
+        option.textContent = KT('Tüm araçlar sabitlendi');
+        pinSelect.append(option);
+      }
+      pinSelect.disabled = pinAdd.disabled = !available.length;
+      pinList.replaceChildren(...pinned.map((id) => {
+        const tool = pinTools.find((candidate) => candidate.id === id);
+        const chip = mk('div', { class: 'home-pin' });
+        const link = mk('a', { href: '#/' + id }, svg(tool.icon)); link.addEventListener('click', (event) => { event.preventDefault(); go(id); });
+        link.append(document.createTextNode(KT(tool.name)));
+        const label = KT('{0} sabitlemesini kaldır', KT(tool.name));
+        const remove = mk('button', { type: 'button', class: 'home-pin-remove', 'aria-label': label, title: label });
+        remove.textContent = '×';
+        remove.addEventListener('click', () => {
+          pinned = pinned.filter((value) => value !== id);
+          LS.set(pinKey, JSON.stringify(pinned));
+          renderPins();
+          pinSelect.focus();
+        });
+        chip.append(link, remove);
+        return chip;
+      }));
+    }
+    $('#home-pin-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const id = pinSelect.value;
+      if (!pinTools.some((tool) => tool.id === id) || pinned.includes(id)) return;
+      pinned.push(id);
+      LS.set(pinKey, JSON.stringify(pinned));
+      renderPins();
+      pinList.lastElementChild.querySelector('a').focus();
+    });
+    renderPins();
     const facts = $('#home-facts'); const desktop = !!(window.statscanHost && window.statscanHost.desktop);
     for (const [k, v] of [['Sürüm', 'Kovan ' + KOVAN_VER], ['StatScan', StatScan.version || ''], ['Çalışma biçimi', desktop ? 'Masaüstü uygulaması' : 'Tarayıcı sayfası'], ['Gizlilik', 'Statik tarama yerelde yapılır; dosyalar gönderilmez']]) { const li = mk('li', {}, '<b></b><span></span>'); li.firstChild.textContent = k; li.lastChild.textContent = v; facts.append(li); }
     $('#side-ver').textContent = KOVAN_VER;

@@ -13,8 +13,23 @@ else if (process.platform === 'linux') launchOptions.executablePath = '/opt/pw-b
 const b = await chromium.launch(launchOptions);
 const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, acceptDownloads: true }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await pg.goto(pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../app/StatScan.html')).href); await pg.waitForTimeout(300);
-ok((await pg.textContent('#side-ver')) === 'beta 0.1.16', 'kenar çubuğu sürümü: beta 0.1.16');
-ok((await pg.textContent('#home-facts')).includes('beta 0.1.16'), 'Home: Kovan beta 0.1.16');
+ok((await pg.textContent('#side-ver')) === 'beta 0.1.17', 'kenar çubuğu sürümü: beta 0.1.17');
+ok((await pg.textContent('#home-facts')).includes('beta 0.1.17'), 'Home: Kovan beta 0.1.17');
+await pg.selectOption('#home-pin-select', 'statscan');
+await pg.click('#home-pin-add');
+await pg.selectOption('#home-pin-select', 'lolcounter');
+await pg.click('#home-pin-add');
+await pg.reload();
+const pins = pg.locator('#home-pin-list');
+ok(await pins.getByRole('link', { name: 'StatScan' }).isVisible() &&
+  await pins.getByRole('link', { name: 'Blitz' }).isVisible(), 'ana sayfa: sabitlenen araçlar yeniden yüklemede durur');
+await pins.getByRole('link', { name: 'StatScan' }).click();
+await pg.locator('#app-statscan').waitFor({ state: 'visible' });
+ok(await pg.locator('#app-statscan').isVisible(), 'ana sayfa: sabitlenen araç açılır');
+await pg.evaluate(() => { location.hash = '#/home'; });
+await pins.getByRole('button', { name: 'StatScan sabitlemesini kaldır' }).click();
+ok(await pins.getByRole('link', { name: 'StatScan' }).count() === 0 &&
+  await pg.locator('#home-pin-select option[value="statscan"]').count() === 1, 'ana sayfa: kaldırılan araç tekrar seçilebilir');
 // doku paketi
 await pg.evaluate(() => { location.hash = '#/texpack'; }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector("#app-texpack").hidden && document.querySelector("#app-home").hidden), "doku paketi sayfası açıldı");
 ok((await pg.title()) === 'Doku paketi dönüştürücü · Kovan', 'başlık');
