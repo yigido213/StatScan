@@ -13,8 +13,8 @@ else if (process.platform === 'linux') launchOptions.executablePath = '/opt/pw-b
 const b = await chromium.launch(launchOptions);
 const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, acceptDownloads: true }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await pg.goto(pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../app/StatScan.html')).href); await pg.waitForTimeout(300);
-ok((await pg.textContent('#side-ver')) === 'beta 0.1.17', 'kenar çubuğu sürümü: beta 0.1.17');
-ok((await pg.textContent('#home-facts')).includes('beta 0.1.17'), 'Home: Kovan beta 0.1.17');
+ok((await pg.textContent('#side-ver')) === 'beta 0.1.18', 'kenar çubuğu sürümü: beta 0.1.18');
+ok((await pg.textContent('#home-facts')).includes('beta 0.1.18'), 'Home: Kovan beta 0.1.18');
 await pg.selectOption('#home-pin-select', 'statscan');
 await pg.click('#home-pin-add');
 await pg.selectOption('#home-pin-select', 'lolcounter');

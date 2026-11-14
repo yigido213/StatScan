@@ -1291,6 +1291,130 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
 .home-pin > .toolcard { width: 100%; }
 .home-pin > .toolcard h3 { overflow-wrap: anywhere; }
 .home-pin-remove { position: absolute; top: 10px; right: 10px; padding: 4px 9px; line-height: 1.25; }
+/* Blitz motion v2: ambient life (always on) + guided entrances (only while .bzx-in is set by bzxEnter) so 3 s auto-sync re-renders never replay them. */
+@keyframes bzx-rise { from { opacity: 0; transform: translateY(30px) scale(.965); } to { opacity: 1; transform: none; } }
+@keyframes bzx-slide { from { opacity: 0; transform: translateX(-42px); } to { opacity: 1; transform: none; } }
+@keyframes bzx-slide-r { from { opacity: 0; transform: translateX(42px); } to { opacity: 1; transform: none; } }
+@keyframes bzx-pop { 0% { opacity: 0; transform: scale(.5) rotate(-7deg); } 62% { opacity: 1; transform: scale(1.08) rotate(1.2deg); } 100% { opacity: 1; transform: none; } }
+@keyframes bzx-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes bzx-sheen { 0%, 58% { background-position: 135% 0, 0 0; } 100% { background-position: -35% 0, 0 0; } }
+@keyframes bzx-edge { from { box-shadow: 0 0 0 0 transparent; } to { box-shadow: 0 0 24px -7px color-mix(in srgb, var(--rc) 60%, transparent); } }
+@keyframes bzx-aurora { from { transform: scale(1.04) translate3d(-1.2%, .6%, 0); } to { transform: scale(1.1) translate3d(1.4%, -1%, 0); } }
+@keyframes bzx-motes { to { background-position: 30px -240px, 120px -290px, 60px -480px; } }
+@keyframes bzx-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes bzx-glow { from { box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 8px 24px -10px rgba(0,0,0,.7), 0 0 0 0 rgba(217,171,75,0); } to { box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 8px 24px -10px rgba(0,0,0,.7), 0 0 26px 3px rgba(217,171,75,.4); } }
+@keyframes bzx-underline { from { transform: scaleX(0); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes bzx-gold { from { box-shadow: 0 0 8px rgba(217,171,75,.35); } to { box-shadow: 0 0 20px rgba(217,171,75,.85); } }
+@keyframes bzx-shine { from { transform: translateX(-130%) skewX(-18deg); } to { transform: translateX(330%) skewX(-18deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  /* ambient: parçacıklar, aurora, süzülen amblem, parlayan avatar, kart süpürmesi */
+  html:not([data-fx="off"]) #app-lolcounter .lg-bg::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5; mix-blend-mode: screen;
+    background-image: radial-gradient(circle, rgba(241,213,148,.9) 0 1.4px, transparent 2.6px), radial-gradient(circle, rgba(160,235,255,.8) 0 1.2px, transparent 2.4px), radial-gradient(circle, rgba(255,255,255,.7) 0 1px, transparent 2px);
+    background-size: 190px 240px, 290px 380px, 410px 520px; background-position: 30px 0, 120px 90px, 60px 40px;
+    animation: bzx-motes 38s linear infinite;
+  }
+  html:not([data-fx="off"]) #app-lolcounter .lg-sc.on .gl { animation: bzx-aurora 22s ease-in-out infinite alternate; will-change: transform; }
+  html:not([data-fx="off"]) #app-lolcounter .bz-rank .lg-emb { animation: bzx-float 5.5s ease-in-out infinite; }
+  html:not([data-fx="off"]) #app-lolcounter .lg-ava { animation: bzx-glow 3.4s ease-in-out infinite alternate; }
+  html:not([data-fx="off"]) #app-lolcounter .bz-bar i { position: relative; overflow: hidden; }
+  html:not([data-fx="off"]) #app-lolcounter .bz-bar i::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); animation: bzx-shine 3.2s ease-in-out 1s infinite; }
+  html:not([data-fx="off"]) #app-lolcounter .bz-match::before {
+    display: block; content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--rc) 20%, transparent) 50%, transparent 62%) 135% 0 / 250% 100% no-repeat, radial-gradient(240px circle at var(--mx, -300px) var(--my, -300px), rgba(255,255,255,.085), transparent 72%) 0 0 / 100% 100% no-repeat;
+    animation: bzx-sheen 7s ease-in-out infinite; animation-delay: calc(var(--bzx-s, 0) * 1.1s);
+  }
+  html:not([data-fx="off"]) #app-lolcounter .bz-match:not(.remake):nth-child(-n+8) { animation: bzx-edge 3.6s ease-in-out infinite alternate; animation-delay: calc(var(--bzx-s, 0) * .45s); }
+  html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab[aria-selected="true"])::after { animation: bzx-underline .38s cubic-bezier(.2,.8,.2,1) both, bzx-gold 2.8s ease-in-out .4s infinite alternate; }
+  /* etkileşim */
+  html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab, .lg-fbtn, .bz-tile, .bz-detail-toggle, .cv-btn, .bz-team, .bz-match, .lg-card) { transition: transform .22s cubic-bezier(.2,.8,.2,1), translate .22s cubic-bezier(.2,.8,.2,1), scale .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .25s ease, filter .18s ease; }
+  html:not([data-fx="off"]) #app-lolcounter .bz-tile .lg-ic, html:not([data-fx="off"]) #app-lolcounter .bz-match .lg-ic, html:not([data-fx="off"]) #app-lolcounter .bz-player .lg-ic { transition: transform .25s cubic-bezier(.2,.9,.3,1.4), filter .2s ease; }
+  @media (hover: hover) {
+    html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab, .lg-fbtn, .bz-detail-toggle):hover { translate: 0 -3px; }
+    html:not([data-fx="off"]) #app-lolcounter .bz-tile:hover { translate: 0 -5px; box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--accent) 55%, transparent); }
+    html:not([data-fx="off"]) #app-lolcounter .bz-tile:hover .lg-ic { transform: scale(1.14) rotate(-3deg); }
+    html:not([data-fx="off"]) #app-lolcounter .bz-match:hover { translate: 4px 0; }
+    html:not([data-fx="off"]) #app-lolcounter .bz-match:hover .lg-ic { transform: scale(1.1); }
+    html:not([data-fx="off"]) #app-lolcounter .bz-player:hover .lg-ic { transform: scale(1.12) rotate(-2deg); filter: brightness(1.12); }
+    html:not([data-fx="off"]) #app-lolcounter .bz-team:hover, html:not([data-fx="off"]) #app-lolcounter .lg-card:hover { border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
+    html:not([data-fx="off"]) #app-lolcounter .cv-btn:hover:not(:disabled) { translate: 0 -2px; box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--accent) 65%, transparent); }
+  }
+  html:not([data-fx="off"]) #app-lolcounter :is(.lg-tab, .cv-btn, .bz-detail-toggle, .lg-fbtn):active { scale: .94; }
+  /* giriş: yalnız #app-lolcounter.bzx-in iken (sekme/maç/rota değişimi) */
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in { --bzx-ease: cubic-bezier(.2,.8,.2,1); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .lg-hero { animation: bzx-slide .6s var(--bzx-ease) both; }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .lg-tab { animation: bzx-pop .55s var(--bzx-ease) both; animation-delay: calc(120ms + var(--bzx-d, 0ms)); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .lg-pane:not([hidden]) { animation: bzx-rise .5s var(--bzx-ease) both; }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .lg-pane:not([hidden]) .lg-card { animation: bzx-rise .55s var(--bzx-ease) both; animation-delay: calc(90ms + var(--bzx-d, 0ms)); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-match:nth-child(-n+8), html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-role { animation: bzx-slide .55s var(--bzx-ease) both; animation-delay: calc(140ms + var(--bzx-d, 0ms)); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-tile:nth-child(-n+18) { animation: bzx-pop .5s var(--bzx-ease) both; animation-delay: calc(100ms + var(--bzx-d, 0ms)); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-match-screen:not([hidden]) { animation: bzx-rise .5s var(--bzx-ease) both; }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-team[data-team="ours"] { animation: bzx-slide .6s var(--bzx-ease) .1s both; }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-team[data-team="theirs"] { animation: bzx-slide-r .6s var(--bzx-ease) .1s both; }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-player:nth-child(-n+8) { animation: bzx-rise .5s var(--bzx-ease) both; animation-delay: calc(260ms + var(--bzx-d, 0ms)); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-compare-row:nth-child(-n+8) { animation: bzx-slide .5s var(--bzx-ease) both; animation-delay: calc(160ms + var(--bzx-d, 0ms)); }
+  html:not([data-fx="off"]) #app-lolcounter.bzx-in .bz-mbar i { transform-origin: left; animation: bzx-fill .8s var(--bzx-ease) .25s both; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(1) { --bzx-d: 0ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(2) { --bzx-d: 70ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(3) { --bzx-d: 140ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(4) { --bzx-d: 210ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(5) { --bzx-d: 280ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(6) { --bzx-d: 350ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(7) { --bzx-d: 420ms; }
+  #app-lolcounter.bzx-in .lg-tab:nth-child(8) { --bzx-d: 490ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(1) { --bzx-d: 0ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(2) { --bzx-d: 70ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(3) { --bzx-d: 140ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(4) { --bzx-d: 210ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(5) { --bzx-d: 280ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(6) { --bzx-d: 350ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(7) { --bzx-d: 420ms; }
+  #app-lolcounter.bzx-in .lg-card:nth-child(8) { --bzx-d: 490ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(1) { --bzx-d: 0ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(2) { --bzx-d: 75ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(3) { --bzx-d: 150ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(4) { --bzx-d: 225ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(5) { --bzx-d: 300ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(6) { --bzx-d: 375ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(7) { --bzx-d: 450ms; }
+  #app-lolcounter.bzx-in .bz-match:nth-child(8) { --bzx-d: 525ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(1) { --bzx-d: 0ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(2) { --bzx-d: 32ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(3) { --bzx-d: 64ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(4) { --bzx-d: 96ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(5) { --bzx-d: 128ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(6) { --bzx-d: 160ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(7) { --bzx-d: 192ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(8) { --bzx-d: 224ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(9) { --bzx-d: 256ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(10) { --bzx-d: 288ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(11) { --bzx-d: 320ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(12) { --bzx-d: 352ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(13) { --bzx-d: 384ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(14) { --bzx-d: 416ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(15) { --bzx-d: 448ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(16) { --bzx-d: 480ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(17) { --bzx-d: 512ms; }
+  #app-lolcounter.bzx-in .bz-tile:nth-child(18) { --bzx-d: 544ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(1) { --bzx-d: 0ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(2) { --bzx-d: 55ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(3) { --bzx-d: 110ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(4) { --bzx-d: 165ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(5) { --bzx-d: 220ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(6) { --bzx-d: 275ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(7) { --bzx-d: 330ms; }
+  #app-lolcounter.bzx-in .bz-player:nth-child(8) { --bzx-d: 385ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(1) { --bzx-d: 0ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(2) { --bzx-d: 55ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(3) { --bzx-d: 110ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(4) { --bzx-d: 165ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(5) { --bzx-d: 220ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(6) { --bzx-d: 275ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(7) { --bzx-d: 330ms; }
+  #app-lolcounter.bzx-in .bz-compare-row:nth-child(8) { --bzx-d: 385ms; }
+  #app-lolcounter .bz-match:nth-child(2n) { --bzx-s: 1; } #app-lolcounter .bz-match:nth-child(3n) { --bzx-s: 2; } #app-lolcounter .bz-match:nth-child(5n) { --bzx-s: 3; }
+}
+html[data-fx="off"] #app-lolcounter *, html[data-fx="off"] #app-lolcounter *::before, html[data-fx="off"] #app-lolcounter *::after { animation: none !important; transition: none !important; }
 </style>
 </head>
 <body>
@@ -7355,7 +7479,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.17';
+  const KOVAN_VER = 'beta 0.1.18';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8357,6 +8481,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
      Karsi secim onerileri TAHMINDIR. Arayuz URL/dosya yolu GONDEREMEZ. Ikonlar host uzerinden data: URI olarak gelir. */
   (function kovanLol() {
     const root = $('#app-lolcounter'); if (!root) return;
+    /* hareket: giriş animasyonları yalnız kısa süre .bzx-in iken çalışır (sekme/maç/rota değişimi); 3 sn'lik sessiz yenileme yeniden oynatmaz. İmleç ışığı yalnız --mx/--my yazar. */
+    let bzxT = 0; const bzxEnter = () => { root.classList.add('bzx-in'); clearTimeout(bzxT); bzxT = setTimeout(() => root.classList.remove('bzx-in'), 2000); };
+    window.addEventListener('hashchange', () => { if (location.hash.startsWith('#/lolcounter')) bzxEnter(); }); if (location.hash.startsWith('#/lolcounter')) bzxEnter();
+    root.addEventListener('pointermove', (e) => { const c = e.target && e.target.closest ? e.target.closest('.bz-match') : null; if (!c) return; const r = c.getBoundingClientRect(); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px'); }, { passive: true });
     const H = window.statscanHost && window.statscanHost.lolStatus ? window.statscanHost : null;
     if (!H) { root.append(h('div', { class: 'lg-wrap' }, h('h1', { 'data-focus': '', tabindex: '-1' }, 'Blitz'), h('p', { class: 'cv-lead' }, 'Bu araç şampiyon verisini arka planda çekmek ve League istemcisini okumak için masaüstü uygulaması gerektirir; tarayıcıda çalışmaz.'))); return; }
     root.classList.add('lg');
@@ -8530,11 +8658,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const matchScreen = h('section', { class: 'bz-match-screen', id: 'lg-match-screen', 'aria-labelledby': 'lg-match-heading', hidden: true });
     root.append(bgEl, overviewScreen, matchScreen); paintScene('overview');
     function openMatch(m, source) {
+      bzxEnter();
       const scrollPositions = [];
       for (let el = root; el; el = el.parentElement) {
         if (el.scrollTop) scrollPositions.push([el, el.scrollTop]);
       }
       const close = () => {
+        bzxEnter();
         matchScreen.hidden = true;
         matchScreen.replaceChildren();
         overviewScreen.hidden = false;
@@ -8557,7 +8687,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       for (const [el] of scrollPositions) el.scrollTop = 0;
       matchScreen.querySelector('h1').focus({ preventScroll: true });
     }
-    function setTab(id) { st.tab = id; paintScene(id); for (const [k] of TABS) { const on = k === id; panes[k].hidden = !on; const b = $('#lg-tab-' + k); if (b) { b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } } if (location.hash.startsWith('#/lolcounter')) { /* sekme adresi yok; yalniz iç durum */ } load(id); }
+    function setTab(id) { bzxEnter(); st.tab = id; paintScene(id); for (const [k] of TABS) { const on = k === id; panes[k].hidden = !on; const b = $('#lg-tab-' + k); if (b) { b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } } if (location.hash.startsWith('#/lolcounter')) { /* sekme adresi yok; yalniz iç durum */ } load(id); }
     const load = (id) => ({ overview: drawOverview, live: drawLive, champs: drawChamps, lp: drawLp, partners: drawPartners, player: drawPlayer, counter: drawCounter }[id] || (() => {}))();
     /* ---- Riot API ayari (istemci kapaliyken): anahtar yalniz host'a gider, bir daha geri okunmaz ---- */
     function riotCard() {
