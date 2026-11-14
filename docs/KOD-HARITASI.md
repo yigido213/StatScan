@@ -78,6 +78,15 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 - SINIRLAR (arayüzde de yazılı): Windows kök deposu yok, CRL/OCSP sorgulanmaz, çalınmış sertifika listesi yok, ECDSA matematiği doğrulanmaz (RSA yalnız), sonuçlar sezgisel, dosya çalıştırılmaz, ağ yok. Motor bulgu metni Türkçe (EN yalnız arayüz kabuğu).
 - Testler: `node tools/test/ui-sectools.mjs` (sentetik örnekleri `tools/test/gen/build_sig.py` ve `build_packsec.py` üretir; python3 + cryptography gerekir, yoksa ATLAR).
 
+## Klasör izleme + Tarama geçmişi (`createWatcher` host.js, `watchInit`/`HIST`/`historyInit` StatScan.html)
+- **Tekrar bildirim hatası (kök neden, koddan çıkarım):** izleyicinin `seen` kaydı yalnız bellekteydi ve yol+boyut+mtime'a bağlıydı; antivirüs/bulut eşitleme mtime'ı değiştirince veya uygulama yeniden başlayınca aynı dosya yeniden taranıp bildirim atıyordu. Gerçek Windows'ta DOĞRULANMADI.
+- **Düzeltme:** `take()` dosyayı okuyunca SHA-256 hesaplar; geçmişte AYNI içerik ve skoru olan kayıt varsa `{dup:true}` döner (baytlar gönderilmez) → arayüz taramaz/bildirmez (`watchInit` `it.dup` → `continue`), host günlüğe "daha önce taranmış" yazar, sayaç artar. İçerik değişirse (veya geçmiş silinirse) yeniden taranır. Skoru olmayan kayıt (atlandı/okunamadı/taranamadı) tekilleştirmeyi tetiklemez.
+- **İkinci koruma:** `watch:notify` aynı başlık+metni 10 dk içinde bastırır (`recentNotes`).
+- **Kalıcı geçmiş:** `userData/tarama-gecmisi.json` (`deps.historyPath`, app.js; atomik yazım, 0600, en çok 2000 satır, bozuk dosya boş başlar). Tek satır = tek içerik (anahtar SHA-256; yoksa ad+boyut): `count`, `first/last`, `src` (watch/manual), skor, karar, ilk 3 bulgu başlığı, `alert`, `notified`. Dosya içeriği saklanmaz.
+- **Kanallar:** `history:add/list/clear` (+ preload `historyAdd/historyList/historyClear`); `list` {q, filter all|alert|watch|manual, offset, limit≤200}; `clear` host onayı ister.
+- **Arayüz:** "Geçmiş" sekmesi (`#view-history`; arama, süzgeç, Ayrıntı = tam SHA-256/klasör/ilk-son görülme/bulgular, "Daha fazla göster", 3 sn'de bir otomatik yenileme yalnız görünürken). `HIST` yardımcısı: masaüstünde host, tarayıcıda localStorage `statscan.history` (son 300). Elle tarama (`scanFile` sonrası) ve izleme taraması geçmişe yazılır. Dar ekranda (≤600 px) sekmeler kendi satırına geçer.
+- Testler: `watch.cjs` (+~22: dup, kalıcılık, süzgeç/sayfalama, temizleme, bozuk dosya, bildirim bastırma), yeni `ui-history.mjs` (gerçek host + gerçek klasör izleme; mtime 3 kez değişse de ikinci bildirim gelmez, yeniden başlatma, 390 px, tarayıcı yedeği).
+
 ## Testler (`tools/test/`)
 - Host: `node tools/test/lol-host.cjs` (sahte `deps.get/getBin/lcu/live/confirm`), `flow-host.cjs`, `game-host.cjs`, `mem-host.cjs`, `sys-host.cjs`, `access-host.cjs`, `compile-host.cjs`, `obf-host.cjs`, `srcobf.cjs` …
 - Arayüz (Playwright, gerçek host koduna köprü): `node tools/test/ui-lol.mjs`, `ui-flow.mjs`, `ui-shell.mjs`, `ui-lang.mjs`, `ui-conv.mjs`, `ui-game.mjs`, `ui-mem.mjs` … Playwright yolu testlerde `/home/claude/.npm-global/lib/node_modules/`. Ekran görüntüsü: `SHOT=<klasör> node tools/test/ui-lol.mjs`.

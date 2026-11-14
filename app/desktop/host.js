@@ -2774,6 +2774,41 @@ function createWatcher(deps) {
   const norm = (p) => path.resolve(String(p)); const inside = (child, parent) => { const r = path.relative(parent, child); return r === '' || (!r.startsWith('..') && !path.isAbsolute(r)); };
   const addLog = (kind, text, extra) => { log.unshift(Object.assign({ t: new Date().toISOString(), kind, text }, extra || {})); if (log.length > 200) log.length = 200; };
   const excluded = (p) => !!deps.excludeDir && inside(p, norm(deps.excludeDir));
+  /* Kalici tarama gecmisi + ICERIK (SHA-256) tekillestirme: ayni icerik yeniden taranmaz/bildirilmez, her tarama burada gorunur.
+     Tek satir = tek icerik (sayac artar). Yalnizca ozet saklanir (ad, klasor, boyut, skor, karar, ilk 3 bulgu basligi); dosya icerigi saklanmaz. */
+  const HMAX = deps.historyMax || 2000; const hist = { rows: [], by: new Map() }; let hTimer = null, hDirty = false, hSeq = 0;
+  const HS = (v, n) => String(v == null ? '' : v).slice(0, n); const isSha = (x) => typeof x === 'string' && /^[0-9a-f]{64}$/.test(x);
+  const hKey = (r) => (isSha(r.sha256) ? r.sha256 : 'x:' + r.name + ':' + (r.size | 0));
+  function hClean(r) {
+    if (!r || typeof r !== 'object') return null; const first = HS(r.first || r.last, 40); const last = HS(r.last || r.first, 40); if (!first || isNaN(Date.parse(first)) || isNaN(Date.parse(last))) return null;
+    const sc = r.score === null || r.score === undefined || r.score === '' ? null : Number(r.score);
+    return { id: r.id | 0, src: r.src === 'watch' ? 'watch' : 'manual', name: HS(r.name, 200), dir: HS(r.dir, 500), size: Math.max(0, Number(r.size) || 0), sha256: isSha(r.sha256) ? r.sha256 : '', score: sc === null || !isFinite(sc) ? null : Math.max(0, Math.min(100, Math.round(sc))), verdict: HS(r.verdict, 60), partial: !!r.partial, mode: HS(r.mode, 20), alert: !!r.alert, notified: !!r.notified, top: Array.isArray(r.top) ? r.top.slice(0, 3).map((x) => HS(x, 90)) : [], count: Math.max(1, r.count | 0), first, last };
+  }
+  function hFlush() {
+    if (hTimer) { clearTimeout(hTimer); hTimer = null; } if (!hDirty || !deps.historyPath) return; hDirty = false;
+    try { fs.mkdirSync(path.dirname(deps.historyPath), { recursive: true }); const tmp = deps.historyPath + '.tmp'; fs.writeFileSync(tmp, JSON.stringify({ v: 1, rows: hist.rows }), { mode: 0o600 }); fs.renameSync(tmp, deps.historyPath); } catch (e) { addLog('error', 'Tarama geçmişi yazılamadı: ' + e.message); }
+  }
+  function hSave(now) { hDirty = true; if (!deps.historyPath) return; if (now) { hFlush(); return; } if (!hTimer) hTimer = setTimeout(hFlush, 400); }
+  const hFront = (r) => { const i = hist.rows.indexOf(r); if (i > 0) { hist.rows.splice(i, 1); hist.rows.unshift(r); } };
+  function hLoad() {
+    if (!deps.historyPath) return; let o = null; try { o = JSON.parse(fs.readFileSync(deps.historyPath, 'utf8')); } catch (e) { return; } if (!o || !Array.isArray(o.rows)) return;
+    for (const raw of o.rows.slice(0, HMAX)) { const c = hClean(raw); if (c && !hist.by.has(hKey(c))) { hist.rows.push(c); hist.by.set(hKey(c), c); } }
+    hist.rows.sort((a, b) => Date.parse(b.last) - Date.parse(a.last)); hSeq = hist.rows.reduce((m, r) => Math.max(m, r.id), 0);
+  }
+  function historyAdd(e) {
+    if (!e || typeof e !== 'object') return null; const now = new Date().toISOString(); const c = hClean(Object.assign({}, e, { id: 0, first: now, last: now, count: 1 })); if (!c) return null; const old = hist.by.get(hKey(c));
+    if (old) { Object.assign(old, { src: c.src, name: c.name, dir: c.dir || old.dir, size: c.size, score: c.score, verdict: c.verdict, partial: c.partial, mode: c.mode, alert: c.alert, notified: old.notified || c.notified, top: c.top, count: old.count + 1, last: now }); hFront(old); hSave(); return old; }
+    c.id = ++hSeq; hist.rows.unshift(c); hist.by.set(hKey(c), c);
+    while (hist.rows.length > HMAX) { const x = hist.rows.pop(); if (hist.by.get(hKey(x)) === x) hist.by.delete(hKey(x)); } hSave(); return c;
+  }
+  function historyList(o) {
+    o = o || {}; const q = HS(o.q, 100).toLowerCase(); let rows = hist.rows;
+    if (o.filter === 'alert') rows = rows.filter((r) => r.alert); else if (o.filter === 'watch') rows = rows.filter((r) => r.src === 'watch'); else if (o.filter === 'manual') rows = rows.filter((r) => r.src === 'manual');
+    if (q) rows = rows.filter((r) => (r.name + ' ' + r.dir + ' ' + r.sha256 + ' ' + r.verdict).toLowerCase().includes(q));
+    const off = Math.max(0, Number(o.offset) | 0); const lim = Math.min(200, Math.max(1, Number(o.limit) | 0 || 50));
+    return { total: hist.rows.length, alerts: hist.rows.filter((r) => r.alert).length, matched: rows.length, rows: rows.slice(off, off + lim).map((r) => Object.assign({}, r, { top: r.top.slice() })) };
+  }
+  function historyClear() { hist.rows.length = 0; hist.by.clear(); hSave(true); }
   function validate(dir) {
     if (typeof dir !== 'string' || !dir || dir.length > 1024 || dir.includes('\0')) return 'Geçersiz klasör.'; const d = norm(dir);
     if (path.parse(d).root === d) return 'Sürücü/kök dizin izlenemez; bir alt klasör seç.';
@@ -2804,9 +2839,18 @@ function createWatcher(deps) {
   }
   function take() {
     const it = queue.shift(); if (!it) return { item: null }; if (it.size > MAXB) { addLog('skip', it.name + ' — ' + Math.round(it.size / 1048576) + ' MB, izleme sınırını (' + Math.round(MAXB / 1048576) + ' MB) aşıyor; elle tara', { name: it.name }); return { item: { id: it.id, name: it.name, dir: it.dir, size: it.size, tooBig: true } }; }
-    try { const buf = fs.readFileSync(it.full); return { item: { id: it.id, name: it.name, dir: it.dir, size: buf.length, bytes: new Uint8Array(buf.buffer, buf.byteOffset, buf.length) } }; } catch (e) { addLog('error', it.name + ' okunamadı: ' + e.message, { name: it.name }); return { item: { id: it.id, name: it.name, dir: it.dir, size: it.size, error: 'Okunamadı: ' + e.message } }; }
+    try {
+      const buf = fs.readFileSync(it.full); const sha256 = require('crypto').createHash('sha256').update(buf).digest('hex'); const prev = hist.by.get(sha256);
+      if (prev && prev.score !== null) { /* ayni icerik zaten taranmis: yeniden tarama ve bildirim YOK (mtime/yol degisse de) */
+        prev.count++; prev.last = new Date().toISOString(); prev.name = it.name; prev.dir = it.dir; prev.size = buf.length; hFront(prev); hSave();
+        addLog('info', it.name + ' — içerik daha önce taranmış (aynı SHA-256, ' + prev.count + '. görülme); tekrar taranmadı, bildirim gönderilmedi', { name: it.name });
+        return { item: { id: it.id, name: it.name, dir: it.dir, size: buf.length, sha256, dup: true, prev: { score: prev.score, verdict: prev.verdict, last: prev.last } } };
+      }
+      return { item: { id: it.id, name: it.name, dir: it.dir, size: buf.length, sha256, bytes: new Uint8Array(buf.buffer, buf.byteOffset, buf.length) } };
+    } catch (e) { addLog('error', it.name + ' okunamadı: ' + e.message, { name: it.name }); return { item: { id: it.id, name: it.name, dir: it.dir, size: it.size, error: 'Okunamadı: ' + e.message } }; }
   }
-  return { validate, setFolders, take, stop, log: () => log.slice(0, 100), addLog, folders: () => [...folders.keys()], _tick: tick, _consider: consider };
+  hLoad();
+  return { validate, setFolders, take, stop, log: () => log.slice(0, 100), addLog, folders: () => [...folders.keys()], historyAdd, historyList, historyClear, flush: hFlush, _tick: tick, _consider: consider };
 }
 
 function createHost(deps) {
@@ -2875,7 +2919,7 @@ function createHost(deps) {
   /* harici decompiler koprusu (yalnizca onayli, yalnizca yerel; bkz. OBFMOD) */
   const obf = OBFMOD.createObfHost({ outputRoot: deps.obfOutputRoot, userToolsDir: deps.obfToolsDir, showItemInFolder: deps.showItemInFolder, confirm: deps.confirm, spawn: deps.obfSpawn, env: deps.obfEnv });
   if (deps.obfOutputRoot) Object.assign(handlers, obf.handlers);
-  const watcher = createWatcher({ excludeDir: deps.obfOutputRoot, maxBytes: deps.watchMaxBytes, tickMs: deps.watchTickMs });
+  const watcher = createWatcher({ excludeDir: deps.obfOutputRoot, maxBytes: deps.watchMaxBytes, tickMs: deps.watchTickMs, historyPath: deps.historyPath, historyMax: deps.historyMax }); const recentNotes = new Map();
   Object.assign(handlers, {
     'watch:suggest': async () => { const out = []; const add = (label, p) => { try { if (p && fs.statSync(p).isDirectory()) out.push({ label, path: p }); } catch (e) { /* yok */ } }; if (deps.downloadsDir) add('İndirilenler', deps.downloadsDir); if (deps.modsDirs) deps.modsDirs.forEach((m) => add(m.label, m.path)); return { suggestions: out }; },
     'watch:choose': async () => { if (!deps.chooseFolder) return { error: 'na', message: 'Klasör seçimi yok.' }; const d = await deps.chooseFolder(); if (!d) return { canceled: true }; const e = watcher.validate(d); return e ? { error: 'bad', message: e } : { path: d }; },
@@ -2883,7 +2927,11 @@ function createHost(deps) {
     'watch:take': async () => watcher.take(),
     'watch:log': async () => ({ log: watcher.log(), folders: watcher.folders() }),
     'watch:note': async (_e, kind, text, name) => { const k = ['scan', 'alert', 'info', 'error'].includes(kind) ? kind : 'info'; watcher.addLog(k, String(text || '').slice(0, 400), { name: String(name || '').slice(0, 200) }); return { ok: true }; },
-    'watch:notify': async (_e, title, body) => { if (deps.notify) deps.notify(String(title || '').slice(0, 100), String(body || '').slice(0, 300)); return { ok: true }; }
+    /* ayni metinli bildirim 10 dk icinde yeniden gosterilmez (arayuz tarafindan tekrarlansa bile) */
+    'watch:notify': async (_e, title, body) => { const t = String(title || '').slice(0, 100); const b = String(body || '').slice(0, 300); const k = t + '\n' + b; const now = Date.now(); const last = recentNotes.get(k); if (last !== undefined && now - last < 600000) return { ok: true, suppressed: true }; recentNotes.set(k, now); if (recentNotes.size > 200) for (const [kk, v] of recentNotes) if (now - v >= 600000) recentNotes.delete(kk); if (deps.notify) deps.notify(t, b); return { ok: true }; },
+    'history:add': async (_e, entry) => { const r = watcher.historyAdd(entry); return r ? { ok: true, id: r.id, count: r.count } : { error: 'bad', message: 'Geçersiz kayıt.' }; },
+    'history:list': async (_e, o) => watcher.historyList(o),
+    'history:clear': async () => { if (deps.confirm) { const ok = await deps.confirm({ title: 'Tarama geçmişi silinsin mi?', message: 'Listelenen tüm tarama kayıtları silinir. Dosyalara dokunulmaz. Silinen içerikler klasör izlemede yeniden görülürse bir kez daha taranır ve bildirilebilir.', ok: 'Geçmişi sil', cancel: 'Vazgeç' }); if (!ok) return { canceled: true }; } watcher.historyClear(); return { ok: true }; }
   });
   /* kalici ayar deposu: yalnizca bilinen anahtarlar, yalnizca dize degerler, boyut sinirli, atomik yazim */
   if (deps.storePath) {

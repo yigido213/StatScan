@@ -241,6 +241,20 @@ button:focus-visible, a:focus-visible, summary:focus-visible, select:focus-visib
 .infowrap h2 { margin: 0; font: 600 26px var(--f-display); }
 .infowrap h3 { margin: 0 0 8px; font: 600 17px var(--f-display); }
 .infowrap p, .infowrap li { max-width: 78ch; }
+.hbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hlist { display: grid; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.hlist > p { margin: 0; }
+.hrow { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto auto; gap: 6px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.hrow:first-child { border-top: 0; } .hrow.alert { box-shadow: inset 3px 0 0 var(--s3); }
+.hscore { font: 700 22px/1 var(--f-mono); text-align: center; font-variant-numeric: tabular-nums; }
+.hmain { min-width: 0; } .hmain b { overflow-wrap: anywhere; } .hmeta { display: flex; flex-wrap: wrap; gap: 0 6px; color: var(--muted); font-size: 12.5px; }
+.hside { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.hdet { grid-column: 1 / -1; border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 4px; font-size: 13px; }
+.hdet code { overflow-wrap: anywhere; font: 12px var(--f-mono); } .hdet ul { margin: 0; padding-left: 18px; }
+@media (max-width: 640px) { .hrow { grid-template-columns: 44px minmax(0, 1fr); } .hrow .hside, .hrow > button { grid-column: 2; justify-content: flex-start; } }
+.hbar input[type=search] { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; min-height: 36px; font: inherit; color: var(--ink); }
+.hbar input[type=search]::placeholder { color: var(--muted); } .hbar input[type=search]:focus-visible, .hbar select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) { .topbar { flex-wrap: wrap; } .tabs { order: 9; flex: 1 1 100%; } .tabs button { flex: 1; padding-inline: 8px; } }
 .mtable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
 .mtable th, .mtable td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .mtable th { font: 500 11.5px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
@@ -1249,7 +1263,7 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
 <section id="app-statscan" aria-label="StatScan" hidden>
 <header class="topbar">
   <div class="brand"><h1>StatScan<small>4.9</small></h1></div>
-  <nav class="tabs" role="tablist" aria-label="Bölümler"><button type="button" role="tab" id="tab-scan" aria-selected="true" aria-controls="view-scan">Tarama</button><button type="button" role="tab" id="tab-info" aria-selected="false" aria-controls="view-info">Bilgi</button></nav>
+  <nav class="tabs" role="tablist" aria-label="Bölümler"><button type="button" role="tab" id="tab-scan" aria-selected="true" aria-controls="view-scan">Tarama</button><button type="button" role="tab" id="tab-history" aria-selected="false" aria-controls="view-history">Geçmiş</button><button type="button" role="tab" id="tab-info" aria-selected="false" aria-controls="view-info">Bilgi</button></nav>
   <span class="tagline"></span>
   <div class="hright">
     <span class="lock" title="Dosyalar tarayıcı belleğinde işlenir, hiçbir yere gönderilmez."><i aria-hidden="true"></i><span class="t">Yerel · hiçbir şey yüklenmez</span></span>
@@ -1355,6 +1369,16 @@ html[data-fx="off"] .upd-bar *, html[data-fx="off"] .upd-pop, html[data-fx="off"
     <div class="panel sess" id="sess"></div>
   </aside>
 </div>
+<section class="infoview" id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+  <div class="infowrap">
+    <h2>Tarama geçmişi</h2>
+    <p class="fine" style="margin-top:0" id="hist-intro">Taranan her dosya burada listelenir: elle taradıkların ve klasör izlemenin otomatik taradıkları. Aynı içerik (SHA-256) tek satırda toplanır; tekrar görülürse yalnızca sayacı artar, yeniden taranmaz ve yeniden bildirim gelmez. Kayıtlar yalnızca bu bilgisayarda tutulur.</p>
+    <div class="hbar" id="hist-bar"></div>
+    <div class="fine" id="hist-sum" role="status" aria-live="polite"></div>
+    <div class="hlist" id="hist-list" role="list"></div>
+    <div class="actions" id="hist-more"></div>
+  </div>
+</section>
 <section class="infoview" id="view-info" role="tabpanel" aria-labelledby="tab-info" hidden>
   <div class="infowrap">
     <h2>Bilgi</h2>
@@ -6142,6 +6166,80 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     draw(); return box;
   }
 
+  /* ---------- Tarama gecmisi: masaustunde host (kalici, icerige gore tekillesir), tarayicida localStorage yedegi ---------- */
+  const HIST = (function () {
+    const H = window.statscanHost; const hostOk = !!(H && H.historyAdd && H.historyList && H.historyClear); const LSK = 'statscan.history';
+    const lsRead = () => { try { const v = JSON.parse(store.get(LSK) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+    const lsWrite = (a) => { try { store.set(LSK, JSON.stringify(a.slice(0, 300))); } catch (e) { /* yoksay */ } };
+    const keyOf = (e) => (/^[0-9a-f]{64}$/.test(e.sha256 || '') ? e.sha256 : 'x:' + e.name + ':' + (e.size | 0));
+    function entryOf(r, src, extra) {
+      const top = (r.findings || []).filter((f) => f && f.sev !== 'info' && f.w > 0).slice(0, 3).map((f) => String(f.title || '').slice(0, 90)); const failed = r.verdict === 'Taranamadı';
+      return Object.assign({ src, name: String(r.name || ''), size: +r.size || 0, sha256: r.sha256 || '', score: failed ? null : (+r.score || 0), verdict: String(r.verdict || ''), partial: !!r.partial, mode: String(r.mode || ''), top }, extra || {});
+    }
+    function add(e) {
+      try {
+        if (hostOk) { const p = H.historyAdd(e); if (p && p.catch) p.catch(() => {}); return; }
+        const a = lsRead(); const k = keyOf(e); const now = new Date().toISOString(); const i = a.findIndex((x) => keyOf(x) === k);
+        if (i >= 0) { const o = a.splice(i, 1)[0]; a.unshift(Object.assign({}, o, e, { id: o.id, count: (o.count || 1) + 1, first: o.first, last: now, notified: !!(o.notified || e.notified) })); } else a.unshift(Object.assign({}, e, { id: Date.now() + a.length, count: 1, first: now, last: now }));
+        lsWrite(a);
+      } catch (err) { /* yoksay */ }
+    }
+    async function list(o) {
+      if (hostOk) return H.historyList(o);
+      const q = String(o.q || '').toLowerCase(); let a = lsRead(); const all = a.length; const alerts = a.filter((x) => x.alert).length;
+      if (o.filter === 'alert') a = a.filter((x) => x.alert); else if (o.filter === 'watch') a = a.filter((x) => x.src === 'watch'); else if (o.filter === 'manual') a = a.filter((x) => x.src === 'manual');
+      if (q) a = a.filter((x) => ((x.name || '') + ' ' + (x.sha256 || '') + ' ' + (x.verdict || '')).toLowerCase().includes(q));
+      return { total: all, alerts, matched: a.length, rows: a.slice(o.offset || 0, (o.offset || 0) + (o.limit || 50)) };
+    }
+    async function clear() {
+      if (hostOk) return H.historyClear();
+      if (!window.confirm('Tarama geçmişi silinsin mi?')) return { canceled: true }; lsWrite([]); return { ok: true };
+    }
+    return { hostOk, entryOf, add, list, clear };
+  })();
+  (function historyInit() {
+    const bar = $('#hist-bar'); if (!bar) return; const sum = $('#hist-sum'), listEl = $('#hist-list'), moreEl = $('#hist-more'), view = $('#view-history');
+    const st = { q: '', filter: 'all' }; let rows = [], total = 0, alerts = 0, matched = 0, loading = false, timer = null, searchT = 0, sig = ''; const open = new Set();
+    const VIDX = { 'Belirgin bulgu yok': 0, 'Düşük risk': 1, 'Şüpheli': 2, 'Yüksek risk': 3, 'Kritik': 4 }; const MODE = { quick: 'Hızlı', normal: 'Normal', deep: 'Derin' };
+    const FL = [['all', 'Hepsi'], ['alert', 'Şüpheli / uyarı'], ['watch', 'Klasör izleme'], ['manual', 'Elle taranan']];
+    const when = (iso) => { try { return new Date(iso).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { return ''; } };
+    if (!HIST.hostOk) $('#hist-intro').textContent = 'Tarayıcı sürümünde yalnızca bu tarayıcıda elle taradığın dosyalar listelenir (son 300; aynı içerik tek satır). Klasör izleme ve kalıcı geçmiş masaüstü uygulamasındadır. Kayıtlar yalnızca bu cihazda tutulur.';
+    const qIn = h('input', { type: 'search', 'aria-label': 'Geçmişte ara', placeholder: 'Ad, klasör veya SHA-256 ara…', style: 'flex:1;min-width:200px', oninput: (e) => { st.q = e.target.value; clearTimeout(searchT); searchT = setTimeout(() => load(false), 250); } });
+    const fSel = h('select', { 'aria-label': 'Süzgeç', onchange: (e) => { st.filter = e.target.value; load(false); } }, FL.map(([v, t]) => h('option', { value: v }, t)));
+    const clr = h('button', { type: 'button', onclick: async () => { const r = await HIST.clear(); if (r && r.canceled) return; open.clear(); toast('Geçmiş silindi'); load(false); } }, 'Geçmişi temizle');
+    bar.replaceChildren(qIn, fSel, h('button', { type: 'button', onclick: () => load(false) }, 'Yenile'), clr);
+    function rowEl(r) {
+      const idx = VIDX[r.verdict]; const col = idx === undefined ? 'var(--muted)' : 'var(--s' + idx + ')'; const isOpen = open.has(r.id);
+      const parts = [r.verdict || '—', r.partial ? 'kısmi' : '', r.mode ? (MODE[r.mode] || r.mode) : '', fmt(r.size), r.src === 'watch' ? 'Klasör izleme' : 'Elle tarama'].filter(Boolean); const meta = [];
+      parts.forEach((x, i) => { if (i) meta.push(h('span', null, '·')); meta.push(h('span', null, x)); });
+      const det = isOpen ? h('div', { class: 'hdet' },
+        h('div', null, h('span', { class: 'fine' }, 'SHA-256: '), h('code', null, r.sha256 || '—')),
+        r.dir ? h('div', null, h('span', { class: 'fine' }, 'Klasör: '), h('code', null, r.dir)) : null,
+        h('div', null, h('span', { class: 'fine' }, 'İlk görülme: '), h('span', null, when(r.first)), h('span', { class: 'fine' }, '   Son görülme: '), h('span', null, when(r.last))),
+        r.top && r.top.length ? h('div', null, h('div', { class: 'fine' }, 'Öne çıkan bulgular'), h('ul', null, r.top.map((x) => h('li', null, x)))) : null,
+        r.count > 1 ? h('div', { class: 'fine' }, 'Aynı içerik yeniden görüldü; tekrar taranmadı ve yeniden bildirilmedi.') : null) : null;
+      return h('div', { class: 'hrow' + (r.alert ? ' alert' : ''), role: 'listitem' },
+        h('span', { class: 'hscore', style: 'color:' + col }, r.score === null || r.score === undefined ? '—' : String(r.score)),
+        h('div', { class: 'hmain' }, h('b', null, r.name || '(adsız)'), h('div', { class: 'hmeta' }, meta)),
+        h('div', { class: 'hside' }, r.count > 1 ? h('span', { class: 'chip', title: 'Aynı içerik bu kadar kez görüldü' }, '×' + r.count) : null, r.notified ? h('span', { class: 'chip' }, 'bildirildi') : null, h('span', { class: 'fine' }, when(r.last))),
+        h('button', { type: 'button', 'aria-expanded': isOpen ? 'true' : 'false', onclick: () => { if (open.has(r.id)) open.delete(r.id); else open.add(r.id); sig = ''; render(); } }, isOpen ? 'Gizle' : 'Ayrıntı'), det);
+    }
+    function render() {
+      const s2 = JSON.stringify([total, alerts, matched, st.q, st.filter, [...open].sort(), rows.map((r) => r.id + ':' + r.count + ':' + r.last + ':' + r.score)]); if (s2 === sig) return; sig = s2;
+      sum.replaceChildren(h('b', null, String(total)), h('span', null, ' kayıt'), h('span', null, ' · '), h('b', null, String(alerts)), h('span', null, ' uyarı'), ...(st.q || st.filter !== 'all' ? [h('span', null, ' · '), h('b', null, String(matched)), h('span', null, ' eşleşen')] : []));
+      listEl.replaceChildren(...(rows.length ? rows.map(rowEl) : [h('p', { class: 'fine', style: 'padding:14px' }, total ? 'Bu süzgeçle kayıt yok.' : 'Henüz tarama kaydı yok. Bir dosya taradığında veya klasör izleme yeni bir dosya yakaladığında burada görünür.')]));
+      moreEl.replaceChildren(...(rows.length < matched ? [h('button', { type: 'button', onclick: () => load(true) }, 'Daha fazla göster')] : []));
+    }
+    async function load(append) {
+      if (loading) return; loading = true;
+      try {
+        const off = append ? rows.length : 0; const lim = append ? 50 : Math.min(200, Math.max(50, rows.length)); const r = await HIST.list({ q: st.q, filter: st.filter, offset: off, limit: lim }); if (!r || !Array.isArray(r.rows)) return;
+        rows = append ? rows.concat(r.rows) : r.rows; total = r.total | 0; alerts = r.alerts | 0; matched = r.matched | 0; if (append) sig = ''; render();
+      } catch (e) { /* yoksay */ } finally { loading = false; }
+    }
+    document.addEventListener('statscan:history', () => { sig = ''; load(false); if (!timer) timer = setInterval(() => { if (!view || view.hidden || document.hidden || rows.length > 200) return; load(false); }, 3000); });
+  })();
+
   /* ---------- Klasor izleme (yalnizca masaustu) ---------- */
   (function watchInit() {
     const H = window.statscanHost; if (!H || !H.watchSet) return; $('#watchbox').hidden = false;
@@ -6155,11 +6253,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       try {
         for (let n = 0; n < 5; n++) {
           const t = await H.watchTake(); const it = t && t.item; if (!it) break;
-          if (it.tooBig) { await H.watchNote('info', it.name + ' — çok büyük, otomatik taranmadı (elle tara).', it.name); continue; } if (it.error) { await H.watchNote('error', it.name + ': ' + it.error, it.name); continue; }
-          let r; try { r = await StatScan.scanFile(new File([it.bytes], it.name), { mode: 'normal', rulePack, policy: curPolicy() }); } catch (e) { await H.watchNote('error', it.name + ' taranamadı: ' + (e && e.message || e), it.name); continue; }
+          if (it.dup) continue; /* aynı içerik (SHA-256) zaten taranmış: yeniden tarama ve bildirim YOK; host günlüğe/geçmişe işledi */
+          if (it.tooBig) { await H.watchNote('info', it.name + ' — çok büyük, otomatik taranmadı (elle tara).', it.name); HIST.add({ src: 'watch', name: it.name, dir: it.dir, size: it.size, score: null, verdict: 'Atlandı (çok büyük)' }); continue; } if (it.error) { await H.watchNote('error', it.name + ': ' + it.error, it.name); HIST.add({ src: 'watch', name: it.name, dir: it.dir, size: it.size, score: null, verdict: 'Okunamadı' }); continue; }
+          let r; try { r = await StatScan.scanFile(new File([it.bytes], it.name), { mode: 'normal', rulePack, policy: curPolicy() }); } catch (e) { await H.watchNote('error', it.name + ' taranamadı: ' + (e && e.message || e), it.name); HIST.add({ src: 'watch', name: it.name, dir: it.dir, size: it.size, score: null, verdict: 'Taranamadı', mode: 'normal' }); continue; }
           const tr = r.trust; const exact = tr && tr.status === 'exact'; const newv = tr && tr.status === 'newversion' && tr.alert; const danger = r.score >= W.threshold || r.partial || r.verdict === 'Taranamadı';
           const line = it.name + ' — skor ' + r.score + '/100 · ' + r.verdict + (r.partial ? ' · kısmi' : '') + (exact ? ' · kendi dosyan (aynı SHA-256)' : '') + (newv ? ' · işaretli dosyanın yeni sürümünde YENİ davranış (' + tr.newFindings.length + ' yeni bulgu)' : '');
-          if ((exact && !newv) || (!danger && !newv)) { await H.watchNote('scan', line, it.name); continue; }
+          const quiet = (exact && !newv) || (!danger && !newv); HIST.add(HIST.entryOf(r, 'watch', Object.assign({ dir: it.dir, alert: !quiet, notified: !quiet }, it.sha256 ? { sha256: it.sha256 } : {})));
+          if (quiet) { await H.watchNote('scan', line, it.name); continue; }
           await H.watchNote('alert', line, it.name); await H.watchNotify('StatScan: ' + (newv ? 'İşaretli dosyada yeni davranış' : 'Şüpheli dosya'), line);
         }
       } finally { busy = false; } if ($('#watchbox').open) refreshLog();
@@ -6187,9 +6287,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
   /* ---------- Bilgi sekmesi: tum aciklama/uyari yazilari taramadan ayri burada ---------- */
   (function infoInit() {
-    const tabs = { scan: [$('#tab-scan'), $('#view-scan')], info: [$('#tab-info'), $('#view-info')] }; let rendered = false;
-    function show(id) { for (const [k, [b, v]] of Object.entries(tabs)) { const on = k === id; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; v.hidden = !on; } if (id === 'info' && !rendered) { rendered = true; renderInfo(); } try { if (history.replaceState) history.replaceState(null, '', id === 'info' ? '#bilgi' : '#/statscan'); } catch (e) { /* yoksay */ } if (id === 'info') window.scrollTo(0, 0); }
-    for (const [k, [b]] of Object.entries(tabs)) { b.addEventListener('click', () => show(k)); b.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const o = k === 'scan' ? 'info' : 'scan'; show(o); tabs[o][0].focus(); } }); }
+    const tabs = { scan: [$('#tab-scan'), $('#view-scan')], history: [$('#tab-history'), $('#view-history')], info: [$('#tab-info'), $('#view-info')] }; const ORDER = ['scan', 'history', 'info']; let rendered = false;
+    function show(id) { for (const [k, [b, v]] of Object.entries(tabs)) { const on = k === id; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; v.hidden = !on; } if (id === 'info' && !rendered) { rendered = true; renderInfo(); } if (id === 'history') document.dispatchEvent(new CustomEvent('statscan:history')); try { if (history.replaceState) history.replaceState(null, '', id === 'info' ? '#bilgi' : '#/statscan'); } catch (e) { /* yoksay */ } if (id === 'info') window.scrollTo(0, 0); }
+    for (const [k, [b]] of Object.entries(tabs)) { b.addEventListener('click', () => show(k)); b.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const o = ORDER[(ORDER.indexOf(k) + (e.key === 'ArrowRight' ? 1 : ORDER.length - 1)) % ORDER.length]; show(o); tabs[o][0].focus(); } }); }
     const P = (t) => h('p', null, t); const UL = (a) => h('ul', null, a.map((x) => h('li', null, x)));
     function renderInfo() {
       $('#info-about-body').replaceChildren(
@@ -6218,7 +6318,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('h4', null, 'Dinamik analiz (Windows Sandbox)'), P('Yalnızca Windows 10/11 Pro/Enterprise’ta, yerel yardımcıyla ve her seferinde onayınla çalışır. Yalnızca çalıştırmada görülenleri anlatır; zararlı sanal ortamı algılayıp saklanabilir. “Davranış gözlenmedi” güvenli olduğunu kanıtlamaz.'));
     }
     window.addEventListener('hashchange', () => { if (location.hash === '#bilgi') show('info'); else if (location.hash === '#/statscan') show('scan'); });
-    tabs.scan[0].tabIndex = 0; tabs.info[0].tabIndex = -1; if (location.hash === '#bilgi') show('info');
+    tabs.scan[0].tabIndex = 0; tabs.history[0].tabIndex = -1; tabs.info[0].tabIndex = -1; if (location.hash === '#bilgi') show('info');
   })();
 
   /* ---------- Kovan dil destegi (Turkce varsayilan, English) ----------
@@ -9677,6 +9777,7 @@ ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findin
       catch (e) { const M = StatScan.MODES[m]; r = { name: f.name, type: 'Hata', size: f.size, entropy: 0, score: 0, ownScore: 0, verdict: 'Taranamadı', mode: m, modeLabel: M.label, partial: true, limits: [{ kind: 'error', msg: 'Dosya okunamadı veya taranamadı.' }], findings: [{ id: 'err', sev: 'info', w: 0, title: 'Dosya taranamadı', why: String(e && e.message || e), act: 'Dosyayı yeniden seç veya daha küçük parçalarla dene.', ev: [] }], info: {}, children: [], profile: [] }; }
       if (batch && files.length > 100 && r.info && r.info.classView) { delete r.info.classView; delete r.info.classViewCapped; batchNote.noViewer = true; }
       if (r && r.name) fileOf.set(r, f);
+      try { if (r && r.name) HIST.add(HIST.entryOf(r, 'manual', { alert: r.verdict === 'Taranamadı' || (+r.score || 0) >= 30 })); } catch (e) { /* geçmiş yazılamadıysa tarama sürer */ }
       if (batch) { results.push(r); scheduleRender(); } else { results.unshift(r); if (files.length > 1) render(); }
       $('#live').textContent = f.name + ' tarandı: ' + r.score + ' / 100, ' + r.verdict + (r.partial ? ' (kısmi)' : ''); if (cancelled) { if (batchNote) batchNote.cancelledLeft = files.length - i - 1; break; }
     }
