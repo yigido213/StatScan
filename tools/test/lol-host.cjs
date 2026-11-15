@@ -529,6 +529,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const mkMatch = (n, win) => ({ info: { gameCreation: 1.7e12 + n * 1e6, gameDuration: 1800, queueId: 420, participants: Array.from({ length: 10 }, (_, i) => ({ puuid: i === 0 ? 'PU-ME-' + 'x'.repeat(30) : 'PU-O' + i, riotIdGameName: i === 0 ? 'Ben' : 'Op' + i, riotIdTagline: 'TR1', teamId: i < 5 ? 100 : 200, championId: i === 0 ? 122 : 86, summoner1Id: 12, summoner2Id: 4, teamPosition: i === 0 ? 'TOP' : ['JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 4], kills: 7, deaths: 2, assists: 5, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 25, champLevel: 16, win: i < 5 ? win : !win, item0: 3001, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3201, perks: { styles: [{ style: 8000, selections: [{ perk: 8010 }, { perk: 9111 }, { perk: 9104 }, { perk: 8014 }] }, { style: 8200, selections: [{ perk: 8226 }, { perk: 8210 }] }] } })) } });
     const rget = async (host, pth, key) => { rcalls.push(host + pth); if (key !== KEY) return { status: 401, body: null, retry: 0 }; if (rmode === '429') return { status: 429, body: null, retry: 10 }; if (rmode === '401') return { status: 401, body: null, retry: 0 };
       if (/by-riot-id\/Ben\/TR1$/.test(pth)) return { status: 200, body: { puuid: 'PU-ME-' + 'x'.repeat(30), gameName: 'Ben', tagLine: 'TR1' }, retry: 0 };
+      if (pth.startsWith('/lol/summoner/v4/summoners/by-puuid/')) return { status: 200, body: { profileIconId: 29, summonerLevel: 112 }, retry: 0 };
       if (/entries\/by-puuid/.test(pth)) return { status: 200, body: [{ queueType: 'RANKED_SOLO_5x5', tier: 'GOLD', rank: 'II', leaguePoints: 47, wins: 30, losses: 20 }], retry: 0 };
       if (/matches\/by-puuid\/.+\/ids/.test(pth)) return { status: 200, body: ['TR1_1000000001', 'TR1_1000000002'], retry: 0 };
       const m = /matches\/TR1_(\d+)$/.exec(pth); if (m) return { status: 200, body: mkMatch(Number(m[1]) % 10, m[1].endsWith('1')), retry: 0 }; return { status: 404, body: null, retry: 0 }; };
@@ -541,7 +542,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const gj = JSON.stringify(await hr.handlers['lol:riot:get']()); ok(!gj.includes('RGAPI') && !gj.includes(KEY.slice(6)), 'riot: anahtar arayüze geri DÖNMEZ');
     const f = path.join(dd, 'lolriot.json'); ok(fs.existsSync(f) && (process.platform === 'win32' || (fs.statSync(f).mode & 0o077) === 0), 'riot: ayar dosyası yalnız sahibine açık');
     const r1 = await hr.handlers['lol:sync']({}); ok(r1.state === 'ok' && r1.source === 'riot' && r1.added === 2 && r1.snaps >= 1, 'riot: istemci kapalıyken senkron: 2 maç + derece (' + JSON.stringify(r1.notes) + ')');
-    const pr = await hr.handlers['lol:profile'](); ok(pr.rank && pr.rank.solo && pr.rank.solo.tier === 'GOLD' && pr.rank.solo.div === 'II' && pr.rank.solo.lp === 47 && pr.matches === 2 && pr.me.name === 'Ben', 'riot: profil derece (GOLD II 47 LP) + 2 maç');
+    const pr = await hr.handlers['lol:profile'](); ok(pr.rank && pr.rank.solo && pr.rank.solo.tier === 'GOLD' && pr.rank.solo.div === 'II' && pr.rank.solo.lp === 47 && pr.matches === 2 && pr.me.name === 'Ben' && pr.me.icon === 29 && pr.me.level === 112, 'riot: profil simgesi, seviye ve derece (GOLD II 47 LP) + 2 maç');
     const ml = await hr.handlers['lol:matches']({}); ok(ml.rows.length === 2 && ml.rows[0].champ === 'Darius' && ml.rows[0].role === 'top' && ml.rows[0].k === 7 && ml.rows[0].queue === 'solo' && ml.rows[0].runes && ml.rows[0].runes.perks.length === 6, 'riot: maç biçimi (şampiyon/hat/KDA/kuyruk/rün) LCU maçıyla aynı');
     ok(JSON.stringify(ml.rows[0].spells) === '[12,4]', 'Riot match-v5: summoner1Id/2Id D/F sırasıyla saklanır');
     const n1 = rcalls.length; const r2 = await hr.handlers['lol:sync']({}); ok(r2.throttled === true && rcalls.length === n1, 'riot: 2 dakikadan sık istek atılmaz (3 sn otomatik yenileme Riot\'u yormaz)');
@@ -555,7 +556,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
       }
     }, riot: { get: rget } }, dd);
     const lookedUp = await rejectLcu.handlers['lol:player:search']({ query: 'Ben#TR1' });
-    ok(lookedUp.state === 'ok' && lookedUp.player.name === 'Ben' && lookedUp.counts.matches === 2 &&
+    ok(lookedUp.state === 'ok' && lookedUp.player.name === 'Ben' && lookedUp.player.icon === 29 && lookedUp.player.level === 112 && lookedUp.counts.matches === 2 &&
       lookedUp.player.puuid === 'PU-ME-' + 'x'.repeat(30),
       'oyuncu profili: LCU HTTP 400 sonrası Riot Kimliği ile profil ve maçlar yüklenir');
     const oldStore = JSON.parse(fs.readFileSync(path.join(dd,'lolcounter.json'),'utf8')); for(const m of Object.values(oldStore.matches)) { delete m.spells; m.players = m.players.map((p) => { const x = Object.assign({}, p); for (const k of ['k','d','a','cs','gold','dmg','vision','items']) delete x[k]; return x; }); } fs.writeFileSync(path.join(dd,'lolcounter.json'), JSON.stringify(oldStore));

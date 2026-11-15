@@ -1441,6 +1441,13 @@ const LOLMOD = (() => {
         participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null, teamPositionConfirmed: !!POS[p.teamPosition] }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
       const idn = String(info.gameId || ''); return { gameId: Number(idn), gameCreation: info.gameCreation, gameDuration: info.gameDuration, queueId: info.queueId, participants, participantIdentities };
     }
+    async function riotSummoner(platform, player) {
+      const summoner = await riotCall(platform, '/lol/summoner/v4/summoners/by-puuid/' + encodeURIComponent(player.puuid));
+      if (Number.isSafeInteger(summoner?.profileIconId) && summoner.profileIconId >= 0 && summoner.profileIconId <= 999999) {
+        player.icon = summoner.profileIconId;
+      }
+      if (Number.isSafeInteger(summoner?.summonerLevel) && summoner.summonerLevel > 0) player.level = summoner.summonerLevel;
+    }
     async function riotProfile(who, puuid, view, notes) {
       if (!riot.key || Date.now() < riotBlock) return null;
       const platform = riot.region + '.api.riotgames.com';
@@ -1454,8 +1461,10 @@ const LOLMOD = (() => {
         if (!/^[A-Za-z0-9_-]{20,100}$/.test(String(account?.puuid || ''))) return null;
         puuid = account.puuid;
         const player = { puuid, name: String(account.gameName || who?.name || '').slice(0, 30),
-          tag: String(account.tagLine || who?.tag || '').slice(0, 10), level: 0, icon: 0 };
+          tag: String(account.tagLine || who?.tag || '').slice(0, 10), level: 0, icon: null };
         const issues = [];
+        try { await riotSummoner(platform, player); }
+        catch (e) { if (e.fatal) throw e; issues.push('profil: ' + e.message); }
         let rank = null;
         try {
           const entries = await riotCall(platform, '/lol/league/v4/entries/by-puuid/' + puuid);
@@ -1494,7 +1503,9 @@ const LOLMOD = (() => {
         const [gn, tg] = riot.id.split('#'); const acc = await riotCall(regional, '/riot/account/v1/accounts/by-riot-id/' + encodeURIComponent(gn) + '/' + encodeURIComponent(tg));
         if (!acc || !acc.puuid) return { state: 'ok', source: 'riot', added: 0, snaps: 0, notes: ['Riot Kimliği bulunamadı: ' + riot.id], me: state.me, total: Object.keys(state.matches).length };
         const puuid = String(acc.puuid).slice(0, 90); const prev = state.me && state.me.puuid === puuid ? state.me : {};
-        state.me = { puuid, name: String(acc.gameName || gn).slice(0, 40), tag: String(acc.tagLine || tg).slice(0, 10), level: prev.level || 0, icon: prev.icon || 0 };
+        state.me = { puuid, name: String(acc.gameName || gn).slice(0, 40), tag: String(acc.tagLine || tg).slice(0, 10), level: prev.level || 0, icon: prev.icon ?? null };
+        try { await riotSummoner(plat, state.me); }
+        catch (e) { if (e.fatal) throw e; notes.push('profil: ' + msg(e)); }
         let snaps = 0; try { const ent = await riotCall(plat, '/lol/league/v4/entries/by-puuid/' + encodeURIComponent(puuid)); const rk = parseRanked({ queues: (Array.isArray(ent) ? ent : []).map((e) => Object.assign({}, e, { division: e && e.rank })) }); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { if (e.fatal) throw e; notes.push('derece: ' + msg(e)); }
         let added = 0; let updated = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
           for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; const old = state.matches[num]; const fullStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k]))); if (!/^\d{5,14}$/.test(num) || (old && old.spells !== undefined && fullStats(old.players) && hasPlayerChoices(old.players) && old.positionConfirmed !== undefined)) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!old) added++; else updated++; state.matches[nm.id] = nm; } }
@@ -1696,7 +1707,7 @@ const LOLMOD = (() => {
           const info = await lcuFind(); if (!info) { const notes = []; return await riotProfile(who, puuid, req.view, notes) || { state: notes.length ? 'unavailable' : 'noclient', notes }; }
           const wait = lastLookup + 1000 - now(); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); lastLookup = now();
           const msg = (e) => String(e && e.message || e).slice(0, 80); const nf = (e) => /404|not.?found/i.test(String(e && e.message || e)); const notes = [];
-          let player = { puuid, name: who ? who.name : '', tag: who ? who.tag : '', level: 0, icon: 0 };
+          let player = { puuid, name: who ? who.name : '', tag: who ? who.tag : '', level: 0, icon: null };
           if (!puuid) {
             let j = null; try { j = await lcuRead(info, '/lol-summoner/v1/alias/lookup?gameName=' + encodeURIComponent(who.name) + '&tagLine=' + encodeURIComponent(who.tag)); } catch (e) { if (!nf(e)) notes.push('arama: ' + msg(e)); }
             if (!j || !j.puuid) { try { j = await lcuRead(info, '/lol-summoner/v1/summoners?name=' + encodeURIComponent(who.name + '#' + who.tag)); } catch (e) { if (!nf(e)) notes.push('arama2: ' + msg(e)); } }
@@ -1705,7 +1716,7 @@ const LOLMOD = (() => {
           }
           /* maçsız (başarısız) sonuç önbellekten dönmez: yeniden arama gerçekten yeniden dener */
           const hit = playerCache.get(puuid); if (hit && hit.matches.length && now() - hit.t < PLAYER_TTL && req.fresh !== true) return { state: 'ok', player: hit.player, rank: hit.rank, cached: true, notes: hit.notes || [], view: playerView(hit, req.view), counts: { matches: hit.matches.length, details: hit.details } };
-          try { const sj = await lcuRead(info, '/lol-summoner/v1/summoners-by-puuid-cached/' + puuid); if (sj && typeof sj === 'object') { if (sj.gameName) player.name = String(sj.gameName).slice(0, 30); if (sj.tagLine) player.tag = String(sj.tagLine).slice(0, 10); player.level = Math.round(Number(sj.summonerLevel)) || 0; player.icon = Math.round(Number(sj.profileIconId)) || 0; } } catch (e) { notes.push('profil: ' + msg(e)); }
+          try { const sj = await lcuRead(info, '/lol-summoner/v1/summoners-by-puuid-cached/' + puuid); if (sj && typeof sj === 'object') { if (sj.gameName) player.name = String(sj.gameName).slice(0, 30); if (sj.tagLine) player.tag = String(sj.tagLine).slice(0, 10); player.level = Math.round(Number(sj.summonerLevel)) || 0; if (Number.isSafeInteger(sj.profileIconId) && sj.profileIconId >= 0) player.icon = sj.profileIconId; } } catch (e) { notes.push('profil: ' + msg(e)); }
           let rank = null; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/ranked-stats/' + puuid)); rank = { solo: rk.solo, flex: rk.flex }; for (const qk of ['solo', 'flex']) { const rr = rank[qk]; if (rr && rr.l === 0 && rr.w >= 10) rr.noL = true; /* istemci başkası için losses'ı 0 yollar: '%100 WR' uydurma */ } } catch (e) { notes.push('derece: ' + msg(e)); }
           const co = champOf(); const matches = new Map(); let budget = 10; let details = 0; let denied = false;
           for (let beg = 0; beg < 40 && !denied; beg += 20) {
