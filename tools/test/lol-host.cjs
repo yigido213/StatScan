@@ -208,6 +208,19 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   const lf = await HP['lol:lp']('flex'); ok(lf.queue === 'flex' && lf.count === 2 && lf.current.lp === 20 && (await HP['lol:lp']('x')).queue === 'solo', 'LP geçmişi: flex ayrı, geçersiz kuyruk solo olur');
   pf = await HP['lol:profile'](); ok(pf.today.games >= 1 && pf.spark.solo.length === 4 && pf.aram.w === 1 && pf.normal.w + pf.normal.l === 0, 'profil: bugün özeti, sparkline, ARAM W/L (yeniden başlatma sayılmaz)');
   // istatistik
+  {
+    const ally = (puuid, name, tag) => ({ puuid, name, tag, team: 100, champ: 'Darius' });
+    const match = (id, t, win, ...players) => ({ id, t, win, players, team: 100 });
+    const grouped = L.partnerStats([
+      match('1', 1, true, ally('lcu', 'Bombo', '0404')),
+      match('2', 2, false, ally('api', 'BOMBO', '0404'), ally('other', 'Bombo', '0405')),
+      match('2', 2, false, ally('lcu', 'Bombo', '0404')),
+      match('3', 3, true, ally('api', 'Yeni Ad', '0404'))
+    ]).rows;
+    ok(grouped.length === 2 && grouped[0].name === 'Yeni Ad' && grouped[0].games === 3 &&
+      grouped[0].wins === 2 && grouped[1].tag === '0405',
+      'takım arkadaşları: farklı kaynak kimlikleri birleşir, çift maç ve farklı etiket ayrılır');
+  }
   const sx = await HP['lol:stats']({ queue: 'all' }); ok(sx.overview.games === 5 && sx.overview.wins === 3 && sx.overview.wr === 60 && sx.overview.losses === 2, 'istatistik: yeniden başlatma hariç 5 maç, 3 galibiyet, %60');
   ok(sx.overview.kda === 2.19 && sx.overview.k === 4.2 && sx.overview.csm > 5 && sx.overview.gpm > 300 && sx.overview.fav === 'top', 'istatistik: KDA, CS/dk, altın/dk, favori hat');
   {

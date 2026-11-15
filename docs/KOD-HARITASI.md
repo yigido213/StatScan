@@ -43,6 +43,8 @@ Blitz kartının sürümü `app/StatScan.html` içindeki `MODULES` → `lolcount
 
 Blitz, Riot API ile kendi ve aranan oyuncunun profil simgesi/seviyesini Summoner-V4 üzerinden alır. Veri yoksa oyuncunun baş harfi görünür.
 
+Birlikte oynadıklarım tablosu eşleşen Riot adı ve etiketi üzerinden LCU/Riot API kimliklerini birleştirir. Aynı PUUID ile gelen ad değişiklikleri ve yinelenen maçlar da tek sayılır.
+
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
 
 - Maç kartında boş alan içerikleri yaymaz: `.bz-stats` içerik genişliğinde `max-content` sütunlar/14px aralık, `.bz-row` soldan flex/12px aralık, büyü/eşya grubu 12px aralık. Geniş kartta ana bilgi alanı en çok 460px; takım listesi bitişiğinde, kalan yer sağda boş kalır. 701–780px kartlarda orta sütun daralır; ≤700px takımlar alt satıra geçer.

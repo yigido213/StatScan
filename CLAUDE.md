@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- HOTFIX: Blitz birlikte oynanan oyuncular LCU ve Riot API kimlikleri farklı olsa da aynı Riot Kimliğiyle tek satırda toplanır. Blitz 0.4.2 — Codex: bitti.
 - Oyun Ayarlayıcı Oyun kategorisinden, aramadan ve sabitlenen araçlardan kaldırıldı — Codex: bitti.
 - Uygulama Akışı altına Discord davet kısayolu eklendi. Kovan beta 0.1.20 — Codex: bitti.
 - HOTFIX: Blitz Canlı Maç ekranı 1 saniyede bir yenilenir, paralel yenileme başlatmaz. Blitz 0.4.1 — Codex: bitti.

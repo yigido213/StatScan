@@ -1119,8 +1119,49 @@ const LOLMOD = (() => {
   }
   function roleStats(ms) { const by = {}; for (const m of ms) { if (m.remake || !m.role) continue; const x = by[m.role] || (by[m.role] = { role: m.role, games: 0, wins: 0 }); x.games++; if (m.win) x.wins++; } return Object.values(by).map((x) => Object.assign(x, { wr: r1((100 * x.wins) / x.games) })).sort((a, b) => b.games - a.games); }
   function partnerStats(ms) {
-    const full = ms.filter((m) => !m.partial && !m.remake); const by = new Map();
-    for (const m of full) for (const p of m.players) { if (p.me || p.team !== m.team) continue; const key = p.puuid || (p.name + '#' + p.tag); if (!key || key === '#') continue; const x = by.get(key) || { key, name: p.name, tag: p.tag, games: 0, wins: 0, last: 0, champs: {} }; x.games++; if (m.win) x.wins++; x.last = Math.max(x.last, m.t); if (p.champ) x.champs[p.champ] = (x.champs[p.champ] || 0) + 1; by.set(key, x); }
+    const full = ms.filter((m) => !m.partial && !m.remake);
+    const aliases = new Map();
+    const root = (key) => {
+      while (aliases.has(key)) key = aliases.get(key);
+      return key;
+    };
+    const normalize = (value) => String(value || '').trim().toLowerCase().normalize('NFC');
+    const entries = [];
+    for (const m of full) for (const p of m.players || []) {
+      if (!p || p.me || p.team !== m.team) continue;
+      const name = normalize(p.name);
+      const tag = normalize(p.tag);
+      const riotId = name && tag ? 'riot:' + name + '#' + tag : null;
+      const puuid = p.puuid ? 'puuid:' + p.puuid : null;
+      const key = riotId || puuid || (name ? 'name:' + name : null);
+      if (!key) continue;
+      if (riotId && puuid) {
+        const idRoot = root(riotId);
+        const puuidRoot = root(puuid);
+        // LCU and Riot API may return different identifiers for the same Riot ID.
+        if (idRoot !== puuidRoot) aliases.set(puuidRoot, idRoot);
+      }
+      entries.push({ m, p, key });
+    }
+    const by = new Map();
+    for (const { m, p, key } of entries) {
+      const id = root(key);
+      const x = by.get(id) || { games: 0, wins: 0, last: 0, labelAt: -Infinity, champs: Object.create(null), matches: new Set() };
+      if (p.name && (m.t >= x.labelAt || !x.name)) {
+        x.name = p.name;
+        x.tag = p.tag || '';
+        x.labelAt = m.t;
+      }
+      const matchKey = m.id ?? m;
+      if (!x.matches.has(matchKey)) {
+        x.matches.add(matchKey);
+        x.games++;
+        if (m.win) x.wins++;
+        if (p.champ) x.champs[p.champ] = (x.champs[p.champ] || 0) + 1;
+      }
+      x.last = Math.max(x.last, m.t);
+      by.set(id, x);
+    }
     const rows = [...by.values()].map((x) => ({ name: x.name, tag: x.tag, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), last: x.last, top: Object.keys(x.champs).sort((a, b) => x.champs[b] - x.champs[a]).slice(0, 3) })).sort((a, b) => b.games - a.games || b.last - a.last).slice(0, 60);
     return { rows, covered: full.length, total: ms.filter((m) => !m.remake).length };
   }
