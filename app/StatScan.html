@@ -981,7 +981,9 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 @container (min-width: 701px) and (max-width: 780px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr) 158px; } }
 @container (max-width: 700px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr); } .bz-match .lg-pl { grid-column: 2; } }
 .bz-lpbig { align-self: center; justify-self: start; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding-left: 10px; line-height: 1; color: var(--lg-win); pointer-events: none; } .bz-lpbig.dn { color: var(--lg-loss); } .bz-lpbig.z { color: var(--muted); } .bz-lpbig b { font: 800 30px var(--f-display); letter-spacing: -.5px; } .bz-lpbig small { font: 700 12px var(--f-body); letter-spacing: .08em; opacity: .82; }
-@container (max-width: 780px) { .bz-match .bz-lpbig { grid-column: 2; padding-left: 0; flex-direction: row; align-items: baseline; gap: 6px; } .bz-lpbig b { font-size: 22px; } }
+.bz-side { align-self: center; display: flex; flex-direction: column; gap: 9px; padding-left: 10px; min-width: 0; pointer-events: none; } .bz-side .bz-lpbig { padding-left: 0; }
+.bz-badges { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; } .bz-badge { font: 600 10.5px/1 var(--f-body); letter-spacing: .02em; color: var(--muted); opacity: .78; padding: 3px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--muted) 22%, transparent); background: color-mix(in srgb, var(--muted) 7%, transparent); white-space: nowrap; }
+@container (max-width: 780px) { .bz-match .bz-side { grid-column: 2; padding-left: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; } .bz-badges { flex-direction: row; flex-wrap: wrap; } .bz-lpbig { flex-direction: row; align-items: baseline; gap: 6px; } .bz-lpbig b { font-size: 22px; } }
 @container (max-width: 440px) { .bz-match { padding: 12px; gap: 10px; } .bz-row { gap: 10px; } .bz-match .bz-st b { font-size: 12px; } .bz-stats { gap: 6px; } .bz-st small { font-size: 10px; } .bz-match .lg-pl { grid-column: 1 / -1; } }
 .bz-match { cursor: pointer; transition: border-color .18s ease, filter .18s ease; } .bz-match:hover { filter: brightness(1.08); } .bz-match:focus-within { border-color: color-mix(in srgb, var(--rc) 58%, transparent); }
 .bz-detail-toggle { appearance: none; border: 1px solid rgba(122,212,230,.22); border-radius: 999px; background: rgba(73,197,216,.07); color: #b8dbe1; padding: 4px 9px; font: 600 11px var(--f-body); cursor: pointer; } .bz-detail-toggle:hover { background: rgba(73,197,216,.15); color: #fff; }
@@ -7381,7 +7383,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       /* Blitz görünümü */
       'Şampiyon havuzu': 'Champion Pool', 'LP geçmişi': 'LP History', 'Dereceli Tekli/Çiftli': 'Ranked Solo', 'Dereceli Esnek': 'Ranked Flex', 'Tüm geçmişi gör': 'View full history', '{0}G - {1}M': '{0}W - {1}L', '{0}G - ?M': '{0}W - ?L', 'Maç geçmişi alınamadı': 'Match history unavailable', 'Bu oyuncunun maç geçmişi alınamadı.': 'This player\'s match history could not be loaded.',
       'Kayıt başlangıcı': 'Tracking start', 'LP kazanç/kayıp geçmişi: son {0} kayıt': 'History of LP gain/loss over the last {0} records', 'Riot Kimliğini kopyala': 'Copy Riot ID', 'Kopyalandı: {0}': 'Copied: {0}', 'Kopyalanamadı.': 'Could not copy.',
-      'Henüz yeterli kayıt yok.': 'Not enough records yet.', 'Şampiyonlar': 'Champions', 'Vizyon': 'Vision', 'Tüm kuyruklar': 'All Queues', 'Kayıt ilk güncellemeden başlar; öncesi istemciden alınamaz.': 'Records start at the first update; earlier history cannot be read from the client.',
+      'Henüz yeterli kayıt yok.': 'Not enough records yet.', 'Şampiyonlar': 'Champions', 'Vizyon': 'Vision', 'Maçın en çok hasarı': 'Most damage in match', 'Takımın en çok hasarı': 'Top team damage', 'Ölümsüz': 'Deathless', 'Yüksek katılım': 'High participation', 'En iyi vizyon': 'Top vision', 'En çok altın': 'Most gold', 'Takımın en çok kill’i': 'Top team kills', 'Tüm kuyruklar': 'All Queues', 'Kayıt ilk güncellemeden başlar; öncesi istemciden alınamaz.': 'Records start at the first update; earlier history cannot be read from the client.',
       'Arayüz ölçeği': 'Interface scale', 'Tüm Kovan arayüzünün boyutu (%50–%200, varsayılan %100). Hazır değerlerden seç ya da kendi yüzdeni yaz (ör. 68).': 'Size of the whole Kovan interface (50%–200%, default 100%). Pick a preset or type your own percentage (e.g. 68).', 'Özel…': 'Custom…', 'Özel ölçek yüzdesi': 'Custom scale percentage', 'Sıfırla': 'Reset',
     };
         /*#en-sectools*/
@@ -8839,6 +8841,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const loadout = spells.some(Boolean) || runeIds.some(Boolean) ? h('div', { class: 'bz-loadout', 'aria-label': KT('Maç büyüleri ve rünleri') }, choice('spell', spells[0], 'Sihirdar büyüsü'), choice('rune', runeIds[0], 'Ana rün'), choice('spell', spells[1], 'Sihirdar büyüsü'), choice('rune', runeIds[1], 'İkincil rün yolu')) : null;
       const gear = h('div', { class: 'bz-gear' }, loadout, items);
       const lpBig = m.lpDelta === null || m.lpDelta === undefined || m.remake ? null : h('div', { class: 'bz-lpbig ' + (m.lpDelta > 0 ? 'up' : m.lpDelta < 0 ? 'dn' : 'z'), 'aria-label': (m.lpDelta > 0 ? '+' : '') + m.lpDelta + ' LP' }, h('b', {}, (m.lpDelta > 0 ? '+' : '') + m.lpDelta), h('small', {}, 'LP'));
+      const bdg = [];
+      { const ps = m.players || []; const me = ps.find((x) => x.me);
+        const full = !m.remake && me && ps.length >= 10 && ps.every((x) => [x.k, x.d, x.a, x.dmg, x.gold, x.vision].every((v) => typeof v === 'number'));
+        if (full) {
+          const lead = (f, group) => me[f] > 0 && group.every((x) => x === me || x[f] < me[f]);
+          const tm = ps.filter((x) => x.team === me.team); const tk = tm.reduce((a, x) => a + x.k, 0);
+          if (lead('dmg', ps)) bdg.push('Maçın en çok hasarı'); else if (lead('dmg', tm)) bdg.push('Takımın en çok hasarı');
+          if (me.d === 0 && me.k + me.a > 0) bdg.push('Ölümsüz');
+          if (tk >= 10 && (me.k + me.a) / tk >= 0.7) bdg.push('Yüksek katılım');
+          if (lead('vision', ps)) bdg.push('En iyi vizyon');
+          if (lead('gold', ps)) bdg.push('En çok altın');
+          if (lead('k', tm) && !bdg.length) bdg.push('Takımın en çok kill’i');
+        } }
+      const side = lpBig || bdg.length ? h('div', { class: 'bz-side' }, lpBig, bdg.length ? h('div', { class: 'bz-badges' }, ...bdg.slice(0, 3).map((t) => h('span', { class: 'bz-badge' }, KT(t)))) : null) : null;
       const detailBtn = h('button', { type: 'button', class: 'bz-detail-toggle', 'aria-controls': 'lg-match-screen',
         onclick: (event) => { event.stopPropagation(); openMatch(m, event.currentTarget); } }, KT('Detayları göster'));
       const chips = [m.role ? h('span', { class: 'bz-chip' }, KT(RTR[m.role])) : null, m.opp ? h('span', { class: 'bz-chip' }, champIc(m.opp), 'vs ' + nameOf(m.opp)) : null, m.dmg ? h('span', { class: 'bz-chip' }, KT('Hasar') + ' ' + (m.dmg / 1000).toFixed(1) + 'k') : null, m.vision ? h('span', { class: 'bz-chip' }, KT('Vizyon') + ' ' + m.vision) : null, detailBtn].filter(Boolean);
@@ -8846,7 +8862,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         h('div', { class: 'bz-pt lg-mc' }, champIc(m.champ), m.lvl ? h('small', {}, String(m.lvl)) : null),
         h('div', { class: 'bz-main' }, head, h('div', { class: 'bz-row' }, stats, gear), chips.length ? h('div', { class: 'bz-chips' }, ...chips) : null),
         h('div', { class: 'lg-pl' }, ...(rows.length ? rows : [h('div', { class: 'nd' }, KT('Oyuncu ayrıntısı alınamadı'))])),
-        lpBig);
+        side);
     }
 
 
@@ -9480,7 +9496,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'oyunayar', cat: 'oyun', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.1.2', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.2.0', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

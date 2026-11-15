@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz maç kartı sağ alanına sönük ROZETLER (kullanıcı istedi, 2026-11-15: "rozetleri ekle ama sırıtmasın çok") — claude-a: BİTTİ (branch claude-a-blitz-animasyon). Blitz 0.1.2 → 0.2.0 (LP etiketi + rozetler; Kovan etiketi artmaz). Rozetler yalnız 10 oyunculu TAM veride ve oyuncu verisinden hesaplanır (maç/takım hasar lideri, ölümsüz, katılım ≥%70, vizyon/altın lideri), en çok 3, düşük kontrastlı hap; eksik veride yok. Dokunulan: app/StatScan.html (matchCard + CSS + EN), tools/test/ui-lol.mjs, docs. DENENMEDİ: gerçek Windows/League verisi.
 - Blitz maç kartı sağındaki boş alana büyük LP etiketi (kullanıcı kırmızı kalemle gösterdi, 2026-11-15: "kazandığımız ve kaybettiğimiz LP'leri yaz, kazandıysak mavi kaybettiysek kırmızı") — claude-a: BİTTİ (branch claude-a-blitz-animasyon, main 9c2ac97 üstünden; HOTFIX: Kovan etiketi artmaz). Yalnız `lpDelta` KESİN biliniyorsa gösterilir (tahmin yok); 0 nötr gri. Dokunulan: app/StatScan.html (matchCard + CSS), tools/test/ui-lol.mjs, docs/KOD-HARITASI.md. Codex'in geri aldığı parlama/kenar efektlerine DOKUNULMADI.
 - HOTFIX: Blitz açıkken ana kaydırma çubuğu gizlenir, kaydırma çalışmaya devam eder — Codex: bitti.
 - HOTFIX: Blitz maç kartı parlaması beklerken kartın dışında kalır, dış kenar gölgesi kaldırıldı. Blitz 0.1.1 — Codex: bitti.
