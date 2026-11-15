@@ -1056,6 +1056,8 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-wr { font: 700 12.5px var(--f-body); color: #e9edf4; } .bz-wr.hi { color: #19c9e0; } .bz-wr.lo { color: #ff5b4d; } .bz-wl { font: 700 12.5px var(--f-body); color: #fff; } .bz-kda { font-size: 12px; color: var(--muted); } .bz-tlp { min-height: 1.2em; margin-top: 6px; font: 600 14px var(--f-body); color: #9aa3b2; }
 /* LP geçmişi */
 .bz-lpcard { position: relative; overflow: hidden; padding: 0; } .bz-lphead { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 20px 22px 16px; border-bottom: 1px solid var(--line); }
+.bz-lp-controls, .bz-history-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bz-lp-controls { justify-content: flex-end; }
 .bz-lphead h2 { margin: 0; font: 700 24px/1.2 var(--f-display); color: #fff; } .bz-lphead p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
 .bz-lpbody { position: relative; padding: 6px 10px 12px; min-height: 260px; } .bz-lpbody > * { position: relative; }
 .bz-lpart { position: absolute !important; inset: 0; opacity: .5; -webkit-mask-image: linear-gradient(180deg, transparent 5%, #000 60%); mask-image: linear-gradient(180deg, transparent 5%, #000 60%); } .bz-lpart .art { height: 100%; } .bz-lpart .art .far, .bz-lpart .art .mid, .bz-lpart .art .near { fill: #a9c0d6; opacity: .1; } .bz-lpart .art .st { fill: none; stroke: #a9c0d6; opacity: .1; }
@@ -6615,6 +6617,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Tüm araçlar sabitlendi": "All tools pinned",
       "Rolü belirsiz": "Unknown role",
       "Kendi profilime dön": "Back to my profile",
+      "LP kayıt aralığı": "LP record range",
+      "Son 20 kayıt": "Last 20 records",
+      "Son 60 kayıt": "Last 60 records",
+      "Tüm kayıtlar": "All records",
+      "Eski maçları getir": "Fetch older matches",
+      "Eski maçlar aranıyor…": "Looking for older matches…",
+      "Eski maçlar: {0} yeni kayıt eklendi.": "Older matches: {0} records added.",
+      "Başka eski maç bulunamadı.": "No additional older matches found.",
       "Maç geçmişine dön": "Back to match history",
       "{0} profilini aç": "Open {0} profile",
       "Tam profili görmek için League istemcisini aç.": "Open the League client to see the full profile.",
@@ -7485,7 +7495,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.18';
+  const KOVAN_VER = 'beta 0.1.19';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8720,9 +8730,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       tiltEl.hidden = !(p && p.tilt); tiltEl.textContent = p && p.tilt ? KT('Üst üste 3 mağlubiyet. Kısa bir mola vermeyi düşün.') : '';
     }
     async function refreshProf() { const r = await call(H.lolProfile); if (r && !r.error) st.prof = r; drawHero(); }
-    async function doSync(quiet) {
+    async function doSync(quiet, deep = false) {
       if (st.busy) return; st.busy = true; if (!quiet) say(KT('League istemcisinden okunuyor…'));
-      const r = await call(H.lolSync, false); st.busy = false;
+      if (deep) {
+        st.historyNote = KT('Eski maçlar aranıyor…');
+        const button = $('#lg-older-matches');
+        if (button) button.disabled = true;
+        const status = $('#lg-history-status');
+        if (status) status.textContent = st.historyNote;
+      }
+      const r = await call(H.lolSync, deep); st.busy = false;
+      if (deep) {
+        st.historyNote = !r || r.error ? failMsg(r) : r.riotError ||
+          (r.state === 'noclient' ? KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.') :
+            r.added ? KT('Eski maçlar: {0} yeni kayıt eklendi.', r.added) : r.notes?.[0] || KT('Başka eski maç bulunamadı.'));
+      }
       if (!r || r.error) { say(failMsg(r), true); st.client = null; } else if (r.source === 'riot') { st.client = false; st.riot = true; if (r.riotError) say(r.riotError, true); else if (!quiet || r.added || r.snaps) say(KT('Riot API ile güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); } else if (r.state === 'noclient') { st.client = false; st.riot = false; if (!quiet) say(KT('League istemcisi bulunamadı (açık mı?). Kayıtlı veriler gösteriliyor.')); } else { st.client = true; st.riot = false; if (!quiet || r.added || r.snaps) say(KT('Güncellendi: {0} yeni maç, {1} yeni derece kaydı.', r.added || 0, r.snaps || 0)); }
       st.sync = Date.now(); await refreshProf(); if (!quiet || (r && (r.added || r.updated || r.snaps))) load(st.tab);
     }
@@ -8771,7 +8793,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         if (o && o.games) strip.append(h('div', { class: 'lg-form', 'aria-label': KT('Son 20 maç') }, ...o.last20.slice().reverse().map((w) => h('i', { class: w ? 'w' : '' }))), h('div', { class: 'lg-st' }, h('b', {}, '%' + Math.round(o.wr)), h('small', {}, KT('{0} G – {1} M', o.wins, o.losses))), h('div', { class: 'lg-st' }, h('b', {}, String(o.kda)), h('small', {}, KT('KDA ({0}/{1}/{2})', o.k, o.d, o.a))), h('div', { class: 'lg-st' }, h('b', {}, String(o.csm)), h('small', {}, KT('CS/dk'))), h('div', { class: 'lg-st' }, h('b', {}, num(o.gpm)), h('small', {}, KT('Altın/dk'))));
         else strip.append(h('p', { class: 'lg-sub' }, KT('Bu filtrede maç yok.')));
         const filt = h('div', { class: 'lg-filters', role: 'group', 'aria-label': KT('Kuyruk filtresi') }, ...FILT.map(([id, t]) => h('button', { type: 'button', class: 'lg-fbtn', 'aria-pressed': st.filt === id ? 'true' : 'false', 'data-q': id, onclick: () => { st.filt = id; drawFeed(true); } }, t)));
-        put(feedEl, strip, filt, h('ul', { class: 'lg-matches', id: 'lg-matches' }), h('div', { id: 'lg-more' }));
+        const history = h('div', { class: 'bz-history-controls' },
+          btn('lg-older-matches', 'Eski maçları getir', () => doSync(false, true)),
+          h('span', { class: 'lg-sub', role: 'status', id: 'lg-history-status' }, st.historyNote || ''));
+        put(feedEl, strip, filt, history, h('ul', { class: 'lg-matches', id: 'lg-matches' }), h('div', { id: 'lg-more' }));
         if (!m.total && !(st.prof && st.prof.matches)) put(feedEl, empty(KT('Henüz maç yok'), st.client === false ? KT('League istemcisini aç ve “Güncelle”ye bas. Maçlar yalnızca bu bilgisayarda saklanır.') : KT('“Güncelle” ile maç geçmişini istemciden oku.'), btn('lg-sync2', 'Güncelle', () => doSync(false), { class: 'cv-btn lg-primary' })));
       }
       const ul = $('#lg-matches', feedEl); if (!ul) return; if (reset) put(ul, ); for (const x of m.rows) ul.append(matchCard(x)); st.off += m.rows.length;
@@ -9130,11 +9155,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       return svg;
     }
     async function drawLp() {
-      const r = await call(H.lolLp, st.lpq); if (st.tab !== 'lp') return;
+      const queue = st.lpq;
+      const data = await call(H.lolLp, queue);
+      if (st.tab !== 'lp' || st.lpq !== queue) return;
       const dd = dropdown('lg-lpq', KT('Kuyruk'), [['solo', 'Dereceli Tekli/Çiftli'], ['flex', 'Dereceli Esnek']], st.lpq, (v) => { st.lpq = v; drawLp(); });
-      if (!r || r.error || !r.count) { put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP geçmişi henüz boş'))), dd), h('div', { class: 'bz-lpbody' }, empty(KT('LP geçmişi henüz boş'), KT('Kayıt, bu aracı ilk kez güncellediğin anda başlar ve her güncellemede dereceni saklar. Öncesini League istemcisi vermez. Dereceli oynadıkça burası dolar.'), btn('lg-sync3', 'Şimdi güncelle', () => doSync(false), { class: 'cv-btn lg-primary' }))))); return; }
+      const range = dropdown('lg-lprange', KT('LP kayıt aralığı'),
+        [['20', 'Son 20 kayıt'], ['60', 'Son 60 kayıt'], ['all', 'Tüm kayıtlar']], st.lpRange || 'all', (value) => {
+          st.lpRange = value;
+          drawLp();
+        });
+      const controls = h('div', { class: 'bz-lp-controls' }, range, dd);
+      let r = data;
+      if (data?.count && st.lpRange && st.lpRange !== 'all') {
+        const points = data.points.slice(-Number(st.lpRange));
+        r = { ...data, points, count: points.length, events: data.events.filter((event) => event.t > points[0].t) };
+      }
+      if (!r || r.error || !r.count) { put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP geçmişi henüz boş'))), controls), h('div', { class: 'bz-lpbody' }, empty(KT('LP geçmişi henüz boş'), KT('Kayıt, bu aracı ilk kez güncellediğin anda başlar ve her güncellemede dereceni saklar. Öncesini League istemcisi vermez. Dereceli oynadıkça burası dolar.'), btn('lg-sync3', 'Şimdi güncelle', () => doSync(false), { class: 'cv-btn lg-primary' }))))); return; }
       const evs = r.events.length ? h('ul', { class: 'lg-ev', id: 'lg-events' }, ...r.events.map((e) => h('li', { class: e.type }, h('b', {}, e.type === 'up' ? KT('Terfi') : KT('Düşüş')), h('span', {}, tierDiv(e.from.tier, e.from.div) + ' → ' + tierDiv(e.to.tier, e.to.div)), h('span', { class: 'lg-sub' }, dstr(e.t))))) : h('p', { class: 'lg-sub' }, KT('Kayıt süresince lig/kademe değişimi olmadı.'));
-      put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP kazanç/kayıp geçmişi: son {0} kayıt', r.count))), dd), h('div', { class: 'bz-lpbody' }, h('div', { class: 'bz-lpart', 'aria-hidden': 'true' }, artSvg('abyss', 91)), bzChart(r)), h('p', { class: 'lg-sub bz-lpnote' }, KT('Kayıt ilk güncellemeden başlar; öncesi istemciden alınamaz.'))), h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Terfi ve düşüşler')), evs));
+      put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP kazanç/kayıp geçmişi: son {0} kayıt', r.count))), controls), h('div', { class: 'bz-lpbody' }, h('div', { class: 'bz-lpart', 'aria-hidden': 'true' }, artSvg('abyss', 91)), bzChart(r)), h('p', { class: 'lg-sub bz-lpnote' }, KT('Kayıt ilk güncellemeden başlar; öncesi istemciden alınamaz.'))), h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Terfi ve düşüşler')), evs));
     }
 
     /* ---- birlikte oynadiklarim ---- */
@@ -9517,7 +9555,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'oyunayar', cat: 'oyun', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.3.2', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.4.0', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

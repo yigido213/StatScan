@@ -531,6 +531,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
       if (/by-riot-id\/Ben\/TR1$/.test(pth)) return { status: 200, body: { puuid: 'PU-ME-' + 'x'.repeat(30), gameName: 'Ben', tagLine: 'TR1' }, retry: 0 };
       if (pth.startsWith('/lol/summoner/v4/summoners/by-puuid/')) return { status: 200, body: { profileIconId: 29, summonerLevel: 112 }, retry: 0 };
       if (/entries\/by-puuid/.test(pth)) return { status: 200, body: [{ queueType: 'RANKED_SOLO_5x5', tier: 'GOLD', rank: 'II', leaguePoints: 47, wins: 30, losses: 20 }], retry: 0 };
+      if (pth.endsWith('&count=100')) return { status: 200, body: Array.from({ length: 14 }, (_, i) => 'TR1_' + (1000000001 + i)), retry: 0 };
       if (/matches\/by-puuid\/.+\/ids/.test(pth)) return { status: 200, body: ['TR1_1000000001', 'TR1_1000000002'], retry: 0 };
       const m = /matches\/TR1_(\d+)$/.exec(pth); if (m) return { status: 200, body: mkMatch(Number(m[1]) % 10, m[1].endsWith('1')), retry: 0 }; return { status: 404, body: null, retry: 0 }; };
     const dd = path.join(tmp, 'riot'); const hr = mkHost({ now: () => NOW, lcu: { find: async () => null }, riot: { get: rget } }, dd);
@@ -563,6 +564,11 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const backfill = mkHost({now:()=>NOW,lcu:{find:async()=>null},riot:{get:rget}},dd); const br=await backfill.handlers['lol:sync']({force:true}); const bm=await backfill.handlers['lol:matches']({});
     ok(br.added===0 && br.updated===2 && bm.rows.every((m)=>JSON.stringify(m.spells)==='[12,4]'), 'eski Riot kaydı: büyüler tamamlanır, maçlar yeniden eklenmiş sayılmaz');
     ok(bm.rows.every((m)=>m.players.every((p)=>['k','d','a','cs','gold','dmg','vision'].every((k)=>Number.isFinite(p[k])))), 'eski Riot kaydı: takım istatistikleri bir sonraki kişisel API senkronunda doldurulur');
+    const older = await hr.handlers['lol:sync']({ deep: true });
+    const remainder = await hr.handlers['lol:sync']({ deep: true });
+    const exhausted = await hr.handlers['lol:sync']({ deep: true });
+    ok(older.added === 10 && remainder.added === 2 && exhausted.added === 0 && exhausted.total === 14,
+      'Riot: elle eski maç çekme 10 ayrıntıyla sınırlı, sonraki tıklama eksiklere devam eder');
     rmode = '401'; const r4 = await hr.handlers['lol:sync']({ force: true }); ok(r4.riotError && /geçersiz|süresi/.test(r4.riotError) && !JSON.stringify(r4).includes('RGAPI'), 'riot: 401 → anlaşılır hata, anahtar sızmaz');
     rmode = '429'; const r5 = await hr.handlers['lol:sync']({ force: true }); const n2 = rcalls.length; const r6 = await hr.handlers['lol:sync']({ force: true }); ok(r5.riotError && r6.throttled && rcalls.length === n2, 'riot: 429 → geri çekilme, yeniden vurmaz');
     const cl = await hr.handlers['lol:riot:set']({ clear: true }); ok(cl.ok && !cl.hasKey && (await hr.handlers['lol:sync']({})).state === 'noclient', 'riot: anahtar silinince yine noclient');

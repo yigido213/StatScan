@@ -228,6 +228,12 @@ ok(await pg.evaluate(() => /Terfi/.test(document.querySelector('#lg-events').tex
   if (process.env.SHOT) { await pg.screenshot({ path: process.env.SHOT + '/lp-hover.png', fullPage: true }); const vp = pg.viewportSize(); await pg.setViewportSize({ width: 420, height: 900 }); await pg.waitForTimeout(300); await pg.screenshot({ path: process.env.SHOT + '/lp-narrow.png', fullPage: true }); await pg.setViewportSize(vp); await pg.waitForTimeout(200); }
   await pg.mouse.move(bb.x - 40, bb.y - 40); await pg.waitForTimeout(150);
   ok(await pg.evaluate(() => !document.querySelector('#lg-chart .vl.hv').classList.contains('on')) && (await txt(pg, '#lg-chart .bz-endt')) === lab0, 'LP grafiği: imleç çıkınca etiket son noktaya döner, çizgi gizlenir'); }
+await pg.click('#lg-lprange');
+await pg.click('#lg-lprange-list li[data-v="20"]');
+await pg.waitForFunction(() => document.querySelector('#lg-lprange')?.dataset.value === '20');
+ok(await pg.evaluate(() => document.querySelector('#lg-lprange').getBoundingClientRect().left <
+  document.querySelector('#lg-lpq').getBoundingClientRect().left && document.querySelectorAll('#lg-chart .bz-pt2').length <= 20),
+  'LP aralığı kuyruk seçiminin solunda ve son 20 noktayla sınırlı');
 await pg.click('#lg-lpq'); await pg.click('#lg-lpq-list li[data-v="flex"]'); await pg.waitForTimeout(300); ok(/LP geçmişi henüz boş/.test(await txt(pg, '#lg-pane-lp')), 'Esnek için kayıt yoksa dürüst boş durum');
 await pg.click('#lg-tab-partners'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => { const r = [...document.querySelectorAll('#lg-ptable tbody tr')]; return r.length === 4 && /Mert/.test(r[0].textContent) && r[0].children[1].textContent === '23'; }), 'birlikte oynadıklarım: 4 takım arkadaşı, Mert 23 maç (yeniden başlatma sayılmadı)');
 ok(/23 tanesinde/.test(await txt(pg, '#lg-pane-partners')) || /yalnızca bunlar sayıldı/.test(await txt(pg, '#lg-pane-partners')), 'birlikte oynadıklarım: kapsam notu');

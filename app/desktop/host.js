@@ -1494,7 +1494,7 @@ const LOLMOD = (() => {
         return null;
       }
     }
-    async function riotSync(force) {
+    async function riotSync(force, deep = false) {
       if (!riotReady()) return { state: 'noclient' }; const t = now();
       if (Date.now() < riotBlock) return { state: 'ok', source: 'riot', throttled: true, added: 0, snaps: 0, notes: ['Riot API sınırı: biraz bekleniyor.'], me: state.me, total: Object.keys(state.matches).length };
       if (!force && riotAt && Date.now() - riotAt < RIOT_EVERY) return { state: 'ok', source: 'riot', throttled: true, added: 0, snaps: 0, notes: [], me: state.me, total: Object.keys(state.matches).length };
@@ -1507,10 +1507,28 @@ const LOLMOD = (() => {
         try { await riotSummoner(plat, state.me); }
         catch (e) { if (e.fatal) throw e; notes.push('profil: ' + msg(e)); }
         let snaps = 0; try { const ent = await riotCall(plat, '/lol/league/v4/entries/by-puuid/' + encodeURIComponent(puuid)); const rk = parseRanked({ queues: (Array.isArray(ent) ? ent : []).map((e) => Object.assign({}, e, { division: e && e.rank })) }); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { if (e.fatal) throw e; notes.push('derece: ' + msg(e)); }
-        let added = 0; let updated = 0; try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + RIOT_MATCHES);
-          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, RIOT_MATCHES)) { const num = String(mid).split('_')[1]; const old = state.matches[num]; const fullStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k]))); if (!/^\d{5,14}$/.test(num) || (old && old.spells !== undefined && fullStats(old.players) && hasPlayerChoices(old.players) && old.positionConfirmed !== undefined)) continue; const m = await riotCall(regional, '/lol/match/v5/matches/' + encodeURIComponent(mid)); const g = m && riotGame(Object.assign({}, m.info, { gameId: Number(num) }), puuid); const nm = g && normMatch(g, puuid, co); if (nm) { if (!old) added++; else updated++; state.matches[nm.id] = nm; } }
+        let added = 0; let updated = 0; let requests = 0;
+        const count = deep ? 100 : RIOT_MATCHES;
+        try { const ids = await riotCall(regional, '/lol/match/v5/matches/by-puuid/' + encodeURIComponent(puuid) + '/ids?start=0&count=' + count);
+          const fullStats = (players) => Array.isArray(players) && players.length >= 2 &&
+            players.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k])));
+          for (const mid of (Array.isArray(ids) ? ids : []).slice(0, count)) {
+            if (requests >= RIOT_MATCHES) break;
+            if (typeof mid !== 'string' || !/^[A-Z0-9]+_\d{5,14}$/.test(mid)) continue;
+            const num = mid.split('_')[1];
+            const old = state.matches[num];
+            if (old && (deep || (old.spells !== undefined && fullStats(old.players) &&
+                hasPlayerChoices(old.players) && old.positionConfirmed !== undefined))) continue;
+            requests++;
+            const match = await riotCall(regional, '/lol/match/v5/matches/' + mid);
+            const game = match?.info && riotGame({ ...match.info, gameId: Number(num) }, puuid);
+            const normalized = game && normMatch(game, puuid, co);
+            if (!normalized) continue;
+            if (old) updated++; else added++;
+            state.matches[normalized.id] = normalized;
+          }
           const keys = Object.keys(state.matches); if (keys.length > LIM.matches) { keys.sort((a, b) => state.matches[a].t - state.matches[b].t); for (const k of keys.slice(0, keys.length - LIM.matches)) delete state.matches[k]; }
-        } catch (e) { if (e.fatal) throw e; notes.push('maçlar: ' + msg(e)); }
+        } catch (e) { if (e.fatal && !added && !updated) throw e; notes.push('maçlar: ' + msg(e)); }
         save(); return { state: 'ok', source: 'riot', me: state.me, added, updated, snaps, notes, total: Object.keys(state.matches).length };
       } catch (e) { return { state: 'ok', source: 'riot', added: 0, snaps: 0, notes: [msg(e)], me: state.me, total: Object.keys(state.matches).length, riotError: msg(e) }; }
     }
@@ -1613,12 +1631,14 @@ const LOLMOD = (() => {
       },
       'lol:sync': async (_e, req) => {
         try {
-          const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return riotReady() ? await riotSync(req && req.force === true) : { state: 'noclient' };
+          const bad = await needRoster(); if (bad) return bad; const info = await lcuFind();
+          const deep = req?.deep === true;
+          if (!info) return riotReady() ? await riotSync(deep || req?.force === true, deep) : { state: 'noclient' };
           const notes = []; const t = now(); const co = champOf(); const msg = (e) => String(e && e.message || e).slice(0, 80);
           let sum = null; try { sum = await lcuRead(info, '/lol-summoner/v1/current-summoner'); } catch (e) { notes.push('profil: ' + msg(e)); }
           if (sum && typeof sum === 'object' && sum.puuid) state.me = { puuid: String(sum.puuid).slice(0, 90), name: String(sum.gameName || sum.displayName || sum.summonerName || '').slice(0, 40), tag: String(sum.tagLine || '').slice(0, 10), level: Math.round(Number(sum.summonerLevel)) || 0, icon: Math.round(Number(sum.profileIconId)) || 0 };
           let snaps = 0; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/current-ranked-stats')); for (const q of ['solo', 'flex']) if (addSnap(state.lp, rk[q], t, LIM.snaps)) snaps++; state.rank = { solo: rk.solo, flex: rk.flex, t }; } catch (e) { notes.push('derece: ' + msg(e)); }
-          let added = 0; let updated = 0; const me = state.me; const want = req && req.deep === true ? 100 : 20;
+          let added = 0; let updated = 0; const me = state.me; const want = deep ? 100 : 20;
           if (me) {
             let budget = LIM.details;
             for (let beg = 0; beg < want; beg += 20) {
@@ -1683,7 +1703,7 @@ const LOLMOD = (() => {
       'lol:lp': async (_e, q) => {
         try {
           const qq = q === 'flex' ? 'flex' : 'solo'; const ser = lpSeries(state.lp, qq); let peak = null; for (const p of ser) if (!peak || p.abs > peak.abs) peak = p;
-          return { queue: qq, points: ser.slice(-600), events: lpEvents(state.lp, qq).slice(0, 40), peak, current: ser.length ? ser[ser.length - 1] : null, count: ser.length, since: ser.length ? ser[0].t : null };
+          return { queue: qq, points: ser, events: lpEvents(state.lp, qq).slice(0, 40), peak, current: ser.length ? ser[ser.length - 1] : null, count: ser.length, since: ser.length ? ser[0].t : null };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:matches': async (_e, req) => {
