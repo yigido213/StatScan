@@ -33,8 +33,6 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- HOTFIX: Blitz maç kartlarında maç sonucuna göre eşit zemin tonu geri getirildi. Blitz 0.1.4 — Codex: bitti.
-- HOTFIX: Blitz maç kartlarından renkli arka plan geçişi, portre ışığı ve kayan parlama kaldırıldı. Blitz 0.1.3 — Codex: bitti.
 - HOTFIX: Blitz açıkken ana kaydırma çubuğu gizlenir, kaydırma çalışmaya devam eder — Codex: bitti.
 - HOTFIX: Blitz maç kartı parlaması beklerken kartın dışında kalır, dış kenar gölgesi kaldırıldı. Blitz 0.1.1 — Codex: bitti.
 - Blitz kart sürümü 0.1.0 oldu. Sonraki Blitz yayınları için kart sürümünü artırma kuralı eklendi — Codex: bitti.
