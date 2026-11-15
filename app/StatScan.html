@@ -1467,7 +1467,6 @@ html[data-fx="off"] #app-lolcounter *, html[data-fx="off"] #app-lolcounter *::be
 <section id="app-taskmgr" class="kv kv-wide" aria-label="Görev Yöneticisi" hidden></section>
 <section id="app-netmon" class="kv kv-wide" aria-label="Ağ İzleyici" hidden></section>
 <section id="app-ramanaliz" class="kv kv-wide" aria-label="RAM Analizi" hidden></section>
-<section id="app-oyunayar" class="kv kv-wide" aria-label="Oyun Ayarlayıcı" hidden></section>
 <section id="app-lolcounter" class="kv kv-wide" aria-label="Blitz" hidden></section>
 <section id="app-notes" class="kv" aria-label="Notlarım" hidden></section>
 <section id="app-admin" class="kv" aria-label="Yönetim" hidden></section>
@@ -6778,7 +6777,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "“Güncelle” ile maç geçmişini istemciden oku.": "Press “Update” to read match history from the client.",
       "Güncelle": "Update",
       "Oyun": "Games",
-      "Oyun ayarlayıcı ve League asistanı Blitz.": "Game tuner and the League assistant Blitz.",
+      "League of Legends asistanı Blitz.": "Blitz, the League of Legends assistant.",
       "Sistem izleme ve bellek analizi araçları.": "System monitoring and memory analysis tools.",
       "Şimdi güncelle": "Update now",
       "Genel bakış": "Overview",
@@ -7489,7 +7488,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-ramanaliz, #app-oyunayar, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-ramanaliz, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -9558,7 +9557,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     };
     const svg = (k) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[k] + '</svg>';
     /* Kategoriler: kenar cubugu ve Home bu sirayla gruplar. Yeni arac: MODULES girdisine cat: 'guvenlik' | 'windows' | 'minecraft' | 'kodlama' ekle. */
-    const CATS = [['guvenlik', 'Güvenlik', 'shield', 'Dosya, arşiv ve betik inceleme araçları.'], ['windows', 'Windows', 'winlogo', 'Sistem izleme ve bellek analizi araçları.'], ['oyun', 'Oyun', 'gamepad', 'Oyun ayarlayıcı ve League asistanı Blitz.'], ['minecraft', 'Minecraft', 'cube', 'Doku paketi ve mod araçları.'], ['kodlama', 'Kodlama', 'code', 'Derleme ve kaynak kod araçları.']];
+    const CATS = [['guvenlik', 'Güvenlik', 'shield', 'Dosya, arşiv ve betik inceleme araçları.'], ['windows', 'Windows', 'winlogo', 'Sistem izleme ve bellek analizi araçları.'], ['oyun', 'Oyun', 'gamepad', 'League of Legends asistanı Blitz.'], ['minecraft', 'Minecraft', 'cube', 'Doku paketi ve mod araçları.'], ['kodlama', 'Kodlama', 'code', 'Derleme ve kaynak kod araçları.']];
     const MODULES = [{ id: 'statscan', cat: 'guvenlik', name: 'StatScan', icon: 'shield', desc: 'JAR, EXE/DLL, betik ve arşivleri çalıştırmadan inceler; skor, kanıt ve rapor üretir. İsteğe bağlı Windows Sandbox analizi ve masaüstü araç köprüsü içerir.', beta: false, actions: [{ label: 'StatScan: Bilgi sekmesini aç', run: () => { go('statscan'); $('#tab-info').click(); } }, { label: 'StatScan: Tarama sekmesini aç', run: () => { go('statscan'); $('#tab-scan').click(); } }] },
       { id: 'imza', cat: 'guvenlik', name: 'İmza ve Sertifika Denetçisi', icon: 'key', beta: true, desc: 'Dijital imzayı açar: kim imzalamış, sertifika zinciri, süre, zaman damgası, imza matematiği ve sahte/taklit yayıncı adı. Dosya çalıştırılmaz, ağa bağlanılmaz; kök güveni ve iptal durumu doğrulanmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
       { id: 'paketleyici', cat: 'guvenlik', name: 'Paketleyici / Obfuscation Dedektörü', icon: 'puzzle', beta: true, desc: 'Dosyanın UPX, VMProtect, Themida gibi bir paketleyici/koruyucuyla sarılıp sarılmadığını, .NET veya Java obfuscator izlerini bölüm adı, entropi, giriş noktası ve import kalıplarından çıkarır. Paketli olmak tek başına zararlı demek değildir. Dosya çalıştırılmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
@@ -9570,7 +9569,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'oyunayar', cat: 'oyun', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.4.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
