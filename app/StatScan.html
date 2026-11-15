@@ -962,7 +962,7 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-qr b { font-weight: 600; color: #dfe5ee; } .bz-qr > span:last-child { color: #e9edf4; font-weight: 600; font-variant-numeric: tabular-nums; } .bz-qi { color: var(--muted); display: grid; } .bz-qi svg { width: 18px; height: 18px; }
 .lg-strip { padding: 10px 14px; background: rgba(21,26,34,.7); } .lg-filters { gap: 6px; }
 .lg-matches { container-type: inline-size; list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.bz-match { --rc: var(--lg-win); position: relative; display: grid; grid-template-columns: 52px minmax(0, 460px) 158px; justify-content: start; gap: 6px 16px; align-items: start; padding: 14px 16px; min-height: 138px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--rc) 22%, transparent); background: linear-gradient(95deg, color-mix(in srgb, var(--rc) 17%, #0b1218) 0%, rgba(13,19,26,.92) 62%); overflow: hidden; }
+.bz-match { --rc: var(--lg-win); position: relative; display: grid; grid-template-columns: 52px minmax(0, 460px) 158px max-content; justify-content: start; gap: 6px 16px; align-items: start; padding: 14px 16px; min-height: 138px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--rc) 22%, transparent); background: linear-gradient(95deg, color-mix(in srgb, var(--rc) 17%, #0b1218) 0%, rgba(13,19,26,.92) 62%); overflow: hidden; }
 .bz-match::before { display: none; } .bz-match.loss { --rc: var(--lg-loss); } .bz-match.remake { --rc: var(--lg-remake); }
 .bz-pt { position: relative; width: 52px; height: 52px; margin-top: 4px; } .bz-pt .lg-ic { width: 100%; height: 100%; border-radius: 9px; border: 2px solid var(--rc); box-shadow: 0 0 14px -2px var(--rc); }
 .bz-pt small { position: absolute; right: -5px; bottom: -5px; min-width: 20px; text-align: center; padding: 0 4px; border-radius: 99px; background: #070b10; border: 1px solid var(--rc); font: 700 10.5px var(--f-body); color: #e9edf4; }
@@ -980,6 +980,8 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .bz-match .lg-pl { grid-column: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 11px; gap: 1px 8px; align-self: start; } .bz-match .lg-pl .lg-ic { width: 18px; height: 18px; } .bz-match .lg-pl div { gap: 4px; padding: 0; }
 @container (min-width: 701px) and (max-width: 780px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr) 158px; } }
 @container (max-width: 700px) { .bz-match { grid-template-columns: 52px minmax(0, 1fr); } .bz-match .lg-pl { grid-column: 2; } }
+.bz-lpbig { align-self: center; justify-self: start; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding-left: 10px; line-height: 1; color: var(--lg-win); pointer-events: none; } .bz-lpbig.dn { color: var(--lg-loss); } .bz-lpbig.z { color: var(--muted); } .bz-lpbig b { font: 800 30px var(--f-display); letter-spacing: -.5px; } .bz-lpbig small { font: 700 12px var(--f-body); letter-spacing: .08em; opacity: .82; }
+@container (max-width: 780px) { .bz-match .bz-lpbig { grid-column: 2; padding-left: 0; flex-direction: row; align-items: baseline; gap: 6px; } .bz-lpbig b { font-size: 22px; } }
 @container (max-width: 440px) { .bz-match { padding: 12px; gap: 10px; } .bz-row { gap: 10px; } .bz-match .bz-st b { font-size: 12px; } .bz-stats { gap: 6px; } .bz-st small { font-size: 10px; } .bz-match .lg-pl { grid-column: 1 / -1; } }
 .bz-match { cursor: pointer; transition: border-color .18s ease, filter .18s ease; } .bz-match:hover { filter: brightness(1.08); } .bz-match:focus-within { border-color: color-mix(in srgb, var(--rc) 58%, transparent); }
 .bz-detail-toggle { appearance: none; border: 1px solid rgba(122,212,230,.22); border-radius: 999px; background: rgba(73,197,216,.07); color: #b8dbe1; padding: 4px 9px; font: 600 11px var(--f-body); cursor: pointer; } .bz-detail-toggle:hover { background: rgba(73,197,216,.15); color: #fff; }
@@ -8836,13 +8838,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const choice = (kind, id, label) => id ? icon(kind, id, KT(label)) : h('span', { class: 'bz-choice-empty', 'aria-hidden': 'true' });
       const loadout = spells.some(Boolean) || runeIds.some(Boolean) ? h('div', { class: 'bz-loadout', 'aria-label': KT('Maç büyüleri ve rünleri') }, choice('spell', spells[0], 'Sihirdar büyüsü'), choice('rune', runeIds[0], 'Ana rün'), choice('spell', spells[1], 'Sihirdar büyüsü'), choice('rune', runeIds[1], 'İkincil rün yolu')) : null;
       const gear = h('div', { class: 'bz-gear' }, loadout, items);
+      const lpBig = m.lpDelta === null || m.lpDelta === undefined || m.remake ? null : h('div', { class: 'bz-lpbig ' + (m.lpDelta > 0 ? 'up' : m.lpDelta < 0 ? 'dn' : 'z'), 'aria-label': (m.lpDelta > 0 ? '+' : '') + m.lpDelta + ' LP' }, h('b', {}, (m.lpDelta > 0 ? '+' : '') + m.lpDelta), h('small', {}, 'LP'));
       const detailBtn = h('button', { type: 'button', class: 'bz-detail-toggle', 'aria-controls': 'lg-match-screen',
         onclick: (event) => { event.stopPropagation(); openMatch(m, event.currentTarget); } }, KT('Detayları göster'));
       const chips = [m.role ? h('span', { class: 'bz-chip' }, KT(RTR[m.role])) : null, m.opp ? h('span', { class: 'bz-chip' }, champIc(m.opp), 'vs ' + nameOf(m.opp)) : null, m.dmg ? h('span', { class: 'bz-chip' }, KT('Hasar') + ' ' + (m.dmg / 1000).toFixed(1) + 'k') : null, m.vision ? h('span', { class: 'bz-chip' }, KT('Vizyon') + ' ' + m.vision) : null, detailBtn].filter(Boolean);
       return h('li', { class: 'bz-match lg-match ' + cls, 'data-id': m.id, onclick: () => openMatch(m, detailBtn) },
         h('div', { class: 'bz-pt lg-mc' }, champIc(m.champ), m.lvl ? h('small', {}, String(m.lvl)) : null),
         h('div', { class: 'bz-main' }, head, h('div', { class: 'bz-row' }, stats, gear), chips.length ? h('div', { class: 'bz-chips' }, ...chips) : null),
-        h('div', { class: 'lg-pl' }, ...(rows.length ? rows : [h('div', { class: 'nd' }, KT('Oyuncu ayrıntısı alınamadı'))])));
+        h('div', { class: 'lg-pl' }, ...(rows.length ? rows : [h('div', { class: 'nd' }, KT('Oyuncu ayrıntısı alınamadı'))])),
+        lpBig);
     }
 
 
