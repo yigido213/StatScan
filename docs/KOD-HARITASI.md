@@ -43,7 +43,7 @@ Blitz kartının sürümü `app/StatScan.html` içindeki `MODULES` → `lolcount
 
 Blitz, Riot API ile kendi ve aranan oyuncunun profil simgesi/seviyesini Summoner-V4 üzerinden alır. Veri yoksa oyuncunun baş harfi görünür.
 
-Birlikte oynadıklarım tablosu eşleşen Riot adı ve etiketi üzerinden LCU/Riot API kimliklerini birleştirir. Aynı PUUID ile gelen ad değişiklikleri ve yinelenen maçlar da tek sayılır.
+Birlikte oynadıklarım tablosu eşitlemede alınan en güncel profil simgesini gösterir. Simge bilgisi yoksa baş harf görünür. Tablo eşleşen Riot adı ve etiketi üzerinden LCU/Riot API kimliklerini birleştirir. Aynı PUUID ile gelen ad değişiklikleri ve yinelenen maçlar da tek sayılır.
 
 `app.js` şampiyon seçiminde iki takımı gösteren, odak almayan bir pencereyi oturum başına bir kez açar. Seçim bitince kapanır. Satırlar `lol:lcu` yerel verisinden gelir.
 

@@ -217,13 +217,13 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const ally = (puuid, name, tag) => ({ puuid, name, tag, team: 100, champ: 'Darius' });
     const match = (id, t, win, ...players) => ({ id, t, win, players, team: 100 });
     const grouped = L.partnerStats([
-      match('1', 1, true, ally('lcu', 'Bombo', '0404')),
-      match('2', 2, false, ally('api', 'BOMBO', '0404'), ally('other', 'Bombo', '0405')),
+      match('1', 1, true, { ...ally('lcu', 'Bombo', '0404'), icon: 12 }),
+      match('2', 2, false, { ...ally('api', 'BOMBO', '0404'), icon: 29 }, ally('other', 'Bombo', '0405')),
       match('2', 2, false, ally('lcu', 'Bombo', '0404')),
       match('3', 3, true, ally('api', 'Yeni Ad', '0404'))
     ]).rows;
     ok(grouped.length === 2 && grouped[0].name === 'Yeni Ad' && grouped[0].games === 3 &&
-      grouped[0].wins === 2 && grouped[1].tag === '0405',
+      grouped[0].wins === 2 && grouped[0].icon === 29 && grouped[1].tag === '0405',
       'takım arkadaşları: farklı kaynak kimlikleri birleşir, çift maç ve farklı etiket ayrılır');
   }
   const sx = await HP['lol:stats']({ queue: 'all' }); ok(sx.overview.games === 5 && sx.overview.wins === 3 && sx.overview.wr === 60 && sx.overview.losses === 2, 'istatistik: yeniden başlatma hariç 5 maç, 3 galibiyet, %60');
@@ -553,7 +553,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok(!/cooldown|bekleme|flash|çarp|\bult\b/i.test(h), 'bindirme sayfası: büyü/yetenek bekleme sayacı yok'); }
   // ---- Riot API (istemci kapaliyken): sahte Riot, gercek ag yok
   { const KEY = 'RGAPI-e9b4a092-2fba-4951-b69d-2320e9c025e4'; const rcalls = []; let rmode = 'ok';
-    const mkMatch = (n, win) => ({ info: { gameCreation: 1.7e12 + n * 1e6, gameDuration: 1800, queueId: 420, participants: Array.from({ length: 10 }, (_, i) => ({ puuid: i === 0 ? 'PU-ME-' + 'x'.repeat(30) : 'PU-O' + i, riotIdGameName: i === 0 ? 'Ben' : 'Op' + i, riotIdTagline: 'TR1', teamId: i < 5 ? 100 : 200, championId: i === 0 ? 122 : 86, summoner1Id: 12, summoner2Id: 4, teamPosition: i === 0 ? 'TOP' : ['JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 4], kills: 7, deaths: 2, assists: 5, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 25, champLevel: 16, win: i < 5 ? win : !win, item0: 3001, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3201, perks: { styles: [{ style: 8000, selections: [{ perk: 8010 }, { perk: 9111 }, { perk: 9104 }, { perk: 8014 }] }, { style: 8200, selections: [{ perk: 8226 }, { perk: 8210 }] }] } })) } });
+    const mkMatch = (n, win) => ({ info: { gameCreation: 1.7e12 + n * 1e6, gameDuration: 1800, queueId: 420, participants: Array.from({ length: 10 }, (_, i) => ({ puuid: i === 0 ? 'PU-ME-' + 'x'.repeat(30) : 'PU-O' + i, riotIdGameName: i === 0 ? 'Ben' : 'Op' + i, riotIdTagline: 'TR1', profileIcon: 12 + i, teamId: i < 5 ? 100 : 200, championId: i === 0 ? 122 : 86, summoner1Id: 12, summoner2Id: 4, teamPosition: i === 0 ? 'TOP' : ['JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 4], kills: 7, deaths: 2, assists: 5, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 25, champLevel: 16, win: i < 5 ? win : !win, item0: 3001, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 3201, perks: { styles: [{ style: 8000, selections: [{ perk: 8010 }, { perk: 9111 }, { perk: 9104 }, { perk: 8014 }] }, { style: 8200, selections: [{ perk: 8226 }, { perk: 8210 }] }] } })) } });
     const rget = async (host, pth, key) => { rcalls.push(host + pth); if (key !== KEY) return { status: 401, body: null, retry: 0 }; if (rmode === '429') return { status: 429, body: null, retry: 10 }; if (rmode === '401') return { status: 401, body: null, retry: 0 };
       if (/by-riot-id\/Ben\/TR1$/.test(pth)) return { status: 200, body: { puuid: 'PU-ME-' + 'x'.repeat(30), gameName: 'Ben', tagLine: 'TR1' }, retry: 0 };
       if (pth.startsWith('/lol/summoner/v4/summoners/by-puuid/')) return { status: 200, body: { profileIconId: 29, summonerLevel: 112 }, retry: 0 };
@@ -572,7 +572,7 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const r1 = await hr.handlers['lol:sync']({}); ok(r1.state === 'ok' && r1.source === 'riot' && r1.added === 2 && r1.snaps >= 1, 'riot: istemci kapalıyken senkron: 2 maç + derece (' + JSON.stringify(r1.notes) + ')');
     const pr = await hr.handlers['lol:profile'](); ok(pr.rank && pr.rank.solo && pr.rank.solo.tier === 'GOLD' && pr.rank.solo.div === 'II' && pr.rank.solo.lp === 47 && pr.matches === 2 && pr.me.name === 'Ben' && pr.me.icon === 29 && pr.me.level === 112, 'riot: profil simgesi, seviye ve derece (GOLD II 47 LP) + 2 maç');
     const ml = await hr.handlers['lol:matches']({}); ok(ml.rows.length === 2 && ml.rows[0].champ === 'Darius' && ml.rows[0].role === 'top' && ml.rows[0].k === 7 && ml.rows[0].queue === 'solo' && ml.rows[0].runes && ml.rows[0].runes.perks.length === 6, 'riot: maç biçimi (şampiyon/hat/KDA/kuyruk/rün) LCU maçıyla aynı');
-    ok(JSON.stringify(ml.rows[0].spells) === '[12,4]', 'Riot match-v5: summoner1Id/2Id D/F sırasıyla saklanır');
+    ok(JSON.stringify(ml.rows[0].spells) === '[12,4]' && ml.rows[0].players[1].icon === 13, 'Riot match-v5: summoner1Id/2Id D/F sırasıyla saklanır');
     const n1 = rcalls.length; const r2 = await hr.handlers['lol:sync']({}); ok(r2.throttled === true && rcalls.length === n1, 'riot: 2 dakikadan sık istek atılmaz (3 sn otomatik yenileme Riot\'u yormaz)');
     const r3 = await hr.handlers['lol:sync']({ force: true }); ok(r3.added === 0 && rcalls.filter((c) => /matches\/TR1_/.test(c)).length === 2, 'riot: aynı maç iki kez indirilmez/eklenmez');
     ok(rcalls.every((c) => /^(europe|tr1)\.api\.riotgames\.com\//.test(c)), 'riot: yalnız beklenen Riot adreslerine gidildi');

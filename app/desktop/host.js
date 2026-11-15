@@ -1069,6 +1069,9 @@ const LOLMOD = (() => {
   };
   const hasPlayerChoices = (players) => Array.isArray(players) && players.length >= 2 &&
     players.every((p) => p && p.spells !== undefined && p.keystone !== undefined && p.secondary !== undefined);
+  const validProfileIcon = (id) => Number.isSafeInteger(id) && id >= 0 && id <= 999999;
+  const hasPlayerIcons = (players) => Array.isArray(players) && players.length >= 2 &&
+    players.every((p) => p && Object.hasOwn(p, 'icon'));
   function normMatch(g, myPuuid, champOf) {
     if (!g || typeof g !== 'object' || !Number.isFinite(Number(g.gameId))) return null; const parts = Array.isArray(g.participants) ? g.participants : []; const ids = Array.isArray(g.participantIdentities) ? g.participantIdentities : [];
     const idOf = new Map(ids.map((x) => [x && x.participantId, (x && x.player) || {}])); let me = null;
@@ -1076,7 +1079,7 @@ const LOLMOD = (() => {
     const s = me.stats; const rn = parseRunes({ perks: [0, 1, 2, 3, 4, 5].map((i) => s['perk' + i]), primary: s.perkPrimaryStyle, secondary: s.perkSubStyle }); const runes = rn && rn.perks.length === 6 ? rn : null; let t = numOr0(g.gameCreation); if (!t && g.gameCreationDate) t = Date.parse(g.gameCreationDate) || 0; const dur = numOr0(g.gameDuration); const remake = !!s.gameEndedInEarlySurrender || (dur > 0 && dur < 240);
     const win = s.win === true || s.win === 'Win'; const role = laneRole(me.timeline); const full = parts.length >= 2;
     const stat = (v, max) => { const n = Number(v); return v != null && Number.isFinite(n) && n >= 0 && n <= max ? Math.floor(n) : null; };
-    const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; const ps = p.stats || {}; const cs = stat(ps.totalMinionsKilled, 1000000); const jungle = stat(ps.neutralMinionsKilled, 1000000); return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline), spells: matchSpells(p), keystone: matchChoiceId(ps.perk0), secondary: matchChoiceId(ps.perkSubStyle), k: stat(ps.kills, 100000), d: stat(ps.deaths, 100000), a: stat(ps.assists, 100000), cs: cs === null || jungle === null ? null : cs + jungle, gold: stat(ps.goldEarned, 100000000), dmg: stat(ps.totalDamageDealtToChampions, 100000000), vision: stat(ps.visionScore, 100000), items: Array.from({ length: 7 }, (_, i) => stat(ps['item' + i], 999999)).filter((x) => x !== null && x > 0) }; }) : [];
+    const players = full ? parts.map((p) => { const pl = idOf.get(p.participantId) || {}; const ps = p.stats || {}; const cs = stat(ps.totalMinionsKilled, 1000000); const jungle = stat(ps.neutralMinionsKilled, 1000000); return { champ: champOf(p.championId), name: String(pl.gameName || pl.summonerName || '').slice(0, 30), tag: String(pl.tagLine || '').slice(0, 10), team: numOr0(p.teamId), me: p === me, puuid: String(pl.puuid || '').slice(0, 90), role: laneRole(p.timeline), icon: validProfileIcon(pl.profileIcon) ? pl.profileIcon : validProfileIcon(pl.profileIconId) ? pl.profileIconId : null, spells: matchSpells(p), keystone: matchChoiceId(ps.perk0), secondary: matchChoiceId(ps.perkSubStyle), k: stat(ps.kills, 100000), d: stat(ps.deaths, 100000), a: stat(ps.assists, 100000), cs: cs === null || jungle === null ? null : cs + jungle, gold: stat(ps.goldEarned, 100000000), dmg: stat(ps.totalDamageDealtToChampions, 100000000), vision: stat(ps.visionScore, 100000), items: Array.from({ length: 7 }, (_, i) => stat(ps['item' + i], 999999)).filter((x) => x !== null && x > 0) }; }) : [];
     const opp = role && full ? ((players.find((x) => !x.me && x.team !== numOr0(me.teamId) && x.role === role) || {}).champ || null) : null;
     return { id: String(Math.round(Number(g.gameId))), t, dur, queue: QUEUES[numOr0(g.queueId)] || 'other', queueId: numOr0(g.queueId), win: remake ? null : win, remake, champ: champOf(me.championId), role, positionConfirmed: !!(role && me.teamPositionConfirmed), k: numOr0(s.kills), d: numOr0(s.deaths), a: numOr0(s.assists), cs: numOr0(s.totalMinionsKilled) + numOr0(s.neutralMinionsKilled), gold: numOr0(s.goldEarned), dmg: numOr0(s.totalDamageDealtToChampions), vision: numOr0(s.visionScore), lvl: numOr0(s.champLevel), items: [0, 1, 2, 3, 4, 5, 6].map((i) => numOr0(s['item' + i])).filter((x) => x > 0), team: numOr0(me.teamId), players, opp, partial: !full, runes, spells: matchSpells(me) };
   }
@@ -1146,12 +1149,13 @@ const LOLMOD = (() => {
     const by = new Map();
     for (const { m, p, key } of entries) {
       const id = root(key);
-      const x = by.get(id) || { games: 0, wins: 0, last: 0, labelAt: -Infinity, champs: Object.create(null), matches: new Set() };
+      const x = by.get(id) || { games: 0, wins: 0, last: 0, labelAt: -Infinity, iconAt: -Infinity, icon: null, champs: Object.create(null), matches: new Set() };
       if (p.name && (m.t >= x.labelAt || !x.name)) {
         x.name = p.name;
         x.tag = p.tag || '';
         x.labelAt = m.t;
       }
+      if (validProfileIcon(p.icon) && m.t >= x.iconAt) { x.icon = p.icon; x.iconAt = m.t; }
       const matchKey = m.id ?? m;
       if (!x.matches.has(matchKey)) {
         x.matches.add(matchKey);
@@ -1162,7 +1166,7 @@ const LOLMOD = (() => {
       x.last = Math.max(x.last, m.t);
       by.set(id, x);
     }
-    const rows = [...by.values()].map((x) => ({ name: x.name, tag: x.tag, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), last: x.last, top: Object.keys(x.champs).sort((a, b) => x.champs[b] - x.champs[a]).slice(0, 3) })).sort((a, b) => b.games - a.games || b.last - a.last).slice(0, 60);
+    const rows = [...by.values()].map((x) => ({ name: x.name, tag: x.tag, icon: x.icon, games: x.games, wins: x.wins, wr: r1((100 * x.wins) / x.games), last: x.last, top: Object.keys(x.champs).sort((a, b) => x.champs[b] - x.champs[a]).slice(0, 3) })).sort((a, b) => b.games - a.games || b.last - a.last).slice(0, 60);
     return { rows, covered: full.length, total: ms.filter((m) => !m.remake).length };
   }
   /* LP farki: yalniz maci KESIN olarak cevreleyen iki anlik goruntu varsa ve araya baska ayni-kuyruk maci girmediyse */
@@ -1499,7 +1503,7 @@ const LOLMOD = (() => {
       info.participants.slice(0, 10).forEach((p, i) => { const id = i + 1; const st = (p.perks && Array.isArray(p.perks.styles)) ? p.perks.styles : []; const sel = (k) => (st[k] && Array.isArray(st[k].selections) ? st[k].selections.map((x) => x && x.perk) : []);
         const perks = sel(0).slice(0, 4).concat(sel(1).slice(0, 2)); const stats = { kills: p.kills, deaths: p.deaths, assists: p.assists, totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled, goldEarned: p.goldEarned, totalDamageDealtToChampions: p.totalDamageDealtToChampions, visionScore: p.visionScore, champLevel: p.champLevel, win: p.win === true, gameEndedInEarlySurrender: p.gameEndedInEarlySurrender === true, perkPrimaryStyle: st[0] && st[0].style, perkSubStyle: st[1] && st[1].style };
         for (let k = 0; k < 7; k++) stats['item' + k] = p['item' + k]; for (let k = 0; k < 6; k++) stats['perk' + k] = perks[k];
-        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null, teamPositionConfirmed: !!POS[p.teamPosition] }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName } }); });
+        participants.push({ participantId: id, teamId: p.teamId, championId: p.championId, spell1Id: p.summoner1Id, spell2Id: p.summoner2Id, stats, timeline: POS[p.teamPosition] || null, teamPositionConfirmed: !!POS[p.teamPosition] }); participantIdentities.push({ participantId: id, player: { puuid: p.puuid, gameName: p.riotIdGameName, tagLine: p.riotIdTagline, summonerName: p.summonerName, profileIcon: p.profileIcon } }); });
       const idn = String(info.gameId || ''); return { gameId: Number(idn), gameCreation: info.gameCreation, gameDuration: info.gameDuration, queueId: info.queueId, participants, participantIdentities };
     }
     async function riotSummoner(platform, player) {
@@ -1578,7 +1582,7 @@ const LOLMOD = (() => {
             if (typeof mid !== 'string' || !/^[A-Z0-9]+_\d{5,14}$/.test(mid)) continue;
             const num = mid.split('_')[1];
             const old = state.matches[num];
-            if (old && (deep || (old.spells !== undefined && fullStats(old.players) &&
+            if (old && hasPlayerIcons(old.players) && (deep || (old.spells !== undefined && fullStats(old.players) &&
                 hasPlayerChoices(old.players) && old.positionConfirmed !== undefined))) continue;
             requests++;
             const match = await riotCall(regional, '/lol/match/v5/matches/' + mid);
@@ -1708,9 +1712,9 @@ const LOLMOD = (() => {
                 const id = String(Math.round(Number(g && g.gameId))); const old = state.matches[id];
                 if (old && !old.partial) {
                   const hasTeamStats = (ps) => Array.isArray(ps) && ps.length >= 2 && ps.every((p) => p && ['k', 'd', 'a', 'cs', 'gold', 'dmg', 'vision'].every((k) => Number.isFinite(p[k])));
-                  if (old.runes === undefined || old.spells === undefined || !hasTeamStats(old.players) || !hasPlayerChoices(old.players)) {
+                  if (old.runes === undefined || old.spells === undefined || !hasTeamStats(old.players) || !hasPlayerChoices(old.players) || !hasPlayerIcons(old.players)) {
                     let mr = normMatch(g, me.puuid, co); let retry = false;
-                    const missing = () => !mr || (old.runes === undefined && !mr.runes) || (old.spells === undefined && !mr.spells) || (!hasTeamStats(old.players) && !hasTeamStats(mr.players)) || (!hasPlayerChoices(old.players) && !hasPlayerChoices(mr.players));
+                    const missing = () => !mr || (old.runes === undefined && !mr.runes) || (old.spells === undefined && !mr.spells) || (!hasTeamStats(old.players) && !hasTeamStats(mr.players)) || (!hasPlayerChoices(old.players) && !hasPlayerChoices(mr.players)) || (!hasPlayerIcons(old.players) && !hasPlayerIcons(mr.players));
                     if (missing()) { if (budget > 0) { budget--; try { const detail = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), me.puuid, co); if (detail) mr = detail; } catch (e) { retry = true; } } else retry = true; }
                     if (!retry && mr) {
                       updated++;
@@ -1720,13 +1724,13 @@ const LOLMOD = (() => {
                         !hasTeamStats(old.players) && hasTeamStats(mr.players)) && hasPlayerChoices(mr.players)) {
                         old.players = mr.players;
                       }
-                      else if (!hasPlayerChoices(old.players) && hasPlayerChoices(mr && mr.players)) {
+                      else if ((!hasPlayerChoices(old.players) || !hasPlayerIcons(old.players)) && hasPlayerChoices(mr.players)) {
                         old.players = old.players.map((p) => {
                           if (!p) return p;
                           const matches = mr.players.filter((fresh) => p.puuid ? fresh.puuid === p.puuid :
                             (p.me && fresh.me) || (p.name && fresh.name === p.name && fresh.team === p.team && fresh.champ === p.champ));
                           const fresh = matches.length === 1 ? matches[0] : null;
-                          return { ...p, spells: fresh?.spells ?? p.spells ?? null,
+                          return { ...p, icon: fresh?.icon ?? p.icon ?? null, spells: fresh?.spells ?? p.spells ?? null,
                             keystone: fresh?.keystone ?? p.keystone ?? null, secondary: fresh?.secondary ?? p.secondary ?? null };
                         });
                       }
