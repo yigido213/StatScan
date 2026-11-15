@@ -9100,28 +9100,33 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const tk = Math.min(9, n); const seen = new Set(); for (let j = 0; j < tk; j++) { const i = tk === 1 ? 0 : Math.round((j * (n - 1)) / (tk - 1)); if (seen.has(i)) continue; seen.add(i); const tx = sv('text', { class: 'tl', x: X(i), y: Hh - 10, 'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' }); tx.textContent = md(pts[i].t); svg.append(tx); }
       const hv = sv('line', { class: 'vl hv', y1: T - 18, y2: Hh - B }); svg.append(hv); const hd = sv('circle', { class: 'bz-hd', r: '8' }); svg.append(hd);
       const et = sv('text', { class: 'bz-endt' }); const t1 = sv('tspan', { class: 't1' }); const t2 = sv('tspan', { class: 't2' }); const t3 = sv('tspan', { class: 't3' }); const lpTx = document.createTextNode(''); t2.append(lpTx, t3); et.append(t1, t2); svg.append(et);
-      let cur = -1;
+      let cur = -1; let lx = 0; let ly = 0; let lt = 0; let lu = 0; let dv = 0; let tlp = 0; let dkey = ''; let tAnc = 'start'; let raf2 = 0;
+      function aim(px, py) { const right = px < W - Rr - 190; lt = right ? px + 16 : px - 16; let ey = py + 42; if (ey > Hh - B - 40) ey = py - 38; if (ey < T + 14) ey = T + 14; lu = ey; tAnc = right ? 'start' : 'end'; }
+      function put() { et.setAttribute('text-anchor', tAnc); t1.setAttribute('x', lx.toFixed(1)); t1.setAttribute('y', ly.toFixed(1)); t2.setAttribute('x', lx.toFixed(1)); t2.setAttribute('dy', '28'); lpTx.nodeValue = Math.round(dv) + ' LP '; }
+      function settle() { lx = lt; ly = lu; dv = tlp; put(); }
+      function easeLbl() { lx += (lt - lx) * 0.3; ly += (lu - ly) * 0.3; dv += (tlp - dv) * 0.28; if (Math.abs(lt - lx) < 0.3) lx = lt; if (Math.abs(lu - ly) < 0.3) ly = lu; if (Math.abs(tlp - dv) < 0.5) dv = tlp; put(); }
+      const lblDone = () => lx === lt && ly === lu && dv === tlp;
       function show(i) {
-        if (i === cur) return; if (cur >= 0) dots[cur].classList.remove('on'); cur = i; dots[i].classList.add('on'); const p = pts[i]; const px = X(i); const py = Y(p.abs);
-        const right = px < W - Rr - 190; const ex = right ? px + 16 : px - 16; let ey = py + 42; if (ey > Hh - B - 40) ey = py - 38; if (ey < T + 14) ey = T + 14;
-        et.setAttribute('text-anchor', right ? 'start' : 'end'); t1.setAttribute('x', ex.toFixed(1)); t1.setAttribute('y', ey.toFixed(1)); t1.setAttribute('fill', TCH[p.tier] || '#16bff2'); t2.setAttribute('x', ex.toFixed(1)); t2.setAttribute('dy', '28');
-        t1.textContent = tierDiv(p.tier, p.div).toUpperCase().replace(/ ([1-4])$/, (m0, d) => ' ' + ['', 'I', 'II', 'III', 'IV'][+d]); lpTx.nodeValue = p.lp + ' LP '; t3.textContent = mdy(p.t);
+        if (i === cur) return; if (cur >= 0) dots[cur].classList.remove('on'); cur = i; dots[i].classList.add('on'); const p = pts[i]; const px = X(i);
+        t1.setAttribute('fill', TCH[p.tier] || '#16bff2'); t1.textContent = tierDiv(p.tier, p.div).toUpperCase().replace(/ ([1-4])$/, (m0, d) => ' ' + ['', 'I', 'II', 'III', 'IV'][+d]); t3.textContent = mdy(p.t);
+        tlp = p.lp; const key = p.tier + '/' + p.div; if (key !== dkey) { dkey = key; dv = tlp; } aim(px, Y(p.abs));
         hv.setAttribute('x1', px.toFixed(1)); hv.setAttribute('x2', px.toFixed(1));
       }
-      show(n - 1);
+      show(n - 1); settle();
       /* imleci yumusakca izleyen kayan nokta + yakin noktalarin dalgalanmasi (hareket azaltma / animasyon kapaliyken ani yapisma) */
       let cv = 0; let tgt = 0; let raf = 0; let live = false; let touched = new Set();
       const calm = () => { try { return document.documentElement.dataset.fx === 'off' || window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
       const at = (v) => { const i0 = Math.min(n - 1, Math.max(0, Math.floor(v))); const i1 = Math.min(n - 1, i0 + 1); const f = Math.min(1, Math.max(0, v - i0)); return [X(i0) + (X(i1) - X(i0)) * f, Y(pts[i0].abs) + (Y(pts[i1].abs) - Y(pts[i0].abs)) * f]; };
       function paint() {
-        const near = Math.max(0, Math.min(n - 1, Math.round(cv))); const q = at(cv); show(near);
+        const near = Math.max(0, Math.min(n - 1, Math.round(cv))); const q = at(cv); show(near); aim(q[0], q[1]);
         hv.setAttribute('x1', q[0].toFixed(1)); hv.setAttribute('x2', q[0].toFixed(1)); hd.setAttribute('cx', q[0].toFixed(1)); hd.setAttribute('cy', q[1].toFixed(1)); hd.setAttribute('fill', TCH[pts[near].tier] || '#16bff2');
         const nt = new Set(); for (let i = Math.max(0, Math.floor(cv) - 3); i <= Math.min(n - 1, Math.ceil(cv) + 3); i++) { const k = Math.max(0, 1 - Math.abs(i - cv) / 2.4); if (k > 0.03) { nt.add(i); dots[i].style.transform = 'scale(' + (1 + 0.7 * k).toFixed(3) + ')'; } }
         touched.forEach((i) => { if (!nt.has(i)) dots[i].style.transform = ''; }); touched = nt;
       }
-      function frame() { raf = 0; const d = tgt - cv; if (Math.abs(d) < 0.003) cv = tgt; else cv += d * 0.25; paint(); if (cv !== tgt && live) raf = requestAnimationFrame(frame); }
-      svg.addEventListener('pointermove', (e) => { const m = svg.getScreenCTM(); if (!m) return; const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const x = pt.matrixTransform(m.inverse()).x; tgt = n === 1 ? 0 : Math.max(0, Math.min(n - 1, ((x - L) / (W - L - Rr)) * (n - 1))); hv.classList.add('on'); hd.classList.add('on'); if (!live || calm()) { live = true; cv = tgt; paint(); return; } if (!raf) raf = requestAnimationFrame(frame); });
-      svg.addEventListener('pointerleave', () => { live = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } touched.forEach((i) => { dots[i].style.transform = ''; }); touched = new Set(); hv.classList.remove('on'); hd.classList.remove('on'); show(n - 1); });
+      function frame() { raf = 0; const d = tgt - cv; if (Math.abs(d) < 0.003) cv = tgt; else cv += d * 0.25; paint(); easeLbl(); if (live && (cv !== tgt || !lblDone())) raf = requestAnimationFrame(frame); }
+      function glide() { raf2 = 0; easeLbl(); if (!lblDone()) raf2 = requestAnimationFrame(glide); }
+      svg.addEventListener('pointermove', (e) => { const m = svg.getScreenCTM(); if (!m) return; const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const x = pt.matrixTransform(m.inverse()).x; tgt = n === 1 ? 0 : Math.max(0, Math.min(n - 1, ((x - L) / (W - L - Rr)) * (n - 1))); hv.classList.add('on'); hd.classList.add('on'); if (raf2) { cancelAnimationFrame(raf2); raf2 = 0; } const first = !live; live = true; if (calm()) { cv = tgt; paint(); settle(); return; } if (first) { cv = tgt; paint(); } if (!raf) raf = requestAnimationFrame(frame); });
+      svg.addEventListener('pointerleave', () => { live = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } touched.forEach((i) => { dots[i].style.transform = ''; }); touched = new Set(); hv.classList.remove('on'); hd.classList.remove('on'); show(n - 1); aim(X(n - 1), Y(pts[n - 1].abs)); tlp = pts[n - 1].lp; if (calm()) settle(); else if (!raf2) raf2 = requestAnimationFrame(glide); });
       return svg;
     }
     async function drawLp() {
@@ -9512,7 +9517,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'oyunayar', cat: 'oyun', name: 'Oyun Ayarlayıcı', icon: 'gamepad', beta: true, ver: '0.0.1', desc: 'Steam ve Epic oyunlarını bulur, oynadığın oyunu otomatik algılar; grafik ön ayarını (Düşük/Orta/Yüksek/Ultra) ve çözünürlüğü oyunun ayar dosyasına yazar ya da hedef FPS’ine göre ayarlar. Her değişiklikten önce yedek alır; anti-cheat’li oyunlara dokunmaz. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.3.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.3.2', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
