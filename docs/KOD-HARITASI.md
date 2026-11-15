@@ -45,6 +45,8 @@ Blitz, Riot API ile kendi ve aranan oyuncunun profil simgesi/seviyesini Summoner
 
 Birlikte oynadıklarım tablosu eşleşen Riot adı ve etiketi üzerinden LCU/Riot API kimliklerini birleştirir. Aynı PUUID ile gelen ad değişiklikleri ve yinelenen maçlar da tek sayılır.
 
+`app.js` şampiyon seçiminde iki takımı gösteren, odak almayan bir pencereyi oturum başına bir kez açar. Seçim bitince kapanır. Satırlar `lol:lcu` yerel verisinden gelir.
+
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
 
 - Maç kartında boş alan içerikleri yaymaz: `.bz-stats` içerik genişliğinde `max-content` sütunlar/14px aralık, `.bz-row` soldan flex/12px aralık, büyü/eşya grubu 12px aralık. Geniş kartta ana bilgi alanı en çok 460px; takım listesi bitişiğinde, kalan yer sağda boş kalır. 701–780px kartlarda orta sütun daralır; ≤700px takımlar alt satıra geçer.
@@ -120,7 +122,7 @@ Ana sayfa araç seçicisinde normal Kovan araçları listelenir. Sabitlenenler k
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - (ESKİ yol; yalnız tek seferlik geçiş paketi için) Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.20. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
+- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.21. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).

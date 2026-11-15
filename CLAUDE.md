@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz şampiyon seçiminde Canlı Maç takım tablosu öne açılır. Blitz 0.5.0, Kovan beta 0.1.21 — Codex: bitti.
 - HOTFIX: Blitz aktif maçta takım verisini yerel istemciden önerileri beklemeden okur — Codex: bitti.
 - HOTFIX: Blitz birlikte oynanan oyuncular LCU ve Riot API kimlikleri farklı olsa da aynı Riot Kimliğiyle tek satırda toplanır. Blitz 0.4.2 — Codex: bitti.
 - Oyun Ayarlayıcı Oyun kategorisinden, aramadan ve sabitlenen araçlardan kaldırıldı — Codex: bitti.

@@ -1419,6 +1419,26 @@ const LOLMOD = (() => {
         res.on('end', () => { try { resolve(JSON.parse(Buffer.concat(parts).toString('utf8'))); } catch (e) { reject(e); } });
       }); req.on('timeout', () => req.destroy(new Error('zaman aşımı'))); req.on('error', reject); req.end();
     });
+    let selectConnection = null;
+    let selectRoster = null;
+    async function selectPopupData() {
+      const info = selectConnection || await lcuFind();
+      if (!info) return { state: 'noclient' };
+      selectConnection = info;
+      let session;
+      try { session = await lcuRead(info, '/lol-champ-select/v1/session', 1500); }
+      catch (e) { selectConnection = null; return { state: 'unavailable' }; }
+      if (!Array.isArray(session?.myTeam) || !session.myTeam.length) return { state: 'idle' };
+      if (!roster && !selectRoster) selectRoster = needRoster().catch(() => null);
+      const names = new Map((roster || []).map((champion) => [String(champion.key), champion.name]));
+      const rows = (team) => (Array.isArray(team) ? team : []).slice(0, 10).map((player) => {
+        const pick = Number(player?.championId || player?.championPickIntent);
+        return { name: Number.isSafeInteger(pick) && pick > 0 ? names.get(String(pick)) || 'Şampiyon #' + pick : '',
+          role: LCU_ROLE[String(player?.assignedPosition || '').toLowerCase()] || '',
+          me: player?.cellId != null && player.cellId === session.localPlayerCellId };
+      });
+      return { state: 'champselect', allies: rows(session.myTeam), enemies: rows(session.theirTeam) };
+    }
     const liveRead = async (p) => { if (!LIVE_OK.test(p)) throw new Error('izin verilmeyen uç nokta'); return liveGet(p); };
     let runeMap = null; let runePending = null; let spellMap = null; let spellPending = null;
     const safeRuneIcon = (v) => typeof v === 'string' && /^perk-images\/[A-Za-z0-9_/-]+\.png$/.test(v) && v.length < 240 ? v : null;
@@ -1903,8 +1923,9 @@ const LOLMOD = (() => {
           return { ok: true, name, verified: okRead };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
-      'lol:lcu': async () => {
-        try { const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' }; let s = null; try { s = await lcuRead(info, '/lol-champ-select/v1/session'); } catch (e) { return { state: 'noclient', note: String(e && e.message || e) }; } if (!s) return { state: 'idle' };
+      'lol:lcu': async (_e, popup) => {
+        try {
+          if (popup === true) return await selectPopupData(); const bad = await needRoster(); if (bad) return bad; const info = await lcuFind(); if (!info) return { state: 'noclient' }; let s = null; try { s = await lcuRead(info, '/lol-champ-select/v1/session'); } catch (e) { return { state: 'noclient', note: String(e && e.message || e) }; } if (!s) return { state: 'idle' };
           const m = mapSession(s, byKeyMap()); if (!m) return { state: 'idle' };
           /* şampiyon seçiminde hat tahmini: 5 kişi tamamsa 120 atamayla, değilse kişi başına en olası hat (KABA; büyü/konum bilgisi yok) */
           const by = new Map(roster.map((c) => [c.id, c])); const guess = (list) => { const L = list.map((x) => Object.assign({}, x)); const open = L.filter((x) => !x.role);

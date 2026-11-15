@@ -124,6 +124,11 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   lcuState = 'err'; ok((await hl.handlers['lol:lcu']()).state === 'noclient', 'LCU: bağlantı hatası noclient olarak döner, çökme yok');
   lcuState = 'ok'; const ls = await hl.handlers['lol:lcu'](); ok(ls.state === 'champselect' && ls.enemies[0].id === 'Darius' && ls.myRole === 'top', 'LCU: şampiyon seçimi okunur');
   ok(gets.every((p) => p === '/lol-champ-select/v1/session'), 'LCU: yalnızca tek GET uç noktası kullanıldı (yazma yok)');
+  const preview = await hl.handlers['lol:lcu'](true);
+  ok(preview.state === 'champselect' && preview.allies.some((p) => p.me && p.name === 'Garen' && p.role === 'top') &&
+    preview.enemies.some((p) => p.name === 'Darius'), 'şampiyon seçimi penceresi iki takımı ve kendi seçimini okur');
+  lcuState = 'idle';
+  ok((await hl.handlers['lol:lcu'](true)).state === 'idle', 'şampiyon seçimi bitince popup için idle döner');
   const hmac = mkHost({ platform: 'darwin' }); ok((await hmac.handlers['lol:lcu']()).state === 'noclient', 'LCU: Windows dışında bulunmaz → noclient');
 
   // ---- TUM sampiyonlar: ~170 sentetik sampiyon (gercek Data Dragon sekliyle; ozel kimlikler dahil), her sampiyon rakip, her rol

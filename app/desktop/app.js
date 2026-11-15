@@ -111,7 +111,7 @@ function start(ctx) {
     win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file://')) e.preventDefault(); });
     win.webContents.once('did-finish-load', () => { tmark('sayfa yuklendi'); }); win.webContents.once('did-finish-load', () => setTimeout(() => { try { if (ctx.repo) repoModule.markGood(app.getPath('userData'), ctx.repo.tree); U.markGood(app.getPath('userData')); U.cleanOld(app.getPath('userData'), ctx.source === 'update' ? ctx.version : ''); } catch (e) { /* yoksay */ } }, 4000));
     win.loadFile(HTML);
-    win.on('closed', () => { win = null; });
+    win.on('closed', () => { win = null; if (selectWindow && !selectWindow.isDestroyed()) selectWindow.close(); });
   }
   function setMenu() {
     const t = [
@@ -135,6 +135,90 @@ function start(ctx) {
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
   /* Blitz mac acilis bindirmesi: League mac baslayinca (oyun disinda -> oyunda gecisinde) kucuk, tiklanamaz-odakli pencere acar.
      Yalniz statik mac oncesi bilgi gosterir (build/not); dusman buyu sayaci YOK. Ayar: lol:ov:get (varsayilan kapali). */
+  let selectWindow = null;
+  function startSelectPopup() {
+    const { screen } = require('electron');
+    let inSelect = false;
+    let busy = false;
+    let failures = 0; let retryAt = 0;
+    const poll = async () => {
+      if (busy || Date.now() < retryAt || !win || win.isDestroyed()) return;
+      busy = true;
+      try {
+        const snapshot = await host.handlers['lol:lcu'](null, true);
+        if (!win || win.isDestroyed()) return;
+        if (snapshot.state !== 'champselect') {
+          if (!inSelect && snapshot.state === 'noclient') retryAt = Date.now() + 8000;
+          if (snapshot.state === 'idle' || ++failures >= 2) {
+            inSelect = false;
+            if (selectWindow && !selectWindow.isDestroyed()) selectWindow.close();
+          }
+          return;
+        }
+        failures = 0;
+        if (!inSelect) {
+          inSelect = true;
+          const wa = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+          const width = Math.min(520, wa.width - 24);
+          const height = Math.min(440, wa.height - 24);
+          const popup = new BrowserWindow({ width, height, x: wa.x + wa.width - width - 12, y: wa.y + 12,
+            title: 'Blitz · Şampiyon seçimi', show: false, alwaysOnTop: true, skipTaskbar: true,
+            autoHideMenuBar: true, backgroundColor: '#101821',
+            webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, devTools: false } });
+          selectWindow = popup;
+          popup.setMenu(null);
+          popup.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+          popup.webContents.on('will-navigate', (event) => event.preventDefault());
+          popup.on('closed', () => { if (selectWindow === popup) selectWindow = null; });
+          try { await popup.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(selectPopupHtml)); }
+          catch (e) { if (!popup.isDestroyed()) popup.close(); return; }
+          if (!popup.isDestroyed()) popup.showInactive();
+        }
+        const popup = selectWindow;
+        if (popup && !popup.isDestroyed()) {
+          await popup.webContents.executeJavaScript('renderTeams(' + JSON.stringify(snapshot) + ')');
+        }
+      } catch (e) { /* League bağlantısı yenileniyor */ }
+      finally { busy = false; }
+    };
+    const timer = setInterval(poll, 2000);
+    app.once('before-quit', () => clearInterval(timer));
+  }
+
+  const selectPopupHtml = `<!doctype html><html lang="tr"><meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+    <title>Blitz · Şampiyon seçimi</title>
+    <style>
+      body{margin:0;padding:20px;background:#101821;color:#e8eff6;font:14px 'Segoe UI',sans-serif}
+      h1{margin:0 0 16px;font-size:21px}h2{margin:0 0 8px;font-size:14px;color:#6ee6ed}section+section h2{color:#ff887f}
+      main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      section{padding:12px;border:1px solid #263746;border-radius:12px}ul{list-style:none;padding:0;margin:0}
+      li{display:flex;justify-content:space-between;gap:6px;padding:8px 0;border-top:1px solid #243240;overflow-wrap:anywhere}
+      small{flex:none;color:#a5b9ca}li.me{color:#6ee6ed;font-weight:600}
+    </style>
+    <h1>Şampiyon seçimi</h1><main><section><h2>Takımım</h2><ul id="allies"></ul></section>
+    <section><h2>Rakip takım</h2><ul id="enemies"></ul></section></main>
+    <script>
+      function renderTeams(snapshot) {
+        const roles = { top: 'Üst', jungle: 'Orman', mid: 'Orta', bot: 'ADC', support: 'Destek' };
+        for (const side of ['allies', 'enemies']) {
+          const list = document.getElementById(side);
+          const rows = snapshot[side].map(player => {
+            const row = document.createElement('li');
+            if (player.me && side === 'allies') row.className = 'me';
+            const name = document.createElement('span');
+            name.textContent = player.name || 'Seçim bekleniyor';
+            const role = document.createElement('small');
+            role.textContent = roles[player.role] || '';
+            row.append(name, role);
+            return row;
+          });
+          if (!rows.length) { const row = document.createElement('li'); row.textContent = 'Seçimler henüz görünmüyor'; rows.push(row); }
+          list.replaceChildren(...rows);
+        }
+      }
+    </script></html>`;
+
   let ovWin = null; let ovWasIn = false; let ovTimer = null;
   function openOverlay(secs) {
     const { BrowserWindow, screen } = require('electron'); const { lolModule } = require('./host.js');
@@ -208,6 +292,7 @@ function start(ctx) {
     try { startGold(); } catch (e) { /* altin bindirmesi acilmadi: ozellik devre disi */ }
     try { host.access && host.access.start(); } catch (e) { /* engelli liste denetimi acilmadi: engel uygulanmaz */ }
     setMenu(); createWindow();
+    startSelectPopup();
     if (ctx.rolledBack) setTimeout(() => dialog.showMessageBox(win, { type: 'warning', title: 'Güncelleme geri alındı', message: 'Önceki güncelleme kullanılmadı; uygulamayla gelen sürüm açıldı.', detail: String(ctx.rolledBack) }), 1500);
     const cfg = appConfig(); if (cfg.repo) { if (cfg.auto) setTimeout(() => checkRepo(false), 10000); } else if (cfg.feedUrl && cfg.auto) setTimeout(() => checkFeed(false), 10000);
     app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
