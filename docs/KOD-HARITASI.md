@@ -20,6 +20,8 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 - Testler: `repoupd-host.cjs` (sahte GitHub; `--live`: GERÇEK GitHub, `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=...` gerekebilir), `repoupd-boot.cjs` (gerçek `app.js` açılış devri, sahte Electron). DENENMEDİ: gerçek Windows/Electron, gerçek `.ssu` → depo geçişi.
 
 ## Uygulama Akışı (FLOWMOD + `kovanFlow`)
+
+- Sütunun altında Discord davet bağlantısı (`#kv-flow-discord`) var. Tıklanınca masaüstü uygulamasının mevcut dış bağlantı işleyicisiyle açılır.
 - Sağ kenarda (≥1100 px, yalnız masaüstü köprüsü varsa) yukarıdan aşağı yavaş akan, döngüsel uygulama sütunu. Kullanıcı exe/lnk/url veya https web girişi ekler; tıklayınca açılır. Kendi tarayıcı = kullanıcının tarayıcısı (exe/lnk ya da https girişi); Kovan içi tarayıcı YOK.
 - Host (`FLOWMOD`, `uygulamaakisi.json`): handlerlar `flow:list/add/addWeb/suggest/addSuggested/rename/remove/order/open`. Arayüz yol/URL göndermez; yalnız kimlik. Dosya host dialoguyla ya da Başlat menüsü taramasıyla (sid) seçilir; uzantı .exe/.lnk/.url, UNC/göreli yol reddedilir, web yalnız https, en çok 24 uygulama. Kabuk/ağ/exec yok (testle kaynak taranır); yanıtlarda dosya yolu yok. Engelli kurulumda `flow:` kanalları kapalı (ACCESSMOD sarmalayıcı).
 - Arayüz: tek rAF döngüsü, offset += hız*dt; hız üzerine gelince/odakta/pencere açıkken 0'a yumuşar; az uygulamada kopyalarla doldurulur; derinlik ölçeği + opaklık + sallanma; tekerlek kaydırır; klavye odağı ortalar. `data-fx="off"` veya hareket azaltmada durağan liste. Ayarlar'da anahtar + düzenle; komut paletinde iki komut. localStorage `kovan.flow`='0' = gizli.
@@ -116,7 +118,7 @@ Ana sayfa araç seçicisinde normal Kovan araçları listelenir. Sabitlenenler k
 
 ## Sürüm / paketleme (özet; ayrıntı CLAUDE.md)
 - (ESKİ yol; yalnız tek seferlik geçiş paketi için) Yalnız TEK hesap, kullanıcı isteyince paketler; `private.pem` kullanıcıdadır (ek dosya yolundan okunur, repoya/diske kopyalanmaz). `node tools/make-ssu.mjs <sürüm> <pem> "<notlar>"`; sonra imza host.js `EMBEDDED_PUBKEY`'e karşı doğrulanır. Kovan etiketi `app/StatScan.html` içinde `KOVAN_VER` (+ `tools/test/ui-conv.mjs` sabitleri). Hotfix etiketi artırmaz; yeni özellik artırır. `main`'e yalnız fast-forward, `--force` yok, onaysız merge yok.
-- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.19. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
+- Mevcut: son (ve SON) `.ssu` paketi 5.0.25 = geçiş paketi, Kovan beta 0.1.20. Bundan sonra yayın = `main`'e push (depodan doğrudan güncelleme); `latest.json`/`.ssu`'ya dokunulmaz — bkz. CLAUDE.md.
 
 ## Çalışma düzeni
 - 3 Claude hesabı aynı repoda çalışır (`claude-a`, `claude-b`, `claude-c` dalları); hafıza = `CLAUDE.md` günlüğü + git geçmişi + bu dosya. Başlamadan `git fetch` + `git log HEAD..origin/main`; bitince günlüğe bir satır yaz (ne yapıldı, ne DENENMEDİ).
