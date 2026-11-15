@@ -9016,13 +9016,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     /* Not yazarken otomatik yenileme formu yeniden kurmaz. */
     const muBusy = () => { const t = document.getElementById('lg-mu-note'); const a = document.activeElement; return !!t && (t.dataset.dirty === '1' || (a && a.closest && !!a.closest('#lg-mudata'))); };
     let liveRefresh = null;
+    let liveAdvice = null;
+    let liveKey = null;
+    let liveAdviceAt = 0;
     function drawLive(quiet) {
       if (liveRefresh || (quiet && muBusy())) return liveRefresh;
       liveRefresh = paintLive(quiet).finally(() => { liveRefresh = null; });
       return liveRefresh;
     }
     async function paintLive(quiet) {
-      const r = await call(H.lolLive); if (st.tab !== 'live') return; const was = st.liveOn; st.liveOn = !!(r && r.state === 'ingame'); if (was !== st.liveOn) drawHero();
+      const r = await call(H.lolLive, true); if (st.tab !== 'live') return;
+      if (!r || r.state !== 'ingame') liveKey = null;
+      const was = st.liveOn; st.liveOn = !!(r && r.state === 'ingame'); if (was !== st.liveOn) drawHero();
       if (!r || r.error) { put(panes.live, empty(KT('Canlı maç okunamadı'), failMsg(r))); return; }
       if (r.state !== 'ingame') { const lc = await call(H.lolLcu); if (st.tab !== 'live') return; if (lc && lc.state === 'champselect') { await drawSelect(lc); return; } put(panes.live, h('section', { class: 'lg-card lg-livehead off' }, h('h2', { class: 'lg-h' }, KT('Canlı maç')), empty(KT('Şu an bir maçta değilsin'), KT('Maç yüklenince burada otomatik görünür: rakip takım, hat tahminleri ve hat rakibine karşı seçimin. League açıkken saniyede bir yerel olarak okunur; oyuna dokunulmaz.')), ovToggle())); return; }
       const mk = (list, enemy) => h('ol', { class: 'lg-lpl' }, ...list.slice().sort((a, b) => (ROLE_ORD.indexOf(a.role) + 9) % 9 - (ROLE_ORD.indexOf(b.role) + 9) % 9).map((x) => livePlayer(x, enemy)));
@@ -9030,7 +9035,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         r.classic ? null : h('p', { class: 'rm-hint' }, KT('Bu mod Summoner’s Rift (Klasik) değil; hat tahmini yapılmaz.')), !r.me ? h('p', { class: 'rm-hint' }, KT('Kendi oyuncun belirlenemedi; hat rakibi bulunamadı.')) : null,
         h('div', { class: 'lg-live2' }, h('div', {}, h('h3', { class: 'lg-h3' }, KT('Takımım')), mk(r.allies, false)), h('div', {}, h('h3', { class: 'lg-h3' }, KT('Rakip takım')), mk(r.enemies, true))),
         r.classic ? h('p', { class: 'rm-hint' }, KT('Hatlar TAHMİNDİR: oyunun verdiği hat varsa o kullanılır; yoksa şampiyon türü ve büyüler (ör. Çarp = Orman) ile hesaplanır. Meta verisiyle kalibre değildir.')) : null);
-      const kids = [head]; const m = r.matchup; let muOk = false;
+      const key = JSON.stringify([r.mode, r.me?.name, r.lane, ...r.allies.concat(r.enemies).map((p) => [p.name, p.champ])]);
+      const previous = $('.lg-livehead.on', panes.live);
+      if (previous && liveKey === key) previous.replaceWith(head);
+      else { put(panes.live, head); liveKey = key; liveAdviceAt = 0; }
+      if (!liveAdvice && (!quiet || Date.now() - liveAdviceAt >= 15000)) {
+        liveAdviceAt = Date.now();
+        liveAdvice = paintLiveAdvice(key, quiet).finally(() => { liveAdvice = null; });
+      }
+    }
+    async function paintLiveAdvice(key, quiet) {
+      const r = await call(H.lolLive);
+      if (st.tab !== 'live' || liveKey !== key || r?.state !== 'ingame') return;
+      const kids = []; const m = r.matchup; let muOk = false;
       if (m) {
         const wrTxt = (x) => (x && x.wr != null ? '%' + x.wr + (x.games ? ' (' + x.games + ' ' + KT('maç') + ')' : '') : null); const mine = m.mine;
         const mcard = h('section', { class: 'lg-card', id: 'lg-mu' }, h('h2', { class: 'lg-h' }, KT('Hat eşleşmesi')),
@@ -9045,16 +9062,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         kids.push(best, h('details', { class: 'lg-card', id: 'lg-mu-all' }, h('summary', {}, KT('Tüm şampiyonlar: {0} karşısında oranlar', nameOf(m.enemy))), h('div', { class: 'lg-tblw' }, h('table', { class: 'lg-table' }, h('thead', {}, h('tr', {}, ...['Şampiyon', 'Puan', 'Galibiyet', 'Maç', 'Havuz'].map((x) => h('th', { scope: 'col' }, KT(x))))), h('tbody', {}, ...rows)))));
         if (mine && mine.ext && mine.ext.runes) getRunes().then((R) => { const box = $('#lg-mu-runes'); if (!box) return; const rn = mine.ext.runes; const nm = (id) => R.perks[id] || null; const names = rn.perks.map(nm).filter(Boolean); if (!names.length) return; put(box, h('h3', { class: 'lg-h3' }, KT('Rün önerisi (dış veri)')), h('p', {}, (rn.primary && R.trees[rn.primary] ? R.trees[rn.primary] + ' · ' : '') + names.join(' · ') + (rn.secondary && R.trees[rn.secondary] ? ' — ' + R.trees[rn.secondary] : ''))); });
       }
-      if (r.classic !== false) { const cc = await compCard((r.allies || []).map((x) => x.champ), (r.enemies || []).map((x) => x.champ)); if (cc) kids.splice(1, 0, cc); }
+      if (r.classic !== false) { const cc = await compCard((r.allies || []).map((x) => x.champ), (r.enemies || []).map((x) => x.champ)); if (cc) kids.unshift(cc); }
       if (!muOk && r.classic !== false && r.me && r.me.champ) { const ic = await itemsCard(r.me.champ, (r.enemies || []).map((x) => x.champ), r.me.role || null); if (ic) kids.push(ic); }
-      if (st.tab !== 'live' || (quiet && muBusy())) return;
+      if (st.tab !== 'live' || liveKey !== key || (quiet && muBusy())) return;
+      const head = $('.lg-livehead.on', panes.live);
+      if (!head) return;
       const expanded = $('#lg-mu-all', panes.live)?.open;
       const candidates = kids.find((section) => section.id === 'lg-mu-all');
       if (candidates && expanded) candidates.open = true;
-      put(panes.live, ...kids);
+      put(panes.live, head, ...kids);
     }
     setInterval(() => { if (visible() && st.tab === 'live') drawLive(true); }, 1000);
-    setInterval(async () => { if (!visible() || st.tab === 'live') return; const r = await call(H.lolLive); const on = !!(r && r.state === 'ingame'); if (on !== st.liveOn) { st.liveOn = on; drawHero(); } }, 15000);
+    setInterval(async () => { if (!visible() || st.tab === 'live') return; const r = await call(H.lolLive, true); const on = !!(r && r.state === 'ingame'); if (on !== st.liveOn) { st.liveOn = on; drawHero(); } }, 15000);
 
 
     /* ---- oyuncu ara: başka sihirdarın herkese açık profili (League istemcisi üzerinden, yalnız okuma; veri yalnız bellekte) ---- */
@@ -9569,7 +9588,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.4.2', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.4.3', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

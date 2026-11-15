@@ -1264,9 +1264,9 @@ const LOLMOD = (() => {
   /* oyun ici tablodaki esya degeri: Live Client her esya icin `price` (esya fiyati) ve `count` verir; cebindeki/harcanmis altin YOK */
   const clampN = (x, lo, hi) => { const n = Number(x); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : 0; };
   function goldOf(p) { const L = Array.isArray(p && p.items) ? p.items.slice(0, 12) : []; let s = 0; for (const it of L) { if (!it || typeof it !== 'object') continue; s += clampN(it.price, 0, 6000) * Math.max(1, clampN(it.count, 1, 20)); } return s; }
-  function parseLive(j, byName, byId) {
+  function parseLive(j, byName, byId, allowRawChampion = false) {
     if (!j || typeof j !== 'object' || !Array.isArray(j.allPlayers)) return null; const gd = j.gameData || {}; const ap = j.activePlayer || {}; const meName = String(ap.riotId || ap.summonerName || ''); const meGame = String(ap.riotIdGameName || '');
-    const champId = (p) => { const raw = String(p.rawChampionName || '').replace(/^game_character_displayname_/i, ''); if (byId.has(raw)) return raw; const nm = String(p.championName || ''); const hit = byName.get(nm); return hit ? hit.id : (byId.has(nm.replace(/[^A-Za-z0-9]/g, '')) ? nm.replace(/[^A-Za-z0-9]/g, '') : null); };
+    const champId = (p) => { const raw = String(p.rawChampionName || '').replace(/^game_character_displayname_/i, ''); if (byId.has(raw) || (allowRawChampion && ID_RE.test(raw))) return raw; const nm = String(p.championName || ''); const hit = byName.get(nm); return hit ? hit.id : (byId.has(nm.replace(/[^A-Za-z0-9]/g, '')) ? nm.replace(/[^A-Za-z0-9]/g, '') : null); };
     const mk = (p) => { const rn = p.runes && typeof p.runes === 'object' ? p.runes : null; const nm = (x) => (x && typeof x.displayName === 'string' ? x.displayName.slice(0, 40) : null); return { champ: champId(p), name: String(p.riotIdGameName || p.summonerName || '').slice(0, 30), tag: String(p.riotIdTagLine || '').slice(0, 10), team: p.team === 'CHAOS' ? 'CHAOS' : 'ORDER', level: Math.round(Number(p.level)) || 0, gold: goldOf(p), k: clampN(p.scores && p.scores.kills, 0, 999), bot: !!p.isBot, pos: LIVE_POS[String(p.position || '').toUpperCase()] || null, smite: hasSpell(p, /Smite/i), spells: spellsOf(p).map((x) => (/Smite/i.test(x) ? 'smite' : /Teleport/i.test(x) ? 'teleport' : /Flash/i.test(x) ? 'flash' : /Heal/i.test(x) ? 'heal' : /Barrier/i.test(x) ? 'barrier' : /Exhaust/i.test(x) ? 'exhaust' : /Dot|Ignite/i.test(x) ? 'ignite' : /Haste|Ghost/i.test(x) ? 'ghost' : /Boost|Cleanse/i.test(x) ? 'cleanse' : 'other')), runes: rn ? { keystone: nm(rn.keystone), primary: nm(rn.primaryRuneTree), secondary: nm(rn.secondaryRuneTree) } : null, _raw: p, me: !!meName && (String(p.riotId || '') === meName || (meGame && String(p.riotIdGameName || '') === meGame) || String(p.summonerName || '') === meName) }; };
     const all = j.allPlayers.slice(0, 10).map(mk); return { mode: String(gd.gameMode || '').slice(0, 20), time: Math.max(0, Math.round(Number(gd.gameTime) || 0)), players: all };
   }
@@ -1850,11 +1850,13 @@ const LOLMOD = (() => {
           state.me = null; state.lp = []; state.matches = {}; state.rank = null; save(); return { ok: true };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
-      'lol:live': async () => {
+      'lol:live': async (_e, localOnly) => {
         try {
-          const bad = await needRoster(); if (bad) return bad; let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
-          const parsed = parseLive(j, new Map(roster.map((c) => [c.name, c])), new Map(roster.map((c) => [c.id, c]))); if (!parsed) return { state: 'nogame' };
-          const a = analyzeLive(parsed, roster); const out = Object.assign({ state: 'ingame' }, a); const myChamp = a.me && validChamp(a.me.champ); const opp = a.lane && validChamp(a.lane);
+          if (localOnly !== true) { const bad = await needRoster(); if (bad) return bad; } let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
+          const champs = roster || []; const parsed = parseLive(j, new Map(champs.map((c) => [c.name, c])), new Map(champs.map((c) => [c.id, c])), localOnly === true); if (!parsed) return { state: 'nogame' };
+          const a = analyzeLive(parsed, champs); const out = Object.assign({ state: 'ingame' }, a);
+          if (localOnly === true) return out;
+          const myChamp = a.me && validChamp(a.me.champ); const opp = a.lane && validChamp(a.lane);
           if (myChamp && opp && a.me.role) {
             const role = a.me.role; const hist = state.hist.concat(autoHist()); const ext = await fetchExt(opp, role, myChamp); const pool = state.pool[role] || [];
             const all = rank(roster, opp, role, { hist, pool, ext, limit: 500 }); const fit = rank(roster, opp, role, { hist, pool, ext, limit: 8 });

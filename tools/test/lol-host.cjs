@@ -268,6 +268,15 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     Pl('Garen', 'E1', 'CHAOS', ['Flash', 'Teleport']), Pl('Ornn', 'E2', 'CHAOS', ['Flash', 'Smite']), Pl('Zed', 'E3', 'CHAOS', ['Flash', 'Ignite']), Pl('Vayne', 'E4', 'CHAOS', ['Flash', 'Heal']), Pl('Malphite', 'E5', 'CHAOS', ['Flash', 'Exhaust'])] });
   const hv = mkHost({ live: { get: async (p) => { liveGets.push(p); return liveJson; } } }, path.join(tmp, 'live')); const HV = hv.handlers;
   r = await HV['lol:live'](); ok(r.state === 'nogame' && liveGets.join() === '/liveclientdata/allgamedata', 'canlı: maçta değilken nogame; yalnızca /liveclientdata/allgamedata okunur');
+  {
+    let networkReads = 0;
+    const local = mkHost({ get: async () => { networkReads++; throw Error('offline'); },
+      live: { get: async () => mkLive() } }, path.join(tmp, 'live-local-only'));
+    const match = await local.handlers['lol:live'](true);
+    ok(match.state === 'ingame' && match.allies.length === 5 && match.enemies.length === 5 &&
+      match.me?.champ === 'Darius' && match.matchup === undefined && networkReads === 0,
+      'canlı: yerel takım verisi şampiyon kataloğunu veya öneri ağını beklemez');
+  }
   liveJson = mkLive(); r = await HV['lol:live'](); const en = (c) => r.enemies.find((x) => x.champ === c);
   ok(r.state === 'ingame' && r.classic && r.allies.length === 5 && r.enemies.length === 5 && r.me.champ === 'Darius' && r.me.role === 'top', 'canlı: 5v5 okundu, kendim bulundu, hat: Üst (Işınlan + dövüşçü)');
   ok(en('Garen').role === 'top' && en('Ornn').role === 'jungle' && en('Zed').role === 'mid' && en('Vayne').role === 'bot' && en('Malphite').role === 'support', 'canlı: rakip hatları (Garen üst, Ornn orman[Çarp], Zed orta, Vayne alt, Malphite destek[Bitkinlik])');
