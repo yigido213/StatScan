@@ -329,11 +329,11 @@ const afterWipe = await hr.handlers['lol:profile'](); ok(afterWipe.matches === 0
   await pm.click('#lg-mu-rank'); await pm.click('#lg-mu-rank-o1'); await pm.waitForFunction(() => /%80/.test((document.querySelector('#lg-mu-sum') || {}).textContent || ''), null, { timeout: 5000 });
   ok(await pm.evaluate(() => /300/.test(document.querySelector('#lg-mu-sum').textContent) && !document.querySelector('#lg-mu-ranks') && [...document.querySelectorAll('#lg-mudata .lg-isec[data-sec=core] b')].some((x) => x.textContent === 'Saf BD')), 'rank seçimi (Demir): yalnız o kova (300 maç %80), kendi eşyaları');
   ok((await hm.handlers['lol:mu:cfg'](null)).rank === 'iron', 'rank seçimi host’ta kalıcı'); await pm.waitForTimeout(4600);
-  ok(await pm.evaluate(() => document.querySelector('#lg-mu-rank').dataset.value === 'iron' && /%80/.test(document.querySelector('#lg-mu-sum').textContent)), '4 sn’lik canlı yenilemeden sonra seçilen rank korunur');
+  ok(await pm.evaluate(() => document.querySelector('#lg-mu-rank').dataset.value === 'iron' && /%80/.test(document.querySelector('#lg-mu-sum').textContent)), 'canlı yenilemeden sonra seçilen rank korunur');
   await pm.click('#lg-mu-rank'); await pm.click('#lg-mu-rank-o10'); await pm.waitForFunction(() => document.querySelector('#lg-mu-norank'), null, { timeout: 5000 });
   ok(await pm.evaluate(() => /Veri olan ranklar: .*Demir.*Zümrüt.*Elmas/.test(document.querySelector('#lg-mu-norank').textContent) && document.querySelector('#lg-mudata').dataset.ok === '' && !!document.querySelector('#lg-items')), 'veri olmayan rank (Challenger): “veri yok” + mevcut ranklar; uydurma yok, tahmin kartı yedek');
   await pm.click('#lg-mu-rank'); await pm.click('#lg-mu-rank-o0'); await pm.waitForFunction(() => document.querySelector('#lg-mu-sum'), null, { timeout: 5000 });
-  // kisisel not: yazarken 4 sn'lik yenileme silmez
+  // kisisel not: yazarken otomatik yenileme silmez
   await pm.fill('#lg-mu-note', 'Q ile dürt, W’yu sakla.'); await pm.waitForTimeout(4600);
   ok(await pm.evaluate(() => document.querySelector('#lg-mu-note').value === 'Q ile dürt, W’yu sakla.'), 'not: yazarken canlı yenileme yazılanı silmez');
   await pm.click('#lg-mu-note-save'); await pm.waitForFunction(() => /Not kaydedildi/.test((document.querySelector('#lg-mu-note-msg') || {}).textContent || ''), null, { timeout: 5000 });

@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- HOTFIX: Blitz Canlı Maç ekranı 1 saniyede bir yenilenir, paralel yenileme başlatmaz. Blitz 0.4.1 — Codex: bitti.
 - Blitz LP kayıt aralığı (Son 20 / Son 60 / Tüm kayıtlar) ve elle eski maç getirme — Codex: bitti. Blitz 0.4.0. LP hover korunur.
 - Blitz LP geçmişi etiketi (52 LP → 29 LP gibi) sert atlıyordu (kullanıcı ekran görüntüsüyle, 2026-11-15: "çok keskin geçiyor onu da animasyonlandır") — claude-a: BİTTİ (branch claude-a-lp-etiket, main ff61eef üstünden; HOTFIX/cila: Kovan etiketi artmaz). Blitz 0.3.1 → 0.3.2. `bzChart`: etiket imleci kayan nokta üzerinden yumuşakça izler, LP sayısı sayılarak değişir, imleç çıkınca son noktaya süzülür; animasyon kapalı/hareket azaltmada anında. Dokunulan: app/StatScan.html (bzChart + ver), tools/test/ui-lol.mjs, docs/KOD-HARITASI.md. Testler: ui-lol (190 OK), ui-shell, ui-lang, ui-conv geçti. DENENMEDİ: gerçek Windows/Electron, dokunmatik; sağ kenarda etiketin sola dönme anı (text-anchor) hâlâ anlık.
 - HOTFIX: Blitz Riot API profil simgeleri ve seviye tamamlandı. Maç geçmişinde başka oyuncudan kendi profile dönüş var. LP hover korunur. Blitz 0.3.1 — Codex: bitti.
