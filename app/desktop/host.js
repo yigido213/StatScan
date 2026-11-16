@@ -1267,7 +1267,26 @@ const LOLMOD = (() => {
   }
   /* oyun ici tablodaki esya degeri: Live Client her esya icin `price` (esya fiyati) ve `count` verir; cebindeki/harcanmis altin YOK */
   const clampN = (x, lo, hi) => { const n = Number(x); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : 0; };
-  function goldOf(p) { const L = Array.isArray(p && p.items) ? p.items.slice(0, 12) : []; let s = 0; for (const it of L) { if (!it || typeof it !== 'object') continue; s += clampN(it.price, 0, 6000) * Math.max(1, clampN(it.count, 1, 20)); } return s; }
+  function goldOf(player, prices, missing) {
+    const items = Array.isArray(player?.items) ? player.items.slice(0, 12) : [];
+    if (!Array.isArray(player?.items) && missing) missing();
+    let total = 0;
+    for (const item of items) {
+      if (!item || typeof item !== 'object') continue;
+      const price = prices?.get(String(item.itemID));
+      if (price === undefined && missing) missing();
+      total += (price ?? clampN(item.price, 0, 6000)) * Math.max(1, clampN(item.count, 1, 20));
+    }
+    return total;
+  }
+  function itemGoldPrices(json) {
+    const prices = new Map();
+    for (const [id, item] of Object.entries(json?.data || {})) {
+      const total = item?.gold?.total;
+      if (/^\d{3,6}$/.test(id) && Number.isSafeInteger(total) && total >= 0 && total <= 6000) prices.set(id, total);
+    }
+    return prices;
+  }
   function parseLive(j, byName, byId, allowRawChampion = false) {
     if (!j || typeof j !== 'object' || !Array.isArray(j.allPlayers)) return null; const gd = j.gameData || {}; const ap = j.activePlayer || {}; const meName = String(ap.riotId || ap.summonerName || ''); const meGame = String(ap.riotIdGameName || '');
     const champId = (p) => { const raw = String(p.rawChampionName || '').replace(/^game_character_displayname_/i, ''); if (byId.has(raw) || (allowRawChampion && ID_RE.test(raw))) return raw; const nm = String(p.championName || ''); const hit = byName.get(nm); return hit ? hit.id : (byId.has(nm.replace(/[^A-Za-z0-9]/g, '')) ? nm.replace(/[^A-Za-z0-9]/g, '') : null); };
@@ -1505,6 +1524,32 @@ const LOLMOD = (() => {
       runeMap = m; return m;
     }
     /* esya verisi: mantik icin en_US item.json (aciklama metni 'Grievous Wounds' vb. icin), gorunen adlar icin yerel dil; yalniz kucuk ozet onbellege yazilir */
+    let goldCatalog = null;
+    let goldCatalogLoad = null;
+    let goldCatalogRetryAt = 0;
+    function loadGoldCatalog() {
+      const version = rosterMeta?.version || '';
+      if (goldCatalog && (!version || goldCatalog.version === version)) return goldCatalog.prices;
+      if (!goldCatalogLoad && Date.now() >= goldCatalogRetryAt) {
+        goldCatalogLoad = (async () => {
+          const versions = version ? [version] : JSON.parse(await httpGet(DD_HOST, '/api/versions.json', 200000));
+          const ver = Array.isArray(versions) && typeof versions[0] === 'string' ? versions[0] : '';
+          if (!/^\d+\.\d+(\.\d+)?$/.test(ver)) return;
+          const cacheName = 'goldcatalog-' + ver + '.json';
+          const saved = cacheRead(cacheName);
+          const fromCache = itemGoldPrices(saved);
+          if (fromCache.size) { goldCatalog = { version: ver, prices: fromCache }; return; }
+          const raw = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/en_US/item.json', LIM.body));
+          const prices = itemGoldPrices(raw);
+          if (prices.size) {
+            const data = Object.fromEntries([...prices].map(([id, total]) => [id, { gold: { total } }]));
+            cacheWrite(cacheName, { data });
+            goldCatalog = { version: ver, prices };
+          }
+        })().catch(() => {}).finally(() => { goldCatalogRetryAt = Date.now() + 60000; goldCatalogLoad = null; });
+      }
+      return null;
+    }
     async function loadItems() {
       if (itemData) return itemData; const ver = rosterMeta.version; const nm = 'items-' + ver + '.json'; let list = null; const c0 = cacheRead(nm); if (c0 && c0.v === 1 && Array.isArray(c0.list) && c0.list.length) list = c0.list;
       if (!list) { let why = ''; try { list = parseItems(JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/en_US/item.json', LIM.body))); if (list.length) cacheWrite(nm, { v: 1, list }); } catch (e) { why = String(e && e.message || e); list = null; }
@@ -1729,7 +1774,10 @@ const LOLMOD = (() => {
         try {
           let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
           const champs = roster || []; const parsed = parseLive(j, new Map(champs.map((c) => [c.name, c])), new Map(champs.map((c) => [c.id, c])), true); if (!parsed) return { state: 'nogame' };
-          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return goldCompare(a, (id) => (id && nm.get(id)) || id || '?');
+          const prices = loadGoldCatalog();
+          let unpriced = false;
+          for (const player of parsed.players) player.gold = goldOf(player._raw, prices, () => { unpriced = true; });
+          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return { ...goldCompare(a, (id) => (id && nm.get(id)) || id || '?'), priceFallback: unpriced };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:sync': async (_e, req) => {
@@ -2095,14 +2143,14 @@ const LOLMOD = (() => {
           const row = text('div', 'ln' + (lane.mine.me ? ' me' : ''), '');
           row.title = roles[lane.role] || '';
           const [red, blue] = mineRed ? [lane.mine, lane.enemy] : [lane.enemy, lane.mine];
-          const d = lane.diff;
-          const side = d === 0 ? 'eq' : ((d > 0) === mineRed ? 'red' : 'blue');
+          const d = red.gold - blue.gold;
+          const side = d === 0 ? 'eq' : d > 0 ? 'red' : 'blue';
           row.append(text('span', 'c l', red.name + ' ' + number.format(red.gold)),
             text('span', 'c m ' + side, (d > 0 ? '+' : d < 0 ? '−' : '') + number.format(Math.abs(d))),
             text('span', 'c r', number.format(blue.gold) + ' ' + blue.name));
           return row;
         }));
-        byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.guessed ? ' · hatlar tahmini' : '');
+        byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.guessed ? ' · hatlar tahmini' : '') + (g.priceFallback ? ' · canlı fiyat yedeği' : '');
       }
       let busy = false;
       async function refresh() {

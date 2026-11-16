@@ -299,6 +299,19 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok(g.mine.kills === 4 + 4 && g.enemy.kills === 2 + 4, 'altın: takım kill toplamları');
     ok(g.lanes.length === 5 && g.lanes.every((l) => l.diff === l.mine.gold - l.enemy.gold) && g.lanes.some((l) => l.mine.me) && g.guessed === true, 'altın: 5 hat farkı, ben işaretli, tahmin bayrağı');
     ok(liveGets.every((p) => p === '/liveclientdata/allgamedata'), 'altın: yalnız /liveclientdata/allgamedata okunur');
+    const item = (itemID, count = 1) => ({ itemID, count, price: 1 });
+    G.allPlayers.forEach((p, i) => {
+      p.position = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'][i % 5];
+      p.items = [];
+    });
+    G.allPlayers[0].items = [item(3001), item(3202), item(3200, 3), item(3201)];
+    G.allPlayers[5].items = [item(3003), item(3102)];
+    await new Promise((resolve) => setImmediate(resolve));
+    const priced = await HV['lol:gold']();
+    const top = priced.lanes.find((lane) => lane.role === 'top');
+    ok(priced.mine.gold === 3950 && priced.enemy.gold === 3100 && !priced.priceFallback &&
+      top?.mine.gold === 3950 && top?.enemy.gold === 3100 && top?.diff === 850,
+      'altın: tam fiyat, bileşen, yığın ve ücretsiz trinket ile üst hat farkı 850');
     const L2 = mkLive(); L2.allPlayers.forEach((p) => { p.items = [{ itemID: 1, price: 'x', count: -5 }, null, { price: 99999, count: 999 }]; }); liveJson = L2; const g2 = await HV['lol:gold'](); ok(g2.state === 'ok' && g2.mine.gold === 5 * 6000 * 20 && Number.isFinite(g2.diff), 'altın: bozuk/uç değerler sınırlanır, çökmez');
     liveJson = mkLive(); const g3 = await HV['lol:gold'](); ok(g3.state === 'ok' && g3.mine.gold === 0 && g3.partial === true, 'altın: eşya alanı yoksa 0 + partial');
     liveJson = mkLive(); liveJson.activePlayer = {}; ok((await HV['lol:gold']()).state === 'nogame', 'altın: kendi oyuncum belirsizse nogame');
