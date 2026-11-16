@@ -1777,7 +1777,7 @@ const LOLMOD = (() => {
           const prices = loadGoldCatalog();
           let unpriced = false;
           for (const player of parsed.players) player.gold = goldOf(player._raw, prices, () => { unpriced = true; });
-          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return { ...goldCompare(a, (id) => (id && nm.get(id)) || id || '?'), priceFallback: unpriced };
+          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return { ...goldCompare(a, (id) => (id && nm.get(id)) || id || '?'), priceFallback: unpriced, obj: liveObjectives(j) };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:sync': async (_e, req) => {
@@ -2090,39 +2090,76 @@ const LOLMOD = (() => {
     if (a.classic) for (const r of ['top', 'jungle', 'mid', 'bot', 'support']) { const x = a.allies.find((p) => p.role === r); const y = a.enemies.find((p) => p.role === r); if (!x || !y) continue; lanes.push({ role: r, mine: pl(x), enemy: pl(y), diff: (Number(x.gold) || 0) - (Number(y.gold) || 0) }); if (!x.known || !y.known) guessed = true; }
     return { state: 'ok', time: a.time, classic: !!a.classic, mySide: a.me.team === 'CHAOS' ? 'red' : 'blue', mine: m, enemy: e, diff: m.gold - e.gold, lanes, guessed, partial: a.allies.concat(a.enemies).some((p) => !p.gold) };
   }
+  /* Oyunun ust cubugundaki kule sayisi + ejderha yuvalari: yalniz Live Client olaylari (TurretKilled/DragonKill). T1 = mavi (ORDER) kulesi -> kirmizi aldi; T2 = kirmizi (CHAOS) kulesi -> mavi aldi.
+     Ejderhada oldurenin takimi allPlayers adindan bulunur; bulunamayan/tanimsiz tur sayilmaz (uydurma yok). */
+  const DRAGON_OK = { fire: 1, water: 1, earth: 1, air: 1, hextech: 1, chemtech: 1, elder: 1 };
+  function liveObjectives(j) {
+    const ev = j && j.events && Array.isArray(j.events.Events) ? j.events.Events.slice(0, 4000) : []; const ps = j && Array.isArray(j.allPlayers) ? j.allPlayers : []; const team = new Map();
+    for (const p of ps) { const t = p && p.team === 'CHAOS' ? 'red' : p && p.team === 'ORDER' ? 'blue' : null; if (!t) continue; for (const k of [p.summonerName, p.riotId, p.riotIdGameName]) if (k) team.set(String(k).toLowerCase(), t); }
+    const out = { red: { towers: 0, dragons: [] }, blue: { towers: 0, dragons: [] } };
+    for (const e of ev) {
+      if (!e || typeof e !== 'object') continue;
+      if (e.EventName === 'TurretKilled') { const m = /^Turret_T([12])_/.exec(String(e.TurretKilled || '')); if (m) (m[1] === '1' ? out.red : out.blue).towers++; }
+      else if (e.EventName === 'DragonKill') { const t = team.get(String(e.KillerName || '').toLowerCase()); const d = String(e.DragonType || '').toLowerCase(); if (t && DRAGON_OK[d] === 1 && out[t].dragons.length < 12) out[t].dragons.push(d); }
+    }
+    return out;
+  }
   function lolGoldHtml() {
     const css = `
-      html,body{margin:0;background:transparent;color:#e7eef3;font:12px/1.2 "Segoe UI",sans-serif;user-select:none}
-      .hud{--red:#ff604a;--blue:#56b9ff;--gold:#ad8c51;position:relative;isolation:isolate;margin:4px 3px 0;padding:16px 0 5px}
-      .hud:before{content:"";position:absolute;inset:14px 0 6px;z-index:-1;
-        background:linear-gradient(180deg,var(--gold) 0 2px,#08252b 2px,#0a3238 60%,#061b22 100%);
-        clip-path:polygon(0 0,100% 0,100% 84%,54% 84%,50% 100%,46% 84%,0 84%)}
-      .hud:after{content:"";position:absolute;bottom:1px;left:calc(50% - 7px);width:14px;height:8px;background:var(--gold);clip-path:polygon(0 0,100% 0,50% 100%)}
-      .crown{height:35px;position:relative;display:grid;grid-template-columns:1fr 54px 1fr;align-items:center;justify-items:center}
-      .crown:before{content:"";position:absolute;inset:50% 0 auto;height:1px;background:var(--gold);opacity:.5}
-      .seal{position:relative;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid currentColor;background:#07191d;font-size:14px}
-      .red{color:var(--red)}.blue{color:var(--blue)}.seal.mine{outline:1px solid #d2b16a;outline-offset:2px}
-      .crest{position:relative;width:27px;height:27px;display:grid;place-items:center;transform:rotate(45deg);border:2px solid var(--gold);background:#071217;box-shadow:inset 0 0 0 3px #333124,0 0 0 2px #07141b}
-      .crest span{transform:rotate(-45deg);color:#dac48e;font-size:18px}
-      #top{display:grid;grid-template-columns:1fr 58px 1fr;align-items:center;justify-items:center;padding:0 56px;font-weight:800;font-variant-numeric:tabular-nums}
-      #top.off{opacity:.45}.total{white-space:nowrap;text-align:center;padding:2px 4px;border-top:1px solid #665739;border-bottom:1px solid #665739;background:#103035;font-size:12px}
-      .coin{display:inline-block;width:8px;height:6px;margin-right:3px;border:1px solid #e7c77c;border-radius:50%;background:#987033;vertical-align:1px}
-      .lead{white-space:nowrap;align-self:end}.lead[data-side=red]{color:var(--red)}.lead[data-side=blue]{color:var(--blue)}.lead[data-side=even]{color:#a9b8c2}
-      #ar{font-size:8px;margin-right:2px}#df{font-size:12px}
-      .k{display:grid;grid-template-columns:1fr auto 1fr;justify-items:center;align-items:center;gap:6px;margin:3px auto 4px;width:90px;font-size:17px;font-weight:800}
-      .k i{color:#c8aa6e;font-style:normal;font-size:12px}
+      html,body{margin:0;background:transparent;color:#e7eef3;font:12px/1.2 "Segoe UI",sans-serif;user-select:none;overflow:hidden}
+      .hud{--red:#ee4a42;--blue:#4da3ea;--gold:#a58a52;position:relative;width:302px;height:118px;transition:opacity .15s}
+      .hud.off{opacity:.45}
+      .hud>*{position:absolute}
+      .band{left:3px;right:3px;top:8px;height:50px;background:linear-gradient(180deg,#0b2a30,#0a3036 55%,#08262c);border-top:2px solid var(--gold);border-bottom:2px solid var(--gold);box-sizing:border-box}
+      .under{left:3px;right:3px;top:58px;height:46px;background:linear-gradient(180deg,rgba(6,26,32,.9),rgba(6,24,30,.82));border-bottom:1px solid rgba(165,138,82,.55);border-radius:0 0 4px 4px}
+      .rail{left:3px;right:3px;top:28px;height:10px;background:#02090b}
+      .roof{left:113px;top:8px;width:76px;height:12px;overflow:visible}
+      .orb{width:31px;height:31px;top:18px;margin-left:-15.5px;box-sizing:border-box;border-radius:50%;background:#000;border:1px solid #0e3a40;display:grid;place-items:center;color:var(--d3,#fff);z-index:2}
+      .orb.mine{outline:1px solid #d2b16a;outline-offset:2px}
+      .orb .sw{display:none;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+      .orb.on{background:radial-gradient(circle at 50% 30%,var(--d1),var(--d2) 72%);border:2px solid var(--d3);box-shadow:0 0 0 3px #04161a}
+      .orb.on .sw{display:block}
+      .orb .n{position:absolute;right:-3px;bottom:-3px;min-width:12px;padding:0 2px;border-radius:7px;background:#04161a;border:1px solid var(--d3);font:700 9px/12px "Segoe UI",sans-serif;text-align:center;color:#e7eef3}
+      .orb .n:empty{display:none}
+      .orb[data-d=fire]{--d1:#c76a26;--d2:#7d3512;--d3:#f0a15f}
+      .orb[data-d=water]{--d1:#2f8fc2;--d2:#14506f;--d3:#7dd0f2}
+      .orb[data-d=earth]{--d1:#a58a3a;--d2:#5c4a18;--d3:#e6cf7a}
+      .orb[data-d=air]{--d1:#3f9e8a;--d2:#1d5a4e;--d3:#7fe0c8}
+      .orb[data-d=hextech]{--d1:#3f86d6;--d2:#1a3f78;--d3:#9ccaff}
+      .orb[data-d=chemtech]{--d1:#6ea84a;--d2:#35591f;--d3:#b7e58f}
+      .orb[data-d=elder]{--d1:#9a4acb;--d2:#4a2266;--d3:#dba6ff}
+      #redSeal{left:calc(50% - 116px)}#redD{left:calc(50% - 71px)}#blueD{left:calc(50% + 71px)}#blueSeal{left:calc(50% + 116px)}
+      .crest{left:calc(50% - 23px);top:10px;width:46px;height:46px;transform:rotate(45deg);border:2px solid var(--gold);background:linear-gradient(135deg,#252b2d,#12171a);box-shadow:0 0 0 5px #03090b,inset 0 0 0 2px #0b0f11;box-sizing:border-box;z-index:1}
+      .emblem{left:calc(50% - 13px);top:19px;width:26px;height:26px;z-index:2;fill:#7f8689}
+      #top{left:calc(50% - 78px);top:48px;width:156px;height:16px;box-sizing:border-box;display:grid;grid-template-columns:1fr 30px 1fr;align-items:center;padding:0 4px;background:#0f2a2c;border:1px solid #4a4b36;border-radius:2px;z-index:3;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;line-height:15px}
+      .total{display:flex;align-items:center;gap:4px;white-space:nowrap}
+      .total.red{justify-self:end;color:var(--red)}.total.blue{justify-self:start;color:var(--blue)}
+      .coin{width:15px;height:10px;flex:none}
+      #lead{left:calc(50% - 15px);top:44px;width:30px;height:36px;z-index:4;--c:#a9b8c2}
+      #lead[data-side=red]{--c:var(--red);--f:#3d1717}#lead[data-side=blue]{--c:var(--blue);--f:#0f3350}#lead[data-side=even]{--f:#1c2a30}
+      .dia{position:absolute;left:7.5px;top:4.5px;width:15px;height:15px;box-sizing:border-box;transform:rotate(45deg);background:var(--f,#1c2a30);border:1.5px solid #8a7a4a;display:grid;place-items:center}
+      #ar{transform:rotate(-45deg);display:block;font-size:9px;line-height:1;color:var(--c);margin-left:1px}
+      #df{position:absolute;left:-12px;right:-12px;top:17px;text-align:center;font:700 14px/16px "Segoe UI",sans-serif;color:var(--c);font-variant-numeric:tabular-nums;text-shadow:0 0 3px #000,0 0 6px #000}
+      .k{left:calc(50% - 40px);width:80px;top:72px;height:30px;display:flex;align-items:center;justify-content:center;gap:7px;font:700 24px/28px Georgia,"Times New Roman",serif;font-variant-numeric:lining-nums}
+      .k .sword{width:18px;height:22px;flex:none}
+      #kl,.tw.red b{color:var(--red)}#kr,.tw.blue b{color:var(--blue)}
+      .tw{top:79px;height:20px;display:flex;align-items:center;gap:9px;font:700 17px/20px "Segoe UI",sans-serif}
+      .tw svg{width:15px;height:19px;flex:none}
+      .tw.red{left:46px}.tw.blue{right:46px;flex-direction:row}
+      .fine{left:0;right:0;top:105px;margin:0;color:#adc0c3;font-size:9px;text-align:center;text-shadow:0 0 3px #000}
       .players{--red:#ff604a;--blue:#56b9ff;position:absolute;inset:122px 0 0;display:grid;grid-template-rows:repeat(5,minmax(0,1fr))}
       .players[hidden]{display:none}
       .player-row{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);align-items:center;justify-items:center;padding:0 17px 12px;min-height:0}
       .player-gold,.player-diff{padding:1px 5px;border:1px solid #a4864a88;border-radius:4px;background:#071b22eb;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;line-height:16px;white-space:nowrap}
       .player-diff{font-size:11px}.player-diff.even{color:#a9b8c2}
-      .fine{margin:0;color:#adc0c3;font-size:9px;text-align:center}
     `;
     const js = (function () {
       const host = window.statscanHost;
       const byId = (id) => document.getElementById(id);
       const number = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
+      const plain = (n) => String(Math.round(Number(n) || 0));
       const lanes = ['top', 'jungle', 'mid', 'bot', 'support'];
+      const DRAGONS = ['fire', 'water', 'earth', 'air', 'hextech', 'chemtech', 'elder'];
       function drawPlayers(g, mineRed) {
         const list = byId('players');
         const pairs = new Map((g?.lanes || []).map((lane) => [lane.role, lane]));
@@ -2152,9 +2189,21 @@ const LOLMOD = (() => {
           return row;
         }));
       }
+      function drawOrbs(ids, raw) {
+        const list = (Array.isArray(raw) ? raw : []).filter((d) => DRAGONS.includes(d));
+        ids.forEach((id, i) => {
+          const el = byId(id);
+          const type = list[i] || '';
+          el.dataset.d = type;
+          el.classList.toggle('on', !!type);
+          el.querySelector('.n').textContent = i === ids.length - 1 && list.length > ids.length ? String(list.length) : '';
+          el.setAttribute('aria-label', type ? 'Ejderha: ' + type : 'Boş ejderha yuvası');
+        });
+      }
       function draw(g) {
-        if (g?.state !== 'ok') { byId('top').className = 'off'; drawPlayers(null, false); return; }
-        byId('top').className = '';
+        const ok = g?.state === 'ok';
+        byId('hud').classList.toggle('off', !ok);
+        if (!ok) { drawPlayers(null, false); return; }
         const mineRed = g.mySide === 'red';
         const [left, right] = mineRed ? [g.mine, g.enemy] : [g.enemy, g.mine];
         const diff = left.gold - right.gold;
@@ -2162,11 +2211,16 @@ const LOLMOD = (() => {
         byId('blueSeal').classList.toggle('mine', !mineRed);
         byId('redSeal').title = mineRed ? 'Senin takımın' : 'Rakip takım';
         byId('blueSeal').title = mineRed ? 'Rakip takım' : 'Senin takımın';
-        byId('gl').textContent = number.format(left.gold);
-        byId('gr').textContent = number.format(right.gold);
+        byId('gl').textContent = plain(left.gold);
+        byId('gr').textContent = plain(right.gold);
         byId('kl').textContent = left.kills;
         byId('kr').textContent = right.kills;
-        byId('df').textContent = number.format(Math.abs(diff));
+        const obj = g.obj || {};
+        byId('tl').textContent = plain(obj.red?.towers);
+        byId('tr').textContent = plain(obj.blue?.towers);
+        drawOrbs(['redD', 'redSeal'], obj.red?.dragons);
+        drawOrbs(['blueD', 'blueSeal'], obj.blue?.dragons);
+        byId('df').textContent = plain(Math.abs(diff));
         byId('ar').textContent = diff > 0 ? '◀' : diff < 0 ? '▶' : '•';
         byId('lead').dataset.side = diff > 0 ? 'red' : diff < 0 ? 'blue' : 'even';
         byId('lead').setAttribute('aria-label', diff === 0 ? 'Eşya değeri eşit' : diff > 0 ? 'Kırmızı takım önde' : 'Mavi takım önde');
@@ -2185,14 +2239,23 @@ const LOLMOD = (() => {
       setInterval(refresh, 1000);
       refresh();
     }).toString();
+    const swirl = '<svg class="sw" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c4.7 0 8 3.4 8 7.6 0 3.4-2.4 6-5.6 6-2.6 0-4.5-1.7-4.5-3.9 0-1.9 1.4-3.2 3.1-3.2 1.4 0 2.4.9 2.4 2"/></svg>';
+    const orb = (id, cls) => '<span id="' + id + '" class="orb ' + cls + '" data-d="" aria-label="Boş ejderha yuvası">' + swirl + '<b class="n"></b></span>';
+    const coin = '<svg class="coin" viewBox="0 0 18 12" aria-hidden="true"><ellipse cx="7" cy="6.4" rx="5.8" ry="4.1" fill="none" stroke="#d6b25e" stroke-width="2"/><ellipse cx="11.5" cy="5.2" rx="5.4" ry="3.8" fill="none" stroke="#d6b25e" stroke-width="2"/></svg>';
+    const tower = '<svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 0 13 4 8 8 3 4Z" fill="#c4cacf"/><path d="M4 7.5 8 10.5 12 7.5V14L8 12 4 14Z" fill="#b2b9be"/><path d="M1.5 15 8 13 14.5 15 11 19.5 8 17.5 5 19.5Z" fill="#a3abb0"/></svg>';
+    const sword = '<svg class="sword" viewBox="0 0 20 24" aria-hidden="true"><path d="M17.5 1 19.5 6.5 9.5 15.5 5.5 11.5Z" fill="#e8c46c"/><path d="M2.5 11 9.5 18 7.2 20.3 0.2 13.3Z" fill="#c9a24c"/><path d="M4.6 16.4 8.2 20 4 23.4 2 21.4Z" fill="#a8843a"/></svg>';
+    const emblem = '<svg class="emblem" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C20.5 8.5 20.5 15 16 22 11.5 15 11.5 8.5 16 3Z"/><path d="M9.5 11C3.5 11 2.5 19 9.5 21.5 7.2 18.5 8 15.5 11.2 14Z"/><path d="M22.5 11C28.5 11 29.5 19 22.5 21.5 24.8 18.5 24 15.5 20.8 14Z"/><path d="M9 27C12.5 22.5 19.5 22.5 23 27 19.5 25.6 12.5 25.6 9 27Z"/></svg>';
+    const roof = '<svg class="roof" viewBox="0 0 76 12" aria-hidden="true"><path d="M0 0H76M10 0 20 10H56L66 0" fill="none" stroke="#a58a52" stroke-width="1" opacity=".7"/></svg>';
     const csp = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
     return '<!doctype html><html lang="tr"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '">'
-      + '<title>Altın farkı</title><style>' + css + '</style><main class="hud">'
-      + '<div class="crown"><span id="redSeal" class="seal red" aria-label="Kırmızı takım">◈</span><div class="crest" aria-hidden="true"><span>⚔</span></div><span id="blueSeal" class="seal blue" aria-label="Mavi takım">◈</span></div>'
-      + '<div id="top" class="off"><span class="total red"><i class="coin" aria-hidden="true"></i><span id="gl">0</span></span>'
-      + '<span id="lead" class="lead" data-side="even"><span id="ar" aria-hidden="true">•</span><span id="df">0</span></span>'
-      + '<span class="total blue"><i class="coin" aria-hidden="true"></i><span id="gr">0</span></span></div>'
-      + '<div class="k" aria-label="Takım skoru"><span id="kl" class="red">0</span><i aria-hidden="true">⚔</i><span id="kr" class="blue">0</span></div>'
+      + '<title>Altın farkı</title><style>' + css + '</style><main class="hud off" id="hud">'
+      + '<div class="band"></div><div class="under"></div><div class="rail"></div>' + roof
+      + orb('redSeal', 'red') + orb('redD', 'red') + '<div class="crest" aria-hidden="true"></div>' + emblem + orb('blueD', 'blue') + orb('blueSeal', 'blue')
+      + '<div id="top"><span class="total red">' + coin + '<span id="gl">0</span></span><span aria-hidden="true"></span><span class="total blue">' + coin + '<span id="gr">0</span></span></div>'
+      + '<span id="lead" data-side="even"><i class="dia"><b id="ar" aria-hidden="true">•</b></i><span id="df">0</span></span>'
+      + '<div class="tw red" aria-label="Kırmızı takım kule">' + tower + '<b id="tl">0</b></div>'
+      + '<div class="k" aria-label="Takım skoru"><span id="kl">0</span>' + sword + '<span id="kr">0</span></div>'
+      + '<div class="tw blue" aria-label="Mavi takım kule">' + tower + '<b id="tr">0</b></div>'
       + '<p class="fine" id="ft"></p></main><div class="players" id="players" aria-label="Oyuncu eşya altını" hidden></div><script>(' + js + ')();</script></html>';
   }
   /* Tab tusu durumu: tek, sabit bir PowerShell sureci GetAsyncKeyState(0x09)'u yoklar (yalniz tus basili/birakildi; tus vurusu kaydedilmez, hicbir yere yazilmaz).
@@ -2246,7 +2309,7 @@ const LOLMOD = (() => {
       + '<header><b id="t">Blitz</b><span id="cd" class="dim">' + s + ' sn</span><button id="pin">Sabitle</button><button id="x">×</button></header>'
       + '<div class="rows"><button id="prev">‹</button><span id="rk">Tüm ranklar (Emerald+)</span><button id="next">›</button></div><div id="body"></div><script>' + js + '</script></body></html>';
   }
-  return { createLolHost, overlayDecide, lolOverlayHtml, lolGoldHtml, goldCompare, goldOf, createTabWatcher, TAB_PS, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN, parseMu, aggMu, muRankSet, MU_RANKS, MU_ALL, MU_SLOTS };
+  return { createLolHost, overlayDecide, lolOverlayHtml, lolGoldHtml, liveObjectives, goldCompare, goldOf, createTabWatcher, TAB_PS, parseRoles, ROLE_HOST, normChamp, parseChampions, heuristic, adv, rank, rosterZ, roleFit, wilson, personal, personalAll, parseStats, parseLcuCmd, mapSession, ROLES, LIM, DD_HOST, absLp, parseRanked, assignRoles, roleWeights, validateRunePage, parsePlayerQuery, parseFriends, histRunes, buildRuneNames, cpRunesFromText, LCU_WRITE_OK, parseCpMatchup, parseCpCounters, cpKebab, parseLive, analyzeLive, parseRunes, LIVE_OK, normRank, addSnap, lpSeries, lpEvents, todayLp, normMatch, overview, champStats, roleStats, partnerStats, attrLp, banPicks, compAnalysis, mkFilter, laneRole, LCU_OK, parseItems, buildItemAdvice, SUSTAIN, parseMu, aggMu, muRankSet, MU_RANKS, MU_ALL, MU_SLOTS };
 })();
 
 /* --- Uygulama Akisi (Kovan 'Uygulama Akisi' v0.0.1) ---

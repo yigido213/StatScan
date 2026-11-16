@@ -25,14 +25,26 @@ ok(reqs.length === 0, 'ağ isteği yok: ' + reqs.join(','));
 ok(!errs.length, 'sayfa hatası yok ' + errs.join('|'));
 
 // ---- Tab altin farki sayfasi
-{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mySide: 'red', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, lanes: [
+{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mySide: 'red', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, obj: { red: { towers: 0, dragons: ['fire'] }, blue: { towers: 3, dragons: ['air', 'water', 'earth'] } }, lanes: [
   { role: 'top', mine: { name: 'Darius', gold: 4000, me: true }, enemy: { name: '<img src=x onerror="window.__xss2=1">', gold: 3500 }, diff: 500 }, { role: 'jungle', mine: { name: 'Sion', gold: 3000 }, enemy: { name: 'Ornn', gold: 4100 }, diff: -1100 } ] };
   const p2 = await b.newPage(); const e2 = []; const r2 = []; p2.on('pageerror', (e) => e2.push(String(e))); p2.on('request', (r) => { if (!/^data:|^about:/.test(r.url())) r2.push(r.url()); });
   await p2.setViewportSize({ width: 302, height: 422 });
   await p2.setContent(gh.replace('<script>', '<script>window.__gold=' + JSON.stringify(G) + ';window.statscanHost={lolGold:async()=>window.__gold};</script><script>')); await p2.waitForTimeout(400);
-  ok((await p2.textContent('#gl')) === '20.125' && (await p2.textContent('#gr')) === '23.950' && (await p2.textContent('#df')) === '3.825', 'altın sayfası: iki takım toplamı + ortada fark');
+  ok((await p2.textContent('#gl')) === '20125' && (await p2.textContent('#gr')) === '23950' && (await p2.textContent('#df')) === '3825', 'altın sayfası: iki takım toplamı + ortada fark (oyundaki gibi ayırıcısız)');
   ok((await p2.getAttribute('#lead', 'data-side')) === 'blue' && (await p2.textContent('#ar')) === '▶', 'altın sayfası: mavi öndeyken fark mavi + ok sağa');
   ok((await p2.textContent('#kl')) === '8' && (await p2.textContent('#kr')) === '16', 'altın sayfası: kill skoru');
+  ok((await p2.textContent('#tl')) === '0' && (await p2.textContent('#tr')) === '3', 'altın sayfası: kule sayıları');
+  ok(await p2.evaluate(() => {
+    const on = (id) => document.getElementById(id).classList.contains('on') ? document.getElementById(id).dataset.d : '';
+    const n = (id) => document.getElementById(id).querySelector('.n').textContent;
+    return on('redD') === 'fire' && on('redSeal') === '' && on('blueD') === 'air' && on('blueSeal') === 'water' && n('blueSeal') === '3' && n('redSeal') === '';
+  }), 'altın sayfası: ejderha yuvaları içten dışa dolar, 2 yuvadan fazlasında sayı rozeti');
+  ok(await p2.evaluate(() => {
+    const r = (s) => document.querySelector(s).getBoundingClientRect(); const c = (r0) => r0.left + r0.width / 2;
+    const cx = innerWidth / 2; return Math.abs(c(r('.crest')) - cx) < 2 && Math.abs(c(r('#lead')) - cx) < 2 && Math.abs(c(r('#top')) - cx) < 2 &&
+      r('#redSeal').left < r('#redD').left && r('#redD').right < r('.crest').left + 14 && r('#blueD').left > r('.crest').right - 14 && r('#blueSeal').left > r('#blueD').left &&
+      r('#df').top >= r('#top').top && r('#df').bottom <= r('.k').top + 6;
+  }), 'altın sayfası: kristal/plaka/fark ortada, ejderha yuvaları kristalin iki yanında, fark plakanın altında');
   ok(await p2.evaluate(() => {
     const top = document.querySelector('[data-role="top"]');
     const mid = document.querySelector('[data-role="mid"]');
@@ -47,8 +59,8 @@ ok(!errs.length, 'sayfa hatası yok ' + errs.join('|'));
     window.__gold = { ...g, mySide: 'blue', mine: g.enemy, enemy: g.mine, lanes: g.lanes.map(row => ({ ...row, mine: row.enemy, enemy: row.mine })) };
   });
   await p2.waitForSelector('#blueSeal.mine');
-  ok(await p2.textContent('#gl') === '20.125' && await p2.textContent('#gr') === '23.950' &&
-    await p2.textContent('#df') === '3.825', 'altın sayfası: mavi takımdayken de kırmızı sol, mavi sağ');
+  ok(await p2.textContent('#gl') === '20125' && await p2.textContent('#gr') === '23950' &&
+    await p2.textContent('#df') === '3825', 'altın sayfası: mavi takımdayken de kırmızı sol, mavi sağ');
   ok(/tahmin/.test(await p2.textContent('#ft')) && /cepteki altın dahil değil/.test(await p2.textContent('#ft')), 'altın sayfası: tahmin + cepteki altın dahil değil notu');
   ok(!/innerHTML|eval\(|fetch\(|XMLHttpRequest/.test(gh) && !/cooldown|bekleme|flash|çarp|\bult\b/i.test(gh), 'altın sayfası: innerHTML/ağ yok, büyü sayacı yok');
   ok(r2.length === 0 && !e2.length, 'altın sayfası: ağ isteği ve sayfa hatası yok ' + r2.join(',') + e2.join('|'));

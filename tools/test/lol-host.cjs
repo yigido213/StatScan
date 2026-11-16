@@ -317,6 +317,14 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     liveJson = mkLive(); liveJson.activePlayer = {}; ok((await HV['lol:gold']()).state === 'nogame', 'altın: kendi oyuncum belirsizse nogame');
     liveJson = null; ok((await HV['lol:gold']()).state === 'nogame', 'altın: maç yokken nogame');
     liveJson = mkLive(); liveJson.gameData.gameMode = 'ARAM'; const g4 = await HV['lol:gold'](); ok(g4.state === 'ok' && g4.lanes.length === 0, 'altın: ARAM’da hat yok, takım toplamı var');
+    { const L3 = mkLive(); const en = L3.allPlayers.find((p) => p.team === 'CHAOS').riotIdGameName;
+      L3.events = { Events: [ { EventName: 'TurretKilled', TurretKilled: 'Turret_T2_R_03_A', KillerName: 'Yigit' }, { EventName: 'TurretKilled', TurretKilled: 'Turret_T1_C_05_A', KillerName: en }, { EventName: 'TurretKilled', TurretKilled: 'Turret_T1_L_03_A', KillerName: 'Minion_T200L0S1' },
+        { EventName: 'DragonKill', DragonType: 'Fire', KillerName: 'Yigit' }, { EventName: 'DragonKill', DragonType: 'Air', KillerName: en }, { EventName: 'DragonKill', DragonType: 'Water', KillerName: en }, { EventName: 'DragonKill', DragonType: 'Baron', KillerName: en }, { EventName: 'DragonKill', DragonType: 'Earth', KillerName: 'Bilinmeyen' }, null, 'x', { EventName: 'TurretKilled', TurretKilled: 'Inhib_T1_L' } ] };
+      liveJson = L3; const g5 = await HV['lol:gold']();
+      ok(g5.obj && g5.obj.red.towers === 2 && g5.obj.blue.towers === 1, 'altın: kule sayısı — T1 kulesi kırmızıya, T2 kulesi maviye yazılır (sayı saf olay verisinden)');
+      ok(JSON.stringify(g5.obj.blue.dragons) === '["fire"]' && JSON.stringify(g5.obj.red.dragons) === '["air","water"]', 'altın: ejderhalar öldüren takıma yazılır, bilinmeyen tür/öldüren/bozuk olay sayılmaz');
+      const g6 = await (async () => { liveJson = mkLive(); return HV['lol:gold'](); })(); ok(g6.obj && g6.obj.red.towers === 0 && g6.obj.blue.towers === 0 && g6.obj.red.dragons.length === 0, 'altın: olay yoksa kule/ejderha sıfır (uydurma yok)');
+      ok(L.liveObjectives(null).red.towers === 0 && L.liveObjectives({ events: { Events: 'x' } }).blue.dragons.length === 0, 'altın: bozuk veri liveObjectives\'i çökertmez'); }
     ok((await HV['lol:gold:get']()).on === true, 'altın bindirmesi: varsayılan AÇIK'); await HV['lol:gold:set']({ on: false }); ok((await HV['lol:gold:get']()).on === false, 'altın ayarı kapanır');
     const dg = path.join(tmp, 'goldset'); const h1 = mkHost({}, dg); await h1.handlers['lol:gold:set']({ on: false }); ok((await mkHost({}, dg).handlers['lol:gold:get']()).on === false, 'altın ayarı yeniden açılışta korunur'); }
   // ---- Tab izleyici (sahte spawn)
