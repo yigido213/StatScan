@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz oyuncu profillerinde doğrulanabilir maç başına LP farkı — Codex: bitti. Blitz 0.6.0, Kovan beta 0.1.22.
 - HOTFIX: Canlı Maç kadrolarında büyü adları yerine Data Dragon simgeleri ve isim ipuçları gösterilir — Codex: bitti.
 - HOTFIX: Birlikte Oynadıklarım gerçek profil simgelerini maç kayıtlarından gösterir. Blitz 0.5.1 — Codex: bitti.
 - Blitz şampiyon seçiminde Canlı Maç takım tablosu öne açılır. Blitz 0.5.0, Kovan beta 0.1.21 — Codex: bitti.

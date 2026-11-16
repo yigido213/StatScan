@@ -1293,9 +1293,10 @@ const LOLMOD = (() => {
     deps = deps || {}; const dataDir = deps.dataDir || null; const stateFile = dataDir ? path.join(dataDir, 'lolcounter.json') : null; const cacheDir = dataDir ? path.join(dataDir, 'lolcounter-cache') : null;
     const now = deps.now || (() => Date.now());
     const run = deps.run || ((cmd, args, ms) => new Promise((resolve, reject) => { cp.execFile(cmd, args, { timeout: ms || 10000, windowsHide: true, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (e, so) => (e && !so ? reject(e) : resolve(String(so || '')))); }));
-    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], matches: {}, murank: 'all', muUrl: null, notes: {}, ov: { on: false, secs: 20 }, gold: { on: true } }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
+    let state = { v: 1, pool: {}, hist: [], statsUrl: null, me: null, rank: null, lp: [], playerLp: {}, matches: {}, murank: 'all', muUrl: null, notes: {}, ov: { on: false, secs: 20 }, gold: { on: true } }; if (stateFile) { try { const o = JSON.parse(fs.readFileSync(stateFile, 'utf8')); if (o && typeof o === 'object') state = Object.assign(state, o); } catch (e) { /* ilk kullanim */ } }
     if (!state.pool || typeof state.pool !== 'object') state.pool = {}; if (!Array.isArray(state.hist)) state.hist = []; if (!Array.isArray(state.lp)) state.lp = []; if (!state.matches || typeof state.matches !== 'object' || Array.isArray(state.matches)) state.matches = {};
     if (muRankSet(state.murank) === null) state.murank = 'all'; if (!state.notes || typeof state.notes !== 'object' || Array.isArray(state.notes)) state.notes = {}; if (!state.ov || typeof state.ov !== 'object') state.ov = { on: false, secs: 20 }; state.ov = { on: state.ov.on === true, secs: clamp(Math.round(Number(state.ov.secs)) || 20, 8, 60) }; if (typeof state.muUrl !== 'string') state.muUrl = null; state.gold = { on: !(state.gold && state.gold.on === false) };
+    if (!state.playerLp || typeof state.playerLp !== 'object' || Array.isArray(state.playerLp)) state.playerLp = {};
     const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
 
     /* --- ag: yalniz Data Dragon (sabit sunucu) --- */
@@ -1389,13 +1390,50 @@ const LOLMOD = (() => {
       return map;
     }
 
-    /* --- baska oyuncu profili: yalniz bellekte (diske YAZILMAZ), 10 dk, en cok 6 kayit --- */
+    /* Profil ve maçlar bellekte, yalnız derece örnekleri yerelde tutulur. */
     const playerCache = new Map(); const PLAYER_TTL = 10 * 60e3; let lastLookup = 0;
-    const playerKeep = (puuid, ent) => { playerCache.set(puuid, ent); if (playerCache.size > 6) playerCache.delete(playerCache.keys().next().value); };
+    function playerKeep(puuid, ent) {
+      ent.lpKey = require('node:crypto').createHash('sha256').update(puuid).digest('hex');
+      const previous = state.playerLp[ent.lpKey];
+      const samples = Array.isArray(previous) ? previous : [];
+      let changed = false;
+      for (const rank of [ent.rank?.solo, ent.rank?.flex]) {
+        if (!rank || rank.noL || rank.unranked || !Number.isSafeInteger(rank.w) || !Number.isSafeInteger(rank.l)) continue;
+        if (addSnap(samples, rank, ent.rankAt, 160)) changed = true;
+      }
+      if (changed) {
+        state.playerLp[ent.lpKey] = samples;
+        const keys = Object.keys(state.playerLp).sort((a, b) => state.playerLp[a].at(-1)?.t - state.playerLp[b].at(-1)?.t);
+        for (const key of keys.slice(0, Math.max(0, keys.length - 32))) delete state.playerLp[key];
+        save();
+      }
+      playerCache.set(puuid, ent);
+      if (playerCache.size > 6) playerCache.delete(playerCache.keys().next().value);
+    }
+    function playerLpDeltas(matches, samples) {
+      const out = new Map();
+      for (const queue of ['solo', 'flex']) {
+        const points = lpSeries(samples, queue);
+        const inQueue = matches.filter((match) => match.queue === queue && !match.remake);
+        for (let i = 1; i < points.length; i++) {
+          const before = points[i - 1]; const after = points[i];
+          const wins = after.w - before.w; const losses = after.l - before.l;
+          if (!((wins === 1 && losses === 0) || (wins === 0 && losses === 1))) continue;
+          const between = inQueue.filter((match) => match.t < after.t && match.t + match.dur * 1000 > before.t);
+          if (between.length !== 1) continue;
+          const [match] = between;
+          if (match.t < before.t || match.dur <= 0 || match.t + match.dur * 1000 > after.t || match.win !== (wins === 1)) continue;
+          const delta = after.abs - before.abs;
+          if ((wins === 1 && delta < 0) || (losses === 1 && delta > 0)) continue;
+          out.set(match.id, delta);
+        }
+      }
+      return out;
+    }
     const playerView = (ent, req) => {
       req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const role = ROLES.includes(req.role) ? req.role : null; const off = clamp(Math.round(Number(req.offset)) || 0, 0, 500); const lim = clamp(Math.round(Number(req.limit)) || 20, 1, 50);
-      const all = ent.matches.slice().sort((a, b) => b.t - a.t); const byQ = all.filter(mkFilter(q)); const f = role ? byQ.filter((m) => m.role === role) : byQ;
-      return { queue: q, role, total: byQ.length, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), partners: partnerStats(all), rows: byQ.slice(off, off + lim), aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), streak: overview(all, now()).streak };
+      const all = ent.matches.slice().sort((a, b) => b.t - a.t); const lp = playerLpDeltas(all, state.playerLp[ent.lpKey] || []); const byQ = all.filter(mkFilter(q)); const f = role ? byQ.filter((m) => m.role === role) : byQ;
+      return { queue: q, role, total: byQ.length, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), partners: partnerStats(all), rows: byQ.slice(off, off + lim).map((match) => ({ ...match, lpDelta: lp.get(match.id) ?? null })), aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), streak: overview(all, now()).streak };
     };
     /* --- LCU --- */
     const POS_LCU = { top: 'top', jungle: 'jungle', mid: 'middle', bot: 'bottom', support: 'utility' };
@@ -1530,7 +1568,7 @@ const LOLMOD = (() => {
         const issues = [];
         try { await riotSummoner(platform, player); }
         catch (e) { if (e.fatal) throw e; issues.push('profil: ' + e.message); }
-        let rank = null;
+        let rank = null; const rankAt = now();
         try {
           const entries = await riotCall(platform, '/lol/league/v4/entries/by-puuid/' + puuid);
           rank = parseRanked({ queues: (Array.isArray(entries) ? entries : []).map((r) => ({ ...r, division: r.rank })) });
@@ -1550,7 +1588,7 @@ const LOLMOD = (() => {
             if (e.fatal) break;
           }
         }
-        const ent = { t: now(), player, rank, matches, details: matches.filter((m) => !m.partial).length, notes: issues };
+        const ent = { t: now(), rankAt, player, rank, matches, details: matches.filter((m) => !m.partial).length, notes: issues };
         playerKeep(puuid, ent);
         return { state: 'ok', player, rank, cached: false, notes: issues, view: playerView(ent, view),
           counts: { matches: matches.length, details: ent.details } };
@@ -1802,7 +1840,7 @@ const LOLMOD = (() => {
           /* maçsız (başarısız) sonuç önbellekten dönmez: yeniden arama gerçekten yeniden dener */
           const hit = playerCache.get(puuid); if (hit && hit.matches.length && now() - hit.t < PLAYER_TTL && req.fresh !== true) return { state: 'ok', player: hit.player, rank: hit.rank, cached: true, notes: hit.notes || [], view: playerView(hit, req.view), counts: { matches: hit.matches.length, details: hit.details } };
           try { const sj = await lcuRead(info, '/lol-summoner/v1/summoners-by-puuid-cached/' + puuid); if (sj && typeof sj === 'object') { if (sj.gameName) player.name = String(sj.gameName).slice(0, 30); if (sj.tagLine) player.tag = String(sj.tagLine).slice(0, 10); player.level = Math.round(Number(sj.summonerLevel)) || 0; if (Number.isSafeInteger(sj.profileIconId) && sj.profileIconId >= 0) player.icon = sj.profileIconId; } } catch (e) { notes.push('profil: ' + msg(e)); }
-          let rank = null; try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/ranked-stats/' + puuid)); rank = { solo: rk.solo, flex: rk.flex }; for (const qk of ['solo', 'flex']) { const rr = rank[qk]; if (rr && rr.l === 0 && rr.w >= 10) rr.noL = true; /* istemci başkası için losses'ı 0 yollar: '%100 WR' uydurma */ } } catch (e) { notes.push('derece: ' + msg(e)); }
+          let rank = null; const rankAt = now(); try { const rk = parseRanked(await lcuRead(info, '/lol-ranked/v1/ranked-stats/' + puuid)); rank = { solo: rk.solo, flex: rk.flex }; for (const qk of ['solo', 'flex']) { const rr = rank[qk]; if (rr && rr.l === 0 && rr.w >= 10) rr.noL = true; /* istemci başkası için losses'ı 0 yollar: '%100 WR' uydurma */ } } catch (e) { notes.push('derece: ' + msg(e)); }
           const co = champOf(); const matches = new Map(); let budget = 10; let details = 0; let denied = false;
           for (let beg = 0; beg < 40 && !denied; beg += 20) {
             /* 404 (lcuGet null döner) ve tanınmayan yanıt SESSİZCE '0 maç' olmasın: sebep nota yazılır; 2. sayfa sorunu ilk sayfadan gelen maçları bozmaz */
@@ -1816,7 +1854,7 @@ const LOLMOD = (() => {
             if (!player.name) return { state: 'unavailable', notes };
           }
           if (!matches.size && !notes.some((x) => /^maçlar/.test(x))) notes.push('maçlar: istemci boş liste döndürdü (oyuncu geçmişini gizli tutuyor ya da istemci başkasının geçmişini vermiyor olabilir)');
-          const ent = { t: now(), player, rank, matches: [...matches.values()], details, notes: notes.slice() }; playerKeep(puuid, ent);
+          const ent = { t: now(), rankAt, player, rank, matches: [...matches.values()], details, notes: notes.slice() }; playerKeep(puuid, ent);
           return { state: 'ok', player, rank, cached: false, notes, view: playerView(ent, req.view), counts: { matches: ent.matches.length, details } };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
@@ -1871,7 +1909,7 @@ const LOLMOD = (() => {
       'lol:data:clear': async () => {
         try {
           if (!deps.confirm) return errE('Onay penceresi yok; silinmedi.'); const n = Object.keys(state.matches).length; const okc = await deps.confirm({ title: 'League verileri silinsin mi?', message: 'Bu bilgisayarda saklanan ' + n + ' maç, LP geçmişi ve profil bilgisi silinecek. Şampiyon havuzun ve elle girdiğin maç kayıtların silinmez. Bu geri alınamaz.', ok: 'Sil', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
-          state.me = null; state.lp = []; state.matches = {}; state.rank = null; save(); return { ok: true };
+          state.me = null; state.lp = []; state.playerLp = {}; playerCache.clear(); state.matches = {}; state.rank = null; save(); return { ok: true };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:live': async (_e, localOnly) => {
