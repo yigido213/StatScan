@@ -1727,9 +1727,9 @@ const LOLMOD = (() => {
       'lol:gold:set': async (_e, req) => { req = req || {}; if (typeof req.on === 'boolean') state.gold.on = req.on; save(); return { ok: true, on: state.gold.on }; },
       'lol:gold': async () => {
         try {
-          const bad = await needRoster(); if (bad) return { state: 'nogame' }; let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
-          const parsed = parseLive(j, new Map(roster.map((c) => [c.name, c])), new Map(roster.map((c) => [c.id, c]))); if (!parsed) return { state: 'nogame' };
-          const a = analyzeLive(parsed, roster); const nm = new Map(roster.map((c) => [c.id, c.name])); return goldCompare(a, (id) => (id && nm.get(id)) || id || '?');
+          let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
+          const champs = roster || []; const parsed = parseLive(j, new Map(champs.map((c) => [c.name, c])), new Map(champs.map((c) => [c.id, c])), true); if (!parsed) return { state: 'nogame' };
+          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return goldCompare(a, (id) => (id && nm.get(id)) || id || '?');
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:sync': async (_e, req) => {
@@ -2040,31 +2040,91 @@ const LOLMOD = (() => {
     const m = { gold: sum(a.allies, 'gold'), kills: sum(a.allies, 'k') }; const e = { gold: sum(a.enemies, 'gold'), kills: sum(a.enemies, 'k') };
     const pl = (x) => ({ champ: x.champ, name: String(nf(x.champ)).slice(0, 24), gold: Number(x.gold) || 0, me: !!x.me }); const lanes = []; let guessed = false;
     if (a.classic) for (const r of ['top', 'jungle', 'mid', 'bot', 'support']) { const x = a.allies.find((p) => p.role === r); const y = a.enemies.find((p) => p.role === r); if (!x || !y) continue; lanes.push({ role: r, mine: pl(x), enemy: pl(y), diff: (Number(x.gold) || 0) - (Number(y.gold) || 0) }); if (!x.known || !y.known) guessed = true; }
-    return { state: 'ok', time: a.time, classic: !!a.classic, mine: m, enemy: e, diff: m.gold - e.gold, lanes, guessed, partial: a.allies.concat(a.enemies).some((p) => !p.gold) };
+    return { state: 'ok', time: a.time, classic: !!a.classic, mySide: a.me.team === 'CHAOS' ? 'red' : 'blue', mine: m, enemy: e, diff: m.gold - e.gold, lanes, guessed, partial: a.allies.concat(a.enemies).some((p) => !p.gold) };
   }
   function lolGoldHtml() {
-    const js = '(function(){var H=window.statscanHost,$=function(i){return document.getElementById(i)};'
-      + 'function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=String(x);return e}'
-      + 'var RN={top:"Üst",jungle:"Orman",mid:"Orta",bot:"Alt",support:"Destek"};'
-      + 'function n(v){return String(Math.round(v)).replace(/\\B(?=(\\d{3})+(?!\\d))/g,".")}'
-      + 'function sg(v){return(v>0?"+":v<0?"−":"")+n(Math.abs(v))}'
-      + 'function cl(v){return v>0?"up":v<0?"dn":"eq"}'
-      + 'function draw(g){if(!g||g.state!=="ok"){$("top").className="off";return}$("top").className="";'
-      + '$("gl").textContent=n(g.mine.gold);$("gr").textContent=n(g.enemy.gold);var d=$("df");d.textContent=n(Math.abs(g.diff));d.className=cl(g.diff);$("ar").textContent=g.diff>0?"◀":g.diff<0?"▶":"•";'
-      + '$("kl").textContent=g.mine.kills;$("kr").textContent=g.enemy.kills;var L=$("lanes");L.textContent="";'
-      + '(g.lanes||[]).forEach(function(r){var w=el("div","ln"+(r.mine.me?" me":""));w.appendChild(el("span","c l",r.mine.name+" "+n(r.mine.gold)));var m=el("span","c m "+cl(r.diff),sg(r.diff));w.appendChild(m);w.appendChild(el("span","c r",n(r.enemy.gold)+" "+r.enemy.name));w.title=RN[r.role]||r.role;L.appendChild(w)});'
-      + '$("ft").textContent="Eşya değeri toplamı (tahmin) · cepteki altın dahil değil"+(g.guessed?" · hat eşleşmesi tahmin":"")}'
-      + 'var busy=false;function refresh(){if(busy||!H||!H.lolGold)return;busy=true;H.lolGold().then(draw).catch(function(){draw(null)}).then(function(){busy=false})}'
-      + 'document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh()});setInterval(function(){if(!document.hidden)refresh()},1500);refresh();})();';
-    const css = 'html,body{margin:0;background:transparent;color:#e8ecf3;font:13px/1.35 system-ui,sans-serif;user-select:none}body{padding:8px 12px;background:rgba(8,12,20,.88);border:1px solid #c8aa6e;border-radius:10px;box-sizing:border-box;min-height:100vh}'
-      + '#top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700;font-size:16px}#top.off{opacity:.4}#gl{color:#e6c35c}#gr{color:#e6c35c}#df{font-size:15px;padding:2px 8px;border-radius:6px;background:#1b2434}'
-      + '#df.up,.m.up{color:#5be08a}#df.dn,.m.dn{color:#ff6b6b}#df.eq,.m.eq{color:#aab}#ar{color:#c8aa6e;font-size:11px;margin:0 4px}.k{display:flex;justify-content:space-between;margin:4px 0 6px;color:#cfd6e6;font-weight:700}.k i{color:#c8aa6e;font-style:normal}'
-      + '.ln{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;padding:2px 0;border-top:1px solid rgba(200,170,110,.18);font-size:12px}.ln.me{background:rgba(200,170,110,.10)}.c.l{text-align:left}.c.r{text-align:right}.c.m{font-weight:700;min-width:54px;text-align:center}'
-      + '.fine{margin:6px 0 0;color:#8f98ab;font-size:10.5px}';
+    const css = `
+      html,body{margin:0;background:transparent;color:#e7eef3;font:12px/1.3 "Segoe UI",sans-serif;user-select:none}
+      .hud{--red:#ff6551;--blue:#59c0ff;--gold:#a4864a;margin:6px 5px 0;overflow:hidden;border:1px solid var(--gold);
+      border-radius:14px 14px 10px 10px;background:linear-gradient(180deg,rgba(15,38,44,.96),rgba(5,14,22,.98));box-shadow:0 3px 8px #0008}
+      .crown{height:39px;position:relative;display:grid;grid-template-columns:1fr 48px 1fr;align-items:center;justify-items:center;isolation:isolate}
+      .crown:before{content:"";position:absolute;inset:50% 0 auto;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);z-index:-1}
+      .seal{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:1px solid currentColor;background:#142126;font-size:15px}
+      .red{color:var(--red)}.blue{color:var(--blue)}.seal.mine{outline:1px solid #d2b16a;outline-offset:2px}
+      .crest{width:24px;height:24px;display:grid;place-items:center;transform:rotate(45deg);border:2px solid var(--gold);background:#07141b;box-shadow:inset 0 0 0 2px #333124,0 0 0 2px #07141b}
+      .crest span{transform:rotate(-45deg);color:#ead39a;font-size:16px}
+      #top{display:grid;grid-template-columns:1fr 80px 1fr;align-items:center;justify-items:center;gap:3px;padding:0 14px;font-weight:800;font-variant-numeric:tabular-nums}
+      #top.off{opacity:.45}.total{box-sizing:border-box;min-width:77px;text-align:center;padding:3px 5px;border:1px solid #665739;border-radius:4px;background:#10242a;font-size:15px}
+      .coin{display:inline-block;width:8px;height:6px;margin-right:4px;border:1px solid #eed386;border-radius:50%;background:#ac8038;vertical-align:2px}
+      .lead{white-space:nowrap}.lead[data-side=red]{color:var(--red)}.lead[data-side=blue]{color:var(--blue)}.lead[data-side=even]{color:#a9b8c2}
+      #ar{font-size:9px;margin-right:3px}#df{font-size:15px}
+      .k{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;gap:6px;margin:4px auto 6px;width:108px;font-size:19px;font-weight:800}
+      .k i{color:#c8aa6e;font-style:normal;font-size:13px}.ln{display:grid;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr);gap:5px;padding:3px 8px;border-top:1px solid #a4864a35;font-size:11px}
+      .ln.me{background:#c8aa6e17}.c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.c.r{text-align:right}.c.m{text-align:center;font-weight:750}.m.eq{color:#a9b8c2}
+      .fine{margin:0;padding:5px 8px;border-top:1px solid #a4864a35;color:#a8b7bb;font-size:10px;text-align:center}`;
+    const js = (function () {
+      const host = window.statscanHost;
+      const byId = (id) => document.getElementById(id);
+      const number = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
+      const roles = { top: 'Üst', jungle: 'Orman', mid: 'Orta', bot: 'Alt', support: 'Destek' };
+      const text = (tag, cls, value) => {
+        const node = document.createElement(tag);
+        node.className = cls;
+        node.textContent = value;
+        return node;
+      };
+      function draw(g) {
+        if (g?.state !== 'ok') { byId('top').className = 'off'; return; }
+        byId('top').className = '';
+        const mineRed = g.mySide === 'red';
+        const [left, right] = mineRed ? [g.mine, g.enemy] : [g.enemy, g.mine];
+        const diff = left.gold - right.gold;
+        byId('redSeal').classList.toggle('mine', mineRed);
+        byId('blueSeal').classList.toggle('mine', !mineRed);
+        byId('redSeal').title = mineRed ? 'Senin takımın' : 'Rakip takım';
+        byId('blueSeal').title = mineRed ? 'Rakip takım' : 'Senin takımın';
+        byId('gl').textContent = number.format(left.gold);
+        byId('gr').textContent = number.format(right.gold);
+        byId('kl').textContent = left.kills;
+        byId('kr').textContent = right.kills;
+        byId('df').textContent = number.format(Math.abs(diff));
+        byId('ar').textContent = diff > 0 ? '◀' : diff < 0 ? '▶' : '•';
+        byId('lead').dataset.side = diff > 0 ? 'red' : diff < 0 ? 'blue' : 'even';
+        byId('lead').setAttribute('aria-label', diff === 0 ? 'Eşya değeri eşit' : diff > 0 ? 'Kırmızı takım önde' : 'Mavi takım önde');
+        byId('lanes').replaceChildren(...(g.lanes || []).map((lane) => {
+          const row = text('div', 'ln' + (lane.mine.me ? ' me' : ''), '');
+          row.title = roles[lane.role] || '';
+          const [red, blue] = mineRed ? [lane.mine, lane.enemy] : [lane.enemy, lane.mine];
+          const d = lane.diff;
+          const side = d === 0 ? 'eq' : ((d > 0) === mineRed ? 'red' : 'blue');
+          row.append(text('span', 'c l', red.name + ' ' + number.format(red.gold)),
+            text('span', 'c m ' + side, (d > 0 ? '+' : d < 0 ? '−' : '') + number.format(Math.abs(d))),
+            text('span', 'c r', number.format(blue.gold) + ' ' + blue.name));
+          return row;
+        }));
+        byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.guessed ? ' · hatlar tahmini' : '');
+      }
+      let busy = false;
+      async function refresh() {
+        if (busy || !host?.lolGold || document.hidden) return;
+        busy = true;
+        try { draw(await host.lolGold()); }
+        catch (e) { draw(null); }
+        finally { busy = false; }
+      }
+      document.addEventListener('visibilitychange', refresh);
+      setInterval(refresh, 1000);
+      refresh();
+    }).toString();
     const csp = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
-    return '<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '"><title>Altın farkı</title><style>' + css + '</style></head><body>'
-      + '<div id="top" class="off"><span id="gl">0</span><span><span id="ar">•</span><span id="df" class="eq">0</span></span><span id="gr">0</span></div>'
-      + '<div class="k"><span id="kl">0</span><i>⚔ kill</i><span id="kr">0</span></div><div id="lanes"></div><p class="fine" id="ft"></p><script>' + js + '</script></body></html>';
+    return '<!doctype html><html lang="tr"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '">'
+      + '<title>Altın farkı</title><style>' + css + '</style><main class="hud">'
+      + '<div class="crown"><span id="redSeal" class="seal red" aria-label="Kırmızı takım">◈</span><div class="crest" aria-hidden="true"><span>⚔</span></div><span id="blueSeal" class="seal blue" aria-label="Mavi takım">◈</span></div>'
+      + '<div id="top" class="off"><span class="total red"><i class="coin" aria-hidden="true"></i><span id="gl">0</span></span>'
+      + '<span id="lead" class="lead" data-side="even"><span id="ar" aria-hidden="true">•</span><span id="df">0</span></span>'
+      + '<span class="total blue"><i class="coin" aria-hidden="true"></i><span id="gr">0</span></span></div>'
+      + '<div class="k" aria-label="Takım skoru"><span id="kl" class="red">0</span><i aria-hidden="true">⚔</i><span id="kr" class="blue">0</span></div>'
+      + '<div id="lanes"></div><p class="fine" id="ft"></p></main><script>(' + js + ')();</script></html>';
   }
   /* Tab tusu durumu: tek, sabit bir PowerShell sureci GetAsyncKeyState(0x09)'u yoklar (yalniz tus basili/birakildi; tus vurusu kaydedilmez, hicbir yere yazilmaz).
      Yalniz Windows. Betik sabit; disaridan gelen hicbir deger icine girmez. */

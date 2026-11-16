@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz Tab eşya altını göstergesi: kırmızı/mavi toplam, öndeki taraf oku ve fark, skor ve hat satırları. Blitz 0.8.0 — Codex: bitti.
 - HOTFIX: Canlı Maç kadrosunda oyuncu adı ve portresi profili açar — Codex: bitti.
 - HOTFIX: Başka oyuncunun maç analizi eksik kadroları yerel kayıttan veya açılışta maç ayrıntısından tamamlar. Blitz 0.7.1 — Codex: bitti.
 - Blitz'te başka oyuncunun profiline bakarken kendi profildeki gibi sekmeler (Genel bakış, Şampiyon havuzu, LP geçmişi, Birlikte oynadıkları) ve sağda 'Kendi profilime dön' (kullanıcı istedi, 2026-11-16) — claude-b: bitti (branch claude-b-profil-sekmeleri, main bed1a5b üstünden). Blitz 0.6.0 → 0.7.0, Kovan beta 0.1.22 → 0.1.23. Dokunulan: app/StatScan.html (kovanLol: drawHero/setTab/drawChamps/drawLp/drawPartners + CSS + EN; ayrıca 'Tek bir takım arkadaşıyla…' EN anahtarındaki fazladan nokta düzeltildi), app/desktop/host.js (`lol:player:lp`, playerView.roleChamps), preload (`lolPlayerLp`), tools/test/ui-lol.mjs, lol-host.cjs, ui-conv.mjs (sürüm), docs/KOD-HARITASI.md. Testler: ui-lol (206 OK), lol-host (338), ui-shell, ui-lang, ui-conv, repoupd-host geçti. DENENMEDİ: gerçek Windows/Electron ve gerçek League verisi; başkasının LP geçmişi yalnız onu okuduğumuz anlardan oluşur (istemci geçmiş vermez).

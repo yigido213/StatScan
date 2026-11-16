@@ -1,5 +1,5 @@
 // Blitz mac acilis bindirmesi sayfa testi (Playwright). Sahte statscanHost ile; gercek Electron penceresi DENENMEDI.
-import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
 const { lolModule } = createRequire(import.meta.url)('../../app/desktop/host.js');
 let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
 const html = lolModule.lolOverlayHtml(10);
@@ -25,13 +25,13 @@ ok(reqs.length === 0, 'ağ isteği yok: ' + reqs.join(','));
 ok(!errs.length, 'sayfa hatası yok ' + errs.join('|'));
 
 // ---- Tab altin farki sayfasi
-{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, lanes: [
+{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mySide: 'red', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, lanes: [
   { role: 'top', mine: { name: 'Darius', gold: 4000, me: true }, enemy: { name: '<img src=x onerror="window.__xss2=1">', gold: 3500 }, diff: 500 }, { role: 'jungle', mine: { name: 'Sion', gold: 3000 }, enemy: { name: 'Ornn', gold: 4100 }, diff: -1100 } ] };
   const p2 = await b.newPage(); const e2 = []; const r2 = []; p2.on('pageerror', (e) => e2.push(String(e))); p2.on('request', (r) => { if (!/^data:|^about:/.test(r.url())) r2.push(r.url()); });
   await p2.setViewportSize({ width: 340, height: 270 });
   await p2.setContent(gh.replace('<script>', '<script>window.statscanHost={lolGold:async()=>(' + JSON.stringify(G) + ')};</script><script>')); await p2.waitForTimeout(400);
   ok((await p2.textContent('#gl')) === '20.125' && (await p2.textContent('#gr')) === '23.950' && (await p2.textContent('#df')) === '3.825', 'altın sayfası: iki takım toplamı + ortada fark');
-  ok((await p2.getAttribute('#df', 'class')) === 'dn' && (await p2.textContent('#ar')) === '▶', 'altın sayfası: gerideyken kırmızı + ok rakip tarafa');
+  ok((await p2.getAttribute('#lead', 'data-side')) === 'blue' && (await p2.textContent('#ar')) === '▶', 'altın sayfası: mavi öndeyken fark mavi + ok sağa');
   ok((await p2.textContent('#kl')) === '8' && (await p2.textContent('#kr')) === '16', 'altın sayfası: kill skoru');
   const lt = await p2.textContent('#lanes'); ok(/\+500/.test(lt) && /−1\.100/.test(lt) && /Darius 4\.000/.test(lt), 'altın sayfası: hat farkları işaretli');
   ok(await p2.evaluate(() => !window.__xss2 && document.querySelectorAll('#lanes img').length === 0), 'altın sayfası: ad düz metin (XSS yok)');

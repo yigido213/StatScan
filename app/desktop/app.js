@@ -246,7 +246,7 @@ function start(ctx) {
   let gWin = null; let gTab = null; let gTimer = null;
   function closeGold() { if (gTab) { try { gTab.stop(); } catch (e) { /* yoksay */ } gTab = null; } if (gWin && !gWin.isDestroyed()) { try { gWin.close(); } catch (e) { /* yoksay */ } } gWin = null; }
   function openGold() {
-    const { BrowserWindow, screen } = require('electron'); const { lolModule } = require('./host.js'); const wa = screen.getPrimaryDisplay().workArea; const w = 340; const h = 270;
+    const { BrowserWindow, screen } = require('electron'); const { lolModule } = require('./host.js'); const wa = screen.getPrimaryDisplay().workArea; const w = 320; const h = 248;
     gWin = new BrowserWindow({ width: w, height: h, x: wa.x + wa.width - w - 16, y: wa.y + 16, frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: false, backgroundThrottling: false } });
     try { gWin.setAlwaysOnTop(true, 'screen-saver'); } catch (e) { /* yoksay */ } try { gWin.setIgnoreMouseEvents(true); } catch (e) { /* yoksay */ }
