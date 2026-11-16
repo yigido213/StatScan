@@ -2092,35 +2092,31 @@ const LOLMOD = (() => {
   }
   function lolGoldHtml() {
     const css = `
-      html,body{margin:0;background:transparent;color:#e7eef3;font:12px/1.3 "Segoe UI",sans-serif;user-select:none}
-      .hud{--red:#ff6551;--blue:#59c0ff;--gold:#a4864a;margin:6px 5px 0;overflow:hidden;border:1px solid var(--gold);
-      border-radius:14px 14px 10px 10px;background:linear-gradient(180deg,rgba(15,38,44,.96),rgba(5,14,22,.98));box-shadow:0 3px 8px #0008}
-      .crown{height:39px;position:relative;display:grid;grid-template-columns:1fr 48px 1fr;align-items:center;justify-items:center;isolation:isolate}
-      .crown:before{content:"";position:absolute;inset:50% 0 auto;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);z-index:-1}
-      .seal{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:1px solid currentColor;background:#142126;font-size:15px}
+      html,body{margin:0;background:transparent;color:#e7eef3;font:12px/1.2 "Segoe UI",sans-serif;user-select:none}
+      .hud{--red:#ff604a;--blue:#56b9ff;--gold:#ad8c51;position:relative;isolation:isolate;margin:4px 3px 0;padding:16px 0 5px}
+      .hud:before{content:"";position:absolute;inset:14px 0 6px;z-index:-1;
+        background:linear-gradient(180deg,var(--gold) 0 2px,#08252b 2px,#0a3238 60%,#061b22 100%);
+        clip-path:polygon(0 0,100% 0,100% 84%,54% 84%,50% 100%,46% 84%,0 84%)}
+      .hud:after{content:"";position:absolute;bottom:1px;left:calc(50% - 7px);width:14px;height:8px;background:var(--gold);clip-path:polygon(0 0,100% 0,50% 100%)}
+      .crown{height:35px;position:relative;display:grid;grid-template-columns:1fr 54px 1fr;align-items:center;justify-items:center}
+      .crown:before{content:"";position:absolute;inset:50% 0 auto;height:1px;background:var(--gold);opacity:.5}
+      .seal{position:relative;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid currentColor;background:#07191d;font-size:14px}
       .red{color:var(--red)}.blue{color:var(--blue)}.seal.mine{outline:1px solid #d2b16a;outline-offset:2px}
-      .crest{width:24px;height:24px;display:grid;place-items:center;transform:rotate(45deg);border:2px solid var(--gold);background:#07141b;box-shadow:inset 0 0 0 2px #333124,0 0 0 2px #07141b}
-      .crest span{transform:rotate(-45deg);color:#ead39a;font-size:16px}
-      #top{display:grid;grid-template-columns:1fr 80px 1fr;align-items:center;justify-items:center;gap:3px;padding:0 14px;font-weight:800;font-variant-numeric:tabular-nums}
-      #top.off{opacity:.45}.total{box-sizing:border-box;min-width:77px;text-align:center;padding:3px 5px;border:1px solid #665739;border-radius:4px;background:#10242a;font-size:15px}
-      .coin{display:inline-block;width:8px;height:6px;margin-right:4px;border:1px solid #eed386;border-radius:50%;background:#ac8038;vertical-align:2px}
-      .lead{white-space:nowrap}.lead[data-side=red]{color:var(--red)}.lead[data-side=blue]{color:var(--blue)}.lead[data-side=even]{color:#a9b8c2}
-      #ar{font-size:9px;margin-right:3px}#df{font-size:15px}
-      .k{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;gap:6px;margin:4px auto 6px;width:108px;font-size:19px;font-weight:800}
-      .k i{color:#c8aa6e;font-style:normal;font-size:13px}.ln{display:grid;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr);gap:5px;padding:3px 8px;border-top:1px solid #a4864a35;font-size:11px}
-      .ln.me{background:#c8aa6e17}.c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.c.r{text-align:right}.c.m{text-align:center;font-weight:750}.m.eq{color:#a9b8c2}
-      .fine{margin:0;padding:5px 8px;border-top:1px solid #a4864a35;color:#a8b7bb;font-size:10px;text-align:center}`;
+      .crest{position:relative;width:27px;height:27px;display:grid;place-items:center;transform:rotate(45deg);border:2px solid var(--gold);background:#071217;box-shadow:inset 0 0 0 3px #333124,0 0 0 2px #07141b}
+      .crest span{transform:rotate(-45deg);color:#dac48e;font-size:18px}
+      #top{display:grid;grid-template-columns:1fr 58px 1fr;align-items:center;justify-items:center;padding:0 56px;font-weight:800;font-variant-numeric:tabular-nums}
+      #top.off{opacity:.45}.total{white-space:nowrap;text-align:center;padding:2px 4px;border-top:1px solid #665739;border-bottom:1px solid #665739;background:#103035;font-size:12px}
+      .coin{display:inline-block;width:8px;height:6px;margin-right:3px;border:1px solid #e7c77c;border-radius:50%;background:#987033;vertical-align:1px}
+      .lead{white-space:nowrap;align-self:end}.lead[data-side=red]{color:var(--red)}.lead[data-side=blue]{color:var(--blue)}.lead[data-side=even]{color:#a9b8c2}
+      #ar{font-size:8px;margin-right:2px}#df{font-size:12px}
+      .k{display:grid;grid-template-columns:1fr auto 1fr;justify-items:center;align-items:center;gap:6px;margin:3px auto 4px;width:90px;font-size:17px;font-weight:800}
+      .k i{color:#c8aa6e;font-style:normal;font-size:12px}
+      .fine{margin:0;color:#adc0c3;font-size:9px;text-align:center}
+    `;
     const js = (function () {
       const host = window.statscanHost;
       const byId = (id) => document.getElementById(id);
       const number = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
-      const roles = { top: 'Üst', jungle: 'Orman', mid: 'Orta', bot: 'Alt', support: 'Destek' };
-      const text = (tag, cls, value) => {
-        const node = document.createElement(tag);
-        node.className = cls;
-        node.textContent = value;
-        return node;
-      };
       function draw(g) {
         if (g?.state !== 'ok') { byId('top').className = 'off'; return; }
         byId('top').className = '';
@@ -2139,18 +2135,7 @@ const LOLMOD = (() => {
         byId('ar').textContent = diff > 0 ? '◀' : diff < 0 ? '▶' : '•';
         byId('lead').dataset.side = diff > 0 ? 'red' : diff < 0 ? 'blue' : 'even';
         byId('lead').setAttribute('aria-label', diff === 0 ? 'Eşya değeri eşit' : diff > 0 ? 'Kırmızı takım önde' : 'Mavi takım önde');
-        byId('lanes').replaceChildren(...(g.lanes || []).map((lane) => {
-          const row = text('div', 'ln' + (lane.mine.me ? ' me' : ''), '');
-          row.title = roles[lane.role] || '';
-          const [red, blue] = mineRed ? [lane.mine, lane.enemy] : [lane.enemy, lane.mine];
-          const d = red.gold - blue.gold;
-          const side = d === 0 ? 'eq' : d > 0 ? 'red' : 'blue';
-          row.append(text('span', 'c l', red.name + ' ' + number.format(red.gold)),
-            text('span', 'c m ' + side, (d > 0 ? '+' : d < 0 ? '−' : '') + number.format(Math.abs(d))),
-            text('span', 'c r', number.format(blue.gold) + ' ' + blue.name));
-          return row;
-        }));
-        byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.guessed ? ' · hatlar tahmini' : '') + (g.priceFallback ? ' · canlı fiyat yedeği' : '');
+        byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.priceFallback ? ' · yerel fiyat' : '');
       }
       let busy = false;
       async function refresh() {
@@ -2172,7 +2157,7 @@ const LOLMOD = (() => {
       + '<span id="lead" class="lead" data-side="even"><span id="ar" aria-hidden="true">•</span><span id="df">0</span></span>'
       + '<span class="total blue"><i class="coin" aria-hidden="true"></i><span id="gr">0</span></span></div>'
       + '<div class="k" aria-label="Takım skoru"><span id="kl" class="red">0</span><i aria-hidden="true">⚔</i><span id="kr" class="blue">0</span></div>'
-      + '<div id="lanes"></div><p class="fine" id="ft"></p></main><script>(' + js + ')();</script></html>';
+      + '<p class="fine" id="ft"></p></main><script>(' + js + ')();</script></html>';
   }
   /* Tab tusu durumu: tek, sabit bir PowerShell sureci GetAsyncKeyState(0x09)'u yoklar (yalniz tus basili/birakildi; tus vurusu kaydedilmez, hicbir yere yazilmaz).
      Yalniz Windows. Betik sabit; disaridan gelen hicbir deger icine girmez. */
