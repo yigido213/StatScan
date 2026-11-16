@@ -1433,7 +1433,7 @@ const LOLMOD = (() => {
     const playerView = (ent, req) => {
       req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const role = ROLES.includes(req.role) ? req.role : null; const off = clamp(Math.round(Number(req.offset)) || 0, 0, 500); const lim = clamp(Math.round(Number(req.limit)) || 20, 1, 50);
       const all = ent.matches.slice().sort((a, b) => b.t - a.t); const lp = playerLpDeltas(all, state.playerLp[ent.lpKey] || []); const byQ = all.filter(mkFilter(q)); const f = role ? byQ.filter((m) => m.role === role) : byQ;
-      return { queue: q, role, total: byQ.length, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), partners: partnerStats(all), rows: byQ.slice(off, off + lim).map((match) => ({ ...match, lpDelta: lp.get(match.id) ?? null })), aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), streak: overview(all, now()).streak };
+      return { queue: q, role, total: byQ.length, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roleChamps: roleChampStats(byQ, lp), roles: roleStats(all), partners: partnerStats(all), rows: byQ.slice(off, off + lim).map((match) => ({ ...match, lpDelta: lp.get(match.id) ?? null })), aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), streak: overview(all, now()).streak };
     };
     /* --- LCU --- */
     const POS_LCU = { top: 'top', jungle: 'jungle', mid: 'middle', bot: 'bottom', support: 'utility' };
@@ -1856,6 +1856,15 @@ const LOLMOD = (() => {
           if (!matches.size && !notes.some((x) => /^maçlar/.test(x))) notes.push('maçlar: istemci boş liste döndürdü (oyuncu geçmişini gizli tutuyor ya da istemci başkasının geçmişini vermiyor olabilir)');
           const ent = { t: now(), rankAt, player, rank, matches: [...matches.values()], details, notes: notes.slice() }; playerKeep(puuid, ent);
           return { state: 'ok', player, rank, cached: false, notes, view: playerView(ent, req.view), counts: { matches: ent.matches.length, details } };
+        } catch (e) { return errE(String(e && e.message || e)); }
+      },
+      /* başka oyuncunun yerelde tutulan derece örnekleri (ağ yok; yalnız özetlenmiş kimlikle saklanan G/M/LP örnekleri); kendi 'lol:lp' ile aynı şekil */
+      'lol:player:lp': async (_e, req) => {
+        try {
+          req = req || {}; const puuid = String(req.puuid || ''); if (!/^[A-Za-z0-9_-]{20,100}$/.test(puuid)) return errE('Oyuncu kimliği geçersiz.');
+          const qq = req.queue === 'flex' ? 'flex' : 'solo'; const key = require('node:crypto').createHash('sha256').update(puuid).digest('hex'); const samples = Array.isArray(state.playerLp[key]) ? state.playerLp[key] : [];
+          const ser = lpSeries(samples, qq); let peak = null; for (const p of ser) if (!peak || p.abs > peak.abs) peak = p;
+          return { queue: qq, points: ser, events: lpEvents(samples, qq).slice(0, 40), peak, current: ser.length ? ser[ser.length - 1] : null, count: ser.length, since: ser.length ? ser[0].t : null };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       /* önbellekteki oyuncunun filtre/sayfa görünümü (ağ yok) */

@@ -940,6 +940,10 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
 .lg-today { background: rgba(21,26,34,.88); border: 1px solid rgba(255,255,255,.065); } .lg-today b { color: #fff; }
 .lg-psearch { padding: 8px 10px; } .lg .lg-plin, .lg-plin { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 10px; }
 .lg-tabs { gap: 4px; border-bottom: 1px solid rgba(255,255,255,.08); padding: 0 2px; }
+.lg-tab[hidden], .lg-hero-back[hidden] { display: none; }
+.lg-hero-back { flex: none; margin-inline-start: auto; white-space: nowrap; }
+.lg-chip.other { border-color: rgba(217,171,75,.55); color: var(--lg-gold2, #f0d27a); }
+@media (max-width: 640px) { .lg-hero.lg-hero-other { flex-wrap: wrap; } .lg-hero-other .lg-hero-back { flex: 1 1 100%; margin-inline-start: 0; } }
 .lg-tab { font: 600 14.5px var(--f-display); padding: 14px 14px 15px; color: #9aa3b4; border-radius: 0; } .lg-tab:hover { color: #fff; }
 .lg-tab[aria-selected="true"] { color: #fff; } .lg-tab[aria-selected="true"]::after { left: 50%; right: auto; width: 22px; margin-left: -11px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--lg-gold); box-shadow: 0 0 12px rgba(217,171,75,.5); }
 .lg .cv-btn { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: var(--ink); border-radius: 10px; } .lg .cv-btn:hover:not(:disabled) { border-color: var(--lg-teal); background: rgba(25,201,224,.1); }
@@ -6620,6 +6624,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Tüm araçlar sabitlendi": "All tools pinned",
       "Rolü belirsiz": "Unknown role",
       "Kendi profilime dön": "Back to my profile",
+      "Başka oyuncunun profili": "Another player's profile",
+      "{0} maç okundu": "{0} matches read",
+      "Yeniden oku": "Read again",
+      "Takım arkadaşları": "Teammates",
+      "Bu oyuncunun birlikte oynadığı kimse yok": "This player has no teammates yet",
+      "Bu oyuncunun LP kaydı, onu ilk okuduğun anda başlar; her yeniden okumada derecesi saklanır. Öncesini League istemcisi vermez.": "This player's LP record starts the first time you read them; their rank is saved on every re-read. The League client does not provide earlier history.",
       "LP kayıt aralığı": "LP record range",
       "Son 20 kayıt": "Last 20 records",
       "Son 60 kayıt": "Last 60 records",
@@ -6733,7 +6743,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Takımda uzun menzilli seçim yok.": "Your team has no long-range pick.",
       "Takımın neredeyse tamamen büyü hasarı; rakip büyü direnci alırsa zorlanırsın.": "Your team is almost all magic damage; you will struggle if the enemy builds magic resist.",
       "Takımın neredeyse tamamen fiziksel hasar; rakip zırh alırsa zorlanırsın.": "Your team is almost all physical damage; you will struggle if the enemy builds armor.",
-      "Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür..": "Teammates appear here once at least one match with player details has been read.",
+      "Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür.": "Teammates appear here once at least one match with player details has been read.",
       "Tekli/Çiftli": "Solo/Duo",
       "Terfi": "Promotion",
       "Terfi serisi": "Promotion series",
@@ -7498,7 +7508,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
   const KT = KL.t;
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.22';
+  const KOVAN_VER = 'beta 0.1.23';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8659,15 +8669,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let autoV = '3'; try { const sv = localStorage.getItem('kovan.lgauto'); if (sv && /^[0-3]$/.test(sv)) autoV = sv; } catch (e) { /* depolama yok */ }
     const copyBtn = h('button', { type: 'button', class: 'lg-linkbtn', id: 'lg-copy', title: KT('Riot Kimliğini kopyala'), 'aria-label': KT('Riot Kimliğini kopyala') });
     copyBtn.append(sv('svg', { viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, sv('path', { d: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7' }), sv('path', { d: 'M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7' })));
-    copyBtn.addEventListener('click', async () => { const me = st.prof && st.prof.me; if (!me || !me.name) return; const t = me.name + (me.tag ? '#' + me.tag : ''); try { await navigator.clipboard.writeText(t); say(KT('Kopyalandı: {0}', t)); } catch (e) { say(KT('Kopyalanamadı.'), true); } });
-    const hero = h('section', { class: 'lg-hero', 'aria-label': 'Profil' }, avaBox, h('div', { class: 'lg-hid' }, nameEl, chipsEl), copyBtn);
+    copyBtn.addEventListener('click', async () => { const me = st.other && st.pl && st.pl.data ? st.pl.data.player : st.prof && st.prof.me; if (!me || !me.name) return; const t = me.name + (me.tag ? '#' + me.tag : ''); try { await navigator.clipboard.writeText(t); say(KT('Kopyalandı: {0}', t)); } catch (e) { say(KT('Kopyalanamadı.'), true); } });
+    /* başka oyuncunun profiline bakarken sağda görünür; kendi profile döndürür */
+    const heroBack = h('button', { type: 'button', class: 'cv-btn lg-hero-back', id: 'lg-back-me', hidden: true, onclick: () => backToMe() }, '← ' + KT('Kendi profilime dön'));
+    const hero = h('section', { class: 'lg-hero', 'aria-label': 'Profil' }, avaBox, h('div', { class: 'lg-hid' }, nameEl, chipsEl), copyBtn, heroBack);
     /* ---- oyuncu arama çubuğu (her sekmede üstte; sonuç 'player' panelinde) ---- */
     const plInp = h('input', { type: 'text', id: 'lg-pl-q', class: 'lg-plin', placeholder: KT('Oyuncu ara: Ad#ETİKET (ör. Faker#KR1)'), 'aria-label': KT('Riot Kimliği'), maxlength: '40', autocomplete: 'off', spellcheck: 'false' });
     const psearch = h('section', { class: 'lg-card lg-psearch', role: 'search', 'aria-label': KT('Oyuncu ara') }, h('div', { class: 'lg-plbar' }, h('span', { class: 'lg-plic', 'aria-hidden': 'true' }, icon('', 0, '⌕')), plInp, btn('lg-pl-go', 'Ara', () => plSearch({ query: plInp.value }), { class: 'cv-btn lg-primary' }), btn('lg-pl-friends', 'Arkadaşlarım', plFriends)), h('div', { id: 'lg-pl-fr' }));
     plInp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); plSearch({ query: plInp.value }); } });
     const TABS = [['overview', 'Genel bakış'], ['champs', 'Şampiyon havuzu'], ['lp', 'LP geçmişi'], ['live', 'Canlı maç'], ['partners', 'Birlikte oynadıklarım'], ['player', 'Oyuncu ara'], ['counter', 'Karşı seçim']]; const panes = {};
+    const SELF_ONLY = new Set(['live', 'counter']); /* başka oyuncuyu görüntülerken kapalı sekmeler: yalnız kendi canlı maçım / havuzum */
     const VTABS = TABS.filter((x) => x[0] !== 'player'); const tabsEl = h('div', { class: 'lg-tabs', role: 'tablist', 'aria-label': 'Bölümler' }, ...VTABS.map(([id, t]) => h('button', { type: 'button', class: 'lg-tab', role: 'tab', id: 'lg-tab-' + id, 'aria-controls': 'lg-pane-' + id, 'aria-selected': 'false', tabindex: '-1', onclick: () => setTab(id) }, t)));
-    tabsEl.addEventListener('keydown', (e) => { const i = VTABS.findIndex((x) => x[0] === st.tab); let j = -1; if (e.key === 'ArrowRight') j = (i + 1) % VTABS.length; else if (e.key === 'ArrowLeft') j = (i + VTABS.length - 1) % VTABS.length; else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = VTABS.length - 1; if (j >= 0) { e.preventDefault(); setTab(VTABS[j][0]); $('#lg-tab-' + VTABS[j][0]).focus(); } });
+    tabsEl.addEventListener('keydown', (e) => { const vis = VTABS.filter((x) => !(st.other && SELF_ONLY.has(x[0]))); const cur = st.tab === 'player' && st.other ? 'overview' : st.tab; const i = vis.findIndex((x) => x[0] === cur); let j = -1; if (e.key === 'ArrowRight') j = (i + 1) % vis.length; else if (e.key === 'ArrowLeft') j = (i + vis.length - 1) % vis.length; else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = vis.length - 1; if (j >= 0) { e.preventDefault(); setTab(vis[j][0]); $('#lg-tab-' + vis[j][0]).focus(); } });
     for (const [id] of TABS) panes[id] = h('div', { class: 'lg-pane', id: 'lg-pane-' + id, role: 'tabpanel', 'aria-labelledby': 'lg-tab-' + id, hidden: true });
     const SCN = { overview: ['ruins', 11], champs: ['jungle', 23], lp: ['abyss', 37], live: ['ember', 41], partners: ['arcane', 53], counter: ['gold', 67] }; const scEls = {};
     const bgEl = h('div', { class: 'lg-bg', 'aria-hidden': 'true' }, ...Object.keys(SCN).map((k) => { scEls[k] = h('div', { class: 'lg-sc sc-' + k }, h('div', { class: 'gl' }), artSvg(SCN[k][0], SCN[k][1]), h('div', { class: 'lg-lattice' })); return scEls[k]; }), h('div', { class: 'lg-mist a' }), h('div', { class: 'lg-mist b' }), h('div', { class: 'lg-vig' }));
@@ -8706,7 +8719,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       for (const [el] of scrollPositions) el.scrollTop = 0;
       matchScreen.querySelector('h1').focus({ preventScroll: true });
     }
-    function setTab(id) { bzxEnter(); st.tab = id; paintScene(id); for (const [k] of TABS) { const on = k === id; panes[k].hidden = !on; const b = $('#lg-tab-' + k); if (b) { b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } } if (location.hash.startsWith('#/lolcounter')) { /* sekme adresi yok; yalniz iç durum */ } load(id); }
+    /* Başka oyuncunun profili: 'Genel bakış' o oyuncunun 'player' paneline gider; yalnız kendime ait sekmeler kapanır. st.other doğruysa st.pl.data doludur. */
+    function markTabs() {
+      const sel = st.tab === 'player' && st.other ? 'overview' : st.tab;
+      for (const [id] of VTABS) { const b = $('#lg-tab-' + id); if (!b) continue; b.hidden = !!(st.other && SELF_ONLY.has(id)); const on = id === sel; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; }
+    }
+    function setTab(id) { bzxEnter(); if (st.other && (id === 'overview' || SELF_ONLY.has(id))) id = 'player'; st.tab = id; paintScene(id); for (const [k] of TABS) panes[k].hidden = k !== id; markTabs(); if (location.hash.startsWith('#/lolcounter')) { /* sekme adresi yok; yalniz iç durum */ } load(id); }
     const load = (id) => ({ overview: drawOverview, live: drawLive, champs: drawChamps, lp: drawLp, partners: drawPartners, player: drawPlayer, counter: drawCounter }[id] || (() => {}))();
     /* ---- Riot API ayari (istemci kapaliyken): anahtar yalniz host'a gider, bir daha geri okunmaz ---- */
     function riotCard() {
@@ -8723,6 +8741,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
     /* ---- profil basligi ---- */
     function drawHero() {
+      const other = st.other && st.pl && st.pl.data ? st.pl.data : null; heroBack.hidden = !other; hero.classList.toggle('lg-hero-other', !!other);
+      if (other) {
+        const pl = other.player;
+        put(nameEl, pl.name || '?', pl.tag ? h('span', { class: 'lg-tag' }, '#' + pl.tag) : null);
+        put(avaBox, icon('profile', pl.icon, pl.name || '?'), pl.level ? h('span', { class: 'lg-lvl' }, String(pl.level)) : null);
+        put(chipsEl, h('span', { class: 'lg-chip other', id: 'lg-other-chip' }, KT('Başka oyuncunun profili')), h('span', { class: 'lg-chip' }, KT('{0} maç okundu', num(other.counts.matches))), other.cached ? h('span', { class: 'lg-chip' }, KT('önbellekten')) : null);
+        todayEl.hidden = true; tiltEl.hidden = true; return;
+      }
       const p = st.prof; const me = p && p.me;
       put(nameEl, me && me.name ? me.name : 'Blitz', me && me.tag ? h('span', { class: 'lg-tag' }, '#' + me.tag) : null);
       put(avaBox, icon('profile', me && me.icon, me && me.name || 'L'), me && me.level ? h('span', { class: 'lg-lvl' }, String(me.level)) : null);
@@ -9082,7 +9108,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
     /* ---- oyuncu ara: başka sihirdarın herkese açık profili (League istemcisi üzerinden, yalnız okuma; veri yalnız bellekte) ---- */
-    st.pl = { q: '', puuid: null, data: null, view: null, rows: [], filt: 'all', busy: false };
+    st.pl = { q: '', puuid: null, data: null, view: null, rows: [], filt: 'all', busy: false }; st.other = false;
+    /* ---- başka oyuncunun profilini kendi profildeki gibi sekmelerle gezme ---- */
+    function applyPlayer(r) { st.pl.data = r; st.pl.puuid = r.player.puuid; st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); st.pl.filt = 'all'; }
+    function enterOther() { st.other = true; markTabs(); drawHero(); }
+    function dropOther() { if (!st.other) return; st.other = false; markTabs(); drawHero(); }
+    function backToMe() {
+      dropOther(); st.pl.data = null; st.pl.view = null; st.pl.rows = []; st.pl.request = null; const res = $('#lg-pl-res', panes.player); if (res) put(res);
+      setTab('overview'); const t = $('#lg-tab-overview'); if (t) t.focus({ preventScroll: true });
+    }
+    /* diğer sekmeler (şampiyonlar, birlikte oynananlar) için önbellekteki oyuncunun görünümü; süresi dolduysa null */
+    async function otherView(queue) { const r = await call(H.lolPlayerView, { puuid: st.pl.puuid, queue: queue || 'all', offset: 0, limit: 1 }); return r && !r.error && r.state === 'ok' ? r.view : null; }
+    function otherGone(pane) { put(pane, h('section', { class: 'lg-card' }, h('p', { class: 'lg-sub warn' }, KT('Sonuç süresi doldu; yeniden ara.')), btn('lg-pl-reread', KT('Yeniden oku'), () => refreshOther()))); }
+    async function refreshOther() {
+      if (st.pl.busy || !st.pl.request) return; st.pl.busy = true; const keep = st.tab; const r = await call(H.lolPlayerSearch, { ...st.pl.request, fresh: true }); st.pl.busy = false;
+      if (!st.other) return; if (!r || r.error || r.state !== 'ok') { say(KT('Oyuncu okunamadı.'), true); return; }
+      applyPlayer(r); drawHero(); if (st.tab === keep) load(keep);
+    }
     function drawPlayer() { if (!$('#lg-pl-res', panes.player)) put(panes.player, h('div', { id: 'lg-pl-res', 'aria-live': 'polite' }, empty(KT('Oyuncu ara'), KT('Yukarıdaki kutuya Riot Kimliğini (Ad#ETİKET) yaz ya da “Arkadaşlarım”dan birini seç. Veriler League istemcisinden okunur (yalnız okuma); sonuç yalnızca bellekte tutulur, diske kaydedilmez.')))); if (st.pl.data) drawPlayerRes(); }
     async function plFriends() {
       const box = $('#lg-pl-fr'); if (!box) return; if (box.firstChild && box.dataset.open === '1') { put(box); box.dataset.open = ''; return; } box.dataset.open = '1'; put(box, h('p', { class: 'lg-sub' }, KT('Okunuyor…'))); const r = await call(H.lolFriends);
@@ -9095,6 +9137,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       if (st.pl.busy) return; if (st.tab !== 'player') setTab('player'); const res = $('#lg-pl-res', panes.player); if (!res) return; st.pl.busy = true; put(res, h('p', { class: 'lg-sub', role: 'status' }, KT('Okunuyor…')));
       st.pl.request = req;
       const r = await call(H.lolPlayerSearch, req); st.pl.busy = false; if (st.tab !== 'player') return; const res2 = $('#lg-pl-res', panes.player); if (!res2) return;
+      if (!(r && !r.error && r.state === 'ok')) dropOther(); /* sonuç yoksa başlık ve sekmeler kendi profile döner */
       if (!r || r.error) { put(res2, h('p', { class: 'lg-sub warn' }, failMsg(r))); return; }
       if (r.state === 'badquery') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Geçerli bir Riot Kimliği yaz (Ad#ETİKET).'))); return; }
       if (r.state === 'noclient' || (r.state !== 'ok' && recordedPlayer && (r.state === 'unavailable' || r.state === 'notfound'))) {
@@ -9108,16 +9151,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       }
       if (r.state === 'notfound') { put(res2, empty(KT('Oyuncu bulunamadı'), KT('Ad ve etiketi kontrol et (büyük/küçük harf fark etmez).'))); return; }
       if (r.state !== 'ok') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Oyuncu okunamadı.'))); return; }
-      st.pl.data = r; st.pl.puuid = r.player.puuid; st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); st.pl.filt = 'all'; drawPlayerRes();
+      applyPlayer(r); enterOther(); drawPlayerRes();
     }
-    async function plFilter(q) { st.pl.filt = q; const r = await call(H.lolPlayerView, { puuid: st.pl.puuid, queue: q, offset: 0 }); if (st.tab !== 'player') return; if (!r || r.error || r.state !== 'ok') { const res = $('#lg-pl-res', panes.player); if (res) put(res, h('p', { class: 'lg-sub warn' }, KT('Sonuç süresi doldu; yeniden ara.'))); st.pl.data = null; return; } st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); drawPlayerRes(); }
+    async function plFilter(q) { st.pl.filt = q; const r = await call(H.lolPlayerView, { puuid: st.pl.puuid, queue: q, offset: 0 }); if (st.tab !== 'player') return; if (!r || r.error || r.state !== 'ok') { const res = $('#lg-pl-res', panes.player); if (res) put(res, h('p', { class: 'lg-sub warn' }, KT('Sonuç süresi doldu; yeniden ara.'))); dropOther(); st.pl.data = null; return; } st.pl.view = r.view; st.pl.rows = r.view.rows.slice(); drawPlayerRes(); }
     async function plMore() { const r = await call(H.lolPlayerView, { puuid: st.pl.puuid, queue: st.pl.filt, offset: st.pl.rows.length }); if (st.tab !== 'player' || !r || r.state !== 'ok') return; st.pl.rows.push(...r.view.rows); drawPlayerRes(); }
     function drawPlayerRes() {
       const res = $('#lg-pl-res', panes.player); if (!res) return; const d = st.pl.data; const v = st.pl.view; if (!d || !v) return; const pl = d.player; const rk = d.rank || {}; const o = v.overview;
       const head = h('section', { class: 'lg-card lg-plhead', id: 'lg-pl-head' }, h('div', { class: 'lg-ava' }, icon('profile', pl.icon, pl.name || '?'), pl.level ? h('span', { class: 'lg-lvl' }, String(pl.level)) : null), h('div', {}, h('h2', { class: 'lg-h' }, pl.name || '?', pl.tag ? h('span', { class: 'lg-tag' }, '#' + pl.tag) : null), h('p', { class: 'lg-sub' }, KT('{0} maç okundu, {1} tanesinin oyuncu ayrıntısı var.', d.counts.matches, d.counts.details) + (d.cached ? ' · ' + KT('önbellekten') : '')), d.counts.matches === 0 && d.notes && d.notes.length ? h('p', { class: 'lg-sub warn', id: 'lg-pl-why' }, KT('Maç geçmişi alınamadı') + ': ' + d.notes.join(' · ')) : null));
-      const myProfile = h('button', { type: 'button', class: 'cv-btn', onclick: () => setTab('overview') }, KT('Kendi profilime dön'));
-      myProfile.style.marginInlineStart = 'auto';
-      head.append(btn('lg-pl-refresh', 'Şimdi güncelle', () => plSearch({ ...st.pl.request, fresh: true })), myProfile);
+      const refresh = btn('lg-pl-refresh', 'Şimdi güncelle', () => plSearch({ ...st.pl.request, fresh: true }));
+      refresh.style.marginInlineStart = 'auto';
+      head.append(refresh);
       const side = h('div', { class: 'lg-side' }, rankCard('solo', KT('Dereceli Tekli/Çiftli'), rk.solo, 'lg-plrank-'), rankCard('flex', KT('Dereceli Esnek'), rk.flex, 'lg-plrank-'),
         h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Diğer kuyruklar')), h('div', { class: 'lg-qrow' }, h('b', {}, 'ARAM'), h('span', {}, KT('{0} G – {1} M · %{2}', v.aram.w, v.aram.l, pct(v.aram.w, v.aram.l)))), h('div', { class: 'lg-qrow' }, h('b', {}, KT('Normal')), h('span', {}, KT('{0} G – {1} M · %{2}', v.normal.w, v.normal.l, pct(v.normal.w, v.normal.l))))),
         h('p', { class: 'rm-hint' }, KT('LP farkı, bu profilin iki derece kaydı arasında tek maç doğrulanırsa görünür. Eski LP değerleri geriye dönük alınamaz.')));
@@ -9133,7 +9176,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
     /* ---- sampiyonlarim ---- */
     async function drawChamps() {
-      st.cq = st.cq || 'all'; const r = await call(H.lolStats, { queue: st.cq }); if (st.tab !== 'champs') return;
+      st.cq = st.cq || 'all'; let r;
+      if (st.other) { const v = await otherView(st.cq); if (st.tab !== 'champs') return; if (!v) { otherGone(panes.champs); return; } r = { roleChamps: v.roleChamps, champs: v.champs }; }
+      else { r = await call(H.lolStats, { queue: st.cq }); if (st.tab !== 'champs') return; }
       const dd = dropdown('lg-cq', KT('Kuyruk'), [['all', 'Tüm kuyruklar'], ['ranked', 'Dereceli'], ['solo', 'Tekli/Çiftli'], ['flex', 'Esnek']], st.cq, (v) => { st.cq = v; drawChamps(); });
       const top = h('div', { class: 'bz-pooltop' }, dd);
       let groups = r && !r.error && r.roleChamps ? r.roleChamps.slice() : [];
@@ -9192,9 +9237,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       return svg;
     }
     async function drawLp() {
-      const queue = st.lpq;
-      const data = await call(H.lolLp, queue);
-      if (st.tab !== 'lp' || st.lpq !== queue) return;
+      const queue = st.lpq; const other = !!st.other;
+      const data = other ? await call(H.lolPlayerLp, { puuid: st.pl.puuid, queue }) : await call(H.lolLp, queue);
+      if (st.tab !== 'lp' || st.lpq !== queue || !!st.other !== other) return;
+      const emptyText = other ? KT('Bu oyuncunun LP kaydı, onu ilk okuduğun anda başlar; her yeniden okumada derecesi saklanır. Öncesini League istemcisi vermez.') : KT('Kayıt, bu aracı ilk kez güncellediğin anda başlar ve her güncellemede dereceni saklar. Öncesini League istemcisi vermez. Dereceli oynadıkça burası dolar.');
+      const emptyBtn = btn('lg-sync3', 'Şimdi güncelle', other ? () => refreshOther() : () => doSync(false), { class: 'cv-btn lg-primary' });
       const dd = dropdown('lg-lpq', KT('Kuyruk'), [['solo', 'Dereceli Tekli/Çiftli'], ['flex', 'Dereceli Esnek']], st.lpq, (v) => { st.lpq = v; drawLp(); });
       const range = dropdown('lg-lprange', KT('LP kayıt aralığı'),
         [['20', 'Son 20 kayıt'], ['60', 'Son 60 kayıt'], ['all', 'Tüm kayıtlar']], st.lpRange || 'all', (value) => {
@@ -9207,15 +9254,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         const points = data.points.slice(-Number(st.lpRange));
         r = { ...data, points, count: points.length, events: data.events.filter((event) => event.t > points[0].t) };
       }
-      if (!r || r.error || !r.count) { put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP geçmişi henüz boş'))), controls), h('div', { class: 'bz-lpbody' }, empty(KT('LP geçmişi henüz boş'), KT('Kayıt, bu aracı ilk kez güncellediğin anda başlar ve her güncellemede dereceni saklar. Öncesini League istemcisi vermez. Dereceli oynadıkça burası dolar.'), btn('lg-sync3', 'Şimdi güncelle', () => doSync(false), { class: 'cv-btn lg-primary' }))))); return; }
+      if (!r || r.error || !r.count) { put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP geçmişi henüz boş'))), controls), h('div', { class: 'bz-lpbody' }, empty(KT('LP geçmişi henüz boş'), emptyText, emptyBtn)))); return; }
       const evs = r.events.length ? h('ul', { class: 'lg-ev', id: 'lg-events' }, ...r.events.map((e) => h('li', { class: e.type }, h('b', {}, e.type === 'up' ? KT('Terfi') : KT('Düşüş')), h('span', {}, tierDiv(e.from.tier, e.from.div) + ' → ' + tierDiv(e.to.tier, e.to.div)), h('span', { class: 'lg-sub' }, dstr(e.t))))) : h('p', { class: 'lg-sub' }, KT('Kayıt süresince lig/kademe değişimi olmadı.'));
       put(panes.lp, h('section', { class: 'lg-card bz-lpcard' }, h('div', { class: 'bz-lphead' }, h('div', {}, h('h2', {}, KT(st.lpq === 'flex' ? 'Dereceli Esnek' : 'Dereceli Tekli/Çiftli') + ' ' + KT('LP geçmişi')), h('p', {}, KT('LP kazanç/kayıp geçmişi: son {0} kayıt', r.count))), controls), h('div', { class: 'bz-lpbody' }, h('div', { class: 'bz-lpart', 'aria-hidden': 'true' }, artSvg('abyss', 91)), bzChart(r)), h('p', { class: 'lg-sub bz-lpnote' }, KT('Kayıt ilk güncellemeden başlar; öncesi istemciden alınamaz.'))), h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Terfi ve düşüşler')), evs));
     }
 
     /* ---- birlikte oynadiklarim ---- */
     async function drawPartners() {
-      const r = await call(H.lolStats, { queue: 'all' }); if (st.tab !== 'partners') return; const pr = r && r.partners; if (!pr || !pr.rows.length) { put(panes.partners, empty(KT('Birlikte oynadığın kimse yok'), KT('Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür.'))); return; }
-      put(panes.partners, h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, KT('Takım arkadaşlarım')), h('p', { class: 'lg-sub' }, KT('{0} maçın {1} tanesinde oyuncu ayrıntısı var; yalnızca bunlar sayıldı.', pr.total, pr.covered)),
+      const mine = !st.other; let pr;
+      if (mine) { const r = await call(H.lolStats, { queue: 'all' }); if (st.tab !== 'partners') return; pr = r && r.partners; }
+      else { const v = await otherView('all'); if (st.tab !== 'partners') return; if (!v) { otherGone(panes.partners); return; } pr = v.partners; }
+      if (!pr || !pr.rows.length) { put(panes.partners, empty(mine ? KT('Birlikte oynadığın kimse yok') : KT('Bu oyuncunun birlikte oynadığı kimse yok'), KT('Tek bir takım arkadaşıyla en az bir maç ayrıntılı okunduğunda burada görünür.'))); return; }
+      put(panes.partners, h('section', { class: 'lg-card' }, h('h2', { class: 'lg-h' }, mine ? KT('Takım arkadaşlarım') : KT('Takım arkadaşları')), h('p', { class: 'lg-sub' }, KT('{0} maçın {1} tanesinde oyuncu ayrıntısı var; yalnızca bunlar sayıldı.', pr.total, pr.covered)),
         h('div', { class: 'lg-tblw' }, h('table', { class: 'lg-table', id: 'lg-ptable' }, h('thead', {}, h('tr', {}, ...['Oyuncu', 'Maç', 'Galibiyet', 'Sık oynadığı', 'Son'].map((t) => h('th', { scope: 'col' }, KT(t))))), h('tbody', {}, ...pr.rows.map((x) => h('tr', {}, h('td', {}, h('div', { class: 'lg-who' }, icon('profile', x.icon, x.name), h('b', {}, x.name || '?', x.tag ? h('span', { class: 'lg-tag' }, ' #' + x.tag) : null))), h('td', {}, String(x.games)), h('td', {}, h('div', { class: 'lg-bar' + (x.wr < 50 ? ' lo' : '') }, h('span', {}, '%' + Math.round(x.wr) + ' (' + x.wins + '–' + (x.games - x.wins) + ')'), h('i', { style: '--w:' + Math.round(x.wr) + '%' }))), h('td', {}, x.top.map(nameOf).join(', ')), h('td', {}, ago(x.last)))))))));
     }
 
@@ -9594,7 +9644,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.6.0', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.7.0', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

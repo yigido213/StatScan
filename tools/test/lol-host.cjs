@@ -450,6 +450,11 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const updatedLp = await HPL['lol:player:search']({ puuid: OP, fresh: true });
     ok(updatedLp.view.rows.find((m) => m.id === '14')?.lpDelta === 19 &&
       updatedLp.view.rows.filter((m) => m.lpDelta !== null).length === 1, 'oyuncu LP: doğrulanan tek maçta +19 görünür');
+    ok(Array.isArray(updatedLp.view.roleChamps) && updatedLp.view.roleChamps.length >= 1 && updatedLp.view.roleChamps[0].champs.some((c) => c.champ === 'Darius'), 'oyuncu görünümü: rol başına şampiyon verisi (roleChamps) döner');
+    const n0 = pcalls.length;
+    const plp = await HPL['lol:player:lp']({ puuid: OP, queue: 'solo' }); ok(!plp.error && plp.count === 2 && plp.points[1].lp === plp.points[0].lp + 19 && plp.current.lp === plp.points[1].lp && plp.since === plp.points[0].t && Array.isArray(plp.events), 'oyuncu LP kanalı: iki okumadaki derece örnekleri (kendi lol:lp ile aynı şekil)');
+    ok((await HPL['lol:player:lp']({ puuid: OP, queue: 'flex' })).count === 1 && (await HPL['lol:player:lp']({ puuid: 'BILINMEYEN_puuid_abcdefghijklmnop' })).count === 0, 'oyuncu LP kanalı: esnek kuyrukta tek örnek; bilinmeyen oyuncuda boş');
+    ok((await HPL['lol:player:lp']({ puuid: 'kötü kimlik!' })).error && pcalls.length === n0, 'oyuncu LP kanalı: geçersiz kimlik reddedilir; hiçbir kanal LCU’ya istek atmaz');
     PG.shift();
     // ---- 'Bu filtrede maç yok' hatası: istemci başkasının geçmişini boş/farklı biçimde döndürürse sessizce 0 maç olmasın
     { const mkP = (matchesReply, rankReply) => { const calls2 = []; const h2 = mkHost({ now: () => T0, lcu: { find: async () => ({ port: 9, token: 'abcdefgh1234' }), get: async (i, pth) => { calls2.push(pth);

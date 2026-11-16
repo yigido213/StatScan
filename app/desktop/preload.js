@@ -115,6 +115,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolStats: (req) => call('lol:stats', { queue: String((req && req.queue) || 'all'), role: req && req.role ? String(req.role) : undefined }),
   lolPlayerSearch: (o) => call('lol:player:search', { query: o && o.query != null ? String(o.query) : undefined, puuid: o && o.puuid != null ? String(o.puuid) : undefined, fresh: !!(o && o.fresh === true), view: { queue: 'all' } }),
   lolPlayerView: (o) => call('lol:player:view', { puuid: String((o && o.puuid) || ''), queue: String((o && o.queue) || 'all'), role: o && o.role ? String(o.role) : undefined, offset: Number(o && o.offset) || 0, limit: Number(o && o.limit) || 20 }),
+  lolPlayerLp: (o) => call('lol:player:lp', { puuid: String((o && o.puuid) || ''), queue: o && o.queue === 'flex' ? 'flex' : 'solo' }),
   lolFriends: () => call('lol:friends'),
   lolBans: (role, limit) => call('lol:bans', { role: String(role), limit: Number(limit) || undefined }),
   lolComp: (allies, enemies) => call('lol:comp', { allies: Array.isArray(allies) ? allies.slice(0, 5).map(String) : [], enemies: Array.isArray(enemies) ? enemies.slice(0, 5).map(String) : [] }),
