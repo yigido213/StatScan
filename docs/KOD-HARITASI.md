@@ -47,6 +47,8 @@ Birlikte oynadıklarım tablosu eşitlemede alınan en güncel profil simgesini 
 
 `app.js` şampiyon seçiminde iki takımı gösteren, odak almayan bir pencereyi oturum başına bir kez açar. Seçim bitince kapanır. Satırlar `lol:lcu` yerel verisinden gelir.
 
+Başka oyuncunun özet maçında kadro eksikse analiz ekranı `lol:player:match` çağırır. Yalnız önbellekteki profil maçlarına izin verilir; ortak yerel kayıt, LCU ayrıntısı ve yapılandırılmış Riot API sırayla denenir.
+
 ## Blitz = eski 'League Asistanı' (LOLMOD + `kovanLol`)
 
 - Maç kartında boş alan içerikleri yaymaz: `.bz-stats` içerik genişliğinde `max-content` sütunlar/14px aralık, `.bz-row` soldan flex/12px aralık, büyü/eşya grubu 12px aralık. Geniş kartta ana bilgi alanı en çok 460px; takım listesi bitişiğinde, kalan yer sağda boş kalır. 701–780px kartlarda orta sütun daralır; ≤700px takımlar alt satıra geçer.

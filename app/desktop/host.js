@@ -1868,6 +1868,50 @@ const LOLMOD = (() => {
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       /* önbellekteki oyuncunun filtre/sayfa görünümü (ağ yok) */
+      'lol:player:match': async (_e, req) => {
+        const id = String(req?.id || '');
+        if (!/^\d{1,15}$/.test(id)) return { state: 'unavailable' };
+        const puuid = String(req?.puuid || '');
+        const entry = playerCache.get(puuid);
+        const index = entry?.matches.findIndex((match) => match.id === id) ?? -1;
+        if (index < 0 || now() - entry.t > PLAYER_TTL) return { state: 'unavailable' };
+        const original = entry.matches[index];
+        const hasTeams = (match) => new Set(match?.players?.map((p) => p.team) || []).size >= 2;
+        if (hasTeams(original)) return { state: 'ok', match: original };
+        const sameRiotId = (player) => {
+          const key = (p) => (p.name + '#' + p.tag).trim().toLowerCase().normalize('NFC');
+          return !!(entry.player.name && entry.player.tag && player.name && player.tag && key(player) === key(entry.player));
+        };
+        const stored = state.matches[id];
+        if (hasTeams(stored)) {
+          const player = stored.players.find((p) => p.puuid === puuid) || stored.players.find(sameRiotId);
+          if (player) {
+            const match = { ...original, partial: false, team: player.team,
+              players: stored.players.map((p) => ({ ...p, me: p === player })) };
+            entry.matches[index] = match;
+            return { state: 'ok', match };
+          }
+        }
+        let match = null;
+        try {
+          const info = await lcuFind();
+          if (info) match = normMatch(await lcuRead(info, '/lol-match-history/v1/games/' + id), puuid, champOf());
+        } catch (e) { /* Riot API yedeği varsa dene */ }
+        if (!hasTeams(match) && riot.key && Date.now() >= riotBlock && entry.player.name && entry.player.tag) {
+          try {
+            const regional = RIOT_REG[riot.region] + '.api.riotgames.com';
+            const mid = riot.region.toUpperCase() + '_' + id;
+            const response = await riotCall(regional, '/lol/match/v5/matches/' + mid);
+            const participants = response?.info?.participants;
+            const player = Array.isArray(participants) && participants.find((p) => p.puuid === puuid ||
+              sameRiotId({ name: p.riotIdGameName, tag: p.riotIdTagline }));
+            if (player?.puuid) match = normMatch(riotGame({ ...response.info, gameId: Number(id) }, player.puuid), player.puuid, champOf());
+          } catch (e) { /* Verilmeyen kadro boş kalır */ }
+        }
+        if (!hasTeams(match) || match.id !== id) return { state: 'unavailable' };
+        entry.matches[index] = match;
+        return { state: 'ok', match };
+      },
       'lol:player:view': async (_e, req) => {
         try { req = req || {}; const ent = playerCache.get(String(req.puuid || '')); if (!ent || now() - ent.t > PLAYER_TTL) return { state: 'expired' }; return { state: 'ok', view: playerView(ent, req) }; } catch (e) { return errE(String(e && e.message || e)); }
       },

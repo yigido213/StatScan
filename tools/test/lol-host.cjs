@@ -428,11 +428,16 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
   { const OP = 'OTHERpuuid_abcdefghijklmnopqrstuvwxyz0123456789'; const pcalls = [];
     const pgm = (id, win, champId, queueId) => ({ gameId: id, gameCreation: T0 - id * 1000, gameDuration: 1800, queueId: queueId || 420, participants: [{ participantId: 1, teamId: 100, championId: champId, stats: { win, kills: 5, deaths: 2, assists: 7, totalMinionsKilled: 180, neutralMinionsKilled: 10, goldEarned: 12000, totalDamageDealtToChampions: 20000, visionScore: 20, champLevel: 16 }, timeline: { lane: 'TOP', role: 'SOLO' } }], participantIdentities: [{ participantId: 1, player: { puuid: OP, gameName: 'Rakip', tagLine: 'TR1' } }] });
     const PG = [pgm(11, true, 122), pgm(12, false, 122), pgm(13, true, 86, 450)]; const FR = [{ puuid: OP, gameName: 'Rakip', gameTag: 'TR1', icon: 5, availability: 'chat' }, { puuid: 'x', gameName: 'Bozuk' }, { puuid: 'FRIEND_puuid_abcdefghijklmnopqrstuvwxyz012', gameName: 'Cevrimdisi', gameTag: 'EUW', availability: 'offline' }];
-    let profileTime = T0 + 2000000; let profileRank = RANK;
+    let profileTime = T0 + 2000000; let profileRank = RANK; let onDemandRoster = false;
     const pl = mkHost({ now: () => profileTime, lcu: { find: async () => ({ port: 9, token: 'abcdefgh1234' }), get: async (i, pth) => { pcalls.push(pth);
       if (pth.startsWith('/lol-summoner/v1/alias/lookup')) { if (/gameName=Rakip&tagLine=TR1$/i.test(pth)) return { puuid: OP, gameName: 'Rakip', tagLine: 'TR1' }; throw new Error('HTTP 404'); }
       if (pth.startsWith('/lol-summoner/v1/summoners?name=')) throw new Error('HTTP 404'); if (pth.endsWith('/' + OP) && pth.includes('summoners-by-puuid-cached')) return { gameName: 'Rakip', tagLine: 'TR1', summonerLevel: 77, profileIconId: 5 };
-      if (pth === '/lol-ranked/v1/ranked-stats/' + OP) return profileRank; if (pth.includes('/products/lol/' + OP + '/matches')) return { games: { games: PG } }; if (pth === '/lol-chat/v1/friends') return FR; if (/games\/\d+$/.test(pth)) throw new Error('HTTP 404'); return null; } } }, path.join(tmp, 'player')); const HPL = pl.handlers; await HPL['lol:status']();
+      if (pth === '/lol-ranked/v1/ranked-stats/' + OP) return profileRank; if (pth.includes('/products/lol/' + OP + '/matches')) return { games: { games: PG } }; if (pth === '/lol-chat/v1/friends') return FR; if (onDemandRoster && pth.endsWith('/games/11')) {
+        const fullMatch = pgm(11, true, 122);
+        fullMatch.participants.push({ participantId: 2, teamId: 200, championId: 86, stats: {} });
+        fullMatch.participantIdentities.push({ participantId: 2, player: { gameName: 'Rakip2' } });
+        return fullMatch;
+      } if (/games\/\d+$/.test(pth)) throw new Error('HTTP 404'); return null; } } }, path.join(tmp, 'player')); const HPL = pl.handlers; await HPL['lol:status']();
     ok((await HPL['lol:player:search']({ query: 'abc' })).state === 'badquery' && !pcalls.length, 'oyuncu ara: geçersiz kimlik → badquery, istemciye istek yok');
     ok((await HPL['lol:player:search']({ query: 'Yok#TR1' })).state === 'notfound', 'oyuncu ara: bulunamayan oyuncu → notfound');
     const ps = await HPL['lol:player:search']({ query: 'rakip#tr1' }); ok(ps.state === 'ok' && ps.player.name === 'Rakip' && ps.player.level === 77 && ps.rank.solo.tier === 'PLATINUM' && ps.counts.matches === 3 && ps.view.overview.games === 3 && ps.view.rows.length === 3 && ps.view.rows[0].champ === 'Darius', 'oyuncu ara: profil, derece, 3 maç, istatistikler');
@@ -456,6 +461,13 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     ok((await HPL['lol:player:lp']({ puuid: OP, queue: 'flex' })).count === 1 && (await HPL['lol:player:lp']({ puuid: 'BILINMEYEN_puuid_abcdefghijklmnop' })).count === 0, 'oyuncu LP kanalı: esnek kuyrukta tek örnek; bilinmeyen oyuncuda boş');
     ok((await HPL['lol:player:lp']({ puuid: 'kötü kimlik!' })).error && pcalls.length === n0, 'oyuncu LP kanalı: geçersiz kimlik reddedilir; hiçbir kanal LCU’ya istek atmaz');
     PG.shift();
+    onDemandRoster = true;
+    const details = await HPL['lol:player:match']({ puuid: OP, id: '11' });
+    ok(details.state === 'ok' && details.match.players.length === 2 && details.match.players[0].me,
+      'oyuncu maç analizi: önbellekteki özet maça tıklanınca iki takım tamamlanır');
+    const beforeUnknownMatch = pcalls.length;
+    ok((await HPL['lol:player:match']({ puuid: OP, id: '9999' })).state === 'unavailable' && pcalls.length === beforeUnknownMatch,
+      'oyuncu maç analizi: profilde olmayan maç için istek gönderilmez');
     // ---- 'Bu filtrede maç yok' hatası: istemci başkasının geçmişini boş/farklı biçimde döndürürse sessizce 0 maç olmasın
     { const mkP = (matchesReply, rankReply) => { const calls2 = []; const h2 = mkHost({ now: () => T0, lcu: { find: async () => ({ port: 9, token: 'abcdefgh1234' }), get: async (i, pth) => { calls2.push(pth);
         if (pth.startsWith('/lol-summoner/v1/summoners-by-puuid-cached')) return { gameName: 'Rakip', tagLine: 'TR1', summonerLevel: 77, profileIconId: 5 };

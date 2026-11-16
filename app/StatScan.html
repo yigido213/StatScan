@@ -6638,6 +6638,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Eski maçlar aranıyor…": "Looking for older matches…",
       "Eski maçlar: {0} yeni kayıt eklendi.": "Older matches: {0} records added.",
       "Başka eski maç bulunamadı.": "No additional older matches found.",
+      "Takım kadroları yükleniyor…": "Loading team rosters…",
       "Maç geçmişine dön": "Back to match history",
       "{0} profilini aç": "Open {0} profile",
       "Tam profili görmek için League istemcisini aç.": "Open the League client to see the full profile.",
@@ -8718,6 +8719,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       matchScreen.onkeydown = (event) => { if (event.key === 'Escape') { event.stopPropagation(); close(); } };
       for (const [el] of scrollPositions) el.scrollTop = 0;
       matchScreen.querySelector('h1').focus({ preventScroll: true });
+      if (st.tab === 'player' && st.pl.puuid && new Set(m.players?.map((p) => p.team) || []).size < 2 && H.lolPlayerMatch) {
+        const detail = matchScreen.lastElementChild;
+        const status = detail.querySelector('.bz-compare-missing');
+        if (status) { status.setAttribute('role', 'status'); status.textContent = KT('Takım kadroları yükleniyor…'); }
+        call(H.lolPlayerMatch, { id: m.id, puuid: st.pl.puuid }).then((result) => {
+          if (matchScreen.hidden || back.parentElement !== matchScreen) return;
+          if (result?.state === 'ok' && result.match) {
+            detail.replaceWith(matchDetails({ ...result.match, lpDelta: m.lpDelta }, openProfile));
+          } else if (status) status.textContent = KT('Bu maç için iki takımın kadro verisi bulunmuyor.');
+        });
+      }
     }
     /* Başka oyuncunun profili: 'Genel bakış' o oyuncunun 'player' paneline gider; yalnız kendime ait sekmeler kapanır. st.other doğruysa st.pl.data doludur. */
     function markTabs() {
@@ -8873,7 +8885,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           }, request ? profileButton(displayName) : h('span', {}, displayName), p.role ? h('small', {}, KT(RTR[p.role] || p.role)) : null, extra ? h('small', { class: 'bz-player-extra' }, extra) : null), h('span', { class: 'bz-player-kda', title: KT('KDA') }, kda), h('span', { class: 'bz-player-cs', title: KT('Minyon') }, cs), playerChoices, h('span', { class: 'bz-player-items', 'aria-label': KT('Eşyalar') }, ...items.slice(0, 7).map((it) => icon('item', it, '·'))));
         }));
       });
-      const note = players.length < 2 ? h('p', { class: 'bz-compare-missing' }, KT('Bu maç için iki takımın kadro verisi bulunmuyor.')) : null;
+      const note = sides.length < 2 ? h('p', { class: 'bz-compare-missing' }, KT('Bu maç için iki takımın kadro verisi bulunmuyor.')) : null;
       const result = m.remake ? KT('Yeniden') : m.win ? KT('Zafer') : KT('Yenilgi');
       const summary = [result, KT(QN[m.queue] || 'Diğer'), mmss(m.dur), ago(m.t)].join(' · ');
       const heading = h('header', { class: 'bz-screen-head' }, champIc(m.champ), h('div', {},
@@ -9644,7 +9656,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.7.0', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.7.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

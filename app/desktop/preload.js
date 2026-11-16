@@ -114,6 +114,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolMatches: (req) => call('lol:matches', { queue: String((req && req.queue) || 'all'), offset: Number(req && req.offset) || 0, limit: Number(req && req.limit) || 20 }),
   lolStats: (req) => call('lol:stats', { queue: String((req && req.queue) || 'all'), role: req && req.role ? String(req.role) : undefined }),
   lolPlayerSearch: (o) => call('lol:player:search', { query: o && o.query != null ? String(o.query) : undefined, puuid: o && o.puuid != null ? String(o.puuid) : undefined, fresh: !!(o && o.fresh === true), view: { queue: 'all' } }),
+  lolPlayerMatch: (o) => call('lol:player:match', { id: String(o?.id || '').slice(0, 16), puuid: String(o?.puuid || '').slice(0, 101) }),
   lolPlayerView: (o) => call('lol:player:view', { puuid: String((o && o.puuid) || ''), queue: String((o && o.queue) || 'all'), role: o && o.role ? String(o.role) : undefined, offset: Number(o && o.offset) || 0, limit: Number(o && o.limit) || 20 }),
   lolPlayerLp: (o) => call('lol:player:lp', { puuid: String((o && o.puuid) || ''), queue: o && o.queue === 'flex' ? 'flex' : 'solo' }),
   lolFriends: () => call('lol:friends'),
