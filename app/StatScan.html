@@ -889,7 +889,9 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .lg-dd-opt:hover, .lg-dd-opt.act, .lg-ac-opt:hover, .lg-ac-opt.act { background: var(--accent-soft); color: var(--lg-gold2); } .lg-dd-opt.sel { color: var(--lg-gold2); font-weight: 700; } .lg-dd-opt b { color: var(--lg-teal); } .lg-ac-opt .lg-ic { width: 28px; height: 28px; border-radius: 8px; flex: none; }
 .lg-livehead .lg-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--lg-loss); margin-right: 10px; box-shadow: 0 0 10px var(--lg-loss); } .lg-live2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .lg-h3 { font-size: 15px; color: var(--lg-gold2); margin: 8px 0; }
 .lg-lpl, .lg-bestl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-lv { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: rgba(5,8,16,.45); } .lg-lv.me { border-color: var(--lg-teal); } .lg-lv.en { border-color: color-mix(in srgb, var(--lg-loss) 35%, var(--line)); }
-.lg-lv .lg-ic { width: 40px; height: 40px; border-radius: 10px; } .lg-lpn b, .lg-lpn small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lg-lpn small { color: var(--muted); font-size: 12px; }
+.lg-lv .lg-ic { width: 40px; height: 40px; border-radius: 10px; } .lg-lpn b, .lg-lpn small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lg-live-profile { max-width: 100%; }
+.lg-live-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-lpn small { color: var(--muted); font-size: 12px; }
 .lg-rolebadge { display: inline-flex; flex-direction: column; align-items: flex-end; font-size: 12.5px; color: var(--muted); } .lg-rolebadge.sure { color: var(--lg-teal); } .lg-rolebadge i { font-style: normal; font-size: 11px; opacity: .85; } .lg-sp { grid-column: 2 / 4; display: flex; gap: 6px; flex-wrap: wrap; } .lg-lv .lg-sp .lg-ic { width: 25px; height: 25px; border-radius: 5px; }
 .lg-vs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; } .lg-vs > div { display: flex; align-items: center; gap: 10px; } .lg-vs .lg-ic { width: 52px; height: 52px; border-radius: 12px; } .lg-vs span { color: var(--lg-gold); font: 700 14px var(--f-display); }
 .lg-isec { margin-top: 12px; } .lg-iwhy { list-style: none; margin: 4px 0 8px; padding: 0; font-size: 13.5px; opacity: .85; } .lg-ilist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; } .lg-ilist li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); } .lg-ilist .lg-ic { width: 34px; height: 34px; border-radius: 9px; flex: none; } .lg-ilist small { margin-left: auto; opacity: .75; } .lg-ilist li.lo { opacity: .6; } .lg-muhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; } .lg-muhead .lg-h { margin: 0; } .lg-notebox { margin-top: 14px; } .lg .lg-note { width: 100%; box-sizing: border-box; min-height: 72px; resize: vertical; background: rgba(5,8,16,.72); color: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; } .lg-ov { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); } .lg-muurl .rm-row { flex-wrap: wrap; } #lg-mu-url { min-width: 240px; flex: 1 1 240px; max-width: 520px; }
@@ -6639,6 +6641,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Eski maçlar: {0} yeni kayıt eklendi.": "Older matches: {0} records added.",
       "Başka eski maç bulunamadı.": "No additional older matches found.",
       "Takım kadroları yükleniyor…": "Loading team rosters…",
+      "Profilini açmak için oyuncunun Riot etiketini tamamla.": "Enter the player’s Riot tag to open their profile.",
       "Maç geçmişine dön": "Back to match history",
       "{0} profilini aç": "Open {0} profile",
       "Tam profili görmek için League istemcisini aç.": "Open the League client to see the full profile.",
@@ -9052,7 +9055,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         const [id, label] = LIVE_SPELL_ICONS[key];
         return [icon('spell', id, KT(label))];
       });
-      return h('li', { class: 'lg-lv' + (x.me ? ' me' : '') + (enemy ? ' en' : ''), 'data-champ': x.champ || '' }, champIc(x.champ), h('div', { class: 'lg-lpn' }, h('b', {}, x.champ ? nameOf(x.champ) : '?'), h('small', {}, (x.name || '') + (x.me ? ' · ' + KT('sen') : '') + (x.level ? ' · ' + KT('sv. {0}', x.level) : ''))),
+      const identity = x.name + (x.tag ? '#' + x.tag : '');
+      const canOpen = !x.bot && (x.me || x.name);
+      const open = () => {
+        if (x.me) { backToMe(); return; }
+        plInp.value = x.name + '#' + (x.tag || '');
+        if (x.tag) plSearch({ query: plInp.value }, x);
+        else { say(KT('Profilini açmak için oyuncunun Riot etiketini tamamla.')); plInp.focus(); }
+      };
+      const link = (content, cls) => h('button', {
+        type: 'button', class: 'bz-player-profile lg-live-profile ' + cls,
+        'aria-label': KT('{0} profilini aç', identity), title: KT('{0} profilini aç', identity), onclick: open
+      }, content);
+      const portrait = champIc(x.champ);
+      return h('li', { class: 'lg-lv' + (x.me ? ' me' : '') + (enemy ? ' en' : ''), 'data-champ': x.champ || '' },
+        canOpen ? link(portrait, 'bz-player-portrait') : portrait,
+        h('div', { class: 'lg-lpn' }, h('b', {}, x.champ ? nameOf(x.champ) : '?'),
+          h('small', {}, canOpen && x.name ? link(x.name, 'lg-live-name') : (x.name || ''), (x.me ? ' · ' + KT('sen') : '') + (x.level ? ' · ' + KT('sv. {0}', x.level) : ''))),
         x.role ? h('span', { class: 'lg-rolebadge' + (sure ? ' sure' : '') }, KT(RTR[x.role]), h('i', {}, x.known ? KT('oyun verdi') : KT('tahmin %{0}', rp))) : null,
         spells.length ? h('span', { class: 'lg-sp' }, ...spells) : null);
     }
@@ -9080,7 +9099,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         r.classic ? h('p', { class: 'rm-hint' }, KT('Hatlar TAHMİNDİR: oyunun verdiği hat varsa o kullanılır; yoksa şampiyon türü ve büyüler (ör. Çarp = Orman) ile hesaplanır. Meta verisiyle kalibre değildir.')) : null);
       const key = JSON.stringify([r.mode, r.me?.name, r.lane, ...r.allies.concat(r.enemies).map((p) => [p.name, p.champ])]);
       const previous = $('.lg-livehead.on', panes.live);
-      if (previous && liveKey === key) previous.replaceWith(head);
+      if (previous && liveKey === key) {
+        if (!document.activeElement?.closest('.lg-live-profile') || !previous.contains(document.activeElement)) previous.replaceWith(head);
+      }
       else { put(panes.live, head); liveKey = key; liveAdviceAt = 0; }
       if (!liveAdvice && (!quiet || Date.now() - liveAdviceAt >= 15000)) {
         liveAdviceAt = Date.now();
@@ -9656,7 +9677,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.7.1', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.7.2', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};
