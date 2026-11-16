@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- HOTFIX: Tab göstergesinde oyuncu eşya altını ve koridor farkları skor tahtası satırlarında sayısal rozetlerle gösterilir. Blitz 0.8.3 — Codex: bitti.
 - HOTFIX: Tab altın göstergesi skor tahtası üstünde ortalanmış kompakt şeride taşındı. Blitz 0.8.2 — Codex: bitti.
 - HOTFIX: Tab eşya altını tam alış fiyatıyla hesaplanır; koridor farkı kırmızı toplam eksi mavi toplam. Blitz 0.8.1 — Codex: bitti.
 - Blitz Tab eşya altını göstergesi: kırmızı/mavi toplam, öndeki taraf oku ve fark, skor ve hat satırları. Blitz 0.8.0 — Codex: bitti.

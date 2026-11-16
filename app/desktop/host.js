@@ -2111,14 +2111,49 @@ const LOLMOD = (() => {
       #ar{font-size:8px;margin-right:2px}#df{font-size:12px}
       .k{display:grid;grid-template-columns:1fr auto 1fr;justify-items:center;align-items:center;gap:6px;margin:3px auto 4px;width:90px;font-size:17px;font-weight:800}
       .k i{color:#c8aa6e;font-style:normal;font-size:12px}
+      .players{--red:#ff604a;--blue:#56b9ff;position:absolute;inset:122px 0 0;display:grid;grid-template-rows:repeat(5,minmax(0,1fr))}
+      .players[hidden]{display:none}
+      .player-row{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);align-items:center;justify-items:center;padding:0 17px 12px;min-height:0}
+      .player-gold,.player-diff{padding:1px 5px;border:1px solid #a4864a88;border-radius:4px;background:#071b22eb;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;line-height:16px;white-space:nowrap}
+      .player-diff{font-size:11px}.player-diff.even{color:#a9b8c2}
       .fine{margin:0;color:#adc0c3;font-size:9px;text-align:center}
     `;
     const js = (function () {
       const host = window.statscanHost;
       const byId = (id) => document.getElementById(id);
       const number = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
+      const lanes = ['top', 'jungle', 'mid', 'bot', 'support'];
+      function drawPlayers(g, mineRed) {
+        const list = byId('players');
+        const pairs = new Map((g?.lanes || []).map((lane) => [lane.role, lane]));
+        list.hidden = pairs.size === 0;
+        if (list.hidden) { list.replaceChildren(); return; }
+        const badge = (cls, value, label) => {
+          const node = document.createElement('span');
+          node.className = cls;
+          node.textContent = value;
+          node.setAttribute('aria-label', label);
+          return node;
+        };
+        list.replaceChildren(...lanes.map((role) => {
+          const row = document.createElement('div');
+          row.className = 'player-row';
+          row.dataset.role = role;
+          const pair = pairs.get(role);
+          if (!pair) return row;
+          const [red, blue] = mineRed ? [pair.mine, pair.enemy] : [pair.enemy, pair.mine];
+          const diff = red.gold - blue.gold;
+          row.append(
+            badge('player-gold red', number.format(red.gold), red.name + ': ' + number.format(red.gold)),
+            badge('player-diff ' + (diff > 0 ? 'red' : diff < 0 ? 'blue' : 'even'),
+              (diff > 0 ? '◀ ' : diff < 0 ? '▶ ' : '') + number.format(Math.abs(diff)), 'Eşya altını farkı'),
+            badge('player-gold blue', number.format(blue.gold), blue.name + ': ' + number.format(blue.gold))
+          );
+          return row;
+        }));
+      }
       function draw(g) {
-        if (g?.state !== 'ok') { byId('top').className = 'off'; return; }
+        if (g?.state !== 'ok') { byId('top').className = 'off'; drawPlayers(null, false); return; }
         byId('top').className = '';
         const mineRed = g.mySide === 'red';
         const [left, right] = mineRed ? [g.mine, g.enemy] : [g.enemy, g.mine];
@@ -2135,6 +2170,7 @@ const LOLMOD = (() => {
         byId('ar').textContent = diff > 0 ? '◀' : diff < 0 ? '▶' : '•';
         byId('lead').dataset.side = diff > 0 ? 'red' : diff < 0 ? 'blue' : 'even';
         byId('lead').setAttribute('aria-label', diff === 0 ? 'Eşya değeri eşit' : diff > 0 ? 'Kırmızı takım önde' : 'Mavi takım önde');
+        drawPlayers(g, mineRed);
         byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.priceFallback ? ' · yerel fiyat' : '');
       }
       let busy = false;
@@ -2157,7 +2193,7 @@ const LOLMOD = (() => {
       + '<span id="lead" class="lead" data-side="even"><span id="ar" aria-hidden="true">•</span><span id="df">0</span></span>'
       + '<span class="total blue"><i class="coin" aria-hidden="true"></i><span id="gr">0</span></span></div>'
       + '<div class="k" aria-label="Takım skoru"><span id="kl" class="red">0</span><i aria-hidden="true">⚔</i><span id="kr" class="blue">0</span></div>'
-      + '<p class="fine" id="ft"></p></main><script>(' + js + ')();</script></html>';
+      + '<p class="fine" id="ft"></p></main><div class="players" id="players" aria-label="Oyuncu eşya altını" hidden></div><script>(' + js + ')();</script></html>';
   }
   /* Tab tusu durumu: tek, sabit bir PowerShell sureci GetAsyncKeyState(0x09)'u yoklar (yalniz tus basili/birakildi; tus vurusu kaydedilmez, hicbir yere yazilmaz).
      Yalniz Windows. Betik sabit; disaridan gelen hicbir deger icine girmez. */

@@ -246,17 +246,18 @@ function start(ctx) {
   let gWin = null; let gTab = null; let gTimer = null;
   function closeGold() { if (gTab) { try { gTab.stop(); } catch (e) { /* yoksay */ } gTab = null; } if (gWin && !gWin.isDestroyed()) { try { gWin.close(); } catch (e) { /* yoksay */ } } gWin = null; }
   const GOLD_WIDTH = 302;
-  const GOLD_HEIGHT = 122;
-  function goldPosition() {
+  const GOLD_HEADER_HEIGHT = 122;
+  function goldBounds() {
     const { screen } = require('electron');
     const { bounds } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-    return [Math.round(bounds.x + (bounds.width - GOLD_WIDTH) / 2),
-      Math.round(bounds.y + Math.max(8, bounds.height * 0.25 - GOLD_HEIGHT))];
+    const rowHeight = Math.round(Math.max(34, bounds.height * 0.056));
+    return { width: GOLD_WIDTH, height: GOLD_HEADER_HEIGHT + rowHeight * 5,
+      x: Math.round(bounds.x + (bounds.width - GOLD_WIDTH) / 2),
+      y: Math.round(bounds.y + Math.max(8, bounds.height * 0.25 - GOLD_HEADER_HEIGHT)) };
   }
   function openGold() {
     const { BrowserWindow } = require('electron'); const { lolModule } = require('./host.js');
-    const [x, y] = goldPosition();
-    gWin = new BrowserWindow({ width: GOLD_WIDTH, height: GOLD_HEIGHT, x, y, frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
+    gWin = new BrowserWindow({ ...goldBounds(), frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: false, backgroundThrottling: false } });
     try { gWin.setAlwaysOnTop(true, 'screen-saver'); } catch (e) { /* yoksay */ } try { gWin.setIgnoreMouseEvents(true); } catch (e) { /* yoksay */ }
     gWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' })); gWin.webContents.on('will-navigate', (ev) => ev.preventDefault()); gWin.on('closed', () => { gWin = null; });
@@ -269,7 +270,7 @@ function start(ctx) {
       try { const cfg = await host.handlers['lol:gold:get'](null); if (!cfg || !cfg.on) { closeGold(); return; }
         const g = await host.handlers['lol:gold'](null); if (!g || g.state !== 'ok') { closeGold(); return; }
         if (!gWin || gWin.isDestroyed()) openGold();
-        if (!gTab) gTab = lolModule.createTabWatcher({ onChange: (d) => { try { if (!gWin || gWin.isDestroyed()) return; if (d) { gWin.setPosition(...goldPosition()); gWin.showInactive(); } else gWin.hide(); } catch (e) { /* yoksay */ } } });
+        if (!gTab) gTab = lolModule.createTabWatcher({ onChange: (d) => { try { if (!gWin || gWin.isDestroyed()) return; if (d) { gWin.setBounds(goldBounds()); gWin.showInactive(); } else gWin.hide(); } catch (e) { /* yoksay */ } } });
         gTab.start();
       } catch (e) { closeGold(); } finally { busy = false; }
     }, 5000);
