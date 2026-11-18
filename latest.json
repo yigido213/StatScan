@@ -1,6 +1,6 @@
 {
-  "version": "5.0.25",
-  "url": "StatScan-5.0.25.ssu",
-  "sha256": "83f1d0bfefc17bd935852529d0c9b6936c37cc3ad724e7fd35dc7d6f3e786a77",
-  "notes": "5.0.25 — Geçiş paketi (Kovan beta 0.1.12 kalır): bundan sonra güncellemeler doğrudan GitHub deposundan indirilir (REPOMOD); latest.json/.ssu artık gerekmez."
+  "version": "5.0.26",
+  "url": "StatScan-5.0.26.ssu",
+  "sha256": "704c2b562d120bdef4064ea115617ee882026e0d325e53e2273e68ad5310f3ce",
+  "notes": "HOTFIX — Kovan kehribar teması, yerel yazı tipleri ve arayüz etkileşimleri."
 }
