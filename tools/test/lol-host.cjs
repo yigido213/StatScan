@@ -232,17 +232,37 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const dir = path.join(tmp, 'pool-roles');
     fs.mkdirSync(dir);
     const base = L.normMatch(GAMES[0], 'P-ME', String);
+    const players = [
+      { champ: 'Darius', role: 'jungle', me: true },
+      { champ: 'Zed', role: 'jungle' },
+      { champ: 'Ahri', role: 'mid' },
+      { champ: 'Jinx', role: 'bot' },
+      { champ: 'Lux', role: 'support' }
+    ].map((p) => ({ ...p, team: base.team }));
     const cases = [
-      { role: 'support' }, { role: 'bot' }, { role: 'mid' },
-      { role: 'jungle', spells: [4, 11] }, { role: 'jungle', spells: [11, 4] }, { role: 'top' },
-      { role: 'jungle', champ: 'Kayle' }, { role: 'top', queue: 'aram', champ: 'Kayle' }
+      { role: 'bot', champ: 'Lux', items: [3865] }, { role: 'bot', champ: 'Jinx' }, { role: 'mid', champ: 'Ahri' },
+      { role: null, spells: [4, 11] }, { role: 'jungle', spells: [11, 4] },
+      { role: 'jungle', spells: [4, 12], positionConfirmed: true },
+      { role: 'jungle', spells: [4, 12], players: players.map((p) => p.champ === 'Zed' ? { ...p, spells: [11, 4] } : p) },
+      { role: 'jungle', players },
+      { role: 'support', queue: 'aram', champ: 'Ahri' },
+      { role: 'top', remake: true }
     ];
-    const matches = Object.fromEntries(cases.map((entry, i) => [i, { ...base, id: String(i), spells: [4, 12], ...entry }]));
+    const matches = Object.fromEntries(cases.map((entry, i) => [i, { ...base, id: String(i), champ: 'Darius', spells: null, players: [], ...entry }]));
     fs.writeFileSync(path.join(dir, 'lolcounter.json'), JSON.stringify({ v: 1, matches }));
-    const result = await mkHost({}, dir).handlers['lol:stats']({ queue: 'all' });
-    ok(JSON.stringify(result.roleChamps.map((group) => group.role)) === JSON.stringify(['top', 'jungle', 'mid', 'bot', 'support', null]) &&
-      result.roleChamps[1].games === 2 && result.roleChamps[5].champs[0].champ === 'Kayle' && result.roleChamps[5].games === 2,
-      'havuz: sabit rol sırası, Çarpsız eski orman ve ARAM yanlış koridora yazılmaz');
+    const host = mkHost({}, dir).handlers;
+    await host['lol:status']();
+    const result = await host['lol:stats']({ queue: 'all' });
+    const [top, jungle, mid, bot, support] = result.roleChamps;
+    ok(result.roleChamps.map((group) => group.role).join() === 'top,jungle,mid,bot,support' &&
+      result.roleChamps.reduce((sum, group) => sum + group.games, 0) === 9,
+      'havuz: sabit rol sırası, her geçerli maç tek grupta');
+    ok(top.champs[0].champ === 'Darius' && top.games === 2 && top.champs[0].inferred === 2 &&
+      jungle.champs[0].champ === 'Darius' && jungle.games === 3 && jungle.champs[0].inferred === 1,
+      'havuz: eski çift orman kaydı takım dizilimiyle çözülür, Çarp ve doğrulanmış rol korunur');
+    ok(mid.champs[0].champ === 'Ahri' && mid.champs[0].inferred === 1 &&
+      bot.champs[0].champ === 'Jinx' && support.champs[0].champ === 'Lux' && support.champs[0].inferred === 1,
+      'havuz: ARAM şampiyonun normal rolünde, destek eşyası ADC etiketini düzeltir');
   }
   const stRanked = await HP['lol:stats']({ queue: 'ranked' }); ok(stRanked.overview.games === 4 && stRanked.overview.streak.win === false && stRanked.overview.streak.n === 1, 'istatistik: dereceli filtre (solo+flex 4 maç, son maç yenilgi serisi 1)');
   const dc = sx.champs.find((c) => c.champ === 'Darius'); ok(dc.games === 4 && dc.wins === 2 && dc.wr === 50 && sx.champs[0].champ === 'Darius' && sx.champs.find((c) => c.champ === 'Garen').games === 1, 'şampiyon performansı: Darius 4 maç %50, Garen 1');

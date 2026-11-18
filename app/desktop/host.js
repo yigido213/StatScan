@@ -1101,22 +1101,79 @@ const LOLMOD = (() => {
   }
   /* Blitz 'Sampiyon havuzu': hat basina sampiyonlar (galibiyet, KDA) + yalniz KESIN hesaplanan LP farklarinin toplami (bilinmiyorsa lp:null) */
   const POSITION_QUEUES = new Set(['solo', 'flex', 'draft', 'blind', 'swift', 'quick', 'clash', 'custom']);
-  function poolRole(match) {
-    if (!POSITION_QUEUES.has(match.queue) || !ROLES.includes(match.role)) return null;
-    if (match.positionConfirmed) return match.role;
-    const spells = match.spells || match.players?.find((player) => player?.me)?.spells;
-    // Legacy timeline roles can mislabel lanes. Only trust a jungle label with Smite,
-    // and never use Smite alone to move a match into a different role.
-    const hasSmite = Array.isArray(spells) && spells.includes(11);
-    if ((match.role === 'jungle') !== hasSmite) return null;
-    return match.role;
+  const SUPPORT_QUEST_ITEMS = new Set([3850, 3851, 3853, 3854, 3855, 3857, 3858, 3859, 3860, 3862, 3863, 3864, 3865, 3866, 3867, 3869, 3870, 3871, 3876, 3877]);
+  const SPELL_HINTS = { 3: 'Exhaust', 7: 'Heal', 12: 'Teleport', 14: 'Ignite', 21: 'Barrier' };
+  const hasBothSpells = (player) => Array.isArray(player.spells) && player.spells.length === 2 && player.spells.every(Boolean);
+  function poolRoleSignal(player) {
+    if (player.positionConfirmed && ROLES.includes(player.role)) return player.role;
+    if (Array.isArray(player.spells) && player.spells.includes(11)) return 'jungle';
+    if (Array.isArray(player.items) && player.items.some((id) => SUPPORT_QUEST_ITEMS.has(id))) return 'support';
+    return null;
   }
-  function roleChampStats(ms, delta) {
+  function poolRoleWeights(player, champions) {
+    const w = roleWeights(champions.get(player.champ), {
+      summonerSpells: {
+        summonerSpellOne: { rawDisplayName: SPELL_HINTS[player.spells?.[0]] },
+        summonerSpellTwo: { rawDisplayName: SPELL_HINTS[player.spells?.[1]] }
+      }
+    });
+    const signal = poolRoleSignal(player);
+    if (signal) w[signal] *= 10000;
+    else if (ROLES.includes(player.role) && !(player.role === 'jungle' && hasBothSpells(player))) w[player.role] *= 12;
+    if (signal !== 'jungle' && hasBothSpells(player)) w.jungle *= 0.001;
+    return w;
+  }
+  function poolRole(match, champions) {
+    const champ = champions.get(match.champ);
+    if (!POSITION_QUEUES.has(match.queue)) {
+      // Queues without the standard five roles are grouped by the champion's usual role.
+      if (!champ) return { role: null, inferred: false };
+      const w = roleWeights(champ, null);
+      return { role: ROLES.reduce((best, role) => w[role] > w[best] ? role : best), inferred: true };
+    }
+    const players = Array.isArray(match.players) ? match.players : [];
+    const ownEntry = players.find((p) => p?.me);
+    const me = { ...match, spells: match.spells || ownEntry?.spells, items: match.items || ownEntry?.items };
+    const signal = poolRoleSignal(me);
+    if (signal) return { role: signal, inferred: signal !== match.role };
+    if (ROLES.includes(me.role) && me.role !== 'jungle') return { role: me.role, inferred: false };
+
+    // Legacy timelines can call both the top laner and jungler Jungle.
+    const allies = players.filter((p) => p && !p.me && p.team === match.team);
+    const weights = poolRoleWeights(me, champions);
+    if (allies.length === 4) {
+      const assignment = assignRoles([weights, ...allies.map((p) => poolRoleWeights(p, champions))])[0];
+      if (assignment.conf > 0.35) return { role: assignment.role, inferred: true };
+    }
+    if (!champ && (!ROLES.includes(me.role) || hasBothSpells(me))) return { role: null, inferred: false };
+    return { role: ROLES.reduce((best, role) => weights[role] > weights[best] ? role : best), inferred: true };
+  }
+  function roleChampStats(ms, delta, roster) {
+    const champions = new Map((roster || []).map((champ) => [champ.id, champ]));
+    const groups = new Map();
+    for (const match of ms) {
+      if (match.remake) continue;
+      const { role, inferred } = poolRole(match, champions);
+      if (!groups.has(role)) groups.set(role, []);
+      groups.get(role).push({ match, inferred });
+    }
     const out = [];
     for (const role of [...ROLES, null]) {
-      const rm = ms.filter((m) => poolRole(m) === role && !m.remake); if (!rm.length) continue; const wins = rm.filter((m) => m.win).length; let lp = null;
+      const entries = groups.get(role);
+      if (!entries) continue;
+      const rm = entries.map(({ match }) => match);
+      const wins = rm.filter((m) => m.win).length; let lp = null;
       for (const m of rm) if (delta && delta.has(m.id)) lp = (lp || 0) + delta.get(m.id);
-      const champs = champStats(rm).slice(0, 30).map((c) => { let cl = null; for (const m of rm) if (m.champ === c.champ && delta && delta.has(m.id)) cl = (cl || 0) + delta.get(m.id); return Object.assign({}, c, { lp: cl }); });
+      const champs = champStats(rm).slice(0, 30).map((c) => {
+        let lp = null;
+        let inferred = 0;
+        for (const entry of entries) {
+          if (entry.match.champ !== c.champ) continue;
+          if (entry.inferred) inferred++;
+          if (delta?.has(entry.match.id)) lp = (lp || 0) + delta.get(entry.match.id);
+        }
+        return { ...c, lp, inferred };
+      });
       out.push({ role, games: rm.length, wins, losses: rm.length - wins, lp, champs });
     }
     return out;
@@ -1453,7 +1510,7 @@ const LOLMOD = (() => {
     const playerView = (ent, req) => {
       req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const role = ROLES.includes(req.role) ? req.role : null; const off = clamp(Math.round(Number(req.offset)) || 0, 0, 500); const lim = clamp(Math.round(Number(req.limit)) || 20, 1, 50);
       const all = ent.matches.slice().sort((a, b) => b.t - a.t); const lp = playerLpDeltas(all, state.playerLp[ent.lpKey] || []); const byQ = all.filter(mkFilter(q)); const f = role ? byQ.filter((m) => m.role === role) : byQ;
-      return { queue: q, role, total: byQ.length, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roleChamps: roleChampStats(byQ, lp), roles: roleStats(all), partners: partnerStats(all), rows: byQ.slice(off, off + lim).map((match) => ({ ...match, lpDelta: lp.get(match.id) ?? null })), aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), streak: overview(all, now()).streak };
+      return { queue: q, role, total: byQ.length, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roleChamps: roleChampStats(byQ, lp, roster), roles: roleStats(all), partners: partnerStats(all), rows: byQ.slice(off, off + lim).map((match) => ({ ...match, lpDelta: lp.get(match.id) ?? null })), aram: wlOf(all.filter(mkFilter('aram'))), normal: wlOf(all.filter(mkFilter('normal'))), streak: overview(all, now()).streak };
     };
     /* --- LCU --- */
     const POS_LCU = { top: 'top', jungle: 'jungle', mid: 'middle', bot: 'bottom', support: 'utility' };
@@ -1868,7 +1925,7 @@ const LOLMOD = (() => {
       'lol:stats': async (_e, req) => {
         try {
           req = req || {}; const q = FILTERS.includes(req.queue) ? req.queue : 'all'; const role = ROLES.includes(req.role) ? req.role : null; const all = Object.values(state.matches).sort((a, b) => b.t - a.t).filter(mkFilter(q)); const f = role ? all.filter((m) => m.role === role) : all;
-          return { queue: q, role, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), roleChamps: roleChampStats(all, attrLp(all, state.lp)), partners: partnerStats(all) };
+          return { queue: q, role, overview: overview(f, now()), champs: champStats(f).slice(0, 100), roles: roleStats(all), roleChamps: roleChampStats(all, attrLp(all, state.lp), roster), partners: partnerStats(all) };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       /* başka sihirdarı ara (Riot Kimliği) ve genel profilini oku: yalnız GET, kalıcı kayıt YOK, kendi profilimizle aynı hesaplar */

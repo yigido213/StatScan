@@ -37,7 +37,7 @@ Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavra
 
 - DENENMEDİ: gerçek Windows, gerçek exe/lnk açma, `app.getFileIcon`, Başlat menüsü yolları, gerçek Discord/Steam/Medal/League kısayolları.
 
-Şampiyon havuzu sırası Üst, Orman, Orta, ADC, Destek. Riot takım pozisyonu yoksa eski maç kaydında çelişen Çarp/rol bilgisi ve koridoru olmayan kuyruklar rolü belirsiz grubuna gider.
+Şampiyon havuzu sırası Top, Jungle, Mid, ADC, Support. `roleChampStats` Riot takım pozisyonunu önceliklendirir. Eski kayıtlarda Çarp, destek görevi eşyası ve takım dizilimi çelişen veya eksik rolleri çözmeye yardım eder. Standart beş rollü kuyrukların dışındaki maçlar şampiyonun bilinen rolüne göre gruplanır. Tahmini rol içeren kartlar yıldızla işaretlenir.
 
 Blitz kartının sürümü `app/StatScan.html` içindeki `MODULES` → `lolcounter.ver` alanından gelir. Blitz değişikliklerinde bu alan aynı yayında güncellenir.
 

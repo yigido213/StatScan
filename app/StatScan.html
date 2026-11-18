@@ -1004,7 +1004,8 @@ html:not([data-fx="off"]) .lg-mist.a { animation: lg-mist 38s ease-in-out infini
   .bz-player-items .lg-ic { width: 30px; height: 30px; }
 }
 /* şampiyon havuzu */
-.bz-pooltop { display: flex; align-items: center; gap: 12px; } .bz-roles { display: grid; gap: 14px; }
+.bz-pooltop { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; } .bz-roles { display: grid; gap: 14px; }
+.bz-rolehint { margin: 0; font-size: 12px; color: var(--muted); }
 .bz-role { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 18px; padding: 20px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 86%, transparent); border: 1px solid color-mix(in srgb, var(--paper) 6%, transparent); }
 .bz-rolehead { display: grid; grid-template-columns: 48px auto; gap: 0 14px; align-content: start; } .bz-ri { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--surface); color: var(--muted); } .bz-ri svg { width: 22px; height: 22px; }
 .bz-rolehead h2 { margin: 0; font: 600 21px var(--f-body); color: var(--paper); } .bz-rlp { display: block; font: 700 20px var(--f-body); color: var(--muted); margin-top: 2px; } .bz-rwl { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -6587,6 +6588,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "{0} sabitlemesini kaldır": "Unpin {0}",
       "Tüm araçlar sabitlendi": "All tools pinned",
       "Rolü belirsiz": "Unknown role",
+      "Yıldızlı kartlarda tahmini roller var. Koridorsuz modlar şampiyonun normal rolüne göre gruplanır.": "Cards with an asterisk include estimated roles. Modes without lanes are grouped by the champion's usual role.",
+      "{0} maçta rol tahmini": "Estimated role in {0} matches",
       "Kendi profilime dön": "Back to my profile",
       "Başka oyuncunun profili": "Another player's profile",
       "{0} maç okundu": "{0} matches read",
@@ -9193,13 +9196,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       if (st.other) { const v = await otherView(st.cq); if (st.tab !== 'champs') return; if (!v) { otherGone(panes.champs); return; } r = { roleChamps: v.roleChamps, champs: v.champs }; }
       else { r = await call(H.lolStats, { queue: st.cq }); if (st.tab !== 'champs') return; }
       const dd = dropdown('lg-cq', KT('Kuyruk'), [['all', 'Tüm kuyruklar'], ['ranked', 'Dereceli'], ['solo', 'Tekli/Çiftli'], ['flex', 'Esnek']], st.cq, (v) => { st.cq = v; drawChamps(); });
-      const top = h('div', { class: 'bz-pooltop' }, dd);
       let groups = r && !r.error && r.roleChamps ? r.roleChamps.slice() : [];
       if (!groups.length && r && !r.error && r.champs && r.champs.length) { const w = r.champs.reduce((a, c) => a + c.wins, 0); const g = r.champs.reduce((a, c) => a + c.games, 0); groups = [{ role: null, games: g, wins: w, losses: g - w, lp: null, champs: r.champs.map((c) => Object.assign({}, c, { lp: null })) }]; }
+      const hasEstimates = groups.some((g) => g.champs.some((c) => c.inferred));
+      const top = h('div', { class: 'bz-pooltop' }, dd, hasEstimates ? h('p', { class: 'bz-rolehint' }, KT('Yıldızlı kartlarda tahmini roller var. Koridorsuz modlar şampiyonun normal rolüne göre gruplanır.')) : null);
       if (!groups.length) { put(panes.champs, top, empty(KT('Şampiyon verisi yok'), KT('Maç geçmişi okununca burada şampiyon başına galibiyet oranı, KDA ve CS/dk görünür.'))); return; }
-      const tile = (c) => { const wr = Math.round(c.wr); const cl = wr > 50 ? 'hi' : wr < 50 ? 'lo' : ''; return h('div', { class: 'bz-tile', 'data-champ': c.champ, title: nameOf(c.champ) }, champIc(c.champ), h('b', { class: 'bz-wr ' + cl }, '%' + wr + ' WR'), h('span', { class: 'bz-wl' }, KT('{0}G - {1}M', c.wins, c.games - c.wins)), h('span', { class: 'bz-kda' }, dec1(c.kda) + ' KDA'), h('span', { class: 'bz-tlp' }, c.lp === null || c.lp === undefined ? '' : (c.lp > 0 ? '+' : '') + c.lp + ' LP')); };
+      const tile = (c) => {
+        const wr = Math.round(c.wr);
+        const cl = wr > 50 ? 'hi' : wr < 50 ? 'lo' : '';
+        const title = nameOf(c.champ) + (c.inferred ? ' · ' + KT('{0} maçta rol tahmini', c.inferred) : '');
+        return h('div', { class: 'bz-tile', 'data-champ': c.champ, title }, champIc(c.champ), h('b', { class: 'bz-wr ' + cl }, '%' + wr + ' WR'), h('span', { class: 'bz-wl' }, KT('{0}G - {1}M', c.wins, c.games - c.wins) + (c.inferred ? ' *' : '')), h('span', { class: 'bz-kda' }, dec1(c.kda) + ' KDA'), h('span', { class: 'bz-tlp' }, c.lp === null || c.lp === undefined ? '' : (c.lp > 0 ? '+' : '') + c.lp + ' LP'));
+      };
+      const poolLabels = { top: 'Top', jungle: 'Jungle', mid: 'Mid', bot: 'ADC', support: 'Support' };
       const sec = (g) => h('section', { class: 'bz-role', 'data-role': g.role || 'all' },
-        h('div', { class: 'bz-rolehead' }, roleIcon(g.role), h('div', {}, h('h2', { class: 'bz-rn' }, g.role === 'bot' ? 'ADC' : g.role ? KT(RTR[g.role]) : KT('Rolü belirsiz')), g.lp === null || g.lp === undefined ? null : h('b', { class: 'bz-rlp' }, (g.lp > 0 ? '+' : '') + g.lp + ' LP'), h('span', { class: 'bz-rwl' }, KT('{0}G - {1}M', g.wins, g.losses)))),
+        h('div', { class: 'bz-rolehead' }, roleIcon(g.role), h('div', {}, h('h2', { class: 'bz-rn' }, poolLabels[g.role] || KT('Rolü belirsiz')), g.lp === null || g.lp === undefined ? null : h('b', { class: 'bz-rlp' }, (g.lp > 0 ? '+' : '') + g.lp + ' LP'), h('span', { class: 'bz-rwl' }, KT('{0}G - {1}M', g.wins, g.losses)))),
         h('div', { class: 'bz-grid' }, ...g.champs.map(tile)));
       put(panes.champs, top, h('div', { class: 'bz-roles', id: 'lg-pool' }, ...groups.map(sec)));
     }
@@ -9658,7 +9668,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.8.3', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.8.4', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

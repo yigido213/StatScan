@@ -215,6 +215,13 @@ await pg.click('#lg-morebtn'); await pg.waitForTimeout(400); ok(await pg.evaluat
 await pg.click('.lg-fbtn[data-q="aram"]'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => { const l = [...document.querySelectorAll('#lg-matches .lg-match')]; return l.length === 4 && l.every((x) => /ARAM/.test(x.textContent)) && document.querySelector('.lg-fbtn[data-q="aram"]').getAttribute('aria-pressed') === 'true'; }), 'filtre: ARAM → yalnız 4 ARAM maçı');
 await pg.click('.lg-fbtn[data-q="all"]'); await pg.waitForTimeout(300);
 await pg.click('#lg-tab-champs'); await pg.waitForTimeout(400); ok(await pg.evaluate(() => document.querySelectorAll('#lg-pool .bz-tile').length >= 4 && !!document.querySelector('#lg-pool .bz-tile[data-champ="Darius"]') && !!document.querySelector('#lg-pool .bz-role .bz-rn')), 'şampiyon havuzu: rol başlıkları + karolar, Darius var');
+ok(await pg.evaluate(() => {
+  const top = document.querySelector('#lg-pool [data-role="top"] .bz-rn');
+  const tile = document.querySelector('#lg-pool [data-role="bot"] [data-champ="Kaisa"]');
+  return top?.textContent === 'Top' && tile?.querySelector('.bz-wl').textContent.endsWith('*') &&
+    tile.title.includes('rol tahmini') && !!document.querySelector('.bz-rolehint') &&
+    !document.querySelector('#lg-pool [data-role="all"]');
+}), 'şampiyon havuzu: koridorsuz maç kartı ADC altında ve tahmini rol işaretli');
 if (process.env.SHOT) { await pg.screenshot({ path: process.env.SHOT + '/pool.png', fullPage: true }); const vp = pg.viewportSize(); await pg.setViewportSize({ width: 420, height: 900 }); await pg.waitForTimeout(300); await pg.screenshot({ path: process.env.SHOT + '/pool-narrow.png', fullPage: true }); await pg.setViewportSize(vp); await pg.waitForTimeout(200); }
 ok(await pg.evaluate(() => !document.querySelector('#lg-pane-champs select') && document.querySelector('#lg-cq').getAttribute('aria-haspopup') === 'listbox'), 'yerel <select> yok; temalı açılır liste');
 await pg.click('#lg-cq'); await pg.waitForTimeout(100); ok(await pg.evaluate(() => { const l = document.querySelector('#lg-cq-list'); const o = [...l.querySelectorAll('li')].map((x) => x.textContent.replace('✓', '')); return !l.hidden && o.join() === 'Tüm kuyruklar,Dereceli,Tekli/Çiftli,Esnek' && getComputedStyle(l).borderTopColor !== 'rgb(118, 118, 118)' && document.querySelector('#lg-cq').getAttribute('aria-expanded') === 'true'; }), 'açılır liste: seçenekler görünür, temalı çerçeve');
