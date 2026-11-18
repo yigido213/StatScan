@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- 2026-11-18 — HOTFIX: XOR Çözücü uzun tekrarlanan PE anahtarları — Codex: başladı.
 - 2026-11-18 — Codex: XOR Çözücü bitti (Kovan beta 0.1.24). Güvenlik kartı, otomatik/elle çözme, yerel tarama ve dışa aktarma. xordec, ui-xor (390 px ve EN dahil), ui-sectools, ui-shell, ui-lang, ui-conv, repoupd-host ve repoupd-boot geçti. Gerçek Windows/Electron uygulamasında kurulum ve canlı güncelleme denenmedi.
 - 2026-11-18 — Codex: XOR Çözücü güvenlik aracı başladı (codex/xor-cozucu).
 - HOTFIX: Blitz aynı koridora birden fazla oyuncu yazan eski maç kayıtlarını takım dizilimiyle çözer ve tekil koridor kayıtlarına şampiyonun alışılmış rolünden daha fazla ağırlık verir. Blitz 0.8.5 — Codex: bitti.
