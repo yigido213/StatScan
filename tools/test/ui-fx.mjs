@@ -1,11 +1,11 @@
 // Kovan animasyon testi (Playwright): animasyonlar gercekten calisiyor mu, "hareketi azalt" ve Ayarlar anahtari onlari kapatiyor mu,
 // dalga/egilme/palet/kenar cubugu gecisleri, yatay tasma ve konsol hatasi yok mu.
-import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
-import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
+import fs from 'node:fs'; import path from 'node:path';
 let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'); const URL = 'file://' + path.join(ROOT, 'app/StatScan.html');
+const URL = new globalThis.URL('../../app/StatScan.html', import.meta.url).href;
 const SHOTS = process.env.SHOTS || ''; if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const b = await chromium.launch({ args: ['--no-sandbox'] });
 async function page(opts, vp, init) { const ctx = await b.newContext(Object.assign({ viewport: vp || { width: 1280, height: 860 }, reducedMotion: 'no-preference' }, opts || {})); if (init) await ctx.addInitScript(init); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message)); pg.on('console', (m) => m.type() === 'error' && pg.errs.push(m.text())); return pg; }
 const an = (pg, sel, pseudo) => pg.evaluate(([s, p]) => { const e = document.querySelector(s); return e ? getComputedStyle(e, p || null).animationName : 'YOK'; }, [sel, pseudo]);
 const shot = async (pg, n) => { if (SHOTS) await pg.screenshot({ path: path.join(SHOTS, n + '.png') }); };
@@ -16,22 +16,20 @@ ok(!(await pg.evaluate(() => document.documentElement.hasAttribute('data-fx'))),
 await shot(pg, '01-acilis-120ms'); await pg.waitForTimeout(500); await shot(pg, '02-acilis-620ms');
 ok((await an(pg, '#app-home')).includes('kview'), 'Home görünümü kview ile giriyor (' + await an(pg, '#app-home') + ')');
 ok(/kcard/.test(await an(pg, '#toolgrid > .toolcard')), 'araç kartları kcard ile giriyor');
-ok(/kdots/.test(await an(pg, '#app-home', '::before')), 'Home arka plan noktaları akıyor (kdots)');
-ok(/korb/.test(await an(pg, '#app-home', '::after')), 'Home arka plan ışığı hareket ediyor (korb)');
+ok(/drift-up/.test(await an(pg, '.embers i')), 'kehribar kıvılcımları süzülüyor');
+ok(/amber-pulse/.test(await an(pg, '.amber-object', '::before')), 'kehribar ışığı hareket ediyor');
 ok(/khex/.test(await an(pg, '.side-brand svg path')), 'logo altıgenleri çiziliyor (khex)');
 ok(/kside/.test(await an(pg, '.side-nav > .nav-item')), 'kenar çubuğu öğeleri kayarak geliyor (kside)');
 await pg.waitForTimeout(3200);
-ok(/ksheen/.test(await an(pg, '#tw .typed')), 'başlıkta parlama süpürmesi (ksheen)');
-ok(await pg.evaluate(() => document.querySelector('#tw .typed').textContent === 'Welcome home, ' + (document.querySelector('#home-title .sr').textContent.replace('Welcome home, ', ''))), 'parlama metni bozmuyor');
-ok(/kdot/.test(await an(pg, '.toolcard .chip', '::before')), '"Hazır" noktası nabız atıyor (kdot)');
-// kart: fare ile egilme + isik
-const card = pg.locator('#toolgrid .toolcard:not(.empty)').first(); const bb = await card.boundingBox();
-await pg.mouse.move(bb.x + bb.width * 0.85, bb.y + bb.height * 0.2); await pg.waitForTimeout(250);
-const tv = await card.evaluate((e) => ({ rx: e.style.getPropertyValue('--rx'), ry: e.style.getPropertyValue('--ry'), mx: e.style.getPropertyValue('--mx') }));
-ok(parseFloat(tv.rx) > 0 && parseFloat(tv.ry) > 0, 'karta fareyle gelince eğilme değerleri yazıldı (' + JSON.stringify(tv) + ')');
-ok(/matrix3d|matrix/.test(await card.evaluate((e) => getComputedStyle(e).transform)), 'kart gerçekten dönüşüm uyguluyor');
+ok(/text-glint/.test(await an(pg, '#tw', '::after')), 'italik vurgu üzerinde ışık süpürmesi');
+ok(await pg.textContent('#tw .typed') === 'yigit717.', 'parlama metni bozmuyor');
+const card = pg.locator('#toolgrid .toolcard:not(.empty)').first();
+const bb = await card.boundingBox();
+await pg.mouse.move(bb.x + bb.width * .85, bb.y + bb.height * .2);
+await pg.waitForTimeout(250);
+ok(await card.evaluate((e) => parseFloat(e.style.getPropertyValue('--mx')) > 60), 'ışık imleci izler');
+ok(await card.evaluate((e) => getComputedStyle(e).transform === 'none'), 'hover sırasında kart sabit');
 await shot(pg, '03-kart-hover');
-await pg.mouse.move(5, 5); await pg.waitForTimeout(250); ok(await card.evaluate((e) => e.style.getPropertyValue('--rx') === ''), 'fare ayrılınca eğilme sıfırlandı');
 // dalga
 await pg.click('#home-search'); await pg.waitForTimeout(60); ok(await pg.evaluate(() => !document.querySelector('#pal').hidden), 'palet açıldı');
 ok(await pg.evaluate(() => document.querySelector('#pal').classList.contains('kopen')), 'palet açılırken kopen sınıfı (satırlar sırayla geliyor)');
@@ -51,7 +49,7 @@ ok(await pg.evaluate(() => !document.documentElement.classList.contains('kfade')
 await pg.click('#side-nav a[data-route="home"]'); await pg.waitForTimeout(100);
 await pg.click('#side-toggle'); await pg.waitForTimeout(110); const mid = await pg.evaluate(() => Math.round(document.querySelector('.side').getBoundingClientRect().width));
 await pg.waitForTimeout(600); const end = await pg.evaluate(() => Math.round(document.querySelector('.side').getBoundingClientRect().width));
-ok(mid > 68 && mid < 220, 'daralma animasyonlu: ara genişlik ' + mid + 'px'); ok(end === 68, 'daralma 68px’te bitti (' + end + ')'); await shot(pg, '06-daralmis');
+ok(mid === end, 'daralma ara genişlik üretmez ' + mid + 'px'); ok(end === 68, 'daralma 68px’te bitti (' + end + ')'); await shot(pg, '06-daralmis');
 await pg.click('#side-toggle'); await pg.waitForTimeout(700); ok(await pg.evaluate(() => Math.round(document.querySelector('.side').getBoundingClientRect().width)) === 220, 'genişleyince 220px');
 // Ayarlar anahtari
 await pg.keyboard.press('Control+,'); await pg.waitForTimeout(150); const hasSet = await pg.evaluate(() => !!document.querySelector('#st-fx'));
@@ -86,4 +84,26 @@ for (const wd of [1280, 980, 760, 390]) {
   await pg.evaluate(() => { location.hash = '#/statscan'; }); await pg.waitForTimeout(100); ok((await pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 1, wd + 'px: StatScan geçişinde taşma yok');
   ok(pg.errs.length === 0, wd + 'px: konsol hatası yok');
 }
+// Uygulama Akışı ayar düğmesi. Fare kenara geldiğinde tıklama alanı sabit kalır.
+pg = await page({}, null, () => {
+  window.statscanHost = { desktop: true, flowList: async () => ({ apps: [] }) };
+});
+await pg.goto(URL);
+const sliders = pg.locator('#kv-flow-manage');
+await sliders.waitFor();
+const bounds = await sliders.boundingBox();
+await pg.mouse.move(bounds.x + 1, bounds.y + bounds.height / 2);
+await pg.waitForTimeout(240);
+const hoverBounds = await sliders.boundingBox();
+ok(await sliders.evaluate((el) => el.matches(':hover') && getComputedStyle(el).transform === 'none'), 'ayar düğmesi kenarında hover korunur ve kutu dönmez');
+ok(['x', 'y', 'width', 'height'].every((key) => Math.abs(hoverBounds[key] - bounds[key]) < 0.5), 'ayar düğmesinin tıklama alanı sabit');
+await pg.mouse.down();
+ok(await sliders.evaluate((el) => el.matches(':active') && getComputedStyle(el).transform === 'none'), 'basılı düğmenin dış kutusu sabit');
+await pg.mouse.up();
+await pg.keyboard.press('Escape');
+await sliders.focus();
+await pg.keyboard.press('Shift+Tab');
+await pg.keyboard.press('Tab');
+ok(await sliders.evaluate((el) => el.matches(':focus-visible') && getComputedStyle(el).outlineWidth === '2px'), 'klavye ile ayar düğmesine dönünce 2px halka görünür');
+ok(!pg.errs.length, 'ayar düğmesi durumlarında konsol hatası yok');
 await b.close(); console.log(bad ? '\n' + bad + ' BAŞARISIZ' : '\nTAMAM'); process.exit(bad ? 1 : 0);

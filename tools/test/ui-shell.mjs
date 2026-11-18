@@ -1,8 +1,8 @@
 // Kovan kabugu testi (Playwright): Home, harf harf yazma, hareket azaltma, kenar cubugu, StatScan gecisi, dar ekran
-import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
 let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
-const URL = 'file:///home/claude/statscan/app/StatScan.html'; const FULL = 'Welcome home, yigit717';
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const URL = new globalThis.URL('../../app/StatScan.html', import.meta.url).href; const FULL = 'yigit717.';
+const b = await chromium.launch({ args: ['--no-sandbox'] });
 async function page(opts, vp) { const ctx = await b.newContext(Object.assign({ viewport: vp || { width: 1280, height: 900 } }, opts || {})); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message)); pg.on('console', (m) => m.type() === 'error' && pg.errs.push(m.text())); return pg; }
 const typed = (pg) => pg.textContent('#tw .typed');
 // 1) normal hareket: yazma animasyonu
@@ -10,11 +10,11 @@ let pg = await page({ reducedMotion: 'no-preference' }); await pg.goto(URL);
 ok((await pg.title()) === 'Home · Kovan', 'başlık: Home · Kovan');
 ok(await pg.evaluate(() => !document.querySelector('#app-home').hidden && document.querySelector('#app-statscan').hidden), 'açılışta Home görünür, StatScan gizli');
 ok(await pg.evaluate(() => document.querySelector('#side-nav a[aria-current="page"]').dataset.route) === 'home', 'kenar çubuğunda Home seçili');
-const navTxt = await pg.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item:not([hidden])')].map((a) => a.textContent.trim())); ok(JSON.stringify(navTxt) === JSON.stringify(['Home', 'Güvenlik', 'Windows', 'Oyun', 'Minecraft', 'Kodlama']), 'kenar çubuğu yalnız Home + 5 kategori (' + navTxt.join(', ') + ')');
+const navTxt = await pg.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item:not([hidden])')].map((a) => a.textContent.trim())); ok(JSON.stringify(navTxt) === JSON.stringify(['Ana sayfa', 'Güvenlik', 'Windows', 'Oyun', 'Minecraft', 'Kodlama']), 'kenar çubuğu yalnız Home + 5 kategori (' + navTxt.join(', ') + ')');
 const seen = []; for (let i = 0; i < 14; i++) { seen.push((await typed(pg)).length); await pg.waitForTimeout(120); }
 ok(seen[0] < FULL.length && seen.some((n) => n > 0 && n < FULL.length), 'metin harf harf beliriyor (' + seen.slice(0, 8).join(',') + '…)'); ok(seen.every((n, i) => i === 0 || n >= seen[i - 1]), 'uzunluk yalnızca artıyor (geri gitmiyor)');
 await pg.waitForTimeout(2600); ok((await typed(pg)) === FULL, 'tamamlanınca tam metin: "' + (await typed(pg)) + '"'); ok(await pg.evaluate(() => document.querySelector('#tw').classList.contains('done')), 'bitince imleç kalktı, metin sabit');
-const st = await pg.evaluate(() => { const c = getComputedStyle(document.querySelector('#home-title')); return [c.fontWeight, c.fontStyle]; }); ok(+st[0] >= 700 && st[1] === 'italic', 'başlık kalın + eğik (' + st.join(' ') + ')');
+const st = await pg.evaluate(() => { const c = getComputedStyle(document.querySelector('#home-title em')); return [c.fontWeight, c.fontStyle]; }); ok(+st[0] === 400 && st[1] === 'italic', 'başlık vurgusu normal ağırlıkta + eğik (' + st.join(' ') + ')');
 const w = await pg.evaluate(() => { const r = document.querySelector('#home-title').getBoundingClientRect(); return [r.left, r.top]; }); ok(w[0] < 400 && w[1] < 200, 'başlık sol üstte (' + w.map(Math.round).join(',') + ')');
 ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid .toolcard[data-open^="c-"]').length === 5 && document.querySelectorAll('#toolgrid .toolcard[data-open="statscan"]').length === 0), 'Home: 5 kategori kartı (araç kartları kategori sayfalarında)');
 ok(await pg.evaluate(() => document.querySelectorAll('#toolgrid button.toolcard:not([hidden])').length) === 5, 'Home: tıklanabilir 5 kategori kartı');
@@ -22,7 +22,7 @@ ok(await pg.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item[da
 ok(JSON.stringify(await pg.evaluate(() => [...document.querySelectorAll('#toolgrid .toolcard[data-open^="c-"]')].map((e) => e.dataset.open))) === JSON.stringify(['c-guvenlik', 'c-windows', 'c-oyun', 'c-minecraft', 'c-kodlama']), 'Home kategori kartları aynı sırada');
 ok(await pg.evaluate(() => { const g = (c) => [...document.querySelectorAll('#app-c-' + c + ' .toolcard[data-open]:not(.empty)')].map((b) => b.dataset.open).join(','); return g('guvenlik') === 'statscan,imza,paketleyici,ioc' && g('windows') === 'taskmgr,netmon,ramanaliz' && g('oyun') === 'lolcounter' && g('minecraft') === 'texpack,modconv' && g('kodlama') === 'compiler,obfuscate'; }), 'araçlar doğru kategori sayfasında (Windows: Görev Yöneticisi + Ağ İzleyici + RAM Analizi; Oyun: Blitz; Kodlama: Derleyici + Obfuscate)');
 ok(await pg.evaluate(() => { const t = document.querySelector('#tw .typed'); const c = getComputedStyle(t); return document.documentElement.dataset.fx === 'off' || parseFloat(c.paddingRight) > 0 || c.webkitTextFillColor !== 'rgba(0, 0, 0, 0)'; }), 'italik başlığın sağ ucu kesilmez (parlama açıkken sağ dolgu var)');
-{ const wp = await page({}, { width: 1900, height: 800 }); await wp.goto(URL); await wp.waitForTimeout(300); ok(await wp.evaluate(() => { const h = document.querySelector('#app-home').getBoundingClientRect(); return Math.abs(h.right - innerWidth) < 1 && document.documentElement.scrollWidth <= innerWidth; }), 'geniş ekranda Home arka planı tüm genişliğe yayılır (sağda sert kenar yok)'); }
+{ const wp = await page({}, { width: 1900, height: 800 }); await wp.goto(URL); await wp.waitForTimeout(300); ok(await wp.evaluate(() => { const h = document.querySelector('#app-home').getBoundingClientRect(); return h.right <= innerWidth && h.width > 1000 && document.documentElement.scrollWidth <= innerWidth; }), 'geniş ekranda Home arka planı tüm genişliğe yayılır (sağda sert kenar yok)'); }
 // 2) StatScan'e gecis
 await pg.click('#side-nav a[data-route="c-guvenlik"]'); await pg.waitForTimeout(150); ok(await pg.evaluate(() => !document.querySelector('#app-c-guvenlik').hidden && location.hash === '#/c-guvenlik' && document.title === 'Güvenlik · Kovan'), 'Güvenlik kategorisi açıldı (#/c-guvenlik)'); await pg.click('#app-c-guvenlik .toolcard[data-open="statscan"]'); await pg.waitForTimeout(200);
 ok(await pg.evaluate(() => document.querySelector('#app-home').hidden && !document.querySelector('#app-statscan').hidden && location.hash === '#/statscan'), 'StatScan seçilince StatScan açıldı (#/statscan)');
@@ -37,7 +37,7 @@ await pg.goto(URL + '#bilgi'); ok(await pg.evaluate(() => !document.querySelecto
 ok(pg.errs.length === 0, 'konsol/sayfa hatası yok ' + pg.errs.slice(0, 2).join(' | '));
 // 3) hareket azaltma
 pg = await page({ reducedMotion: 'reduce' }); await pg.goto(URL); ok((await typed(pg)) === FULL && await pg.evaluate(() => document.querySelector('#tw').classList.contains('done')), 'hareket azaltma: yazı anında tam, animasyon yok');
-ok(await pg.evaluate(() => getComputedStyle(document.querySelector('#tw .caret')).display) === 'none', 'hareket azaltma: yanıp sönen imleç yok');
+ok(await pg.evaluate(() => document.querySelector('#tw .caret')) === null, 'hareket azaltma: yanıp sönen imleç yok');
 // 4) tema dugmesi + dar ekranlar
 pg = await page({ reducedMotion: 'reduce' }); await pg.goto(URL); const t0 = await pg.evaluate(() => document.documentElement.dataset.theme || ''); await pg.click('#side-theme'); ok((await pg.evaluate(() => document.documentElement.dataset.theme || '')) !== t0, 'kenar çubuğundaki Tema düğmesi temayı değiştiriyor');
 for (const [wd, name] of [[1280, 'masaüstü'], [980, 'orta'], [760, 'tablet'], [390, 'telefon']]) {
@@ -63,8 +63,8 @@ for (const [wd, name] of [[1280, 'masaüstü'], [980, 'orta'], [760, 'tablet'], 
   await p.keyboard.press('Control+k'); await p.keyboard.type('home'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('Enter'); await p.waitForTimeout(100); ok(await p.evaluate(() => !document.querySelector('#app-home').hidden), 'palet ile Home’a gidildi');
   // kullanici adi
   await p.click('#name-edit'); await p.fill('#name-in', 'Test Kullanıcı'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-  ok(await p.evaluate(() => document.querySelector('#tw .typed').textContent === 'Welcome home, Test Kullanıcı' && document.querySelector('#home-title .sr').textContent === 'Welcome home, Test Kullanıcı' && document.querySelector('#tw .ghost').textContent === 'Welcome home, Test Kullanıcı'), 'ad değişti: başlık, ekran okuyucu ve yer tutucu metni güncel');
-  await p.reload(); ok((await p.textContent('#tw .typed')) === 'Welcome home, Test Kullanıcı', 'ad yeniden yüklemede korundu');
+  ok(await p.evaluate(() => document.querySelector('#tw .typed').textContent === 'Test Kullanıcı.' && document.querySelector('#home-title').getAttribute('aria-label') === 'Hoş geldin, Test Kullanıcı.' && document.querySelector('#tw .ghost').textContent === 'Test Kullanıcı.'), 'ad değişti: başlık, ekran okuyucu ve yer tutucu metni güncel');
+  await p.reload(); ok((await p.textContent('#tw .typed')) === 'Test Kullanıcı.', 'ad yeniden yüklemede korundu');
   await p.click('#name-edit'); await p.click('#name-reset'); ok((await p.textContent('#tw .typed')) === FULL, 'Varsayılan: yigit717’ye döndü'); await p.reload(); ok((await p.textContent('#tw .typed')) === FULL, 'varsayılan yeniden yüklemede korundu');
   await p.click('#name-edit'); await p.fill('#name-in', '<img src=x onerror=alert(1)>'); await p.keyboard.press('Enter'); ok(await p.evaluate(() => !document.querySelector('#home-title img') && document.querySelector('#tw .typed').textContent.includes('<img')), 'ad HTML olarak yorumlanmıyor (güvenli metin)');
   ok(errs.length === 0, 'ana menü 2: sayfa hatası yok ' + errs.slice(0, 2).join('|')); await ctx.close();

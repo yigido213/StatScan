@@ -1,7 +1,7 @@
 // Kovan Ayarlar penceresi (Playwright): tarayici modu + sahte masaustu koprusu
-import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
 let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
-const URL = 'file:///home/claude/statscan/app/StatScan.html'; const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const URL = new globalThis.URL('../../app/StatScan.html', import.meta.url).href; const b = await chromium.launch({ args: ['--no-sandbox'] });
 async function mkpage(init, vp) { const ctx = await b.newContext({ viewport: vp || { width: 1280, height: 900 }, reducedMotion: 'reduce' }); if (init) await ctx.addInitScript(init); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.stack.split('\n').slice(0, 3).join(' <- '))); pg.on('console', (m) => { if (m.type() === 'error') pg.errs.push(m.text()); }); await pg.goto(URL); await pg.waitForTimeout(300); return pg; }
 const isOpen = (pg) => pg.evaluate(() => document.querySelector('#settings').open);
 // 1) tarayici modu
@@ -13,12 +13,12 @@ ok(await pg.isDisabled('#st-login') && await pg.isDisabled('#st-auto') && await 
 ok(/yalnızca masaüstü/i.test(await pg.textContent('#settings')), 'tarayıcı modu açıklaması var');
 await pg.selectOption('#st-theme', 'light'); ok(await pg.evaluate(() => document.documentElement.dataset.theme === 'light' && localStorage.getItem('statscan-theme') === 'light'), 'tema açık yapıldı ve saklandı');
 await pg.setChecked('#st-collapsed', true); ok(await pg.evaluate(() => document.querySelector('#app').classList.contains('collapsed') && localStorage.getItem('kovan.collapsed') === '1'), 'kenar çubuğu daraltıldı');
-await pg.fill('#st-name', '  Ada   Lovelace '); await pg.click('#settings .sinline button:first-of-type'); ok((await pg.textContent('#home-title .sr')) === 'Welcome home, Ada Lovelace' && await pg.evaluate(() => localStorage.getItem('kovan.user')) === 'Ada Lovelace', 'kullanıcı adı boşlukları düzeltilerek kaydedildi');
+await pg.fill('#st-name', '  Ada   Lovelace '); await pg.click('#settings .sinline button:first-of-type'); ok((await pg.getAttribute('#home-title', 'aria-label')) === 'Hoş geldin, Ada Lovelace.' && await pg.evaluate(() => localStorage.getItem('kovan.user')) === 'Ada Lovelace', 'kullanıcı adı boşlukları düzeltilerek kaydedildi');
 await pg.selectOption('#st-scale', '75'); ok(await pg.evaluate(() => localStorage.getItem('kovan.scale') === '75' && document.documentElement.style.zoom === '0.75' && document.querySelector('#st-scale-n').value === '75'), 'arayüz ölçeği: %75 seçildi, saklandı, uygulandı');
 await pg.fill('#st-scale-n', '68'); await pg.press('#st-scale-n', 'Enter'); ok(await pg.evaluate(() => localStorage.getItem('kovan.scale') === '68' && document.documentElement.style.zoom === '0.68' && document.querySelector('#st-scale').value === 'custom'), 'arayüz ölçeği: özel %68');
 await pg.fill('#st-scale-n', '999'); await pg.press('#st-scale-n', 'Enter'); ok(await pg.evaluate(() => localStorage.getItem('kovan.scale') === '200'), 'arayüz ölçeği: sınır 200 değerine kırpılır');
 await pg.click('#st-scale-reset'); ok(await pg.evaluate(() => localStorage.getItem('kovan.scale') === null && document.documentElement.style.zoom === ''), 'arayüz ölçeği: sıfırla → %100');
-await pg.click('#settings .sinline button:nth-of-type(2)'); ok((await pg.textContent('#home-title .sr')) === 'Welcome home, yigit717', 'varsayılan ada dönüldü');
+await pg.click('#settings .sinline button:nth-of-type(2)'); ok((await pg.getAttribute('#home-title', 'aria-label')) === 'Hoş geldin, yigit717.', 'varsayılan ada dönüldü');
 await pg.setChecked('#st-typing', false); ok(await pg.evaluate(() => localStorage.getItem('kovan.typing')) === '0', 'animasyon tercihi saklandı');
 await pg.keyboard.press('Escape'); await pg.waitForTimeout(100); ok(!(await isOpen(pg)) && await pg.evaluate(() => document.activeElement.id) === 'side-settings', 'Esc kapatır, odak düğmeye döner');
 await pg.keyboard.press('Control+,'); ok(await isOpen(pg), 'Ctrl+, açar'); await pg.keyboard.press('Control+,'); ok(!(await isOpen(pg)), 'Ctrl+, kapatır');
@@ -28,7 +28,7 @@ await pg.click('#st-reset'); ok(/Emin misin/.test(await pg.textContent('#st-rese
 ok(await pg.evaluate(() => localStorage.getItem('kovan.user') === null && localStorage.getItem('statscan-theme') === null && localStorage.getItem('kovan.typing') === null && localStorage.getItem('kovan.collapsed') === null), 'sıfırlama tercihleri sildi');
 ok(pg.errs.length === 0, 'hata yok ' + pg.errs.join('|'));
 // kalicilik: yeniden yukleme sonrasi typing kapali ise metin anında tam
-const ctx2 = await b.newContext({ viewport: { width: 1280, height: 900 } }); await ctx2.addInitScript(() => { try { localStorage.setItem('kovan.typing', '0'); } catch (e) {} }); const p2 = await ctx2.newPage(); await p2.goto(URL); await p2.waitForTimeout(200); ok((await p2.textContent('#tw .typed')) === 'Welcome home, yigit717', 'animasyon kapalıyken başlık hemen tam');
+const ctx2 = await b.newContext({ viewport: { width: 1280, height: 900 } }); await ctx2.addInitScript(() => { try { localStorage.setItem('kovan.typing', '0'); } catch (e) {} }); const p2 = await ctx2.newPage(); await p2.goto(URL); await p2.waitForTimeout(200); ok((await p2.textContent('#tw .typed')) === 'yigit717.', 'animasyon kapalıyken başlık hemen tam');
 // 2) sahte masaustu
 const fake = () => { window.__calls = []; const st = { openAtLogin: false, startMinimized: false, autoUpdate: true, autostart: { supported: true, reason: '' } }; window.__st = st; window.statscanHost = Object.freeze({ desktop: true, settingsGet: async () => ({ ...st }), settingsSet: async (k, v) => { window.__calls.push([k, v]); if (k === 'openAtLogin' && window.__fail) return { error: 'failed', message: 'OS reddetti' }; st[k] = v; return { ...st }; }, settingsCheckUpdate: async () => { window.__calls.push(['check']); return { ok: true }; }, storeGet: async () => null, storeSet: async () => ({}), watchSuggest: async () => [], watchLog: async () => ({ log: [], folders: [] }), watchTake: async () => ({ item: null }), watchSet: async () => ({}), status: async () => ({ available: false, reasons: [{ title: 'test' }] }), info: async () => ({}) }); };
 pg = await mkpage(fake); await pg.click('#side-settings'); await pg.waitForTimeout(250);

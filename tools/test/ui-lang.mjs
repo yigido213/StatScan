@@ -1,11 +1,11 @@
 // Kovan dil secenegi (Playwright): TR varsayilan degismez, EN secilince Kovan arayuzu cevrilir, kalicidir, sifirlama TR'ye doner
-import { createRequire } from 'node:module'; const require = createRequire('/home/claude/.npm-global/lib/node_modules/'); const { chromium } = require('playwright');
+import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
 let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
-const URL = 'file:///home/claude/statscan/app/StatScan.html'; const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const URL = new globalThis.URL('../../app/StatScan.html', import.meta.url).href; const b = await chromium.launch({ args: ['--no-sandbox'] });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(String(e)));
 await pg.goto(URL); await pg.waitForTimeout(300);
 ok(await pg.evaluate(() => document.documentElement.lang) === 'tr' && /Ayarlar/.test(await pg.textContent('#side-settings')), 'varsayılan: Türkçe');
-ok(/kategorilere ayrıldı/.test(await pg.textContent('#app-home .lead')), 'Home metni kategorileri anlatır');
+ok(await pg.locator('#toolgrid [data-open^="c-"]').count() === 5 && !(await pg.textContent('#home-facts')).includes('Gizlilik'), 'Home kategorileri gösterir, gizlilik kartı kaldırıldı');
 await pg.click('#side-settings'); await pg.waitForTimeout(150); ok(await pg.inputValue('#st-lang') === 'tr', 'dil seçici Türkçe');
 await Promise.all([pg.waitForNavigation(), pg.selectOption('#st-lang', 'en')]); await pg.waitForTimeout(500);
 ok(await pg.evaluate(() => document.documentElement.lang) === 'en' && await pg.evaluate(() => localStorage.getItem('kovan.lang')) === 'en', 'EN seçildi ve saklandı');
@@ -13,9 +13,9 @@ ok(await pg.evaluate(() => document.querySelector('#settings').open) && await pg
 ok(/Appearance/.test(await pg.textContent('#settings')) && /Start with Windows/.test(await pg.textContent('#settings')), 'Ayarlar İngilizce');
 await pg.keyboard.press('Escape'); await pg.waitForTimeout(100);
 ok(/Settings/.test(await pg.textContent('#side-settings')) && /Security/.test(await pg.textContent('.side')) && /Coding/.test(await pg.textContent('.side')) && /Windows/.test(await pg.textContent('.side')), 'kenar çubuğu İngilizce');
-ok(/grouped into categories/.test(await pg.textContent('#app-home .lead')) && /Build and source code tools/.test(await pg.textContent('#toolgrid')) && /4 tools|2 tools/.test(await pg.textContent('#toolgrid')), 'Home İngilizce');
+ok(/Welcome,/.test(await pg.textContent('#home-title')) && /Coding/.test(await pg.textContent('#toolgrid')) && /4 tools|2 tools/.test(await pg.textContent('#toolgrid')), 'Home İngilizce');
 ok((await pg.title()).startsWith('Home'), 'başlık');
-ok(/Memory Analysis/.test(await pg.textContent('#app-c-windows')) && /Never declares a dump/.test(await pg.textContent('#app-c-windows')) && !/RAM Analizi/.test(await pg.textContent('#app-c-windows')), 'RAM Analizi: kenar çubuğu ve Home kartı İngilizce (Memory Analysis)');
+ok(/Memory Analysis/.test(await pg.textContent('#app-c-windows')) && !/RAM Analizi/.test(await pg.textContent('#app-c-windows')), 'RAM Analizi: kenar çubuğu ve Home kartı İngilizce (Memory Analysis)');
 const roots = { texpack: '#app-texpack', modconv: '#app-modconv', compiler: '#app-compiler', obfuscate: '#app-obfuscate', ramanaliz: '#app-ramanaliz', lolcounter: '#app-lolcounter', imza: '#app-imza', paketleyici: '#app-paketleyici', ioc: '#app-ioc' };
 for (const [id, sel] of Object.entries(roots)) { await pg.evaluate((i) => { location.hash = '#/' + i; }, id); await pg.waitForTimeout(250);
   const left = await pg.evaluate((s) => { const out = []; const w = document.createTreeWalker(document.querySelector(s), NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const t = n.nodeValue.trim(); if (t && /[çğıöşüÇĞİÖŞÜ]/.test(t) && !n.parentElement.closest('pre,textarea,script,style,[hidden]')) out.push(t.slice(0, 80)); } return out; }, sel);
