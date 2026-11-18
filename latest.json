@@ -1,6 +1,6 @@
 {
   "version": "5.0.26",
   "url": "StatScan-5.0.26.ssu",
-  "sha256": "704c2b562d120bdef4064ea115617ee882026e0d325e53e2273e68ad5310f3ce",
+  "sha256": "6970ae40fe7bfaa6ef8add3e35e5b38dad0fce975892893e25836c988860377d",
   "notes": "HOTFIX — Kovan kehribar teması, yerel yazı tipleri ve arayüz etkileşimleri."
 }
