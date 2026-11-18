@@ -1110,7 +1110,11 @@ const LOLMOD = (() => {
     if (Array.isArray(player.items) && player.items.some((id) => SUPPORT_QUEST_ITEMS.has(id))) return 'support';
     return null;
   }
-  function poolRoleWeights(player, champions) {
+  function poolTimelineRole(player) {
+    if (!ROLES.includes(player.role) || (player.role === 'jungle' && hasBothSpells(player))) return null;
+    return player.role;
+  }
+  function poolRoleWeights(player, champions, roleCounts) {
     const w = roleWeights(champions.get(player.champ), {
       summonerSpells: {
         summonerSpellOne: { rawDisplayName: SPELL_HINTS[player.spells?.[0]] },
@@ -1118,8 +1122,14 @@ const LOLMOD = (() => {
       }
     });
     const signal = poolRoleSignal(player);
-    if (signal) w[signal] *= 10000;
-    else if (ROLES.includes(player.role) && !(player.role === 'jungle' && hasBothSpells(player))) w[player.role] *= 12;
+    const timeline = poolTimelineRole(player);
+    if (signal) w[signal] *= 1e8;
+    else if (timeline) {
+      // A unique recorded lane outweighs the champion's usual roles, including off-meta picks.
+      // Older bottom-lane records can lump the carry and support together.
+      const reliableLane = timeline !== 'jungle' && (timeline !== 'bot' || hasBothSpells(player));
+      w[timeline] *= reliableLane && roleCounts.get(timeline) === 1 ? 1e4 : 12;
+    }
     if (signal !== 'jungle' && hasBothSpells(player)) w.jungle *= 0.001;
     return w;
   }
@@ -1136,16 +1146,27 @@ const LOLMOD = (() => {
     const me = { ...match, spells: match.spells || ownEntry?.spells, items: match.items || ownEntry?.items };
     const signal = poolRoleSignal(me);
     if (signal) return { role: signal, inferred: signal !== match.role };
-    if (ROLES.includes(me.role) && me.role !== 'jungle') return { role: me.role, inferred: false };
 
-    // Legacy timelines can call both the top laner and jungler Jungle.
+    // Legacy timelines can assign the same lane to several players.
     const allies = players.filter((p) => p && !p.me && p.team === match.team);
-    const weights = poolRoleWeights(me, champions);
+    const team = [me, ...allies];
+    const counts = new Map();
+    for (const player of team) {
+      const role = poolRoleSignal(player) || poolTimelineRole(player);
+      if (role) counts.set(role, (counts.get(role) || 0) + 1);
+    }
+    const timeline = poolTimelineRole(me);
+    if (timeline && timeline !== 'jungle') {
+      if (counts.get(timeline) === 1) return { role: timeline, inferred: false };
+      if (champ?.pos?.includes(timeline) && allies.some((p) => poolTimelineRole(p) === timeline && champions.get(p.champ)?.pos?.includes(timeline)) &&
+          !allies.some((p) => poolRoleSignal(p) === timeline)) return { role: timeline, inferred: true };
+    }
     if (allies.length === 4) {
-      const assignment = assignRoles([weights, ...allies.map((p) => poolRoleWeights(p, champions))])[0];
+      const assignment = assignRoles(team.map((p) => poolRoleWeights(p, champions, counts)))[0];
       if (assignment.conf > 0.35) return { role: assignment.role, inferred: true };
     }
-    if (!champ && (!ROLES.includes(me.role) || hasBothSpells(me))) return { role: null, inferred: false };
+    if (!champ && !timeline) return { role: null, inferred: false };
+    const weights = poolRoleWeights(me, champions, counts);
     return { role: ROLES.reduce((best, role) => weights[role] > weights[best] ? role : best), inferred: true };
   }
   function roleChampStats(ms, delta, roster) {
@@ -1723,13 +1744,16 @@ const LOLMOD = (() => {
             if (typeof mid !== 'string' || !/^[A-Z0-9]+_\d{5,14}$/.test(mid)) continue;
             const num = mid.split('_')[1];
             const old = state.matches[num];
-            if (old && hasPlayerIcons(old.players) && (deep || (old.spells !== undefined && fullStats(old.players) &&
+            const needsPosition = deep && old && !old.remake && POSITION_QUEUES.has(old.queue) &&
+              !old.positionConfirmed && !old.riotPositionChecked;
+            if (old && !needsPosition && hasPlayerIcons(old.players) && (deep || (old.spells !== undefined && fullStats(old.players) &&
                 hasPlayerChoices(old.players) && old.positionConfirmed !== undefined))) continue;
             requests++;
             const match = await riotCall(regional, '/lol/match/v5/matches/' + mid);
             const game = match?.info && riotGame({ ...match.info, gameId: Number(num) }, puuid);
             const normalized = game && normMatch(game, puuid, co);
             if (!normalized) continue;
+            if (!normalized.positionConfirmed && POSITION_QUEUES.has(normalized.queue)) normalized.riotPositionChecked = true;
             if (old) updated++; else added++;
             state.matches[normalized.id] = normalized;
           }

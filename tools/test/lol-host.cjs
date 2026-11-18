@@ -239,27 +239,45 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
       { champ: 'Jinx', role: 'bot' },
       { champ: 'Lux', role: 'support' }
     ].map((p) => ({ ...p, team: base.team }));
+    const duplicateMid = players.map((p, i) => ({
+      ...p, role: ['mid', 'jungle', 'mid', 'mid', 'bot'][i],
+      spells: i === 1 ? [4, 11] : [4, 14], items: i === 4 ? [3865] : []
+    }));
+    const offMetaMid = players.map((p, i) => ({
+      ...p, champ: ['Malphite', 'Zed', 'Garen', 'Jinx', 'Lux'][i],
+      spells: i === 1 ? [4, 11] : [4, 14]
+    }));
     const cases = [
       { role: 'bot', champ: 'Lux', items: [3865] }, { role: 'bot', champ: 'Jinx' }, { role: 'mid', champ: 'Ahri' },
       { role: null, spells: [4, 11] }, { role: 'jungle', spells: [11, 4] },
       { role: 'jungle', spells: [4, 12], positionConfirmed: true },
       { role: 'jungle', spells: [4, 12], players: players.map((p) => p.champ === 'Zed' ? { ...p, spells: [11, 4] } : p) },
       { role: 'jungle', players },
+      { role: 'mid', spells: [4, 14], players: duplicateMid },
+      { role: 'jungle', champ: 'Malphite', spells: [4, 14], players: offMetaMid },
       { role: 'support', queue: 'aram', champ: 'Ahri' },
       { role: 'top', remake: true }
     ];
     const matches = Object.fromEntries(cases.map((entry, i) => [i, { ...base, id: String(i), champ: 'Darius', spells: null, players: [], ...entry }]));
     fs.writeFileSync(path.join(dir, 'lolcounter.json'), JSON.stringify({ v: 1, matches }));
-    const host = mkHost({}, dir).handlers;
+    const positions = {
+      Darius: { id: 122, positions: ['TOP'] },
+      Garen: { id: 86, positions: ['TOP'] },
+      Malphite: { id: 54, positions: ['TOP', 'MIDDLE', 'SUPPORT'] }
+    };
+    const host = mkHost({ get: (h, p) => h === L.ROLE_HOST ? JSON.stringify(positions) : get(h, p) }, dir).handlers;
     await host['lol:status']();
     const result = await host['lol:stats']({ queue: 'all' });
     const [top, jungle, mid, bot, support] = result.roleChamps;
     ok(result.roleChamps.map((group) => group.role).join() === 'top,jungle,mid,bot,support' &&
-      result.roleChamps.reduce((sum, group) => sum + group.games, 0) === 9,
+      result.roleChamps.reduce((sum, group) => sum + group.games, 0) === 11,
       'havuz: sabit rol sırası, her geçerli maç tek grupta');
-    ok(top.champs[0].champ === 'Darius' && top.games === 2 && top.champs[0].inferred === 2 &&
+    ok(top.champs[0].champ === 'Darius' && top.games === 4 && top.champs[0].inferred === 3 &&
       jungle.champs[0].champ === 'Darius' && jungle.games === 3 && jungle.champs[0].inferred === 1,
       'havuz: eski çift orman kaydı takım dizilimiyle çözülür, Çarp ve doğrulanmış rol korunur');
+    ok(top.champs.some((champ) => champ.champ === 'Malphite' && champ.inferred === 1) &&
+      !mid.champs.some((champ) => champ.champ === 'Darius' || champ.champ === 'Malphite'),
+      'havuz: tekrarlanan Mid etiketi düzeltilir ve tekil off-meta Mid kaydı korunur');
     ok(mid.champs[0].champ === 'Ahri' && mid.champs[0].inferred === 1 &&
       bot.champs[0].champ === 'Jinx' && support.champs[0].champ === 'Lux' && support.champs[0].inferred === 1,
       'havuz: ARAM şampiyonun normal rolünde, destek eşyası ADC etiketini düzeltir');
@@ -656,6 +674,16 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     const exhausted = await hr.handlers['lol:sync']({ deep: true });
     ok(older.added === 10 && remainder.added === 2 && exhausted.added === 0 && exhausted.total === 14,
       'Riot: elle eski maç çekme 10 ayrıntıyla sınırlı, sonraki tıklama eksiklere devam eder');
+    const savedFile = path.join(dd, 'lolcounter.json');
+    const legacy = JSON.parse(fs.readFileSync(savedFile, 'utf8'));
+    Object.assign(legacy.matches['1000000001'], { role: 'mid', positionConfirmed: false });
+    fs.writeFileSync(savedFile, JSON.stringify(legacy));
+    const repair = mkHost({ now: () => NOW, lcu: { find: async () => null }, riot: { get: rget } }, dd);
+    const repaired = await repair.handlers['lol:sync']({ deep: true });
+    const rows = (await repair.handlers['lol:matches']({})).rows;
+    ok(repaired.updated === 1 && repaired.added === 0 &&
+      rows.some((m) => m.id === '1000000001' && m.positionConfirmed && m.role === 'top'),
+      'Riot: eski maçlar yüklenirken yanlış istemci koridoru resmi maç verisiyle güncellenir');
     rmode = '401'; const r4 = await hr.handlers['lol:sync']({ force: true }); ok(r4.riotError && /geçersiz|süresi/.test(r4.riotError) && !JSON.stringify(r4).includes('RGAPI'), 'riot: 401 → anlaşılır hata, anahtar sızmaz');
     rmode = '429'; const r5 = await hr.handlers['lol:sync']({ force: true }); const n2 = rcalls.length; const r6 = await hr.handlers['lol:sync']({ force: true }); ok(r5.riotError && r6.throttled && rcalls.length === n2, 'riot: 429 → geri çekilme, yeniden vurmaz');
     const cl = await hr.handlers['lol:riot:set']({ clear: true }); ok(cl.ok && !cl.hasKey && (await hr.handlers['lol:sync']({})).state === 'noclient', 'riot: anahtar silinince yine noclient');
