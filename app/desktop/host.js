@@ -1,4 +1,5 @@
 'use strict';
+const windowTheme = require('./window-theme.js');
 /* StatScan masaustu: ana surec ile arayuz arasindaki (IPC) kopru.
  * Electron'a dogrudan bagimli degildir; test icin sahte nesnelerle calisir.
  * Arayuz (renderer) yalnizca burada tanimli kanallari cagirabilir; keyfi komut, klasor veya yol gonderemez. */
@@ -2092,31 +2093,31 @@ const LOLMOD = (() => {
   }
   function lolGoldHtml() {
     const css = `
-      html,body{margin:0;background:transparent;color:#e7eef3;font:12px/1.2 "Segoe UI",sans-serif;user-select:none}
-      .hud{--red:#ff604a;--blue:#56b9ff;--gold:#ad8c51;position:relative;isolation:isolate;margin:4px 3px 0;padding:16px 0 5px}
+      html,body{margin:0;background:transparent;color:var(--paper);font:12px/1.2 var(--f-body);user-select:none}
+      .hud{--red:var(--s3);--blue:var(--accent);--gold:var(--accent);position:relative;isolation:isolate;margin:4px 3px 0;padding:16px 0 5px}
       .hud:before{content:"";position:absolute;inset:14px 0 6px;z-index:-1;
-        background:linear-gradient(180deg,var(--gold) 0 2px,#08252b 2px,#0a3238 60%,#061b22 100%);
+        background:linear-gradient(180deg,var(--gold) 0 2px,var(--surface) 2px,var(--surface) 60%,var(--bg) 100%);
         clip-path:polygon(0 0,100% 0,100% 84%,54% 84%,50% 100%,46% 84%,0 84%)}
       .hud:after{content:"";position:absolute;bottom:1px;left:calc(50% - 7px);width:14px;height:8px;background:var(--gold);clip-path:polygon(0 0,100% 0,50% 100%)}
       .crown{height:35px;position:relative;display:grid;grid-template-columns:1fr 54px 1fr;align-items:center;justify-items:center}
       .crown:before{content:"";position:absolute;inset:50% 0 auto;height:1px;background:var(--gold);opacity:.5}
-      .seal{position:relative;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid currentColor;background:#07191d;font-size:14px}
-      .red{color:var(--red)}.blue{color:var(--blue)}.seal.mine{outline:1px solid #d2b16a;outline-offset:2px}
-      .crest{position:relative;width:27px;height:27px;display:grid;place-items:center;transform:rotate(45deg);border:2px solid var(--gold);background:#071217;box-shadow:inset 0 0 0 3px #333124,0 0 0 2px #07141b}
-      .crest span{transform:rotate(-45deg);color:#dac48e;font-size:18px}
+      .seal{position:relative;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid currentColor;background:var(--bg);font-size:14px}
+      .red{color:var(--red)}.blue{color:var(--blue)}.seal.mine{outline:1px solid var(--accent);outline-offset:2px}
+      .crest{position:relative;width:27px;height:27px;display:grid;place-items:center;transform:rotate(45deg);border:2px solid var(--gold);background:var(--bg);box-shadow:inset 0 0 0 3px var(--surface),0 0 0 2px var(--bg)}
+      .crest span{transform:rotate(-45deg);color:var(--accent);font-size:18px}
       #top{display:grid;grid-template-columns:1fr 58px 1fr;align-items:center;justify-items:center;padding:0 56px;font-weight:800;font-variant-numeric:tabular-nums}
-      #top.off{opacity:.45}.total{white-space:nowrap;text-align:center;padding:2px 4px;border-top:1px solid #665739;border-bottom:1px solid #665739;background:#103035;font-size:12px}
-      .coin{display:inline-block;width:8px;height:6px;margin-right:3px;border:1px solid #e7c77c;border-radius:50%;background:#987033;vertical-align:1px}
-      .lead{white-space:nowrap;align-self:end}.lead[data-side=red]{color:var(--red)}.lead[data-side=blue]{color:var(--blue)}.lead[data-side=even]{color:#a9b8c2}
+      #top.off{opacity:.45}.total{white-space:nowrap;text-align:center;padding:2px 4px;border-top:1px solid var(--bronze);border-bottom:1px solid var(--bronze);background:var(--surface);font-size:12px}
+      .coin{display:inline-block;width:8px;height:6px;margin-right:3px;border:1px solid var(--accent);border-radius:50%;background:var(--honey);vertical-align:1px}
+      .lead{white-space:nowrap;align-self:end}.lead[data-side=red]{color:var(--red)}.lead[data-side=blue]{color:var(--blue)}.lead[data-side=even]{color:var(--muted)}
       #ar{font-size:8px;margin-right:2px}#df{font-size:12px}
       .k{display:grid;grid-template-columns:1fr auto 1fr;justify-items:center;align-items:center;gap:6px;margin:3px auto 4px;width:90px;font-size:17px;font-weight:800}
-      .k i{color:#c8aa6e;font-style:normal;font-size:12px}
-      .players{--red:#ff604a;--blue:#56b9ff;position:absolute;inset:122px 0 0;display:grid;grid-template-rows:repeat(5,minmax(0,1fr))}
+      .k i{color:var(--accent);font-style:normal;font-size:12px}
+      .players{--red:var(--s3);--blue:var(--accent);position:absolute;inset:122px 0 0;display:grid;grid-template-rows:repeat(5,minmax(0,1fr))}
       .players[hidden]{display:none}
       .player-row{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);align-items:center;justify-items:center;padding:0 17px 12px;min-height:0}
-      .player-gold,.player-diff{padding:1px 5px;border:1px solid #a4864a88;border-radius:4px;background:#071b22eb;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;line-height:16px;white-space:nowrap}
-      .player-diff{font-size:11px}.player-diff.even{color:#a9b8c2}
-      .fine{margin:0;color:#adc0c3;font-size:9px;text-align:center}
+      .player-gold,.player-diff{padding:1px 5px;border:1px solid var(--accent);border-radius:4px;background:var(--bg);font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;line-height:16px;white-space:nowrap}
+      .player-diff{font-size:11px}.player-diff.even{color:var(--muted)}
+      .fine{margin:0;color:var(--muted);font-size:9px;text-align:center}
     `;
     const js = (function () {
       const host = window.statscanHost;
@@ -2185,9 +2186,9 @@ const LOLMOD = (() => {
       setInterval(refresh, 1000);
       refresh();
     }).toString();
-    const csp = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
+    const csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; script-src 'unsafe-inline'";
     return '<!doctype html><html lang="tr"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '">'
-      + '<title>Altın farkı</title><style>' + css + '</style><main class="hud">'
+      + '<title>Altın farkı</title><style>' + windowTheme.css + css + '</style><main class="hud">'
       + '<div class="crown"><span id="redSeal" class="seal red" aria-label="Kırmızı takım">◈</span><div class="crest" aria-hidden="true"><span>⚔</span></div><span id="blueSeal" class="seal blue" aria-label="Mavi takım">◈</span></div>'
       + '<div id="top" class="off"><span class="total red"><i class="coin" aria-hidden="true"></i><span id="gl">0</span></span>'
       + '<span id="lead" class="lead" data-side="even"><span id="ar" aria-hidden="true">•</span><span id="df">0</span></span>'

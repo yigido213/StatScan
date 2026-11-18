@@ -1,4 +1,5 @@
 'use strict';
+const windowTheme = require('./window-theme.js');
 /* StatScan masaustu uygulamasi (Electron ana sureci). main.js (yukleyici) tarafindan baslatilir; guncellenebilir. */
 const path = require('path');
 const fs = require('fs');
@@ -100,7 +101,7 @@ function start(ctx) {
 
   function createWindow() {
     win = new BrowserWindow({
-      width: 1280, height: 900, minWidth: 900, minHeight: 640, show: false, backgroundColor: '#0b1118', title: 'Kovan', icon: ICON,
+      width: 1280, height: 900, minWidth: 900, minHeight: 640, show: false, backgroundColor: windowTheme.backgroundColor, title: 'Kovan', icon: ICON,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: !app.isPackaged }
     });
     const quietStart = process.argv.includes('--autostart') && appConfig().startMinimized;
@@ -163,7 +164,7 @@ function start(ctx) {
           const height = Math.min(440, wa.height - 24);
           const popup = new BrowserWindow({ width, height, x: wa.x + wa.width - width - 12, y: wa.y + 12,
             title: 'Blitz · Şampiyon seçimi', show: false, alwaysOnTop: true, skipTaskbar: true,
-            autoHideMenuBar: true, backgroundColor: '#101821',
+            autoHideMenuBar: true, backgroundColor: windowTheme.backgroundColor,
             webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, devTools: false } });
           selectWindow = popup;
           popup.setMenu(null);
@@ -186,17 +187,17 @@ function start(ctx) {
   }
 
   const selectPopupHtml = `<!doctype html><html lang="tr"><meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src data:; script-src 'unsafe-inline'">
     <title>Blitz · Şampiyon seçimi</title>
-    <style>
-      body{margin:0;padding:20px;background:#101821;color:#e8eff6;font:14px 'Segoe UI',sans-serif}
-      h1{margin:0 0 16px;font-size:21px}h2{margin:0 0 8px;font-size:14px;color:#6ee6ed}section+section h2{color:#ff887f}
+    <style>${windowTheme.css}
+      body{margin:0;padding:20px;background:var(--bg);color:var(--paper);font:14px var(--f-body)}
+      h1{margin:0 0 16px;font:400 38px/1 var(--f-display)}h1 em{color:var(--accent)}.eyebrow{display:block;color:var(--muted);font:500 10px var(--f-body);letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}h2{margin:0 0 8px;font-size:14px;color:var(--accent)}section+section h2{color:var(--s3)}
       main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-      section{padding:12px;border:1px solid #263746;border-radius:12px}ul{list-style:none;padding:0;margin:0}
-      li{display:flex;justify-content:space-between;gap:6px;padding:8px 0;border-top:1px solid #243240;overflow-wrap:anywhere}
-      small{flex:none;color:#a5b9ca}li.me{color:#6ee6ed;font-weight:600}
+      section{padding:12px;border:1px solid var(--surface2);border-radius:12px}ul{list-style:none;padding:0;margin:0}
+      li{display:flex;justify-content:space-between;gap:6px;padding:8px 0;border-top:1px solid var(--surface);overflow-wrap:anywhere}
+      small{flex:none;color:var(--muted)}li.me{color:var(--accent);font-weight:600}
     </style>
-    <h1>Şampiyon seçimi</h1><main><section><h2>Takımım</h2><ul id="allies"></ul></section>
+    <span class="eyebrow">Blitz</span><h1>Şampiyon <em>seçimi.</em></h1><main><section><h2>Takımım</h2><ul id="allies"></ul></section>
     <section><h2>Rakip takım</h2><ul id="enemies"></ul></section></main>
     <script>
       function renderTeams(snapshot) {
