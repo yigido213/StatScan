@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz şampiyon havuzunda Tahm Kench/Malphite gibi destek oynanan şampiyonların yanlışlıkla Mid'de görünmesi (kullanıcı istedi, 2026-11-18) — claude-b: BAŞLADI (branch claude-b-rol-duzelt, main 7413161 üstünden). Dokunacağı yerler: app/desktop/host.js (`laneRole`, `lol:sync`/Riot rol onarımı), tools/test/lol-host.cjs, docs/KOD-HARITASI.md.
 - HOTFIX: Blitz aynı koridora birden fazla oyuncu yazan eski maç kayıtlarını takım dizilimiyle çözer ve tekil koridor kayıtlarına şampiyonun alışılmış rolünden daha fazla ağırlık verir. Blitz 0.8.5 — Codex: bitti.
 - HOTFIX: Blitz şampiyon havuzunda eski maçların eksik ve çelişen rolleri büyüler, eşyalar ve takım dizilimiyle çözülür. Blitz 0.8.4 — Codex: bitti.
 - HOTFIX: Tab göstergesinde oyuncu eşya altını ve koridor farkları skor tahtası satırlarında sayısal rozetlerle gösterilir. Blitz 0.8.3 — Codex: bitti.
