@@ -4229,6 +4229,43 @@ function xdEntropy(b) {
   for (const n of counts) if (n) { const p=n/b.length; h-=p*Math.log2(p); }
   return h;
 }
+function xdPaddingKey(sample, length) {
+  const key=new Uint8Array(length);
+  const counts=new Uint16Array(256);
+  for(let col=0;col<length;col++){
+    counts.fill(0);
+    for(let j=col;j<sample.length;j+=length) {
+      const byte=sample[j];
+      if(++counts[byte]>counts[key[col]]) key[col]=byte;
+    }
+  }
+  return key;
+}
+function xdLongPEKey(sample, out, fileSize) {
+  for(let length=65;length<=256 && length*8<=sample.length;length++) {
+    const key=xdPaddingKey(sample,length);
+    xdApply(sample,key,'xor',out);
+    if(xdFormat(out)!=='PE') continue;
+    // Longer keys have fewer observations per column. Require a complete PE
+    // header and section ranges before promoting a zero-padding hypothesis.
+    const view=new DataView(out.buffer,out.byteOffset,out.length);
+    const pe=view.getUint32(60,true), sections=view.getUint16(pe+6,true);
+    const optional=pe+24, optionalSize=view.getUint16(pe+20,true);
+    const table=optional+optionalSize, tableEnd=table+40*sections;
+    if(!sections || sections>96 || optionalSize<96 || tableEnd>out.length) continue;
+    const magic=view.getUint16(optional,true);
+    if(magic!==0x10b && magic!==0x20b) continue;
+    const headerSize=view.getUint32(optional+60,true);
+    if(headerSize<tableEnd || headerSize>fileSize) continue;
+    let valid=true;
+    for(let row=table;row<tableEnd;row+=40) {
+      const size=view.getUint32(row+16,true), offset=view.getUint32(row+20,true);
+      if(size && (offset<headerSize || offset+size>fileSize)) { valid=false; break; }
+    }
+    if(valid) return key;
+  }
+  return null;
+}
 function xdGuess(src) {
   const sample=src.subarray(0,2048), out=new Uint8Array(sample.length);
   const baseline=xdText(sample), entropy=xdEntropy(sample);
@@ -4255,14 +4292,7 @@ function xdGuess(src) {
   // PE alignment padding often supplies zero plaintext across every column.
   // Accept that assumption only when it also reconstructs a validated header.
   for (const {n} of lengths) {
-    const key=new Uint8Array(n);
-    for(let col=0;col<n;col++){
-      const counts=new Uint16Array(256);
-      for(let j=col;j<sample.length;j+=n) {
-        const byte=sample[j];
-        if(++counts[byte]>counts[key[col]]) key[col]=byte;
-      }
-    }
+    const key=xdPaddingKey(sample,n);
     if (key.some(b=>b) && xdFormat(xdApply(sample,key,'xor',out))) consider(key,'xor');
   }
   if(best?.format) return best;
@@ -4287,6 +4317,10 @@ function xdGuess(src) {
       if(!plain.every((b,j)=>(sample[offset+j]^key[(offset+j)%n])===b)) continue;
       consider(key,'xor');
     }
+  }
+  if(!best?.format) {
+    const longKey=xdLongPEKey(sample,out,src.length);
+    if(longKey) consider(longKey,'xor');
   }
   return best;
 }
