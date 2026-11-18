@@ -223,7 +223,8 @@ html[data-fx="off"] *, html[data-fx="off"] *::before, html[data-fx="off"] *::aft
 }
 
 .editorial > em { position: relative; }
-.editorial > span:not(.greeting) + em { margin-inline-start: .07em; }
+.editorial { --heading-word-spacing: .10em; word-spacing: var(--heading-word-spacing); }
+.editorial > :is(span, em, small) { word-spacing: normal; }
 .editorial [data-highlight]::after {
   content: attr(data-highlight) / ''; position: absolute; inset: 0; width: max-content; max-width: 100%;
   color: var(--paper); pointer-events: none; clip-path: polygon(-20% 0,-10% 0,-20% 100%,-30% 100%);

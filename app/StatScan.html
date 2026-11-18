@@ -7486,7 +7486,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const accent = tail || words.pop();
     const first = tail ? KT(title) : words.join(' ') || (KL.lang === 'en' ? 'Tool' : 'Araç');
     return h('h1', { class: 'editorial', 'data-focus': '', tabindex: '-1' },
-      h('small', { class: 'eyebrow' }, KT(caption ? title : area)), h('span', {}, first + ' '),
+      h('small', { class: 'eyebrow' }, KT(caption ? title : area)), h('span', {}, first), ' ',
       h('em', { 'data-highlight': accent + '.' }, accent + '.'));
   }
 
