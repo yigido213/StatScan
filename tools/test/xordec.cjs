@@ -39,6 +39,7 @@ const {gzipSync} = require('node:zlib');
   both.set(xor(pe,()=>111),9);both.set(xor(jar,()=>93),9+pe.length);
   const blobs=await check('multiple embedded objects',both,pe,'xor');
   assert.deepEqual(blobs.embedded.map(x=>x.offset),[9,9+pe.length]);
+  assert.deepEqual(blobs.embedded.map(x=>x.data),[pe,jar]);
   await check('repeating',xor(plain,i=>[201,30,92,142,12][i%5]),plain,'xor');
   await check('increment',xor(pe,i=>42+i),pe,'key+i');
   await check('rotate',xor(pe,i=>(37<<(i%8))|(37>>>(8-i%8))),pe,'rol');

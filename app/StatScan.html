@@ -4359,7 +4359,8 @@ async function xorRecover(input, manualKey) {
   let embedded=[];
   for(let depth=0;depth<5;depth++) {
     format=xdFormat(data);
-    if(format==='ZIP' && !manualKey) {
+    let hits = format && !manualKey && !layers.some(l=>l.key) ? xdEmbedded(data) : [];
+    if(format==='ZIP' && !manualKey && !hits.length) {
       try {
         const z=mzRead(data), files=z.entries.filter(e=>!e.isDir);
         if(files.some(e=>/\.class$|^META-INF\/MANIFEST\.MF$/i.test(e.name))){format='JAR';break;}
@@ -4372,8 +4373,6 @@ async function xorRecover(input, manualKey) {
     if(format==='gzip' && !manualKey) {
       try { const inner=await gunzip(data,XD_LIMIT); if(inner){data=inner;layers.push({mode:'gzip'});continue;} } catch { /* preserve compressed bytes */ }
     }
-    const inspectPlainContainer = format && !manualKey && !layers.some(l=>l.key);
-    let hits = inspectPlainContainer ? xdEmbedded(data) : [];
     if(format && !manualKey && !hits.length) break;
     if(!manualKey && data.length<4*1024*1024 && data.length>=16 && data.subarray(0,128).every(b=>b<128)) {
       const s=latin1(data).replace(/\s/g,'');
@@ -4390,15 +4389,17 @@ async function xorRecover(input, manualKey) {
     if(!guess?.format && !manualKey) {
       if(!hits.length) hits=xdEmbedded(data);
       if(hits.length) {
-        embedded=hits.map((hit,i)=>({...hit,source:data.subarray(hit.offset,hits[i+1]?.offset ?? data.length)}));
+        embedded=hits.map((hit,i)=>{
+          const source=data.subarray(hit.offset,hits[i+1]?.offset ?? data.length);
+          return {...hit,data:xorDecode(source,0,hit.key)};
+        });
         const hit=hits[0];
         guess={key:[hit.key],mode:'xor',score:98};start=hit.offset;
       }
     }
     if(!guess) break;
     if(start) offset=start;
-    const end=start && hits.length>1 ? hits[1].offset : data.length;
-    data=xdApply(data.subarray(start,end),guess.key,guess.mode,new Uint8Array(end-start));
+    data=start ? embedded[0].data : xdApply(data,guess.key,guess.mode,new Uint8Array(data.length));
     layers.push({mode:guess.mode,key:guess.key,score:guess.score,offset:start});
     if (manualKey) break;
   }
@@ -7621,6 +7622,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'İmza ve Sertifika Denetçisi': 'Signature & Certificate Inspector',
       'Paketleyici / Obfuscation Dedektörü': 'Packer / Obfuscation Detector',
       'Gömülü bölümler': 'Embedded regions',
+      'Gömülü XOR içeriği çözüldü ({0})': 'Embedded XOR content decoded ({0})',
+      'Gömülü çıktıyı önizle': 'Preview embedded output',
+      'Bu dosyayı indirmek ister misin?': 'Do you want to download this file?',
+      'İndirmeyi onayla': 'Confirm download',
+      'İndirmeyi iptal et': 'Cancel download',
       'XOR Çözücü': 'XOR Decoder',
       'XOR ile gizlenen veriyi yerel olarak çöz ve tara.': 'Recover and scan XOR-encoded data locally.',
       'En fazla 16 MiB ve 5 katman. Güven puanı sezgiseldir.': 'Up to 16 MiB and 5 layers. Confidence is a heuristic estimate.',
@@ -7749,7 +7755,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.24';
+  const KOVAN_VER = 'beta 0.1.25';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8117,10 +8123,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           const kind = h('select', { 'aria-label': KT('Anahtar biçimi') }, h('option', { value: 'hex' }, 'Hex'), h('option', { value: 'text' }, KT('Metin anahtarı')));
           const button = label => h('button', { type: 'button', class: 'cv-btn' }, KT(label));
           const manual = button('Elle çöz'), status = h('p', { role: 'status' });
-          const regions = h('div', {class:'cv-actions'});
-          box.append(head(file), regions, result, h('label', {}, KT('XOR anahtarı'), key), kind, manual, status);
+          const regions = h('section', { 'aria-label': KT('Gömülü bölümler') });
+          box.append(head(file), result, h('label', {}, KT('XOR anahtarı'), key), kind, manual, status, regions);
           const hex = arr => Array.from(arr, b => b.toString(16).padStart(2, '0')).join(' ');
-          async function show(decoded) {
+          const extension = format => ['PE','MZ'].includes(format) ? 'exe' : format.toLowerCase();
+          function downloadControl(filename, data, initiallyOpen = false) {
+            const download = button('Çıktıyı indir'), confirm = button('İndirmeyi onayla'), cancel = button('İndirmeyi iptal et');
+            const prompt = h('div', {}, h('p', {}, KT('Bu dosyayı indirmek ister misin?') + ' ' + filename), confirm, cancel);
+            prompt.hidden = !initiallyOpen;
+            download.hidden = initiallyOpen;
+            download.onclick = () => { prompt.hidden = false; download.hidden = true; confirm.focus(); };
+            const close = () => { prompt.hidden = true; download.hidden = false; download.focus(); };
+            cancel.onclick = close;
+            confirm.onclick = () => { close(); saveBlob(filename, new Blob([data], { type: 'application/octet-stream' })); };
+            return h('div', {}, download, prompt);
+          }
+          async function show(decoded, offerDownload = true) {
             result.replaceChildren();
             if (!decoded) { result.append(h('p', {}, KT('Güvenilir XOR adayı bulunamadı.'))); return; }
             const { layers, data, format } = decoded;
@@ -8133,9 +8151,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
             preview.forEach((b,i)=>{ if(!b) zeros[i%2]++; });
             const encoding=Math.max(...zeros)>preview.length*.25 ? (zeros[1]>zeros[0]?'utf-16le':'utf-16be') : 'utf-8';
             const txt = new TextDecoder(encoding).decode(preview).replace(/[\x00-\x08\x0b-\x1f\x7f]/g,'·');
-            const filename = 'decoded.' + (['PE','MZ'].includes(format) ? 'exe' : format.toLowerCase());
-            const download = button('Çıktıyı indir');
-            download.onclick = () => saveBlob(filename, new Blob([data], {type:'application/octet-stream'}));
+            const filename = 'decoded.' + extension(format);
             const scanBtn = button('Çözülmüş içeriği StatScan ile tara'), score = h('div', {role:'status'});
             async function scanOutput() {
               scanBtn.disabled=true;
@@ -8144,7 +8160,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
               finally { scanBtn.disabled=false; }
             }
             scanBtn.onclick=scanOutput;
-            result.append(h('h2',{},KT('Önizleme (ilk 512 bayt)')),h('pre',{class:'ev'},hex(preview)),h('pre',{class:'ev'},txt),download,scanBtn,score);
+            result.append(h('h2',{},KT('Önizleme (ilk 512 bayt)')),h('pre',{class:'ev'},hex(preview)),h('pre',{class:'ev'},txt));
+            if (offerDownload) result.append(downloadControl(filename, data));
+            result.append(scanBtn,score);
             if (['PE','MZ','JAR'].includes(format)) await scanOutput();
           }
           manual.onclick=async () => {
@@ -8155,18 +8173,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
             try { await show(await StatScan.xorRecover(bytes,k)); } catch(e) { status.textContent=String(e.message); } finally { manual.disabled=false; }
           };
           const decoded=await StatScan.xorRecover(bytes);
-          if(decoded && decoded.embedded.length>1) {
-            const choose=h('select',{'aria-label':KT('Gömülü bölümler')});
-            decoded.embedded.forEach((item,i)=>choose.append(h('option',{value:String(i)},item.format+' · 0x'+item.offset.toString(16))));
-            choose.onchange=async () => {
-              const item=decoded.embedded[Number(choose.value)];
-              const part=await StatScan.xorRecover(item.source,Uint8Array.of(item.key));
-              part.layers[0]={mode:'xor',key:[item.key],offset:item.offset,score:98};
-              await show(part);
-            };
-            regions.append(h('label',{},KT('Gömülü bölümler'),choose));
+          if (decoded?.embedded.length) {
+            regions.className = 'cv-sec';
+            regions.append(h('h2', {}, KT('Gömülü XOR içeriği çözüldü ({0})', decoded.embedded.length)));
+            const items = h('ul');
+            for (const { format, offset, key, data } of decoded.embedded) {
+              const location = '0x' + offset.toString(16);
+              const preview = button('Gömülü çıktıyı önizle');
+              preview.onclick = () => show({ format, data, layers: [{ mode: 'xor', key: [key], offset, score: 98 }] }, false);
+              items.append(h('li', {}, h('strong', {}, format + ' · ' + location + ' · ' + fmt(data.length)),
+                kv('XOR anahtarı', hex([key])), preview, downloadControl('decoded-' + location + '.' + extension(format), data, true)));
+            }
+            regions.append(items);
           }
-          await show(decoded);
+          await show(decoded, !decoded?.embedded.length);
           return box;
         }
       });

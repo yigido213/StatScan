@@ -180,7 +180,8 @@ async function xorRecover(input, manualKey) {
   let embedded=[];
   for(let depth=0;depth<5;depth++) {
     format=xdFormat(data);
-    if(format==='ZIP' && !manualKey) {
+    let hits = format && !manualKey && !layers.some(l=>l.key) ? xdEmbedded(data) : [];
+    if(format==='ZIP' && !manualKey && !hits.length) {
       try {
         const z=mzRead(data), files=z.entries.filter(e=>!e.isDir);
         if(files.some(e=>/\.class$|^META-INF\/MANIFEST\.MF$/i.test(e.name))){format='JAR';break;}
@@ -193,8 +194,6 @@ async function xorRecover(input, manualKey) {
     if(format==='gzip' && !manualKey) {
       try { const inner=await gunzip(data,XD_LIMIT); if(inner){data=inner;layers.push({mode:'gzip'});continue;} } catch { /* preserve compressed bytes */ }
     }
-    const inspectPlainContainer = format && !manualKey && !layers.some(l=>l.key);
-    let hits = inspectPlainContainer ? xdEmbedded(data) : [];
     if(format && !manualKey && !hits.length) break;
     if(!manualKey && data.length<4*1024*1024 && data.length>=16 && data.subarray(0,128).every(b=>b<128)) {
       const s=latin1(data).replace(/\s/g,'');
@@ -211,15 +210,17 @@ async function xorRecover(input, manualKey) {
     if(!guess?.format && !manualKey) {
       if(!hits.length) hits=xdEmbedded(data);
       if(hits.length) {
-        embedded=hits.map((hit,i)=>({...hit,source:data.subarray(hit.offset,hits[i+1]?.offset ?? data.length)}));
+        embedded=hits.map((hit,i)=>{
+          const source=data.subarray(hit.offset,hits[i+1]?.offset ?? data.length);
+          return {...hit,data:xorDecode(source,0,hit.key)};
+        });
         const hit=hits[0];
         guess={key:[hit.key],mode:'xor',score:98};start=hit.offset;
       }
     }
     if(!guess) break;
     if(start) offset=start;
-    const end=start && hits.length>1 ? hits[1].offset : data.length;
-    data=xdApply(data.subarray(start,end),guess.key,guess.mode,new Uint8Array(end-start));
+    data=start ? embedded[0].data : xdApply(data,guess.key,guess.mode,new Uint8Array(data.length));
     layers.push({mode:guess.mode,key:guess.key,score:guess.score,offset:start});
     if (manualKey) break;
   }
