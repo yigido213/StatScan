@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)('playwright');
+const browser = await chromium.launch({args:['--no-sandbox']});
+try {
+  const page = await browser.newPage({ viewport:{width:390,height:844}, acceptDownloads:true });
+  const errors=[];
+  page.on('pageerror', e=>errors.push(e.message));
+  const url=new URL('../../app/StatScan.html',import.meta.url).href;
+  await page.goto(url+'#/c-guvenlik');
+  await page.locator('#app-c-guvenlik [data-open=xorcozucu]').click();
+  const panel=page.locator('#app-xorcozucu');
+  await panel.waitFor();
+  const plain=new Uint8Array(512);
+  plain.set([77,90]);plain[60]=128;plain.set([80,69,0,0,76,1],128);
+  const encrypted=Array.from(plain,x=>x^141);
+  await panel.locator('.cv-drop').evaluate((zone,bytes)=>{
+    const dt=new DataTransfer();dt.items.add(new File([Uint8Array.from(bytes)],'sample.bin'));
+    zone.dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));
+  },encrypted);
+  await panel.locator('.sc-score').waitFor();
+  assert.match(await panel.locator('#xd-res').innerText(),/8d/);
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const dl=page.waitForEvent('download');
+  await panel.getByRole('button',{name:'Çıktıyı indir'}).click();
+  assert.deepEqual(new Uint8Array(await fs.readFile(await (await dl).path())),plain);
+  await page.evaluate(()=>localStorage.setItem('kovan.lang','en'));
+  await page.reload();
+  assert.match(await panel.locator('h1').innerText(),/XOR Decoder/i);
+  await page.locator('#xd-file').setInputFiles({name:'again.bin',mimeType:'application/octet-stream',buffer:Buffer.from(encrypted)});
+  await panel.getByRole('button',{name:'Scan decoded content with StatScan'}).click();
+  await panel.locator('.sc-score').waitFor();
+  const short=Buffer.from('Hello!', 'utf8');
+  await page.locator('#xd-file').setInputFiles({name:'short.bin',mimeType:'application/octet-stream',buffer:Buffer.from(short.map(b=>b^65))});
+  await panel.getByText('No credible XOR candidate found.').waitFor();
+  await panel.getByRole('textbox',{name:'XOR key'}).fill('41');
+  await panel.getByRole('button',{name:'Decode manually'}).click();
+  await panel.getByText('Hello!',{exact:true}).waitFor();
+  await panel.getByRole('combobox',{name:'Key format'}).selectOption('text');
+  await panel.getByRole('textbox',{name:'XOR key'}).fill('A');
+  await panel.getByRole('button',{name:'Decode manually'}).click();
+  await panel.getByText('Hello!',{exact:true}).waitFor();
+  assert.deepEqual(errors,[]);
+  console.log('OK security card, drop, decoded bytes, score, download, English, 390px');
+} finally { await browser.close(); }

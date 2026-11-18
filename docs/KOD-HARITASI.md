@@ -120,6 +120,14 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 - HTML değişince sözdizimi: her `<script>` bloğunu `new Function` ile dene (testler zaten sayfayı açar).
 - Bilinen: `ui-fx` 'daralma animasyonlu' kararsız; `compile-native` paralel yükte kararsız; ioc/mc/methods/modes/pack/trust fixture dizini (ortam değişkeni) olmadan düşer; `ui-lol` 'bugün özeti' gece yarısından sonraki ilk saatlerde atlanır.
 
+## XOR Çözücü
+
+Güvenlik kategorisindeki `#/xorcozucu` rotası, `secToolsUI.shell()` üzerinden dosyayı `StatScan.xorRecover(bytes, optionalKey)` motoruna verir. Motor kaynağı `src/engine/105-xordec.js`; HTML'e `node tools/inject.mjs` ile girer. Veri yerelde kalır.
+
+En fazla 16 MiB dosya ve beş katman incelenir. Motor tek baytlık XOR, artan ve dönen anahtarları dener. Tekrarlanan anahtarlarda ilk 2048 bayttan 2–64 baytlık dönemlerin Hamming mesafelerini karşılaştırır, en iyi on dönemi frekansla değerlendirir ve bilinen başlık kalıplarını sınar. Entropi tek baytlık XOR'da değişmez. Metin puanı ve yapısal imzalar sezgiseldir. Gömülü arama ilk 2 MiB içinde sekize kadar yapısal imza adayını listeler; çıktı bir sonraki bulunan ofsete veya dosya sonuna kadar uzanır. Gömülü nesnenin gerçek sonu farklı olabilir.
+
+Base64/hex, gzip ve tek dosyalı ZIP katmanları açılabilir. JAR ve birden çok üyeli ZIP arşiv olarak korunur. PE/JAR çıktısında yerel `scanFile` çağrılır; `scoreBox` sonucu çözme güveninden ayrı gösterir. Önizleme 512 baytla sınırlıdır. Testler: `tools/test/xordec.cjs`, `tools/test/ui-xor.mjs`.
+
 ## Ana sayfada Sabitlenenler
 
 Ana sayfa araç seçicisinde normal Kovan araçları listelenir. Sabitlenenler kategori sayfalarıyla aynı araç kartını kullanır. Kart aracı açar, köşesindeki × sabitlemeyi kaldırır. Araç kimlikleri `kovan.home.pins` altında yerelde saklanır.

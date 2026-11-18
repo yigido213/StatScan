@@ -1,0 +1,44 @@
+const assert = require('node:assert/strict');
+const {gzipSync} = require('node:zlib');
+(async () => {
+  const E = (await import('./engine.mjs')).loadEngine();
+  const enc = s => new TextEncoder().encode(s);
+  const xor = (bytes, k) => Uint8Array.from(bytes,(v,i)=>v^k(i));
+  const plain = enc('We found the file in the archive. Please read the next line and check the original results before continuing. '.repeat(7));
+  const pe = new Uint8Array(1024);
+  pe.set([77,90]);pe[60]=192;pe.set(enc('This program cannot be run in DOS mode'),78);pe.set([80,69,0,0,76,1],192);
+  const zip = await E.mzWrite(['a.txt','b.txt'].map(name=>({name,data:plain})));
+  const jar = await E.mzWrite([{name:'META-INF/MANIFEST.MF',data:enc('Manifest-Version: 1.0')}]);
+  async function check(name,input,want,mode) {
+    const r=await E.xorRecover(input);
+    assert(r,name);assert.deepEqual(r.data,want,name);assert(r.layers.some(l=>l.mode===mode),name);
+    console.log('OK',name);return r;
+  }
+  await check('single text',xor(plain,()=>0xBC),plain,'xor');
+  await check('zip',xor(zip,()=>77),zip,'xor');
+  assert.equal((await check('jar',xor(jar,()=>33),jar,'xor')).format,'JAR');
+  await check('PE',xor(pe,()=>0x21),pe,'xor');
+  const longKey=Uint8Array.from({length:64},(_,i)=>(i*37+71)&255);
+  await check('PE with 64-byte key',xor(pe,i=>longKey[i%64]),pe,'xor');
+  const utf16=new Uint8Array(Buffer.from('This text is stored in a wide character encoding. '.repeat(8),'utf16le'));
+  await check('UTF-16',xor(utf16,()=>233),utf16,'xor');
+  const both=new Uint8Array(9+pe.length+jar.length);
+  both.set(xor(pe,()=>111),9);both.set(xor(jar,()=>93),9+pe.length);
+  const blobs=await check('multiple embedded objects',both,pe,'xor');
+  assert.deepEqual(blobs.embedded.map(x=>x.offset),[9,9+pe.length]);
+  await check('repeating',xor(plain,i=>[201,30,92,142,12][i%5]),plain,'xor');
+  await check('increment',xor(pe,i=>42+i),pe,'key+i');
+  await check('rotate',xor(pe,i=>(37<<(i%8))|(37>>>(8-i%8))),pe,'rol');
+  const embedded=new Uint8Array(1024+87);embedded.fill(0x17,0,87);embedded.set(xor(pe,()=>198),87);
+  assert.equal((await check('embedded PE',embedded,pe,'xor')).layers[0].offset,87);
+  const packed=xor(gzipSync(plain),()=>201);
+  await check('base64 xor gzip',enc(Buffer.from(packed).toString('base64')),plain,'gzip');
+  await check('hex xor gzip',enc(Buffer.from(packed).toString('hex')),plain,'hex');
+  const single=await E.mzWrite([{name:'content.txt',data:plain}]);
+  await check('xor zip member',xor(single,()=>215),plain,'zip');
+  assert.deepEqual((await E.xorRecover(xor(pe,()=>123),Uint8Array.of(123))).data,pe);
+  let seed=123456;
+  const random=Uint8Array.from({length:3000},()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed>>>24;});
+  for (const raw of [plain,pe,zip,random,new Uint8Array(4096)]) assert.equal(await E.xorRecover(raw),null,'false positive');
+  console.log('OK manual and negative controls');
+})().catch(e=>{console.error(e);process.exitCode=1;});

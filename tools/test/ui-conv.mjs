@@ -1,6 +1,18 @@
 // Kovan donusturucu arayuzleri (Playwright): dosya sec -> algila -> donustur -> indir -> cikti dogrula
 import { createRequire } from 'node:module'; const require = createRequire(import.meta.url); const { chromium } = require('playwright');
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { spawnSync } from 'node:child_process'; import { loadEngine } from './engine.mjs'; import { fileURLToPath, pathToFileURL } from 'node:url';
+// Use an independent ZIP reader to check exported archives on Windows as well.
+function unzip(args) {
+  if (process.platform !== 'win32') return spawnSync('unzip', args);
+  const script = [
+    'import sys, zipfile',
+    'with zipfile.ZipFile(sys.argv[2]) as archive:',
+    " if sys.argv[1] == '-t': sys.exit(int(archive.testzip() is not None))",
+    " if sys.argv[1] == '-Z1': print(*archive.namelist(), sep=chr(10))",
+    " if sys.argv[1] == '-p': sys.stdout.buffer.write(archive.read(sys.argv[3]))"
+  ].join('\n');
+  return spawnSync('python', ['-c', script, ...args]);
+}
 const E = loadEngine(); let bad = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) bad++; };
 const enc = (s) => new TextEncoder().encode(s); const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'uc-'));
 const T = 'assets/minecraft/textures/';
@@ -13,8 +25,8 @@ else if (process.platform === 'linux') launchOptions.executablePath = '/opt/pw-b
 const b = await chromium.launch(launchOptions);
 const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, acceptDownloads: true }); const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await pg.goto(pathToFileURL(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../app/StatScan.html')).href); await pg.waitForTimeout(300);
-ok((await pg.textContent('#side-ver')) === 'beta 0.1.23', 'kenar çubuğu sürümü: beta 0.1.23');
-ok((await pg.textContent('#home-facts')).includes('beta 0.1.23'), 'Home: Kovan beta 0.1.23');
+ok((await pg.textContent('#side-ver')) === 'beta 0.1.24', 'kenar çubuğu sürümü: beta 0.1.24');
+ok((await pg.textContent('#home-facts')).includes('beta 0.1.24'), 'Home: Kovan beta 0.1.24');
 await pg.selectOption('#home-pin-select', 'statscan');
 await pg.click('#home-pin-add');
 await pg.selectOption('#home-pin-select', 'lolcounter');
@@ -38,14 +50,14 @@ await pg.setInputFiles('#tp-file', dir + '/nomc.zip'); await pg.waitForTimeout(3
 await pg.setInputFiles('#tp-file', dir + '/pack.zip'); await pg.waitForTimeout(400); ok(await pg.inputValue('#tp-src') === '1.11' && /pack_format/.test(await pg.textContent('#app-texpack .cv-info')), 'kaynak sürüm 1.11 algılandı');
 await pg.selectOption('#tp-dst', '1.21.4'); await pg.click('#app-texpack .cv-primary:not(.cv-actions *)'); await pg.waitForSelector('#app-texpack .cv-res:not([hidden])', { timeout: 8000 });
 const [dl] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-texpack .cv-actions .cv-primary')]); const p1 = dir + '/' + dl.suggestedFilename(); await dl.saveAs(p1); ok(dl.suggestedFilename() === 'pack-1.21.4.zip', 'indirilen ad: ' + dl.suggestedFilename());
-ok(spawnSync('unzip', ['-t', p1]).status === 0, 'indirilen zip geçerli'); const lst = spawnSync('unzip', ['-Z1', p1]).stdout.toString(); ok(/textures\/block\/dirt\.png/.test(lst) && /textures\/item\/apple\.png/.test(lst) && !/textures\/blocks\//.test(lst), 'dokular yeniden adlandırıldı');
+ok(unzip(['-t', p1]).status === 0, 'indirilen zip geçerli'); const lst = unzip(['-Z1', p1]).stdout.toString(); ok(/textures\/block\/dirt\.png/.test(lst) && /textures\/item\/apple\.png/.test(lst) && !/textures\/blocks\//.test(lst), 'dokular yeniden adlandırıldı');
 const [dr] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-texpack .cv-actions .cv-btn:not(.cv-primary)')]); await dr.saveAs(dir + '/r.md'); ok(/1\.11.*1\.21\.4/s.test(fs.readFileSync(dir + '/r.md', 'utf8')), 'rapor indirildi');
 // mod
 await pg.evaluate(() => { location.hash = '#/modconv'; }); await pg.waitForTimeout(150);
 await pg.setInputFiles('#mc-file', dir + '/mod.jar'); await pg.waitForTimeout(400); ok(/fabric/.test(await pg.textContent('#app-modconv .cv-info')), 'mod algılandı (fabric)');
 await pg.selectOption('#mc-dst', '1.21.4'); await pg.click('#app-modconv .cv-primary:not(.cv-actions *)'); await pg.waitForSelector('#app-modconv .cv-res:not([hidden])', { timeout: 8000 });
 ok(/GARANTİ ETMEZ/.test(await pg.textContent('#app-modconv .cv-res')), 'mod: çalışma garantisi yok uyarısı sonuçta görünür (risk bölümü)');
-const [dm] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-modconv .cv-actions .cv-primary')]); const p2 = dir + '/' + dm.suggestedFilename(); await dm.saveAs(p2); ok(dm.suggestedFilename() === 'mod-1.21.4.jar' && spawnSync('unzip', ['-p', p2, 'fabric.mod.json']).stdout.toString().includes('>=1.21.4'), 'mod jar indirildi ve bildirim güncel');
+const [dm] = await Promise.all([pg.waitForEvent('download'), pg.click('#app-modconv .cv-actions .cv-primary')]); const p2 = dir + '/' + dm.suggestedFilename(); await dm.saveAs(p2); ok(dm.suggestedFilename() === 'mod-1.21.4.jar' && unzip(['-p', p2, 'fabric.mod.json']).stdout.toString().includes('>=1.21.4'), 'mod jar indirildi ve bildirim güncel');
 // dar ekran taşma
 await pg.setViewportSize({ width: 380, height: 800 }); await pg.waitForTimeout(150); ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'dar ekranda yatay taşma yok');
 await pg.evaluate(() => { location.hash = '#/texpack'; }).catch(() => {});

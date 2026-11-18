@@ -14,7 +14,7 @@ const txt = (sel) => pg.textContent(sel);
 /* ---- kabuk ---- */
 await pg.goto(pathToFileURL(path.join(ROOT, 'app/StatScan.html')).href + '#/c-guvenlik'); await pg.waitForTimeout(250);
 const cards = await pg.$$eval('#app-c-guvenlik .toolcard[data-open]:not(.empty)', (l) => l.map((x) => x.dataset.open).join(','));
-ok(cards === 'statscan,imza,paketleyici,ioc', 'Güvenlik kategorisinde 4 araç: ' + cards);
+ok(cards === 'statscan,imza,paketleyici,ioc,xorcozucu', 'Güvenlik kategorisinde 5 araç: ' + cards);
 /* ---- İmza ve Sertifika Denetçisi ---- */
 await open('imza'); ok(/İmza ve Sertifika Denetçisi/.test(await txt('#app-imza h1')), 'imza: başlık'); ok(await pg.getByRole('button', { name: 'Dosya seç', exact: true }).count() > 0, 'imza: dosya seçimi erişilebilir');
 ok(/YOK/.test(await txt('#app-imza .tool-scope')) && /iptal/i.test(await txt('#app-imza .tool-scope')), 'imza: kök deposu/iptal sınırı açıkça yazılı');
