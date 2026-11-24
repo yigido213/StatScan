@@ -40,6 +40,29 @@ html:not([data-fx="off"]) .tw.done .typed { background: none; -webkit-text-fill-
   content: ''; position: absolute; inset: -10% -30%;
   background: radial-gradient(ellipse, color-mix(in srgb, var(--copper) 31%, transparent), transparent 64%);
 }
+.hero-mark-art { position: relative; width: min(94%, 348px, 40vh); aspect-ratio: 1; }
+.hero-mark-art::before {
+  content: ''; position: absolute; inset: auto 17% 9%; height: 12%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--shadow) 68%, transparent), transparent 70%);
+}
+.hero-mark-canvas { position: absolute; inset: 0; width: 100%; height: 100%; visibility: hidden; }
+.hero-mark[data-renderer="webgl"] .hero-mark-canvas { visibility: visible; }
+.hero-mark[data-renderer="webgl"] .hero-mark-flat { visibility: hidden; }
+.hero-mark-flat {
+  position: absolute; inset: 13%; transform: perspective(370px) rotateX(-12deg) rotateY(-17deg) rotateZ(-7deg);
+  filter: drop-shadow(1px 6px 5px color-mix(in srgb, var(--shadow) 68%, transparent));
+}
+.hero-mark-flat::before, .hero-mark-flat::after { content: ''; position: absolute; }
+.hero-mark-flat::before {
+  inset: 0;
+  background: linear-gradient(138deg, #69391d 7%, #ffe0a4 31%, #c58a49 45%, #512918 66%, #f5bb71 88%, #945731);
+  clip-path: polygon(evenodd, 25% 7%, 75% 7%, 100% 50%, 75% 93%, 25% 93%, 0 50%, 25% 7%, 31% 17%, 12% 50%, 31% 83%, 69% 83%, 88% 50%, 69% 17%, 31% 17%);
+}
+.hero-mark-flat::after {
+  inset: 26% 29%;
+  background: linear-gradient(145deg, #e5a15d, #fff1c6 36%, #a96032 69%, #edb166);
+  clip-path: polygon(7% 0, 24% 0, 24% 44%, 68% 0, 92% 0, 53% 44%, 97% 100%, 74% 100%, 40% 57%, 24% 74%, 24% 100%, 7% 100%);
+}
 .ingot { position: relative; width: min(68%, 180px); aspect-ratio: .8; transform-style: preserve-3d; transform: rotateY(-23deg) rotateZ(13deg); }
 .ingot i {
   position: absolute; inset: 0;

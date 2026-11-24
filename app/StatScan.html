@@ -1423,7 +1423,10 @@ html[data-fx="off"] #app-lolcounter *, html[data-fx="off"] #app-lolcounter *::be
       <h1 class="editorial" id="home-title" data-focus tabindex="-1"><span class="greeting">Hoş geldin,</span> <em class="tw" id="tw"><span class="ghost" aria-hidden="true"></span><span class="typed"></span></em></h1>
   <div class="tools-row" id="tools-row"><button type="button" id="home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>Komut ara <kbd>Ctrl K</kbd></button><span id="name-slot"><button type="button" id="name-edit">Adı değiştir</button></span></div>
     </div>
-    <span class="amber-object" aria-hidden="true"><span class="ingot"><i></i><i></i><i></i></span><span class="embers"><i></i><i></i><i></i><i></i></span></span>
+    <span class="amber-object hero-mark" aria-hidden="true">
+      <span class="hero-mark-art"><span class="hero-mark-flat"></span><canvas class="hero-mark-canvas"></canvas></span>
+      <span class="embers"><i></i><i></i><i></i><i></i></span>
+    </span>
   </header>
   <section class="home-pins" aria-labelledby="home-pins-title">
     <h2 id="home-pins-title">Sabitlenenler</h2>
@@ -10366,6 +10369,213 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     window.KovanScale = { get: () => cur, set(p) { const n = Number(p); if (!Number.isFinite(n)) return cur; cur = Math.min(200, Math.max(50, Math.round(n))); try { if (cur === 100) localStorage.removeItem(KEY); else localStorage.setItem(KEY, String(cur)); } catch (e) { /* yoksay */ } apply(); return cur; } };
     if (cur !== 100) apply();
   })();
+  (function kovanHeroMark() {
+    const hero = $('.work-hero');
+    const mark = hero.querySelector('.hero-mark');
+    const canvas = mark.querySelector('canvas');
+    const flat = mark.querySelector('.hero-mark-flat');
+    const greeting = hero.querySelector('.tw');
+    const root = document.documentElement;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const resting = [-.21, -.30, -.12, 1];
+
+    function mesh() {
+      const data = [];
+      function triangle(a, b, c, tone, normals) {
+        if (normals) {
+          [a, b, c].forEach((p, i) => data.push(...p, ...normals[i], tone));
+          return;
+        }
+        const u = b.map((v, i) => v - a[i]), v = c.map((v, i) => v - a[i]);
+        const normal = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+        const length = Math.hypot(...normal);
+        if (length) {
+          const axis = normal.map((n) => n / length);
+          for (const p of [a, b, c]) data.push(...p, ...axis, tone);
+        }
+      }
+      function skin(points, profile, tone, cap = false) {
+        const center = points.reduce(([x, y], p) => [x + p[0] / points.length, y + p[1] / points.length], [0, 0]);
+        const loops = profile.map(([scale, z]) => points.map((p) => [center[0] + (p[0] - center[0]) * scale, center[1] + (p[1] - center[1]) * scale, z]));
+        // Smooth the metal around the frame's roundover. The letter keeps crisp cut planes.
+        const normals = cap ? null : loops.map((loop, k) => loop.map((p, i) => {
+          const before = loop[(i + loop.length - 1) % loop.length], after = loop[(i + 1) % loop.length];
+          const bottom = loops[(k + loops.length - 2) % (loops.length - 1)][i], top = loops[(k + 1) % (loops.length - 1)][i];
+          const tx = after[0] - before[0], ty = after[1] - before[1];
+          const dx = top[0] - bottom[0], dy = top[1] - bottom[1], dz = top[2] - bottom[2];
+          const axis = [ty * dz, -tx * dz, tx * dy - ty * dx];
+          const length = Math.hypot(...axis);
+          return axis.map((n) => n / length);
+        }));
+        for (let k = 0; k < loops.length - 1; k++) {
+          const back = loops[k], front = loops[k + 1];
+          for (let i = 0; i < points.length; i++) {
+            const j = (i + 1) % points.length;
+            const a = normals?.[k], b = normals?.[k + 1];
+            triangle(back[i], back[j], front[j], tone, a && [a[i], a[j], b[j]]);
+            triangle(back[i], front[j], front[i], tone, a && [a[i], b[j], b[i]]);
+          }
+        }
+        if (cap) {
+          const face = loops.at(-1);
+          for (let i = 1; i + 1 < face.length; i++) triangle(face[0], face[i], face[i + 1], tone);
+        }
+      }
+      const corners = Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3), Math.sin(i * Math.PI / 3)]);
+      // Each corner is a short quadratic roundover between two straight sides.
+      const hex = corners.flatMap((p, i) => {
+        const prev = corners[(i + 5) % 6], next = corners[(i + 1) % 6];
+        return Array.from({ length: 9 }, (_, n) => {
+          const t = n / 8;
+          return p.map((v, axis) => v + .16 * ((prev[axis] - v) * (1 - t) ** 2 + (next[axis] - v) * t ** 2));
+        });
+      });
+      skin(hex, [[.80, -.20], [1, -.20], [1.07, -.13], [1.07, .08], [1.04, .16], [.98, .21], [.89, .23], [.80, .21], [.74, .15], [.74, -.14], [.80, -.20]], 0);
+      const glyph = [[[-.41, -.48], [-.23, -.48], [-.23, .48], [-.41, .48]],
+        [[-.20, .01], [.02, .01], [.45, .48], [.21, .48]],
+        [[-.17, -.11], [.22, -.48], [.46, -.48], [.04, .03]]];
+      for (const facet of glyph) skin(facet, [[1, -.13], [1, .07], [.88, .16]], 1, true);
+      return new Float32Array(data);
+    }
+
+    function makeRenderer() {
+      const gl = canvas.getContext('webgl', { alpha: true, antialias: true });
+      if (!gl) return null;
+      const vert = `
+        attribute vec3 point, normal;
+        attribute float tone;
+        uniform vec4 pose;
+        varying vec3 surface, axis, model;
+        varying float metalTone;
+        vec3 turn(vec3 p) {
+          float x = cos(pose.x), sx = sin(pose.x), y = cos(pose.y), sy = sin(pose.y), z = cos(pose.z), sz = sin(pose.z);
+          p.yz = vec2(x*p.y-sx*p.z, sx*p.y+x*p.z);
+          p.xz = vec2(y*p.x+sy*p.z, -sy*p.x+y*p.z);
+          return vec3(z*p.x-sz*p.y, sz*p.x+z*p.y, p.z);
+        }
+        void main() {
+          vec3 p = turn(point);
+          model = point; surface = p; axis = turn(normal); metalTone = tone;
+          gl_Position = vec4(p.xy * (3.8 * pose.w), -p.z, 5.0 - p.z);
+        }`;
+      const frag = `
+        precision mediump float;
+        varying vec3 surface, axis, model;
+        varying float metalTone;
+        void main() {
+          vec3 n = normalize(axis);
+          vec3 r = reflect(-normalize(vec3(-surface.xy, 5.0 - surface.z)), n);
+          // Reflected studio strips give the metal a distinct moving highlight.
+          float sweep = r.y + .62 * r.x - .055;
+          float key = exp(-38.0 * sweep * sweep) * smoothstep(-.55, .64, r.z);
+          float rim = pow(max(0.0, dot(r, normalize(vec3(.84,-.33,.42)))), 6.0);
+          float fill = smoothstep(-.57,.66,r.y) * smoothstep(-.66,.4,r.z);
+          float edge = pow(1.0 - max(0.0, n.z), 2.0);
+          float satin = smoothstep(-.9, .9, model.y - model.x*.7);
+          vec3 copper = mix(vec3(.19,.066,.028), vec3(.65,.35,.17), .16 + .34*fill + .36*satin + .13*edge);
+          vec3 gold = vec3(1.0,.70,.38);
+          vec3 color = copper + gold * (.36*key + .54*rim) + vec3(1.0,.93,.80)*(.23*key*key);
+          color += metalTone * vec3(.16,.125,.088);
+          gl_FragColor = vec4(color, 1.0);
+        }`;
+      const program = gl.createProgram();
+      for (const [type, source] of [[gl.VERTEX_SHADER, vert], [gl.FRAGMENT_SHADER, frag]]) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return null;
+        gl.attachShader(program, shader);
+        gl.deleteShader(shader);
+      }
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+      const vertices = mesh();
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+      for (const [name, count, offset] of [['point', 3, 0], ['normal', 3, 12], ['tone', 1, 24]]) {
+        const loc = gl.getAttribLocation(program, name);
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, count, gl.FLOAT, false, 28, offset);
+      }
+      const uniform = gl.getUniformLocation(program, 'pose');
+      gl.enable(gl.DEPTH_TEST);
+      return (pose) => {
+        const size = Math.round(canvas.clientWidth * Math.min(devicePixelRatio, 2));
+        if (!size) return;
+        if (canvas.width !== size || canvas.height !== size) {
+          canvas.width = canvas.height = size;
+          gl.viewport(0, 0, size, size);
+        }
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.uniform4f(uniform, ...pose);
+        gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 7);
+      };
+    }
+
+    let render, attempted = false;
+    function paint(pose) {
+      if (render) render(pose);
+      else flat.style.transform = 'perspective(370px) rotateX(' + pose[0] + 'rad) rotateY(' + pose[1] + 'rad) rotateZ(' + pose[2] + 'rad) scale(' + pose[3] + ')';
+    }
+
+    const pose = resting.slice();
+    function startRenderer() {
+      render = makeRenderer();
+      paint(pose);
+      mark.dataset.renderer = render ? 'webgl' : 'flat';
+    }
+    function prepareRenderer() {
+      // Keep shader compilation off the greeting's opening animation.
+      if (attempted || !canvas.clientWidth || !greeting.classList.contains('done')) return;
+      attempted = true;
+      greetingWatch.disconnect();
+      if (window.requestIdleCallback) window.requestIdleCallback(startRenderer, { timeout: 500 });
+      else setTimeout(startRenderer, 0);
+    }
+    let hovering = false, x = 0, y = 0, frame = 0, last = 0, entered = 0;
+    const animate = () => !reduced.matches && !root.hasAttribute('data-fx') && !root.hasAttribute('data-paused');
+    function draw(now) {
+      frame = 0;
+      const dt = last ? Math.min(now - last, 48) : 16;
+      last = now;
+      const tracing = hovering && animate();
+      const swing = tracing ? Math.sin((now - entered) / 760) * .13 : 0;
+      const target = tracing ? [resting[0] + y * .40, -.10 + x * .57 + swing, resting[2] - x * .16, 1.08] : resting;
+      const weight = animate() ? 1 - Math.exp(-dt / 105) : 1;
+      let moving = false;
+      for (let i = 0; i < pose.length; i++) {
+        const gap = target[i] - pose[i];
+        pose[i] = Math.abs(gap) < .0008 ? target[i] : pose[i] + gap * weight;
+        moving ||= pose[i] !== target[i];
+      }
+      paint(pose);
+      if (tracing || moving) request();
+      else last = 0;
+    }
+    function request() { if (!frame) frame = requestAnimationFrame(draw); }
+    function settle() { hovering = false; request(); }
+    function track(e) {
+      if (e.pointerType !== 'mouse' || !animate()) return;
+      const rect = hero.getBoundingClientRect();
+      x = (e.clientX - rect.left) / rect.width * 2 - 1;
+      y = (e.clientY - rect.top) / rect.height * 2 - 1;
+      if (!hovering) entered = performance.now();
+      hovering = true;
+      request();
+    }
+    hero.addEventListener('pointerenter', track);
+    hero.addEventListener('pointermove', track, { passive: true });
+    hero.addEventListener('pointerleave', settle);
+    reduced.addEventListener('change', settle);
+    new MutationObserver(settle).observe(root, { attributes: true, attributeFilter: ['data-fx', 'data-paused'] });
+    const greetingWatch = new MutationObserver(prepareRenderer);
+    greetingWatch.observe(greeting, { attributes: true, attributeFilter: ['class'] });
+    new ResizeObserver(() => { prepareRenderer(); request(); }).observe(canvas);
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); render = null; mark.dataset.renderer = 'flat'; request(); });
+    canvas.addEventListener('webglcontextrestored', startRenderer);
+    request();
+  })();
   (function kovanFx() {
     const root = document.documentElement; let off = false; try { off = localStorage.getItem('kovan.fx') === '0'; } catch (e) { /* depolama yok: acik */ }
     if (off) root.setAttribute('data-fx', 'off');
@@ -10385,7 +10595,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     // Only artwork tilts. Interactive elements keep their original hit area.
     document.addEventListener('pointermove', (event) => {
       if (!active() || document.hidden || event.pointerType !== 'mouse') return;
-      const item = event.target.closest('.toolcard, .work-hero, .drop');
+      const item = event.target.closest('.toolcard, .drop');
       if (!item) return;
       const rect = item.getBoundingClientRect();
       const x = (event.clientX - rect.left) / rect.width;
@@ -10398,7 +10608,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       }
     }, { passive: true });
     document.addEventListener('pointerout', (event) => {
-      const hero = event.target.closest('.work-hero, .drop');
+      const hero = event.target.closest('.drop');
       if (hero && !hero.contains(event.relatedTarget)) {
         hero.style.removeProperty('--tilt');
         hero.style.removeProperty('--lift');

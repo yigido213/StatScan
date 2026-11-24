@@ -9,9 +9,17 @@ const b = await chromium.launch({ args: ['--no-sandbox'] });
 async function page(opts, vp, init) { const ctx = await b.newContext(Object.assign({ viewport: vp || { width: 1280, height: 860 }, reducedMotion: 'no-preference' }, opts || {})); if (init) await ctx.addInitScript(init); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message)); pg.on('console', (m) => m.type() === 'error' && pg.errs.push(m.text())); return pg; }
 const an = (pg, sel, pseudo) => pg.evaluate(([s, p]) => { const e = document.querySelector(s); return e ? getComputedStyle(e, p || null).animationName : 'YOK'; }, [sel, pseudo]);
 const shot = async (pg, n) => { if (SHOTS) await pg.screenshot({ path: path.join(SHOTS, n + '.png') }); };
+const observeMark = () => {
+  const original = WebGLRenderingContext.prototype.uniform4f;
+  WebGLRenderingContext.prototype.uniform4f = function (location, ...values) {
+    if (this.canvas.classList.contains('hero-mark-canvas')) window.heroMarkPose = values;
+    return original.call(this, location, ...values);
+  };
+};
+const markPose = (pg) => pg.evaluate(() => window.heroMarkPose || document.querySelector('.hero-mark-flat').style.transform);
 
 // 1) animasyonlar acik
-let pg = await page(); await pg.goto(URL + '#/home'); await pg.waitForTimeout(120);
+let pg = await page({}, null, observeMark); await pg.goto(URL + '#/home'); await pg.waitForTimeout(120);
 ok(!(await pg.evaluate(() => document.documentElement.hasAttribute('data-fx'))), 'varsayılan: data-fx yok (animasyonlar açık)');
 await shot(pg, '01-acilis-120ms'); await pg.waitForTimeout(500); await shot(pg, '02-acilis-620ms');
 ok((await an(pg, '#app-home')).includes('kview'), 'Home görünümü kview ile giriyor (' + await an(pg, '#app-home') + ')');
@@ -23,6 +31,20 @@ ok(/kside/.test(await an(pg, '.side-nav > .nav-item')), 'kenar çubuğu öğeler
 await pg.waitForTimeout(3200);
 ok(/text-glint/.test(await an(pg, '#tw', '::after')), 'italik vurgu üzerinde ışık süpürmesi');
 ok(await pg.textContent('#tw .typed') === 'yigit717.', 'parlama metni bozmuyor');
+const homeHero = pg.locator('.work-hero');
+await homeHero.locator('[data-renderer]').waitFor();
+const heroBox = await homeHero.boundingBox();
+const restPose = await markPose(pg);
+await pg.mouse.move(heroBox.x + heroBox.width * .91, heroBox.y + heroBox.height * .25);
+await pg.waitForTimeout(360);
+const rightPose = await markPose(pg);
+await pg.mouse.move(heroBox.x + heroBox.width * .11, heroBox.y + heroBox.height * .73, { steps: 6 });
+await pg.waitForTimeout(360);
+const leftPose = await markPose(pg);
+ok(JSON.stringify(rightPose) !== JSON.stringify(restPose) && JSON.stringify(leftPose) !== JSON.stringify(rightPose), 'ana sayfa amblemi hover ve imleç yönüne tepki verir');
+await pg.mouse.move(1, 1);
+await pg.waitForTimeout(950);
+ok(JSON.stringify(await markPose(pg)) === JSON.stringify(restPose), 'imleç çıkınca amblem başlangıç açısına döner');
 const card = pg.locator('#toolgrid .toolcard:not(.empty)').first();
 const bb = await card.boundingBox();
 await pg.mouse.move(bb.x + bb.width * .85, bb.y + bb.height * .2);
@@ -72,9 +94,14 @@ const sb2 = await pg.locator('#home-search').boundingBox(); await pg.keyboard.pr
 await pg.mouse.move(sb2.x + 20, sb2.y + 10); await pg.mouse.down(); await pg.waitForTimeout(60); ok(await pg.evaluate(() => document.querySelectorAll('.kfx-rip').length) === 0, 'kapalıyken dalga yok'); await pg.mouse.up();
 
 // 3) sistem "hareketi azalt"
-pg = await page({ reducedMotion: 'reduce' }); await pg.goto(URL + '#/home'); await pg.waitForTimeout(200);
+pg = await page({ reducedMotion: 'reduce' }, null, observeMark); await pg.goto(URL + '#/home'); await pg.waitForTimeout(200);
 for (const [sel, ps] of [['#app-home'], ['#app-home', '::before'], ['.side-brand svg path'], ['#toolgrid > .toolcard'], ['#tw .typed']]) ok((await an(pg, sel, ps)) === 'none', 'hareketi azalt: ' + sel + (ps || '') + ' → none');
 ok(await pg.evaluate(() => getComputedStyle(document.querySelector('#tw .typed')).webkitTextFillColor !== 'rgba(0, 0, 0, 0)'), 'hareketi azalt: başlık metni saydam değil (görünür)');
+await pg.locator('.hero-mark[data-renderer]').waitFor();
+const reducedPose = await markPose(pg);
+await pg.locator('.work-hero').hover();
+await pg.waitForTimeout(360);
+ok(JSON.stringify(await markPose(pg)) === JSON.stringify(reducedPose), 'hareketi azalt: ana sayfa amblemi sabit');
 
 // 4) dar ekranlarda tasma yok (animasyon sirasinda dahil)
 for (const wd of [1280, 980, 760, 390]) {
