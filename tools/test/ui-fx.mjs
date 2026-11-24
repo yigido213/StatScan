@@ -127,7 +127,12 @@ ok(['x', 'y', 'width', 'height'].every((key) => Math.abs(hoverBounds[key] - boun
 await pg.mouse.down();
 ok(await sliders.evaluate((el) => el.matches(':active') && getComputedStyle(el).transform === 'none'), 'basılı düğmenin dış kutusu sabit');
 await pg.mouse.up();
+const flowDialog = pg.locator('#flow-dlg[open]');
+await flowDialog.evaluate((dialog) => {
+  window.flowClosed = new Promise((resolve) => dialog.addEventListener('close', () => resolve(), { once: true }));
+});
 await pg.keyboard.press('Escape');
+await pg.evaluate(() => window.flowClosed);
 await sliders.focus();
 await pg.keyboard.press('Shift+Tab');
 await pg.keyboard.press('Tab');
