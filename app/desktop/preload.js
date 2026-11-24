@@ -154,7 +154,9 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   updAdd: (sid) => call('upd:add', String(sid)),
   updAddFile: () => call('upd:addFile'),
   updRemove: (id) => call('upd:remove', String(id)),
-  updCheck: (id) => call('upd:check', String(id)),
+  updCheck: (id, force, minutes) => call('upd:check', String(id), force === true, Number(minutes)),
+  updScan: (minutes) => call('upd:scan', Number(minutes)),
+  updDownload: (id) => call('upd:download', String(id)),
   updApply: (id) => call('upd:apply', String(id)),
   storeGet: (k) => call('store:get', String(k)),
   storeSet: (k, v) => call('store:set', String(k), String(v))

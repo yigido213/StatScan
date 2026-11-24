@@ -2445,8 +2445,84 @@ const UPDMOD = (() => {
   const MAX_APPS = 30; const ID_RE = /^[0-9a-f]{12}$/; const SID_RE = /^[0-9a-f]{10}$/; const WID_RE = /^[A-Za-z0-9][A-Za-z0-9._+\-]{1,100}$/; const APP_EXT = /\.(exe|lnk)$/i;
   const SKIP = /(uninstall|kald[ıi]r|readme|release notes|documentation|dok[uü]man|help\b|yard[ıi]m|web ?site|web sitesi|license|lisans|manual|k[ıi]lavuz)/i;
   const NOT_APPLICABLE = -1978335189; /* 0x8A15002B: uygulanabilir guncelleme yok */
+  const NO_APPLICATIONS = 0x8A150014 | 0;
+  const DISCORD_DOWNLOAD = 'https://discord.com/download';
+  const DISCORD_MANIFEST = 'https://updates.discord.com/distributions/app/manifests/latest?channel=stable&platform=win&arch=';
+  const CACHE_MINUTES = [5, 15, 30, 60];
   const cleanName = (s) => { if (typeof s !== 'string') return null; const v = s.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40); return v || null; };
   const nrm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  function isDiscord(a) {
+    const file = path.basename(a.path).toLowerCase();
+    return nrm(a.wid) === 'discorddiscord' || nrm(a.name) === 'discord' || file === 'discord.exe' || file === 'discord.lnk' ||
+      (file === 'update.exe' && path.basename(path.dirname(a.path)).toLowerCase() === 'discord');
+  }
+  function versionParts(value) {
+    if (typeof value !== 'string' || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(value)) return null;
+    const parts = value.split('.').map(Number);
+    return parts.every(Number.isSafeInteger) ? parts : null;
+  }
+  function compareVersions(left, right) {
+    for (let i = 0; i < 3; i++) if (left[i] !== right[i]) return Math.sign(left[i] - right[i]);
+    return 0;
+  }
+  function executableArch(file) {
+    let fd;
+    try {
+      fd = fs.openSync(file, 'r');
+      const dos = Buffer.alloc(64);
+      if (fs.readSync(fd, dos, 0, dos.length, 0) !== dos.length || dos.readUInt16LE(0) !== 0x5a4d) return null;
+      const offset = dos.readUInt32LE(60);
+      const pe = Buffer.alloc(6);
+      if (offset < dos.length || offset > 1024 * 1024 || fs.readSync(fd, pe, 0, pe.length, offset) !== pe.length || pe.readUInt32LE(0) !== 0x4550) return null;
+      return { 0x014c: 'x86', 0x8664: 'x64', 0xaa64: 'arm64' }[pe.readUInt16LE(4)] || null;
+    } catch (e) { return null; } finally { if (fd !== undefined) fs.closeSync(fd); }
+  }
+  function installedDiscord(root) {
+    try {
+      const apps = fs.readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name.startsWith('app-'))
+        .map((e) => ({ version: e.name.slice(4), parts: versionParts(e.name.slice(4)) })).filter((a) => a.parts);
+      // Discord can keep older application directories around after an update.
+      let releases = '';
+      const releaseFile = path.join(root, 'packages', 'RELEASES');
+      try {
+        if (fs.statSync(releaseFile, { throwIfNoEntry: false })?.size <= 65536) releases = fs.readFileSync(releaseFile, 'utf8');
+      } catch (e) { /* use validated executables if RELEASES cannot be read */ }
+      const installed = new Set([...releases.matchAll(/\bdiscord(?:-updater)?-(\d+\.\d+\.\d+)(?:-(?:full|delta))?\.nupkg\b/gi)].map((m) => m[1]));
+      apps.sort((a, b) => Number(installed.has(b.version)) - Number(installed.has(a.version)) || compareVersions(b.parts, a.parts));
+      for (const a of apps) {
+        const arch = executableArch(path.join(root, 'app-' + a.version, 'Discord.exe'));
+        if (arch) return { ...a, arch };
+      }
+    } catch (e) { /* missing or unreadable installation */ }
+    return null;
+  }
+  async function discordManifest(arch, request) {
+    const signal = AbortSignal.timeout(10000);
+    try {
+      return await readDiscordManifest(await request(DISCORD_MANIFEST + arch, { signal, redirect: 'error', cache: 'no-store', credentials: 'omit' }));
+    } catch (error) {
+      if (signal.aborted) throw signal.reason;
+      throw error;
+    }
+  }
+  async function readDiscordManifest(response) {
+    if (!response.ok) {
+      await response.body?.cancel();
+      return { http: response.status };
+    }
+    const stream = response.body.getReader();
+    const chunks = []; let size = 0;
+    try {
+      for (;;) {
+        const { done, value } = await stream.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 256 * 1024) { await stream.cancel(); return {}; }
+        chunks.push(value);
+      }
+      try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch (e) { return null; }
+    } finally { stream.releaseLock(); }
+  }
   /* winget tablosu: baslik sutun konumlari (dil bagimsiz) + tire satiri; ilerleme/spinner satirlari atilir */
   function parseTable(text) {
     const lines = String(text || '').split(/\r?\n/).map((l) => { const i = l.lastIndexOf('\r'); return (i >= 0 ? l.slice(i + 1) : l).replace(/\s+$/, ''); });
@@ -2474,7 +2550,7 @@ const UPDMOD = (() => {
     const find = (id) => (typeof id === 'string' && ID_RE.test(id) ? state.apps.find((a) => a.id === id) : null);
     const newId = () => { let id; do { id = crypto.randomBytes(6).toString('hex'); } while (state.apps.some((a) => a.id === id)); return id; };
     const norm = (p) => (isWin() ? path.normalize(p).toLowerCase() : path.normalize(p));
-    const iconCache = new Map(); const sugg = new Map(); const pending = new Map(); let upCache = null; let busy = false;
+    const iconCache = new Map(); const sugg = new Map(); const pending = new Map(); const cache = new Map(); let busy = false;
     const run = deps.run || ((args, timeout) => new Promise((resolve) => { cp.execFile('winget', args, { windowsHide: true, timeout: timeout || 60000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8' }, (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : (err.code === 'ENOENT' ? 'ENOENT' : -1)) : 0, stdout: String(stdout || ''), stderr: String(stderr || ''), killed: !!(err && err.killed) })); }));
     async function iconOf(p) { if (!deps.fileIcon) return null; if (iconCache.has(p)) return iconCache.get(p); let v = null; try { const r = await deps.fileIcon(p); if (typeof r === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(r) && r.length <= 200000) v = r; } catch (e) { v = null; } iconCache.set(p, v); return v; }
     const exists = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
@@ -2487,7 +2563,103 @@ const UPDMOD = (() => {
       for (const d of dirs) walk(d, 0); return [...found.values()].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 400);
     }
     function locationOf(lnk) { let t = null; try { const r = (deps.readShortcut || readLnkTarget)(lnk); if (r && typeof r.target === 'string' && r.target) t = r.target; } catch (e) { t = null; } if (!t) return { loc: '', target: null }; return { loc: dirOf(t), target: t }; }
-    async function upgrades() { if (upCache && now() - upCache.t < 60000) return upCache.r; const r = await run(['upgrade', '--accept-source-agreements', '--disable-interactivity'], 90000); if (r.code === 'ENOENT') return { nowinget: true }; const v = { rows: parseTable(r.stdout), code: r.code }; upCache = { t: now(), r: v }; return v; }
+    function cached(key, minutes, force, load) {
+      const entry = cache.get(key);
+      if (entry?.inFlight) return entry.inFlight;
+      const ttl = (CACHE_MINUTES.includes(minutes) ? minutes : 15) * 60000;
+      if (!force && entry && now() - entry.time < ttl) return entry.value;
+      const next = { inFlight: Promise.resolve().then(load).then((value) => {
+        if (cache.get(key) === next) {
+          if (value.status) cache.delete(key);
+          else cache.set(key, { time: now(), value });
+        }
+        return value;
+      }, (error) => {
+        if (cache.get(key) === next) cache.delete(key);
+        throw error;
+      }) };
+      cache.set(key, next);
+      return next.inFlight;
+    }
+    function localDiscord(a) {
+      const target = /\.lnk$/i.test(a.path) ? locationOf(a.path).target : a.path;
+      if (target && path.isAbsolute(target) && !/^[\\/]{2}/.test(target)) {
+        const dir = path.dirname(target);
+        if (/^app-\d+\.\d+\.\d+$/.test(path.basename(dir))) {
+          const found = installedDiscord(path.dirname(dir));
+          if (found) return found;
+        } else if (/^(update|discord)\.exe$/i.test(path.basename(target))) {
+          const found = installedDiscord(dir);
+          if (found) return found;
+        }
+      }
+      const localAppData = deps.localAppData || process.env.LOCALAPPDATA;
+      return localAppData ? installedDiscord(path.join(localAppData, 'Discord')) : null;
+    }
+    async function checkDiscord(a, force, minutes) {
+      const local = localDiscord(a);
+      if (!local) return { status: 'local_unreadable' };
+      const remote = await cached('discord:' + local.arch, minutes, force, async () => {
+        try {
+          const result = await (deps.discordManifest || discordManifest)(local.arch, deps.fetch || fetch);
+          if (result?.http) return { status: 'http', code: result.http };
+          const raw = result?.full?.host_version;
+          if (!Array.isArray(raw) || raw.length !== 3 || !raw.every((n) => Number.isSafeInteger(n) && n >= 0)) return { status: 'invalid_response' };
+          return { parts: raw };
+        } catch (e) { return { status: /^(TimeoutError|AbortError)$/.test(e?.name) ? 'timeout' : 'offline' }; }
+      });
+      if (remote.status) return { ...remote, current: local.version };
+      return {
+        status: compareVersions(remote.parts, local.parts) > 0 ? 'available' : 'current',
+        current: local.version, available: remote.parts.join('.'), action: 'download'
+      };
+    }
+    function wingetFailure(r) {
+      if (r.code === 'ENOENT') return { status: 'nowinget' };
+      if (r.killed) return { status: 'timeout' };
+      if (r.code) return { status: 'winget_error', code: r.code };
+      return null;
+    }
+    async function checkWinget(a, force, minutes, allowApply) {
+      const args = ['--accept-source-agreements', '--disable-interactivity'];
+      const loadUpgrades = async () => {
+        const r = await run(['upgrade', ...args], 90000);
+        const error = r.code === NOT_APPLICABLE ? null : wingetFailure(r);
+        return error || { rows: parseTable(r.stdout) };
+      };
+      const up = await cached('winget', minutes, force, loadUpgrades);
+      if (up.status === 'nowinget') return up;
+      let row = pickRow(up.rows || [], a);
+      if (!row?.available) {
+        const query = a.wid ? ['--id', a.wid, '--exact'] : ['-q', a.name.replace(/^-+/, '').trim()];
+        const lr = await run(['list', ...query, ...args], 60000);
+        if (lr.code === NO_APPLICATIONS) return up.status ? up : { status: 'unknown' };
+        const error = wingetFailure(lr);
+        if (error) return error;
+        row = pickRow(parseTable(lr.stdout), a);
+      }
+      if (!row) return up.status ? up : { status: 'unknown' };
+      if (find(a.id) !== a) return { status: 'unknown' };
+      if (a.wid !== row.id) { a.wid = row.id; save(); }
+      if (isDiscord(a)) return checkDiscord(a, force, minutes);
+      const current = versionParts(row.version);
+      const available = versionParts(row.available);
+      if (row.available && (!current || !available || compareVersions(available, current) > 0)) {
+        if (allowApply) pending.set(a.id, { wid: row.id, t: now() });
+        return { status: 'available', current: row.version, available: row.available };
+      }
+      if (up.status) return { ...up, current: row.version };
+      return { status: 'current', current: row.version };
+    }
+    async function check(a, force, minutes, allowApply) {
+      if (!isWin() && !deps.run) return { status: 'unsupported' };
+      if (busy) return errE('Bir güncelleme sürüyor; bitmesini bekle.');
+      try {
+        if (allowApply) pending.delete(a.id);
+        const r = await (isDiscord(a) ? checkDiscord(a, force, minutes) : checkWinget(a, force, minutes, allowApply));
+        return { ...r, name: a.name };
+      } catch (e) { return errE(String(e && e.message || e)); }
+    }
     const handlers = {
       'upd:list': async () => { try { return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
       'upd:discover': async () => {
@@ -2510,23 +2682,31 @@ const UPDMOD = (() => {
           state.apps.push({ id: newId(), name: cleanName(path.basename(p).replace(APP_EXT, '')) || 'Uygulama', path: path.normalize(p), wid: null }); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); }
       },
       'upd:remove': async (_e, id) => { try { const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); state.apps = state.apps.filter((x) => x !== a); pending.delete(a.id); save(); return await pub(); } catch (e) { return errE(String(e && e.message || e)); } },
-      'upd:check': async (_e, id) => {
-        try {
-          const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); if (!isWin() && !deps.run) return { status: 'unsupported', name: a.name }; if (busy) return errE('Bir güncelleme sürüyor; bitmesini bekle.');
-          pending.delete(a.id); const up = await upgrades(); if (up.nowinget) return { status: 'nowinget', name: a.name };
-          const hit = pickRow(up.rows || [], a);
-          if (hit) { if (a.wid !== hit.id) { a.wid = hit.id; save(); } pending.set(a.id, { wid: hit.id, t: now() }); return { status: 'available', name: a.name, current: hit.version, available: hit.available }; }
-          const q = a.name.replace(/^-+/, '').trim(); const lr = await run(['list', '-q', q, '--accept-source-agreements', '--disable-interactivity'], 60000); if (lr.code === 'ENOENT') return { status: 'nowinget', name: a.name };
-          const row = pickRow(parseTable(lr.stdout), a);
-          if (row) { if (a.wid !== row.id) { a.wid = row.id; save(); } return { status: 'current', name: a.name, current: row.version }; }
-          return { status: 'unknown', name: a.name };
-        } catch (e) { return errE(String(e && e.message || e)); }
+      'upd:check': async (_e, id, force, minutes) => {
+        const a = find(id);
+        return a ? check(a, force === true, minutes, true) : errE('Uygulama bulunamadı.');
+      },
+      'upd:scan': async (_e, minutes) => {
+        const apps = state.apps.slice();
+        const results = [];
+        for (let i = 0; i < apps.length; i += 3) {
+          const batch = apps.slice(i, i + 3);
+          results.push(...await Promise.all(batch.map(async (a) => ({ id: a.id, ...await check(a, false, minutes, false) }))));
+        }
+        return results.filter((r) => find(r.id));
+      },
+      'upd:download': async (_e, id) => {
+        const a = find(id);
+        if (!a || !isDiscord(a) || !deps.openExternal) return errE('İndirme sayfası açılamadı.');
+        try { await deps.openExternal(DISCORD_DOWNLOAD); return { ok: true }; } catch (e) { return errE('İndirme sayfası açılamadı.'); }
       },
       'upd:apply': async (_e, id) => {
         try {
-          const a = find(id); if (!a) return errE('Uygulama bulunamadı.'); const p = pending.get(a.id); if (!p || now() - p.t > 30 * 60 * 1000) return errE('Önce güncelleme kontrolü yap.'); if (!WID_RE.test(p.wid)) return errE('Geçersiz paket kimliği.'); if (busy) return errE('Bir güncelleme zaten sürüyor.');
+          const a = find(id); if (!a) return errE('Uygulama bulunamadı.');
+          if (isDiscord(a)) return errE('Discord için resmi indirme sayfasını aç.');
+          const p = pending.get(a.id); if (!p || now() - p.t > 30 * 60 * 1000) return errE('Önce güncelleme kontrolü yap.'); if (!WID_RE.test(p.wid)) return errE('Geçersiz paket kimliği.'); if (busy) return errE('Bir güncelleme zaten sürüyor.');
           busy = true; let r; try { r = await run(['upgrade', '--id', p.wid, '-e', '--silent', '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity'], 15 * 60 * 1000); } finally { busy = false; }
-          upCache = null; if (r.code === 'ENOENT') return { status: 'nowinget', name: a.name };
+          cache.delete('winget'); if (r.code === 'ENOENT') return { status: 'nowinget', name: a.name };
           if (r.code === 0) { pending.delete(a.id); return { status: 'updated', name: a.name }; }
           if (r.code === NOT_APPLICABLE) { pending.delete(a.id); return { status: 'current', name: a.name }; }
           const tail = String(r.stdout || r.stderr || '').split(/\r?\n/).map((l) => { const i = l.lastIndexOf('\r'); return (i >= 0 ? l.slice(i + 1) : l).trim(); }).filter((l) => l && !/^[-\\|/ ]+$/.test(l)).slice(-2).join(' ').slice(0, 200);
@@ -3412,7 +3592,7 @@ function createHost(deps) {
   /* Uygulama Akisi: sagdaki akan sutun; yalniz kullanicinin sectigi uygulamalar, yol arayuzden gelmez (bkz. FLOWMOD) */
   if (deps.flow !== false) { const fh = FLOWMOD.createFlowHost(Object.assign({ openExternal: deps.openExternal }, deps.flow || {})); Object.assign(handlers, fh.handlers); }
   /* Otomatik Guncelleyici: winget ile kontrol/onayli guncelleme (bkz. UPDMOD) */
-  if (deps.upd !== false) { const uh = UPDMOD.createUpdHost(Object.assign({}, deps.flow ? { dataDir: deps.flow.dataDir, fileIcon: deps.flow.fileIcon, chooseApp: deps.flow.chooseApp, readShortcut: deps.flow.readShortcut, startMenuDirs: deps.flow.startMenuDirs, platform: deps.flow.platform } : {}, deps.upd || {})); Object.assign(handlers, uh.handlers); }
+  if (deps.upd !== false) { const uh = UPDMOD.createUpdHost(Object.assign({ openExternal: deps.openExternal }, deps.flow ? { dataDir: deps.flow.dataDir, fileIcon: deps.flow.fileIcon, chooseApp: deps.flow.chooseApp, readShortcut: deps.flow.readShortcut, startMenuDirs: deps.flow.startMenuDirs, platform: deps.flow.platform } : {}, deps.upd || {})); Object.assign(handlers, uh.handlers); }
   /* Oyun Ayarlayici: oyun algilama + anti-cheat filtresi + yedekli ayar dosyasi + FPS olcumu (bkz. GAMEMOD) */
   if (deps.game !== false) { const gh = GAMEMOD.createGameHost(Object.assign({ confirm: deps.confirm, notify: deps.notify }, deps.game || {})); Object.assign(handlers, gh.handlers); }
   /* Karsi Secim (LoL counter): Data Dragon + kisisel kayit + salt-okunur LCU (bkz. LOLMOD) */

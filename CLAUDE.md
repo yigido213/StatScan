@@ -33,7 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- Discord Stable denetimi ve takip edilen uygulamalar icin Kovan ici guncelleme bildirimi - Codex: basladi (codex/discord-update-notifications).
+- Discord Stable denetimi, WinGet Available sütunu ve takip edilen uygulamalar için Kovan içi güncelleme bildirimi — Codex: bitti (`codex/discord-update-notifications`). Windows/Electron 33: Discord x64 `1.0.9269 → 1.0.9270`, Steam, Yenile, bağlantı hatası ve bildirim akışları doğrulandı. Ayrıntı: `docs/KOD-HARITASI.md`.
 - 2026-11-18 — Codex: Gömülü XOR çıktıları otomatik çözülüp altta listeleniyor ve indirme onay istiyor. Bitti (Kovan beta 0.1.25). XOR motoru, tarayıcı ve depo güncelleme testleri geçti.
 - 2026-11-18 — HOTFIX: XOR Çözücü 256 bayta kadar tekrarlanan PE anahtarlarını bulur — Codex: bitti. Kullanıcı örneği, xordec, repoupd-host ve repoupd-boot geçti.
 - 2026-11-18 — Codex: XOR Çözücü bitti (Kovan beta 0.1.24). Güvenlik kartı, otomatik/elle çözme, yerel tarama ve dışa aktarma. xordec, ui-xor (390 px ve EN dahil), ui-sectools, ui-shell, ui-lang, ui-conv, repoupd-host ve repoupd-boot geçti. Gerçek Windows/Electron uygulamasında kurulum ve canlı güncelleme denenmedi.

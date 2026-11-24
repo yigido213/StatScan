@@ -1248,6 +1248,19 @@ html[data-fx="off"] .flow *, html[data-fx="off"] .flow *::after, html[data-fx="o
 .upd-detail { display: grid; justify-items: center; gap: 10px; text-align: center; padding: 6px 0 2px; } .upd-detail .upd-tile { width: 60px; height: 60px; border-radius: 17px; } .upd-detail .upd-tile img { width: 40px; height: 40px; }
 .upd-msg { margin: 0; font: 600 14px/1.4 var(--f-body); color: var(--ink); } .upd-msg.sub { font-weight: 500; font-size: 12.5px; color: var(--muted); } .upd-msg.bad { color: var(--s3); }
 .upd-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.upd-interval { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 2px 2px; color: var(--muted); font: 500 12.5px var(--f-body); }
+.upd-interval select { padding: 5px 7px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface2); color: var(--ink); font: inherit; }
+.upd-notice { position: fixed; right: 14px; bottom: 18px; z-index: 31; width: min(340px, calc(100vw - 28px)); padding: 0 0 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 15px 45px -12px var(--shadow); }
+.app.has-flow .upd-notice { right: 110px; }
+@media (max-width: 1099px) { .app.has-flow .upd-notice, .app.has-flow .upd-pop { right: 14px; } }
+.upd-notice[hidden] { display: none; }
+.upd-announcement { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.upd-notice-list { margin: 0 10px; padding: 0; list-style: none; max-height: min(45vh, 280px); overflow-y: auto; }
+.upd-notice-list li + li { border-top: 1px solid var(--line); }
+.upd-notice-link { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 6px; border: 0; border-radius: 6px; color: var(--ink); background: transparent; cursor: pointer; text-align: left; font: 600 13px var(--f-body); }
+.upd-notice-link:hover, .upd-notice-link:focus-visible { background: var(--surface2); }
+.upd-notice-link span { overflow-wrap: anywhere; }
+.upd-notice-link small { color: var(--muted); font: 500 12px var(--f-mono); overflow-wrap: anywhere; }
 .upd-spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--accent); animation: upd-spin .8s linear infinite; } @keyframes upd-spin { to { transform: rotate(360deg); } }
 .upd-prog { width: 100%; height: 5px; border-radius: 99px; background: var(--surface2); overflow: hidden; } .upd-prog i { display: block; width: 35%; height: 100%; border-radius: inherit; background: var(--accent); animation: upd-slide 1.3s ease-in-out infinite; } @keyframes upd-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 .upd-find { display: grid; gap: 8px; } .upd-find input { min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface2); color: var(--ink); font: 500 13px var(--f-body); } .upd-find input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -7547,6 +7560,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Sürüm {0}": "Version {0}",
       "{0} için henüz update gelmemiş.": "No update for {0} yet.",
       "{0} için update gelmiş. Update demek ister misiniz?": "{0} has an update. Do you want to update?",
+      "{0} için güncelleme var.": "An update is available for {0}.",
+      "Uygulama güncellemeleri": "App updates",
+      "Kontrol aralığı": "Check interval",
+      "{0} dakika": "{0} minutes",
+      "Yenile": "Refresh",
+      "İndirme sayfasını aç": "Open download page",
+      "İndirme sayfası açılamadı.": "Could not open the download page.",
+      "Discord için resmi indirme sayfasını aç.": "Open the official download page for Discord.",
+      "Discord’un yerel sürümü okunamadı.": "Could not read the installed Discord version.",
+      "Discord güncelleme sunucusuna ulaşılamadı.": "Could not reach the Discord update server.",
+      "Güncelleme kontrolü zaman aşımına uğradı.": "The update check timed out.",
+      "Discord güncelleme sunucusu hata döndürdü (HTTP {0}).": "The Discord update server returned an error (HTTP {0}).",
+      "Discord güncelleme sunucusundan geçerli sürüm bilgisi alınamadı.": "The Discord update server returned invalid version information.",
+      "Windows Paket Yöneticisi güncellemeleri denetleyemedi (kod {0}).": "Windows Package Manager could not check for updates (code {0}).",
       "Uygulama açıksa güncelleme sırasında kapanabilir.": "If the app is open, it may close during the update.",
       "Bu bilgisayarda winget (Windows Paket Yöneticisi) bulunamadı; güncelleme kontrolü yapılamıyor.": "winget (Windows Package Manager) was not found on this computer, so updates cannot be checked.",
       "Güncelleme kontrolü yalnızca Windows’ta çalışır.": "Update checking only works on Windows.",
@@ -9889,33 +9916,110 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     const call = async (fn, ...a) => { try { if (typeof Hh[fn] !== 'function') return { error: 'upd', message: 'Bu özellik için Kovan’ı tamamen kapatıp yeniden aç (güncelleme yeni kuruldu).' }; return await Hh[fn](...a); } catch (e) { const m = String((e && e.message) || e); return { error: 'upd', message: /No handler registered/i.test(m) ? 'Bu özellik için Kovan’ı tamamen kapatıp yeniden aç (güncelleme yeni kuruldu).' : m.slice(0, 200) }; } };
     const hostMsg = (m) => { m = String(m || ''); const mm = /^En fazla (\d+) uygulama eklenebilir\.$/.exec(m); return mm ? KT('En fazla {0} uygulama eklenebilir.', mm[1]) : KT(m || 'İşlem başarısız.'); };
     const tileOf = (a, cls) => { const t = h('span', { class: cls || 'upd-tile' }); if (a.icon) t.append(h('img', { src: a.icon, alt: '', draggable: 'false' })); else { t.style.background = letterBg(a.name); t.append(h('span', { class: 'fl' }, [...a.name][0].toLocaleUpperCase('tr'))); } return t; };
-    let apps = [], max = 30, view = 'grid', cur = null, busy = false, found = [], seq = 0; const known = new Map();
+    let apps = [], max = 30, view = 'grid', cur = null, busy = false, found = [], seq = 0;
+    const known = new Map(), alerts = new Map(), changed = new Map();
+    const intervals = [5, 15, 30, 60];
+    const readPref = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+    const writePref = (key, value) => { try { localStorage.setItem(key, value); } catch (e) { /* session only */ } };
+    let minutes = Number(readPref('kovan.upd.interval'));
+    if (!intervals.includes(minutes)) minutes = 15;
+    let history = [];
+    try { const saved = JSON.parse(readPref('kovan.upd.notified')); if (Array.isArray(saved)) history = saved.slice(-300); } catch (e) { /* first run */ }
+    const seen = new Set(history);
+    let scanTimer, scanning = false, revision = 0;
     const bar = h('button', { type: 'button', class: 'upd-bar', id: 'kv-upd-bar', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'kv-upd-pop', title: KT('Otomatik güncelleyici') }, svgI('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/><path d="M12 8.5v4.2l2.4 1.4"/>'), h('span', {}, KT('Otomatik güncelleyici')), h('i', { class: 'dot', 'aria-hidden': 'true' }));
     const title = h('h2', { id: 'kv-upd-title' }, KT('Otomatik güncelleyici')); const closeB = h('button', { type: 'button', 'aria-label': KT('Kapat'), title: KT('Kapat') }, '✕'); const body = h('div', { class: 'upd-body', 'aria-live': 'polite' });
     const pop = h('section', { class: 'upd-pop', id: 'kv-upd-pop', role: 'dialog', 'aria-labelledby': 'kv-upd-title' }, h('div', { class: 'upd-hd' }, title, closeB), body);
-    appEl.append(bar, pop);
+    const noticeTitle = h('h2', { id: 'kv-upd-notice-title' }, KT('Uygulama güncellemeleri'));
+    const noticeClose = h('button', { type: 'button', 'aria-label': KT('Kapat'), title: KT('Kapat') }, '✕');
+    const noticeList = h('ul', { class: 'upd-notice-list' });
+    const notice = h('section', { class: 'upd-notice', id: 'kv-upd-notice', hidden: '', 'aria-labelledby': noticeTitle.id },
+      h('div', { class: 'upd-hd' }, noticeTitle, noticeClose), noticeList);
+    const announcement = h('div', { class: 'upd-announcement', role: 'status' });
+    appEl.append(bar, pop, notice, announcement);
     const isOpen = () => pop.classList.contains('on');
     function mark() { bar.classList.toggle('has-up', [...known.values()].some((v) => v === 'up')); }
-    function open() { pop.classList.add('on'); bar.setAttribute('aria-expanded', 'true'); view = 'grid'; cur = null; draw(); refresh(); const f = body.querySelector('.upd-app'); if (f) f.focus(); }
+    function open() { pop.classList.add('on'); bar.setAttribute('aria-expanded', 'true'); if (busy) { closeB.focus(); return; } view = 'grid'; cur = null; draw(); refresh(); const f = body.querySelector('.upd-app'); if (f) f.focus(); }
     function close() { if (!isOpen()) return; pop.classList.remove('on'); bar.setAttribute('aria-expanded', 'false'); if (!busy) { view = 'grid'; cur = null; } bar.focus(); }
     bar.addEventListener('click', () => (isOpen() ? close() : open())); closeB.addEventListener('click', close);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) { e.stopPropagation(); close(); } }, true);
-    document.addEventListener('pointerdown', (e) => { if (isOpen() && !pop.contains(e.target) && !bar.contains(e.target)) close(); });
+    document.addEventListener('pointerdown', (e) => { if (isOpen() && !pop.contains(e.target) && !bar.contains(e.target) && !notice.contains(e.target)) close(); });
     async function refresh() { const r = await call('updList'); if (r && !r.error) { apps = r.apps || []; max = r.max || 30; if (isOpen() && view === 'grid') draw(); } }
+    noticeClose.addEventListener('click', () => { alerts.clear(); drawNotice(); if (isOpen()) closeB.focus(); else bar.focus(); });
+    function drawNotice() {
+      noticeList.replaceChildren();
+      for (const r of alerts.values()) {
+        const button = h('button', { type: 'button', class: 'upd-notice-link' }, h('span', {}, r.name), h('small', {}, r.available));
+        button.addEventListener('click', async () => {
+          if (busy) return;
+          const a = apps.find((item) => item.id === r.id);
+          if (!a) return;
+          alerts.delete(r.id); drawNotice();
+          pop.classList.add('on'); bar.setAttribute('aria-expanded', 'true');
+          cur = a; closeB.focus(); await check(a);
+        });
+        noticeList.append(h('li', {}, button));
+      }
+      notice.hidden = !noticeList.childElementCount;
+    }
+    function record(a, r) {
+      const status = r?.status;
+      known.set(a.id, status === 'available' ? 'up' : status === 'current' ? 'ok' : '');
+      mark();
+      const marker = body.querySelector('.upd-app[data-id="' + a.id + '"] .st');
+      if (marker) marker.className = 'st ' + known.get(a.id);
+      if (status === 'current' && alerts.delete(a.id)) drawNotice();
+      if (status !== 'available' || !r.available) return;
+      const key = a.id + ':' + r.available;
+      if (seen.has(key)) return;
+      seen.add(key);
+      if (seen.size > 300) seen.delete(seen.values().next().value);
+      writePref('kovan.upd.notified', JSON.stringify([...seen]));
+      alerts.set(a.id, { id: a.id, name: a.name, available: r.available });
+      drawNotice();
+      announcement.textContent = KT('{0} için güncelleme var.', a.name) + ' ' + r.available;
+    }
+    function scheduleScan(delay = minutes * 60000) {
+      clearTimeout(scanTimer);
+      if (typeof Hh.updScan === 'function') scanTimer = setTimeout(scan, delay);
+    }
+    async function scan() {
+      if (scanning || busy) { scheduleScan(); return; }
+      scanning = true;
+      const started = revision;
+      try {
+        if (!apps.length) return;
+        const rows = await call('updScan', minutes);
+        if (!Array.isArray(rows)) return;
+        for (const r of rows) {
+          const a = apps.find((item) => item.id === r.id);
+          if (a && !(changed.get(a.id) > started)) record(a, r);
+        }
+      } finally { scanning = false; scheduleScan(); }
+    }
 
     function grid() {
       const g = h('div', { class: 'upd-grid' });
       for (const a of apps) {
         const st = known.get(a.id); const rm = h('button', { type: 'button', class: 'rm', 'aria-label': KT('{0} uygulamasını kaldır', a.name), title: KT('Kaldır') }, '✕');
         const b = h('div', { class: 'upd-app', role: 'button', tabindex: '0', 'data-id': a.id, 'aria-label': KT('{0} için güncelleme kontrolü', a.name), title: a.name }, tileOf(a), h('span', { class: 'nm' }, a.name), h('i', { class: 'st' + (st === 'ok' ? ' ok' : st === 'up' ? ' up' : '') }), rm);
-        const go = () => { cur = a; check(a); }; b.addEventListener('click', (e) => { if (e.target === rm) return; go(); }); b.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === b) { e.preventDefault(); go(); } });
-        rm.addEventListener('click', async (e) => { e.stopPropagation(); const r = await call('updRemove', a.id); if (r && !r.error) { known.delete(a.id); mark(); apps = r.apps || []; draw(); } else toast(hostMsg(r && r.message)); });
+        const go = () => { if (!busy) { cur = a; check(a); } }; b.addEventListener('click', (e) => { if (e.target === rm) return; go(); }); b.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === b) { e.preventDefault(); go(); } });
+        rm.addEventListener('click', async (e) => { e.stopPropagation(); const r = await call('updRemove', a.id); if (r && !r.error) { known.delete(a.id); changed.delete(a.id); if (alerts.delete(a.id)) drawNotice(); mark(); apps = r.apps || []; draw(); } else toast(hostMsg(r && r.message)); });
         g.append(b);
       }
       if (apps.length < max) { const add = h('button', { type: 'button', class: 'upd-app upd-add', 'aria-label': KT('Uygulama ekle'), title: KT('Uygulama ekle') }, h('span', { class: 'upd-tile' }, svgI('<path d="M12 5v14M5 12h14"/>')), h('span', { class: 'nm' }, KT('Ekle'))); add.addEventListener('click', () => { view = 'add'; found = []; discover(); }); g.append(add); }
       return g;
     }
-    function drawGrid() { body.replaceChildren(); if (!apps.length) body.append(h('p', { class: 'upd-empty' }, KT('Henüz uygulama yok. “Ekle” ile Discord, Roblox gibi güncel tutmak istediklerini seç; bilgisayarda kendisi bulunur.'))); body.append(grid()); }
+    function drawGrid() {
+      body.replaceChildren();
+      if (!apps.length) body.append(h('p', { class: 'upd-empty' }, KT('Henüz uygulama yok. “Ekle” ile Discord, Roblox gibi güncel tutmak istediklerini seç; bilgisayarda kendisi bulunur.')));
+      body.append(grid());
+      if (typeof Hh.updScan !== 'function') return;
+      const select = h('select', {}, ...intervals.map((value) => h('option', { value }, KT('{0} dakika', value))));
+      select.value = String(minutes);
+      select.addEventListener('change', () => { minutes = Number(select.value); writePref('kovan.upd.interval', String(minutes)); scheduleScan(); });
+      body.append(h('label', { class: 'upd-interval' }, KT('Kontrol aralığı'), select));
+    }
     function backBtn(fn) { const b = h('button', { type: 'button', class: 'cv-btn' }, KT('Geri')); b.addEventListener('click', fn || (() => { view = 'grid'; cur = null; draw(); refresh(); })); return b; }
 
     /* ---- uygulama ekleme: Baslat menusu taramasi (kurulu klasoru kendisi bulur) ---- */
@@ -9929,41 +10033,81 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     function drawAdd(win) {
       body.replaceChildren(); const q = h('input', { type: 'search', placeholder: KT('Uygulama ara…'), 'aria-label': KT('Uygulama ara…'), autocomplete: 'off', spellcheck: 'false' }); const list = h('ul', { class: 'upd-list' }); const msg = h('p', { class: 'upd-empty', role: 'status' });
       const file = h('button', { type: 'button', class: 'cv-btn' }, KT('Bilgisayardan seç…'));
-      file.addEventListener('click', async () => { const r = await call('updAddFile'); if (r && r.canceled) return; if (!r || r.error) { msg.textContent = hostMsg(r && r.message); return; } apps = r.apps || []; view = 'grid'; draw(); });
+      file.addEventListener('click', async () => { const r = await call('updAddFile'); if (r && r.canceled) return; if (!r || r.error) { msg.textContent = hostMsg(r && r.message); return; } apps = r.apps || []; view = 'grid'; draw(); scheduleScan(600); });
       function fill() { const t = q.value.trim().toLocaleLowerCase('tr'); list.replaceChildren(); const items = found.filter((i) => !t || i.name.toLocaleLowerCase('tr').includes(t)).slice(0, 80);
         msg.textContent = !win ? KT('Uygulama taraması yalnızca Windows’ta çalışır.') : !found.length ? KT('Başlat menüsünde uygulama bulunamadı.') : !items.length ? KT('Eşleşen uygulama yok.') : '';
         for (const it of items) { const bt = h('button', { type: 'button', class: 'cv-btn', disabled: it.already }, it.already ? KT('Zaten ekli') : KT('Ekle'));
-          bt.addEventListener('click', async () => { bt.disabled = true; const r = await call('updAdd', it.sid); if (!r || r.error) { bt.disabled = false; msg.textContent = hostMsg(r && r.message); return; } apps = r.apps || []; it.already = true; bt.textContent = KT('Zaten ekli'); msg.textContent = KT('Eklendi.'); });
+          bt.addEventListener('click', async () => { bt.disabled = true; const r = await call('updAdd', it.sid); if (!r || r.error) { bt.disabled = false; msg.textContent = hostMsg(r && r.message); return; } apps = r.apps || []; it.already = true; bt.textContent = KT('Zaten ekli'); msg.textContent = KT('Eklendi.'); scheduleScan(600); });
           list.append(h('li', { class: 'upd-li' }, h('span', { style: 'min-width:0' }, h('b', {}, it.name), it.location ? h('small', { title: it.location }, it.location) : null), bt)); } }
       q.addEventListener('input', fill); fill(); body.append(h('div', { class: 'upd-find' }, q, list, msg, h('div', { class: 'upd-row' }, backBtn(), file))); if (win) q.focus();
     }
 
     /* ---- kontrol / guncelleme ---- */
     function detail(a, parts) { body.replaceChildren(h('div', { class: 'upd-detail' }, tileOf(a), ...parts)); }
-    const fail = (a, text) => detail(a, [h('p', { class: 'upd-msg bad' }, text), h('div', { class: 'upd-row' }, backBtn())]);
-    async function check(a) {
+    function refreshBtn(a) {
+      const button = h('button', { type: 'button', class: 'cv-btn' }, KT('Yenile'));
+      button.addEventListener('click', () => { closeB.focus(); check(a, true); });
+      return button;
+    }
+    const actions = (a, primary) => h('div', { class: 'upd-row' }, primary, refreshBtn(a), backBtn());
+    const versionLine = (version) => version ? h('p', { class: 'upd-msg sub' }, KT('Sürüm {0}', version)) : null;
+    const fail = (a, text, current) => detail(a, [h('p', { class: 'upd-msg bad' }, text), versionLine(current), actions(a)]);
+    function checkError(r) {
+      const messages = {
+        nowinget: 'Bu bilgisayarda winget (Windows Paket Yöneticisi) bulunamadı; güncelleme kontrolü yapılamıyor.',
+        unsupported: 'Güncelleme kontrolü yalnızca Windows’ta çalışır.',
+        local_unreadable: 'Discord’un yerel sürümü okunamadı.',
+        offline: 'Discord güncelleme sunucusuna ulaşılamadı.',
+        timeout: 'Güncelleme kontrolü zaman aşımına uğradı.',
+        http: 'Discord güncelleme sunucusu hata döndürdü (HTTP {0}).',
+        invalid_response: 'Discord güncelleme sunucusundan geçerli sürüm bilgisi alınamadı.',
+        winget_error: 'Windows Paket Yöneticisi güncellemeleri denetleyemedi (kod {0}).'
+      };
+      return messages[r.status] ? KT(messages[r.status], r.code) : '';
+    }
+    async function check(a, force = false) {
+      if (busy) return;
+      changed.set(a.id, ++revision);
       view = 'detail'; busy = true; detail(a, [h('div', { class: 'skeleton', role: 'img', 'aria-label': KT('Aranıyor…') }), h('p', { class: 'upd-msg sub' }, KT('{0} için güncelleme aranıyor…', a.name))]);
-      const r = await call('updCheck', a.id); busy = false; if (!isOpen() || view !== 'detail' || !cur || cur.id !== a.id) { if (r && r.status === 'available') known.set(a.id, 'up'); else if (r && r.status === 'current') known.set(a.id, 'ok'); mark(); return; }
+      const r = await call('updCheck', a.id, force, minutes);
+      busy = false; changed.set(a.id, ++revision);
+      if (apps.some((item) => item.id === a.id)) record(a, r);
+      if (!isOpen() || view !== 'detail' || cur?.id !== a.id) return;
       if (!r || r.error) { fail(a, hostMsg(r && r.message)); return; }
-      if (r.status === 'current') { known.set(a.id, 'ok'); mark(); detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için henüz update gelmemiş.', a.name)), r.current ? h('p', { class: 'upd-msg sub' }, KT('Sürüm {0}', r.current)) : null, h('div', { class: 'upd-row' }, backBtn())]); return; }
-      if (r.status === 'available') {
-        known.set(a.id, 'up'); mark(); const yes = h('button', { type: 'button', class: 'cv-btn primary' }, KT('Güncelle')); yes.addEventListener('click', () => apply(a));
-        detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için update gelmiş. Update demek ister misiniz?', a.name)), r.current || r.available ? h('p', { class: 'upd-msg sub' }, (r.current || '?') + ' → ' + (r.available || '?')) : null, h('p', { class: 'upd-msg sub' }, KT('Uygulama açıksa güncelleme sırasında kapanabilir.')), h('div', { class: 'upd-row' }, yes, backBtn())]); yes.focus(); return;
+      if (r.status === 'current') {
+        detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için henüz update gelmemiş.', a.name)), versionLine(r.current), actions(a)]);
+        return;
       }
-      if (r.status === 'nowinget') { fail(a, KT('Bu bilgisayarda winget (Windows Paket Yöneticisi) bulunamadı; güncelleme kontrolü yapılamıyor.')); return; }
-      if (r.status === 'unsupported') { fail(a, KT('Güncelleme kontrolü yalnızca Windows’ta çalışır.')); return; }
-      detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için güncelleme bilgisi alınamadı.', a.name)), h('p', { class: 'upd-msg sub' }, KT('Windows paket yöneticisi bu uygulamayı tanımıyor; kendi kendini güncelliyor olabilir (açınca kendisi günceller).')), h('div', { class: 'upd-row' }, backBtn())]);
+      if (r.status === 'available') {
+        const download = r.action === 'download';
+        const yes = h('button', { type: 'button', class: 'cv-btn primary' }, KT(download ? 'İndirme sayfasını aç' : 'Güncelle'));
+        yes.addEventListener('click', async () => {
+          if (!download) return apply(a);
+          const result = await call('updDownload', a.id);
+          if (!result?.ok) toast(hostMsg(result?.message || 'İndirme sayfası açılamadı.'));
+        });
+        detail(a, [h('p', { class: 'upd-msg' }, KT(download ? '{0} için güncelleme var.' : '{0} için update gelmiş. Update demek ister misiniz?', a.name)),
+          h('p', { class: 'upd-msg sub' }, (r.current || '?') + ' → ' + (r.available || '?')),
+          download ? null : h('p', { class: 'upd-msg sub' }, KT('Uygulama açıksa güncelleme sırasında kapanabilir.')), actions(a, yes)]);
+        yes.focus();
+        return;
+      }
+      const error = checkError(r);
+      if (error) { fail(a, error, r.current); return; }
+      detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için güncelleme bilgisi alınamadı.', a.name)), h('p', { class: 'upd-msg sub' }, KT('Windows paket yöneticisi bu uygulamayı tanımıyor; kendi kendini güncelliyor olabilir (açınca kendisi günceller).')), actions(a)]);
     }
     async function apply(a) {
+      changed.set(a.id, ++revision);
       busy = true; detail(a, [h('div', { class: 'upd-prog', role: 'progressbar', 'aria-label': KT('Güncelleniyor…') }, h('i')), h('p', { class: 'upd-msg' }, KT('{0} güncelleniyor…', a.name)), h('p', { class: 'upd-msg sub' }, KT('Birkaç dakika sürebilir; pencereyi kapatabilirsin.'))]);
       const r = await call('updApply', a.id); busy = false; const vis = isOpen() && view === 'detail' && cur && cur.id === a.id;
-      if (r && r.status === 'updated') { known.set(a.id, 'ok'); mark(); toast(KT('{0} güncellendi.', a.name)); if (vis) detail(a, [h('p', { class: 'upd-msg' }, KT('{0} güncellendi.', a.name)), h('div', { class: 'upd-row' }, backBtn())]); return; }
-      if (r && r.status === 'current') { known.set(a.id, 'ok'); mark(); if (vis) detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için henüz update gelmemiş.', a.name)), h('div', { class: 'upd-row' }, backBtn())]); return; }
+      changed.set(a.id, ++revision);
+      if (r && r.status === 'updated') { record(a, { status: 'current' }); toast(KT('{0} güncellendi.', a.name)); if (vis) detail(a, [h('p', { class: 'upd-msg' }, KT('{0} güncellendi.', a.name)), actions(a)]); return; }
+      if (r && r.status === 'current') { record(a, r); if (vis) detail(a, [h('p', { class: 'upd-msg' }, KT('{0} için henüz update gelmemiş.', a.name)), actions(a)]); return; }
       const m = !r || r.error ? hostMsg(r && r.message) : r.status === 'failed' ? KT('{0} güncellenemedi. Uygulamayı kapatıp tekrar dene.', a.name) + (r.detail ? ' (' + r.detail + ')' : '') : KT('{0} güncellenemedi.', a.name);
       if (vis) fail(a, m); else toast(m);
     }
     function draw() { if (view === 'grid') drawGrid(); else if (view === 'add') drawAdd(true); }
-    refresh();
+    refresh().then(() => scheduleScan(1000));
   })();
 
   /* ---------- Kovan kabugu: kenar cubugu, Home ve arac kaydi ----------
