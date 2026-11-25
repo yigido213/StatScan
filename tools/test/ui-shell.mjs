@@ -6,13 +6,18 @@ const b = await chromium.launch({ args: ['--no-sandbox'] });
 async function page(opts, vp) { const ctx = await b.newContext(Object.assign({ viewport: vp || { width: 1280, height: 900 } }, opts || {})); const pg = await ctx.newPage(); pg.errs = []; pg.on('pageerror', (e) => pg.errs.push(e.message)); pg.on('console', (m) => m.type() === 'error' && pg.errs.push(m.text())); return pg; }
 const typed = (pg) => pg.textContent('#tw .typed');
 // 1) normal hareket: yazma animasyonu
-let pg = await page({ reducedMotion: 'no-preference' }); await pg.goto(URL);
+let pg = await page({ reducedMotion: 'no-preference' });
+const testStart = Date.now();
+await pg.clock.install({ time: testStart });
+await pg.clock.pauseAt(testStart + 1000);
+await pg.goto(URL);
 ok((await pg.title()) === 'Home · Kovan', 'başlık: Home · Kovan');
 ok(await pg.evaluate(() => !document.querySelector('#app-home').hidden && document.querySelector('#app-statscan').hidden), 'açılışta Home görünür, StatScan gizli');
 ok(await pg.evaluate(() => document.querySelector('#side-nav a[aria-current="page"]').dataset.route) === 'home', 'kenar çubuğunda Home seçili');
 const navTxt = await pg.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item:not([hidden])')].map((a) => a.textContent.trim())); ok(JSON.stringify(navTxt) === JSON.stringify(['Ana sayfa', 'Güvenlik', 'Windows', 'Oyun', 'Minecraft', 'Kodlama']), 'kenar çubuğu yalnız Home + 5 kategori (' + navTxt.join(', ') + ')');
-const seen = []; for (let i = 0; i < 14; i++) { seen.push((await typed(pg)).length); await pg.waitForTimeout(120); }
+const seen = []; for (let i = 0; i < 14; i++) { seen.push((await typed(pg)).length); await pg.clock.runFor(60); }
 ok(seen[0] < FULL.length && seen.some((n) => n > 0 && n < FULL.length), 'metin harf harf beliriyor (' + seen.slice(0, 8).join(',') + '…)'); ok(seen.every((n, i) => i === 0 || n >= seen[i - 1]), 'uzunluk yalnızca artıyor (geri gitmiyor)');
+await pg.clock.resume();
 await pg.waitForTimeout(2600); ok((await typed(pg)) === FULL, 'tamamlanınca tam metin: "' + (await typed(pg)) + '"'); ok(await pg.evaluate(() => document.querySelector('#tw').classList.contains('done')), 'bitince imleç kalktı, metin sabit');
 const st = await pg.evaluate(() => { const c = getComputedStyle(document.querySelector('#home-title em')); return [c.fontWeight, c.fontStyle]; }); ok(+st[0] === 400 && st[1] === 'italic', 'başlık vurgusu normal ağırlıkta + eğik (' + st.join(' ') + ')');
 const w = await pg.evaluate(() => { const r = document.querySelector('#home-title').getBoundingClientRect(); return [r.left, r.top]; }); ok(w[0] < 400 && w[1] < 200, 'başlık sol üstte (' + w.map(Math.round).join(',') + ')');
