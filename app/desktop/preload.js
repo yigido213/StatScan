@@ -5,6 +5,8 @@ const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 const gameReq = (r) => ({ preset: r && typeof r.preset === 'string' ? r.preset : undefined, resolution: r && r.resolution ? { w: Number(r.resolution.w), h: Number(r.resolution.h) } : undefined, resIdx: r && Number.isInteger(r.resIdx) ? r.resIdx : undefined });
 contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   desktop: true,
+  dumpProcesses: file => call('dump:list', require('electron').webUtils.getPathForFile(file)),
+  dumpSave: (token, id) => call('dump:save', token, id),
   /* Arayuz olcegi (Ayarlar): yalniz sayi alir; 0.4-3 disinda reddeder */
   uiZoom: (f) => { const n = Number(f); if (!(n >= 0.4 && n <= 3)) return false; try { webFrame.setZoomFactor(n); return true; } catch (e) { return false; } },
   status: () => call('dyn:status'),

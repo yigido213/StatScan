@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- EXE Dumper, Güvenlik kategorisine eklendi (beta 0.1.28). Diskteki PE paketleme göstergeleri ve seçili çalışan örneğin Windows minidump çıktısı. Electron dosya seçimi ve gerçek Windows dökümü test edildi.
 - HOTFIX: Blitz Tab altın bindirmesi yaklaşık bir rozet yüksekliği kadar aşağı alındı (1080p’de 16 px) — Codex: bitti (`codex/blitz-tab-overlay-position`, Blitz 0.9.2).
 - HOTFIX: Blitz Tab altın farkı League Wiki tam alış fiyatlarını kullanıyor ve animasyonsuz gösteriliyor — Codex: bitti (`codex/blitz-wiki-gold`, Blitz 0.9.1). Eksik fiyatlar Data Dragon ve istemciden tamamlanıyor. Canlı Wiki kataloğunda 246 fiyat okundu. Eski fiyat sınırına takılan özel mod eşyaları eklendi ve eski önbellek yenileniyor. Data Dragon 16.23.1 kataloğundaki 863 kimliğin tamamı kapsanıyor. Saydam pencere maç boyunca hazır kalıyor, Tab yalnızca içeriği gösteriyor. Takım, koridor ve bindirme testleri geçti.
 - Blitz Arkadaşlarım listesi League kapalıyken yerel kayıttan açılıyor ve seçilen profil Riot API’den yükleniyor — Codex: bitti (`codex/blitz-friends-cache`, Blitz 0.9.0, Kovan beta 0.1.27). Gerçek Windows istemcisinde liste baştan okunup test profilinde yeniden yüklendi.

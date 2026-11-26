@@ -1447,6 +1447,7 @@ html[data-fx="off"] #app-lolcounter *, html[data-fx="off"] #app-lolcounter *::be
 <section id="app-obfuscate" class="kv" aria-label="Obfuscate" hidden></section>
 <section id="app-imza" class="kv" aria-label="İmza ve Sertifika Denetçisi" hidden></section>
 <section id="app-paketleyici" class="kv" aria-label="Paketleyici / Obfuscation Dedektörü" hidden></section>
+<section id="app-exedump" class="kv" aria-label="EXE Dumper" hidden></section>
 <section id="app-xorcozucu" class="kv" aria-label="XOR Çözücü" hidden></section>
 <section id="app-ioc" class="kv" aria-label="IOC Çıkarıcı" hidden></section>
 <section id="app-taskmgr" class="kv kv-wide" aria-label="Görev Yöneticisi" hidden></section>
@@ -7664,6 +7665,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Bu dosyayı indirmek ister misin?': 'Do you want to download this file?',
       'İndirmeyi onayla': 'Confirm download',
       'İndirmeyi iptal et': 'Cancel download',
+      'Dosya seçimi programı çalıştırmaz. Açık bir örnek seçerek iş parçacıklarını, çağrı yığınlarını ve modül listesini .dmp olarak kaydedebilirsin.': 'Selecting a file does not run it. Select a running instance to save threads, call stacks and the module list to a .dmp file.',
+      'Geçerli bir Windows EXE dosyası seç.': 'Select a valid Windows executable.',
+      'Paketleyici / koruyucu izleri': 'Packer / protector indicators',
+      'Bilinen imza bulunamadı.': 'No known signature found.',
+      'Döküm almak için Kovan masaüstünü kullan.': 'Use Kovan desktop to capture a dump.',
+      'Çalışan örnek': 'Running instance',
+      'Süreçleri yenile': 'Refresh processes',
+      'Dökümü kaydet': 'Save dump',
+      'Çalışan örnekler aranıyor…': 'Finding running instances…',
+      'Kaydedilecek örneği seç.': 'Select an instance to capture.',
+      'Bu yolda erişilebilir çalışan örnek bulunamadı.': 'No accessible running instance at this path.',
+      'Döküm hazırlanıyor…': 'Preparing dump…',
+      'EXE Dumplandı!': 'EXE dumped!',
+      'Kaydetme iptal edildi.': 'Save canceled.',
+      'Paketleyici izlerini incele ve çalışan EXE için tanılama dökümü al.': 'Inspect packer indicators and capture a diagnostic dump of a running EXE.',
       'XOR Çözücü': 'XOR Decoder',
       'XOR ile gizlenen veriyi yerel olarak çöz ve tara.': 'Recover and scan XOR-encoded data locally.',
       'En fazla 16 MiB ve 5 katman. Güven puanı sezgiseldir.': 'Up to 16 MiB and 5 layers. Confidence is a heuristic estimate.',
@@ -7764,7 +7780,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-xorcozucu, #app-ramanaliz, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-exedump, #app-xorcozucu, #app-ramanaliz, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -7792,7 +7808,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.27';
+  const KOVAN_VER = 'beta 0.1.28';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8151,6 +8167,57 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
         }
       });
       /* ---------- IOC Çıkarıcı ---------- */
+      shell('exedump', {
+        title: 'EXE Dumper', inputId: 'dump-file', resId: 'dump-result', accept: '.exe',
+        notes: ['Dosya seçimi programı çalıştırmaz. Açık bir örnek seçerek iş parçacıklarını, çağrı yığınlarını ve modül listesini .dmp olarak kaydedebilirsin.'],
+        async run(file, bytes) {
+          const audit = await packAudit(bytes, file.name, {});
+          if (!/\.exe$/i.test(file.name) || !['pe', 'dotnet'].includes(audit.kind)) throw new Error(KT('Geçerli bir Windows EXE dosyası seç.'));
+          const box = h('div', { class: 'sc-body' });
+          const tools = [...new Set([...audit.tools.map(t => t.name), ...audit.sections.map(s => s.packer).filter(Boolean)])];
+          box.append(head(file), kv(KT('Paketleyici / koruyucu izleri'), tools.join(', ') || KT('Bilinen imza bulunamadı.')),
+            kv(KT('Paketleme göstergesi'), audit.score + '/100'), kv(KT('Bölümler'), audit.sections.map(s => s.n).join(', ')));
+          if (audit.evidence.length) box.append(h('details', {}, h('summary', {}, KT('Göstergeler')),
+            h('ul', {}, audit.evidence.map(e => h('li', {}, e.title + ' · ' + e.why)))));
+          const bridge = window.statscanHost;
+          if (!bridge?.dumpProcesses) { box.append(h('p', {}, KT('Döküm almak için Kovan masaüstünü kullan.'))); return box; }
+          const select = h('select', { 'aria-label': KT('Çalışan örnek') });
+          const refresh = h('button', { type: 'button', class: 'cv-btn' }, KT('Süreçleri yenile'));
+          const save = h('button', { type: 'button', class: 'cv-btn cv-primary' }, KT('Dökümü kaydet'));
+          const status = h('p', { role: 'status', class: 'cv-live', style: 'overflow-wrap:anywhere' });
+          box.append(h('h2', {}, KT('Çalışan örnek')), h('div', { class: 'cv-actions' }, select, refresh, save), status);
+          let token;
+          function busy(on) {
+            select.disabled = on || !select.options.length;
+            save.disabled = on || !select.value;
+            refresh.disabled = on;
+          }
+          async function reload() {
+            select.replaceChildren();
+            busy(true);
+            status.textContent = KT('Çalışan örnekler aranıyor…');
+            try {
+              const result = await bridge.dumpProcesses(file);
+              token = result.token;
+              for (const row of result.rows) select.add(new Option('PID ' + row.id, String(row.id)));
+              status.textContent = select.length ? KT('Kaydedilecek örneği seç.') : KT('Bu yolda erişilebilir çalışan örnek bulunamadı.');
+            } catch (error) { status.textContent = error.message; }
+            finally { busy(false); }
+          }
+          refresh.onclick = reload;
+          save.onclick = async () => {
+            busy(true);
+            status.textContent = KT('Döküm hazırlanıyor…');
+            try {
+              const result = await bridge.dumpSave(token, Number(select.value));
+              status.textContent = result ? KT('EXE Dumplandı!') + ' · ' + fmt(result.size) + ' · ' + result.destination : KT('Kaydetme iptal edildi.');
+            } catch (error) { status.textContent = error.message; }
+            finally { busy(false); }
+          };
+          await reload();
+          return box;
+        }
+      });
       shell('xorcozucu', {
         inputId: 'xd-file', resId: 'xd-res', title: 'XOR Çözücü', maxBytes: 16 * 1024 * 1024,
         notes: ['En fazla 16 MiB ve 5 katman. Güven puanı sezgiseldir.'],
@@ -10169,6 +10236,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'imza', cat: 'guvenlik', name: 'İmza ve Sertifika Denetçisi', icon: 'key', beta: true, desc: 'Dijital imzayı açar: kim imzalamış, sertifika zinciri, süre, zaman damgası, imza matematiği ve sahte/taklit yayıncı adı. Dosya çalıştırılmaz, ağa bağlanılmaz; kök güveni ve iptal durumu doğrulanmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
       { id: 'paketleyici', cat: 'guvenlik', name: 'Paketleyici / Obfuscation Dedektörü', icon: 'puzzle', beta: true, desc: 'Dosyanın UPX, VMProtect, Themida gibi bir paketleyici/koruyucuyla sarılıp sarılmadığını, .NET veya Java obfuscator izlerini bölüm adı, entropi, giriş noktası ve import kalıplarından çıkarır. Paketli olmak tek başına zararlı demek değildir. Dosya çalıştırılmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
       { id: 'ioc', cat: 'guvenlik', name: 'IOC Çıkarıcı', icon: 'note', beta: true, desc: 'Dosyadaki URL, IP, alan adı, Discord webhook, Telegram bot, e-posta, cüzdan, kayıt defteri ve yol göstergelerini tek listede toplar; TXT/CSV/JSON/engelleme listesi olarak dışa aktarır. Token’lar maskelenir. Hiçbir adrese bağlanılmaz. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
+      { id: 'exedump', cat: 'guvenlik', name: 'EXE Dumper', icon: 'key', beta: true, desc: 'Paketleyici izlerini incele ve çalışan EXE için tanılama dökümü al.', actions: [] },
       { id: 'xorcozucu', cat: 'guvenlik', name: 'XOR Çözücü', icon: 'key', beta: true, desc: 'XOR ile gizlenen veriyi yerel olarak çöz ve tara.', actions: [] },
       { id: 'texpack', cat: 'minecraft', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', cat: 'minecraft', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
