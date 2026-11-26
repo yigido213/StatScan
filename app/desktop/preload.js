@@ -133,6 +133,9 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   lolMu: (o) => call('lol:mu', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), rank: o && o.rank ? String(o.rank) : undefined }),
   lolNoteSet: (o) => call('lol:note:set', { me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), text: String((o && o.text) || '') }),
   lolGold: () => call('lol:gold'),
+  onLolGoldVisibility: (callback) => {
+    if (typeof callback === 'function') ipcRenderer.on('lol:gold:visibility', (_event, visible, data) => callback(visible === true, data));
+  },
   lolGoldGet: () => call('lol:gold:get'),
   lolGoldSet: (o) => call('lol:gold:set', { on: o && typeof o.on === 'boolean' ? o.on : undefined }),
   lolOvGet: () => call('lol:ov:get'),

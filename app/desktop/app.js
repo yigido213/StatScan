@@ -242,10 +242,11 @@ function start(ctx) {
       } catch (e) { /* lig istemcisi yok: sessiz */ } finally { busy = false; }
     }, 6000);
   }
-  /* Tab'a basinca altin farki bindirmesi: oyun suruyorken gizli bir pencere hazir tutulur; Tab basili = gosterilir, birakilinca gizlenir.
+  /* Tab'a basinca altin farki bindirmesi: saydam pencere mac boyunca acik; Tab yalniz iceriği gosterir/gizler.
      Tab durumu icin tek PowerShell sureci (host.js createTabWatcher, yalniz Windows). Odak almaz, oyuna tus gondermez. */
   let gWin = null; let gTab = null; let gTimer = null;
-  function closeGold() { if (gTab) { try { gTab.stop(); } catch (e) { /* yoksay */ } gTab = null; } if (gWin && !gWin.isDestroyed()) { try { gWin.close(); } catch (e) { /* yoksay */ } } gWin = null; }
+  let gReady = false, gDown = false, gLatest = null;
+  function closeGold() { gReady = false; gDown = false; gLatest = null; if (gTab) { try { gTab.stop(); } catch (e) { /* yoksay */ } gTab = null; } if (gWin && !gWin.isDestroyed()) { try { gWin.close(); } catch (e) { /* yoksay */ } } gWin = null; }
   const GOLD_WIDTH = 302;
   const GOLD_HEADER_HEIGHT = 122;
   function goldBounds() {
@@ -256,13 +257,31 @@ function start(ctx) {
       x: Math.round(bounds.x + (bounds.width - GOLD_WIDTH) / 2),
       y: Math.round(bounds.y + Math.max(8, bounds.height * 0.25 - GOLD_HEADER_HEIGHT)) };
   }
+  function updateGoldVisibility() {
+    if (!gReady || !gWin || gWin.isDestroyed()) return;
+    if (gDown) {
+      const next = goldBounds(), current = gWin.getBounds();
+      if (Object.keys(next).some((key) => next[key] !== current[key])) gWin.setBounds(next, false);
+    }
+    gWin.webContents.send('lol:gold:visibility', gDown, gDown ? gLatest : null);
+  }
   function openGold() {
     const { BrowserWindow } = require('electron'); const { lolModule } = require('./host.js');
-    gWin = new BrowserWindow({ ...goldBounds(), frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
+    const win = gWin = new BrowserWindow({ ...goldBounds(), frame: false, transparent: true, alwaysOnTop: true, focusable: false, skipTaskbar: true, resizable: false, show: false,
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, devTools: false, backgroundThrottling: false } });
     try { gWin.setAlwaysOnTop(true, 'screen-saver'); } catch (e) { /* yoksay */ } try { gWin.setIgnoreMouseEvents(true); } catch (e) { /* yoksay */ }
-    gWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' })); gWin.webContents.on('will-navigate', (ev) => ev.preventDefault()); gWin.on('closed', () => { gWin = null; });
-    gWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(lolModule.lolGoldHtml()));
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-navigate', (ev) => ev.preventDefault());
+    win.on('closed', () => { if (gWin === win) { gWin = null; gReady = false; } });
+    win.webContents.once('did-finish-load', () => {
+      if (gWin !== win || win.isDestroyed()) return;
+      gReady = true;
+      win.showInactive();
+      updateGoldVisibility();
+    });
+    win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(lolModule.lolGoldHtml())).catch(() => {
+      if (gWin === win) closeGold();
+    });
   }
   function startGold() {
     if (gTimer || !host || !host.handlers || !host.handlers['lol:gold']) return; const { lolModule } = require('./host.js'); let busy = false;
@@ -270,8 +289,9 @@ function start(ctx) {
       if (busy) return; busy = true;
       try { const cfg = await host.handlers['lol:gold:get'](null); if (!cfg || !cfg.on) { closeGold(); return; }
         const g = await host.handlers['lol:gold'](null); if (!g || g.state !== 'ok') { closeGold(); return; }
+        gLatest = g;
         if (!gWin || gWin.isDestroyed()) openGold();
-        if (!gTab) gTab = lolModule.createTabWatcher({ onChange: (d) => { try { if (!gWin || gWin.isDestroyed()) return; if (d) { gWin.setBounds(goldBounds()); gWin.showInactive(); } else gWin.hide(); } catch (e) { /* yoksay */ } } });
+        if (!gTab) gTab = lolModule.createTabWatcher({ onChange: (down) => { gDown = down; updateGoldVisibility(); } });
         gTab.start();
       } catch (e) { closeGold(); } finally { busy = false; }
     }, 5000);

@@ -2365,31 +2365,37 @@ const LOLMOD = (() => {
         byId('ft').textContent = ['Eşya değeri (tahmin) · cepteki altın dahil değil', g.wikiUsed && 'LoL Wiki',
           g.ddragonUsed && 'Data Dragon', g.priceFallback && 'yerel fiyat'].filter(Boolean).join(' · ');
       }
-      let busy = false;
+      let busy = false, visibility = 0;
       async function refresh() {
-        if (busy || !host?.lolGold || document.hidden) return;
+        if (busy || !host?.lolGold || document.hidden || document.body.hidden) return;
+        const request = visibility;
         busy = true;
-        try { draw(await host.lolGold()); }
-        catch (e) { draw(null); }
+        try { const current = await host.lolGold(); if (request === visibility) draw(current); }
+        catch (e) { if (request === visibility) draw(null); }
         finally { busy = false; }
       }
+      host?.onLolGoldVisibility?.((visible, current) => {
+        ++visibility;
+        if (visible && current) draw(current);
+        document.body.hidden = !visible;
+        if (visible) refresh();
+      });
       document.addEventListener('visibilitychange', refresh);
       setInterval(refresh, 1000);
-      refresh();
     }).toString();
     const csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; script-src 'unsafe-inline'";
     return '<!doctype html><html lang="tr"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' + csp + '">'
-      + '<title>Altın farkı</title><style>' + windowTheme.css + css + '</style><main class="hud">'
+      + '<title>Altın farkı</title><style>' + windowTheme.css + css + '</style><body hidden><main class="hud">'
       + '<div class="crown"><span id="redSeal" class="seal red" aria-label="Kırmızı takım">◈</span><div class="crest" aria-hidden="true"><span>⚔</span></div><span id="blueSeal" class="seal blue" aria-label="Mavi takım">◈</span></div>'
       + '<div id="top" class="off"><span class="total red"><i class="coin" aria-hidden="true"></i><span id="gl">0</span></span>'
       + '<span id="lead" class="lead" data-side="even"><span id="ar" aria-hidden="true">•</span><span id="df">0</span></span>'
       + '<span class="total blue"><i class="coin" aria-hidden="true"></i><span id="gr">0</span></span></div>'
       + '<div class="k" aria-label="Takım skoru"><span id="kl" class="red">0</span><i aria-hidden="true">⚔</i><span id="kr" class="blue">0</span></div>'
-      + '<p class="fine" id="ft"></p></main><div class="players" id="players" aria-label="Oyuncu eşya altını" hidden></div><script>(' + js + ')();</script></html>';
+      + '<p class="fine" id="ft"></p></main><div class="players" id="players" aria-label="Oyuncu eşya altını" hidden></div><script>(' + js + ')();</script></body></html>';
   }
   /* Tab tusu durumu: tek, sabit bir PowerShell sureci GetAsyncKeyState(0x09)'u yoklar (yalniz tus basili/birakildi; tus vurusu kaydedilmez, hicbir yere yazilmaz).
      Yalniz Windows. Betik sabit; disaridan gelen hicbir deger icine girmez. */
-  const TAB_PS = "Add-Type -Namespace K -Name U -MemberDefinition '[DllImport(\"user32.dll\")] public static extern short GetAsyncKeyState(int v);'; $p = $false; while ($true) { $d = (([K.U]::GetAsyncKeyState(9) -band 0x8000) -ne 0); if ($d -ne $p) { $p = $d; if ($d) { [Console]::Out.WriteLine('D') } else { [Console]::Out.WriteLine('U') }; [Console]::Out.Flush() }; Start-Sleep -Milliseconds 40 }";
+  const TAB_PS = "Add-Type -Namespace K -Name U -MemberDefinition '[DllImport(\"user32.dll\")] public static extern short GetAsyncKeyState(int v);'; $p = $false; while ($true) { $d = (([K.U]::GetAsyncKeyState(9) -band 0x8000) -ne 0); if ($d -ne $p) { $p = $d; if ($d) { [Console]::Out.WriteLine('D') } else { [Console]::Out.WriteLine('U') }; [Console]::Out.Flush() }; Start-Sleep -Milliseconds 16 }";
   function createTabWatcher(o) {
     o = o || {}; const spawnFn = o.spawn || cp.spawn; let child = null; let down = false; let buf = '';
     const set = (v) => { if (v !== down) { down = v; try { if (o.onChange) o.onChange(v); } catch (e) { /* dinleyici hatasi */ } } };
