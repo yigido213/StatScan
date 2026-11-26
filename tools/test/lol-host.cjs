@@ -385,7 +385,22 @@ return {
     clock += 6 * 60 * 60 * 1000;
     const expiredWiki = await wikiHost['lol:gold']();
     ok(!expiredWiki.wikiUsed && expiredWiki.ddragonUsed && wikiCalls === 2, 'altın: süresi dolmuş Wiki fiyatı yerine yedek fiyat kullanılır ve kaynak yenilenir');
-    const L2 = mkLive(); L2.allPlayers.forEach((p) => { p.items = [{ itemID: 1, price: 'x', count: -5 }, null, { price: 99999, count: 999 }]; }); liveJson = L2; const g2 = await HV['lol:gold'](); ok(g2.state === 'ok' && g2.mine.gold === 5 * 6000 * 20 && Number.isFinite(g2.diff), 'altın: bozuk/uç değerler sınırlanır, çökmez');
+    const costDir = path.join(tmp, 'gold-special'), costCache = path.join(costDir, 'lolcounter-cache');
+    fs.mkdirSync(costCache, { recursive: true });
+    fs.writeFileSync(path.join(costCache, 'goldcatalog-16.21.1.json'), JSON.stringify({ data: { 3001: { gold: { total: 3000 } } } }));
+    const special = mkHost({ ...opts, get: async (host, p) => {
+      if (host === 'ddragon.leagueoflegends.com' && p.endsWith('/item.json')) {
+        return JSON.stringify({ data: { 228003: { gold: { total: 9000 } } } });
+      }
+      return wikiGet(host, p);
+    } }, costDir).handlers;
+    G.allPlayers[0].items = [item(228003)];
+    G.allPlayers[5].items = [{ itemID: 228008, price: 9000, count: 1 }];
+    await special['lol:gold'](); await new Promise((resolve) => setImmediate(resolve));
+    const arena = await special['lol:gold']();
+    ok(arena.mine.gold === 9000 && arena.enemy.gold === 9000 && arena.ddragonUsed && arena.priceFallback,
+      'altın: eski fiyat önbelleği yenilenir, katalog ve istemci 9000 altınlık Arena eşyasını tam sayar');
+    const L2 = mkLive(); L2.allPlayers.forEach((p) => { p.items = [{ itemID: 1, price: 'x', count: -5 }, null, { price: 99999, count: 999 }]; }); liveJson = L2; const g2 = await HV['lol:gold'](); ok(g2.state === 'ok' && g2.mine.gold === 5 * 10000 * 20 && Number.isFinite(g2.diff), 'altın: bozuk/uç değerler sınırlanır, çökmez');
     liveJson = mkLive(); const g3 = await HV['lol:gold'](); ok(g3.state === 'ok' && g3.mine.gold === 0 && g3.partial === true, 'altın: eşya alanı yoksa 0 + partial');
     liveJson = mkLive(); liveJson.activePlayer = {}; ok((await HV['lol:gold']()).state === 'nogame', 'altın: kendi oyuncum belirsizse nogame');
     liveJson = null; ok((await HV['lol:gold']()).state === 'nogame', 'altın: maç yokken nogame');

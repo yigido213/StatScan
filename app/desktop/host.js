@@ -1345,6 +1345,7 @@ const LOLMOD = (() => {
     if (!(total > 0)) return null; return weights.map((_, i) => { const m = marg[i]; const role = ROLE_ORDER[best.perm[i]]; const probs = {}; for (const r of ROLE_ORDER) probs[r] = Math.round((1000 * m[r]) / total) / 1000; return { role, conf: probs[role], probs }; });
   }
   /* oyun ici tablodaki esya degeri: Live Client her esya icin `price` (esya fiyati) ve `count` verir; cebindeki/harcanmis altin YOK */
+  const MAX_ITEM_GOLD = 10000; // Arena has catalogue prices up to 9000.
   const clampN = (x, lo, hi) => { const n = Number(x); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : 0; };
   function goldOf(player, prices, missing) {
     const items = Array.isArray(player?.items) ? player.items.slice(0, 12) : [];
@@ -1354,7 +1355,7 @@ const LOLMOD = (() => {
       if (!item || typeof item !== 'object') continue;
       const price = prices?.get(String(item.itemID));
       if (price === undefined && missing) missing();
-      total += (price ?? clampN(item.price, 0, 6000)) * Math.max(1, clampN(item.count, 1, 20));
+      total += (price ?? clampN(item.price, 0, MAX_ITEM_GOLD)) * Math.max(1, clampN(item.count, 1, 20));
     }
     return total;
   }
@@ -1362,7 +1363,7 @@ const LOLMOD = (() => {
     const prices = new Map();
     for (const [id, item] of Object.entries(json?.data || {})) {
       const total = item?.gold?.total;
-      if (/^\d{3,6}$/.test(id) && Number.isSafeInteger(total) && total >= 0 && total <= 6000) prices.set(id, total);
+      if (/^\d{3,6}$/.test(id) && Number.isSafeInteger(total) && total >= 0 && total <= MAX_ITEM_GOLD) prices.set(id, total);
     }
     return prices;
   }
@@ -1404,7 +1405,7 @@ const LOLMOD = (() => {
         seen.add(name);
         cost = records.get(name)?.buy;
       }
-      if (!Number.isSafeInteger(cost) || cost < 0 || cost > 6000) continue;
+      if (!Number.isSafeInteger(cost) || cost < 0 || cost > MAX_ITEM_GOLD) continue;
       if (prices.has(id) && prices.get(id) !== cost) { prices.delete(id); ambiguous.add(id); }
       else prices.set(id, cost);
     }
@@ -1685,13 +1686,13 @@ const LOLMOD = (() => {
           if (!/^\d+\.\d+(\.\d+)?$/.test(ver)) return;
           const cacheName = 'goldcatalog-' + ver + '.json';
           const saved = cacheRead(cacheName);
-          const fromCache = itemGoldPrices(saved);
+          const fromCache = itemGoldPrices(saved?.v === 2 ? saved : null);
           if (fromCache.size) { goldCatalog = { version: ver, prices: fromCache }; return; }
           const raw = JSON.parse(await httpGet(DD_HOST, '/cdn/' + ver + '/data/en_US/item.json', LIM.body));
           const prices = itemGoldPrices(raw);
           if (prices.size) {
             const data = Object.fromEntries([...prices].map(([id, total]) => [id, { gold: { total } }]));
-            cacheWrite(cacheName, { data });
+            cacheWrite(cacheName, { v: 2, data });
             goldCatalog = { version: ver, prices };
           }
         })().catch(() => {}).finally(() => { goldCatalogRetryAt = Date.now() + 60000; goldCatalogLoad = null; });
