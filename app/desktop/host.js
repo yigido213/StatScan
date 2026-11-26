@@ -1366,6 +1366,50 @@ const LOLMOD = (() => {
     }
     return prices;
   }
+  // Read the wiki's item records as data. Ignore nested effects and never execute Lua.
+  function wikiGoldPrices(source) {
+    const tokens = source.match(/--\[(=*)\[[\s\S]*?\]\1\]|--[^\r\n]*|\[(=*)\[[\s\S]*?\]\2\]|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|[A-Za-z_]\w*|-?\d+(?:\.\d+)?|\S/g)?.filter((t) => !t.startsWith('--')) || [];
+    const quoted = (token) => /^["']/.test(token || '') && token.length >= 2 ? token.slice(1, -1).replace(/\\(["'\\])/g, '$1') : null;
+    const records = new Map();
+    let depth = 0, entry = null;
+    if (tokens[0] !== 'return' || tokens[1] !== '{') return new Map();
+    for (let i = 1; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok === '{') depth++;
+      if (tok === '}') {
+        if (depth === 2) entry = null;
+        depth--;
+      }
+      if (!depth) break;
+      if (tok !== '[' || tokens[i + 2] !== ']' || tokens[i + 3] !== '=') continue;
+      const key = quoted(tokens[i + 1]);
+      const value = tokens[i + 4];
+      if (depth === 1 && value === '{' && key) {
+        entry = {};
+        records.set(key, entry);
+      } else if (depth === 2 && entry && (key === 'id' || key === 'buy') && /^[,;}]$/.test(tokens[i + 5] || '')) {
+        entry[key] = /^\d+$/.test(value) ? Number(value) : quoted(value);
+      }
+    }
+    if (depth !== 0) return new Map();
+    const prices = new Map(), ambiguous = new Set();
+    for (const record of records.values()) {
+      const id = String(record.id);
+      if (!/^\d{3,6}$/.test(id) || ambiguous.has(id)) continue;
+      let cost = record.buy;
+      const seen = new Set();
+      while (typeof cost === 'string' && cost.startsWith('=>')) {
+        const name = cost.slice(2);
+        if (seen.has(name)) { cost = null; break; }
+        seen.add(name);
+        cost = records.get(name)?.buy;
+      }
+      if (!Number.isSafeInteger(cost) || cost < 0 || cost > 6000) continue;
+      if (prices.has(id) && prices.get(id) !== cost) { prices.delete(id); ambiguous.add(id); }
+      else prices.set(id, cost);
+    }
+    return prices;
+  }
   function parseLive(j, byName, byId, allowRawChampion = false) {
     if (!j || typeof j !== 'object' || !Array.isArray(j.allPlayers)) return null; const gd = j.gameData || {}; const ap = j.activePlayer || {}; const meName = String(ap.riotId || ap.summonerName || ''); const meGame = String(ap.riotIdGameName || '');
     const champId = (p) => { const raw = String(p.rawChampionName || '').replace(/^game_character_displayname_/i, ''); if (byId.has(raw) || (allowRawChampion && ID_RE.test(raw))) return raw; const nm = String(p.championName || ''); const hit = byName.get(nm); return hit ? hit.id : (byId.has(nm.replace(/[^A-Za-z0-9]/g, '')) ? nm.replace(/[^A-Za-z0-9]/g, '') : null); };
@@ -1607,6 +1651,30 @@ const LOLMOD = (() => {
     let goldCatalog = null;
     let goldCatalogLoad = null;
     let goldCatalogRetryAt = 0;
+    const wikiGoldCache = 'goldcatalog-wiki.json';
+    const wikiGoldTTL = 6 * 60 * 60 * 1000;
+    let wikiGold = null, wikiGoldRead = false, wikiGoldLoad = null, wikiGoldRetryAt = 0;
+    function loadWikiGold() {
+      const t = now();
+      if (!wikiGoldRead) {
+        wikiGoldRead = true;
+        const saved = cacheRead(wikiGoldCache);
+        const prices = itemGoldPrices(saved);
+        if (prices.size && Number.isSafeInteger(saved.at) && saved.at <= t) wikiGold = { at: saved.at, prices };
+      }
+      if (wikiGold && t - wikiGold.at < wikiGoldTTL) return wikiGold.prices;
+      if (!wikiGoldLoad && t >= wikiGoldRetryAt) {
+        wikiGoldLoad = (async () => {
+          const raw = await httpGet('wiki.leagueoflegends.com', '/en-us/Module:ItemData/data?action=raw', 1024 * 1024);
+          const prices = wikiGoldPrices(raw);
+          if (!prices.size) return;
+          const at = now(), data = Object.fromEntries([...prices].map(([id, total]) => [id, { gold: { total } }]));
+          cacheWrite(wikiGoldCache, { at, data });
+          wikiGold = { at, prices };
+        })().catch(() => {}).finally(() => { wikiGoldRetryAt = now() + 5 * 60 * 1000; wikiGoldLoad = null; });
+      }
+      return null;
+    }
     function loadGoldCatalog() {
       const version = rosterMeta?.version || '';
       if (goldCatalog && (!version || goldCatalog.version === version)) return goldCatalog.prices;
@@ -1857,10 +1925,19 @@ const LOLMOD = (() => {
         try {
           let j = null; try { j = await liveRead('/liveclientdata/allgamedata'); } catch (e) { j = null; } if (!j) return { state: 'nogame' };
           const champs = roster || []; const parsed = parseLive(j, new Map(champs.map((c) => [c.name, c])), new Map(champs.map((c) => [c.id, c])), true); if (!parsed) return { state: 'nogame' };
-          const prices = loadGoldCatalog();
-          let unpriced = false;
+          const wiki = loadWikiGold(), ddragon = loadGoldCatalog();
+          let wikiUsed = false, ddragonUsed = false, unpriced = false;
+          const prices = { get(id) {
+            const value = wiki?.get(id);
+            if (value !== undefined) { wikiUsed = true; return value; }
+            const fallback = ddragon?.get(id);
+            if (fallback !== undefined) ddragonUsed = true;
+            return fallback;
+          } };
           for (const player of parsed.players) player.gold = goldOf(player._raw, prices, () => { unpriced = true; });
-          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return { ...goldCompare(a, (id) => (id && nm.get(id)) || id || '?'), priceFallback: unpriced };
+          const a = analyzeLive(parsed, champs); const nm = new Map(champs.map((c) => [c.id, c.name])); return {
+            ...goldCompare(a, (id) => (id && nm.get(id)) || id || '?'), wikiUsed, ddragonUsed, priceFallback: unpriced
+          };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:sync': async (_e, req) => {
@@ -2229,7 +2306,7 @@ const LOLMOD = (() => {
       .player-row{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);align-items:center;justify-items:center;padding:0 17px 12px;min-height:0}
       .player-gold,.player-diff{padding:1px 5px;border:1px solid var(--accent);border-radius:4px;background:var(--bg);font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;line-height:16px;white-space:nowrap}
       .player-diff{font-size:11px}.player-diff.even{color:var(--muted)}
-      .fine{margin:0;color:var(--muted);font-size:9px;text-align:center}
+      .fine{margin:0;color:var(--muted);font-size:9px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     `;
     const js = (function () {
       const host = window.statscanHost;
@@ -2284,7 +2361,8 @@ const LOLMOD = (() => {
         byId('lead').dataset.side = diff > 0 ? 'red' : diff < 0 ? 'blue' : 'even';
         byId('lead').setAttribute('aria-label', diff === 0 ? 'Eşya değeri eşit' : diff > 0 ? 'Kırmızı takım önde' : 'Mavi takım önde');
         drawPlayers(g, mineRed);
-        byId('ft').textContent = 'Eşya değeri (tahmin) · cepteki altın dahil değil' + (g.priceFallback ? ' · yerel fiyat' : '');
+        byId('ft').textContent = ['Eşya değeri (tahmin) · cepteki altın dahil değil', g.wikiUsed && 'LoL Wiki',
+          g.ddragonUsed && 'Data Dragon', g.priceFallback && 'yerel fiyat'].filter(Boolean).join(' · ');
       }
       let busy = false;
       async function refresh() {

@@ -25,11 +25,12 @@ ok(reqs.length === 0, 'ağ isteği yok: ' + reqs.join(','));
 ok(!errs.length, 'sayfa hatası yok ' + errs.join('|'));
 
 // ---- Tab altin farki sayfasi
-{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mySide: 'red', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, lanes: [
+{ const gh = lolModule.lolGoldHtml(); const G = { state: 'ok', mySide: 'red', mine: { gold: 20125, kills: 8 }, enemy: { gold: 23950, kills: 16 }, diff: -3825, guessed: true, wikiUsed: true, ddragonUsed: true, lanes: [
   { role: 'top', mine: { name: 'Darius', gold: 4000, me: true }, enemy: { name: '<img src=x onerror="window.__xss2=1">', gold: 3500 }, diff: 500 }, { role: 'jungle', mine: { name: 'Sion', gold: 3000 }, enemy: { name: 'Ornn', gold: 4100 }, diff: -1100 } ] };
   const p2 = await b.newPage(); const e2 = []; const r2 = []; p2.on('pageerror', (e) => e2.push(String(e))); p2.on('request', (r) => { if (!/^data:|^about:/.test(r.url())) r2.push(r.url()); });
   await p2.setViewportSize({ width: 302, height: 422 });
   await p2.setContent(gh.replace('<script>', '<script>window.__gold=' + JSON.stringify(G) + ';window.statscanHost={lolGold:async()=>window.__gold};</script><script>')); await p2.waitForTimeout(400);
+  ok((await p2.locator('#ft').textContent()).includes('LoL Wiki · Data Dragon'), 'Tab: hesapta kullanılan eşya fiyatı kaynakları görünür');
   ok((await p2.textContent('#gl')) === '20.125' && (await p2.textContent('#gr')) === '23.950' && (await p2.textContent('#df')) === '3.825', 'altın sayfası: iki takım toplamı + ortada fark');
   ok((await p2.getAttribute('#lead', 'data-side')) === 'blue' && (await p2.textContent('#ar')) === '▶', 'altın sayfası: mavi öndeyken fark mavi + ok sağa');
   ok((await p2.textContent('#kl')) === '8' && (await p2.textContent('#kr')) === '16', 'altın sayfası: kill skoru');

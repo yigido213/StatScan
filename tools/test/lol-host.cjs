@@ -347,9 +347,44 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     await new Promise((resolve) => setImmediate(resolve));
     const priced = await HV['lol:gold']();
     const top = priced.lanes.find((lane) => lane.role === 'top');
-    ok(priced.mine.gold === 3950 && priced.enemy.gold === 3100 && !priced.priceFallback &&
+    ok(priced.mine.gold === 3950 && priced.enemy.gold === 3100 && !priced.wikiUsed && priced.ddragonUsed && !priced.priceFallback &&
       top?.mine.gold === 3950 && top?.enemy.gold === 3100 && top?.diff === 850,
       'altın: tam fiyat, bileşen, yığın ve ücretsiz trinket ile üst hat farkı 850');
+    const wikiData = `
+-- distant catalogue descriptions can include quotes, braces and comments
+return {
+  ["Base"] = { ["id"] = 3001, ["effects"] = { ["buy"] = 9999, text = [=[} ["buy"]=100]=] }, ["buy"] = 3300 },
+  ["Upgrade"] = { ["id"] = 4202, ["buy"] = "=>Base" },
+  ["Variant"] = { ["id"] = 4203, ["buy"] = "=>Upgrade" },
+  ["Free"] = { ["id"] = 4204, ["buy"] = 0 },
+  ["Loop"] = { ["id"] = 4205, ["buy"] = "=>Loop" },
+  ["Duplicate one"] = { ["id"] = 4206, ["buy"] = 200 },
+  ["Duplicate two"] = { ["id"] = 4206, ["buy"] = 300 },
+  ["Expression"] = { ["id"] = 4207, ["buy"] = 500 + 100 },
+}`;
+    let wikiCalls = 0, clock = NOW;
+    const wikiGet = async (host, p) => {
+      if (host !== 'wiki.leagueoflegends.com') return get(host, p);
+      wikiCalls++;
+      if (p !== '/en-us/Module:ItemData/data?action=raw') throw Error('beklenmeyen Wiki yolu');
+      return wikiData;
+    };
+    const dir = path.join(tmp, 'gold-wiki');
+    const opts = { get: wikiGet, now: () => clock, live: { get: async () => G } };
+    const wikiHost = mkHost(opts, dir).handlers;
+    G.allPlayers[0].items = [item(3001), item(4203), item(4204), item(3200, 2), item(4205), item(4206), item(4207)];
+    G.allPlayers[5].items = [item(3003)];
+    await Promise.all([wikiHost['lol:gold'](), wikiHost['lol:gold']()]);
+    await new Promise((resolve) => setImmediate(resolve));
+    const wg = await wikiHost['lol:gold']();
+    ok(wg.wikiUsed && wg.ddragonUsed && wg.priceFallback && wikiCalls === 1 &&
+      wg.mine.gold === 6703 && wg.enemy.gold === 2800 && wg.lanes.find((l) => l.role === 'top')?.diff === 3903,
+      'altın: Wiki öncelikli, zincirleme fiyat ve 0 doğru; belirsiz fiyatlarda Data Dragon ve yerel yedekler');
+    const cachedWiki = await mkHost(opts, dir).handlers['lol:gold']();
+    ok(cachedWiki.wikiUsed && wikiCalls === 1, 'altın: yeniden açılışta taze Wiki fiyatı diskten gelir');
+    clock += 6 * 60 * 60 * 1000;
+    const expiredWiki = await wikiHost['lol:gold']();
+    ok(!expiredWiki.wikiUsed && expiredWiki.ddragonUsed && wikiCalls === 2, 'altın: süresi dolmuş Wiki fiyatı yerine yedek fiyat kullanılır ve kaynak yenilenir');
     const L2 = mkLive(); L2.allPlayers.forEach((p) => { p.items = [{ itemID: 1, price: 'x', count: -5 }, null, { price: 99999, count: 999 }]; }); liveJson = L2; const g2 = await HV['lol:gold'](); ok(g2.state === 'ok' && g2.mine.gold === 5 * 6000 * 20 && Number.isFinite(g2.diff), 'altın: bozuk/uç değerler sınırlanır, çökmez');
     liveJson = mkLive(); const g3 = await HV['lol:gold'](); ok(g3.state === 'ok' && g3.mine.gold === 0 && g3.partial === true, 'altın: eşya alanı yoksa 0 + partial');
     liveJson = mkLive(); liveJson.activePlayer = {}; ok((await HV['lol:gold']()).state === 'nogame', 'altın: kendi oyuncum belirsizse nogame');

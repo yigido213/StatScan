@@ -33,7 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- Blitz Tab altin farkina League Wiki esya fiyatlari - Codex: basladi (codex/blitz-wiki-gold).
+- HOTFIX: Blitz Tab altın farkı League Wiki tam alış fiyatlarını kullanıyor. Eksik fiyatlar Data Dragon ve istemciden tamamlanıyor — Codex: bitti (`codex/blitz-wiki-gold`, Blitz 0.9.1). Canlı Wiki kataloğunda 246 fiyat okundu. Takım ve koridor hesabı ile Tab yerleşimi test edildi.
 - Blitz Arkadaşlarım listesi League kapalıyken yerel kayıttan açılıyor ve seçilen profil Riot API’den yükleniyor — Codex: bitti (`codex/blitz-friends-cache`, Blitz 0.9.0, Kovan beta 0.1.27). Gerçek Windows istemcisinde liste baştan okunup test profilinde yeniden yüklendi.
 - HOTFIX: Kovan ana sayfa amblemi yuvarlatılmış metal altıgen ve K harfiyle yenilendi. İmleç amblemin açısını ve ışık yansımasını değiştirir — Codex: bitti (`codex/kovan-hero-mark`).
 - Discord Stable denetimi, WinGet Available sütunu ve takip edilen uygulamalar için Kovan içi güncelleme bildirimi — Codex: bitti (`codex/discord-update-notifications`, Kovan beta 0.1.26). Windows/Electron 33: Discord x64 `1.0.9269 → 1.0.9270`, Steam, Yenile, bağlantı hatası ve bildirim akışları doğrulandı. Ayrıntı: `docs/KOD-HARITASI.md`.
