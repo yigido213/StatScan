@@ -81,7 +81,8 @@ function start(ctx) {
     if (updating) return; updating = true;
     try {
       const r = await repoModule.check({ dataDir: app.getPath('userData') }); const s7 = r.commit.slice(0, 7);
-      if (r.status === 'staged') await offerRestart(s7, r.msg);
+      const restartPending = r.status === 'current' && r.tree !== ctx.repo?.tree;
+      if (r.status === 'staged' || (manual && restartPending)) await offerRestart(s7, r.msg);
       else if (manual) dialog.showMessageBox(win, { type: 'info', title: 'Güncelleme', message: r.status === 'blocked' ? 'Bu sürüm daha önce açılmadı, geri alındı.' : 'Kovan güncel.', detail: r.status === 'blocked' ? 'Depodaki son sürüm (' + s7 + ') açılışta sorun çıkardığı için kullanılmıyor; düzeltilmiş yeni bir sürüm gelince otomatik indirilir.' : 'GitHub deposundaki son sürüm: ' + s7 + (ctx.repo ? ' (çalışan: ' + ctx.repo.commit.slice(0, 7) + ')' : '') });
     } catch (e) { if (manual) dialog.showErrorBox('Güncelleme başarısız', String(e && e.message || e)); } finally { updating = false; }
   }
