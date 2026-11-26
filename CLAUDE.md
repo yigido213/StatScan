@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- Blitz Tab altin bindirmesinin dikey konumu - Codex: basladi (codex/blitz-tab-overlay-position).
 - HOTFIX: Blitz Tab altın farkı League Wiki tam alış fiyatlarını kullanıyor ve animasyonsuz gösteriliyor — Codex: bitti (`codex/blitz-wiki-gold`, Blitz 0.9.1). Eksik fiyatlar Data Dragon ve istemciden tamamlanıyor. Canlı Wiki kataloğunda 246 fiyat okundu. Eski fiyat sınırına takılan özel mod eşyaları eklendi ve eski önbellek yenileniyor. Data Dragon 16.23.1 kataloğundaki 863 kimliğin tamamı kapsanıyor. Saydam pencere maç boyunca hazır kalıyor, Tab yalnızca içeriği gösteriyor. Takım, koridor ve bindirme testleri geçti.
 - Blitz Arkadaşlarım listesi League kapalıyken yerel kayıttan açılıyor ve seçilen profil Riot API’den yükleniyor — Codex: bitti (`codex/blitz-friends-cache`, Blitz 0.9.0, Kovan beta 0.1.27). Gerçek Windows istemcisinde liste baştan okunup test profilinde yeniden yüklendi.
 - HOTFIX: Kovan ana sayfa amblemi yuvarlatılmış metal altıgen ve K harfiyle yenilendi. İmleç amblemin açısını ve ışık yansımasını değiştirir — Codex: bitti (`codex/kovan-hero-mark`).
