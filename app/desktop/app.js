@@ -255,7 +255,7 @@ function start(ctx) {
     const rowHeight = Math.round(Math.max(34, bounds.height * 0.056));
     return { width: GOLD_WIDTH, height: GOLD_HEADER_HEIGHT + rowHeight * 5,
       x: Math.round(bounds.x + (bounds.width - GOLD_WIDTH) / 2),
-      y: Math.round(bounds.y + Math.max(8, bounds.height * 0.25 - GOLD_HEADER_HEIGHT)) };
+      y: Math.round(bounds.y + Math.max(8, bounds.height * 0.265 - GOLD_HEADER_HEIGHT)) };
   }
   function updateGoldVisibility() {
     if (!gReady || !gWin || gWin.isDestroyed()) return;
