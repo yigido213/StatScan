@@ -688,6 +688,31 @@ const mkHost = (extra, dir) => wrapH(L.createLolHost(Object.assign({ dataDir: di
     rmode = '429'; const r5 = await hr.handlers['lol:sync']({ force: true }); const n2 = rcalls.length; const r6 = await hr.handlers['lol:sync']({ force: true }); ok(r5.riotError && r6.throttled && rcalls.length === n2, 'riot: 429 → geri çekilme, yeniden vurmaz');
     const cl = await hr.handlers['lol:riot:set']({ clear: true }); ok(cl.ok && !cl.hasKey && (await hr.handlers['lol:sync']({})).state === 'noclient', 'riot: anahtar silinince yine noclient');
     const hr2 = mkHost({ now: () => NOW, lcu: { find: async () => null }, riot: { get: rget } }, dd); ok((await hr2.handlers['lol:riot:get']()).hasKey === false && (await hr2.handlers['lol:riot:get']()).id === 'Ben#TR1', 'riot: ayar yeniden açılışta korunur (silinen anahtar yok)');
+    // The client friend identifier can differ from the Riot API identifier.
+    const dir = path.join(tmp, 'friends-cache'); let clientOn = true;
+    const lcuFriend = 'lcu-friend-' + 'x'.repeat(30);
+    const lcu = { find: async () => clientOn ? { port: 1, token: 'abcdefgh1234' } : null, get: async (_info, p) => {
+      if (p === '/lol-summoner/v1/current-summoner') return { gameName: 'Sahip', tagLine: 'TR1' };
+      if (p === '/lol-chat/v1/friends') return [{ gameName: 'Ben', gameTag: 'TR1', puuid: lcuFriend, availability: 'chat', statusMessage: 'test-presence' }];
+      return null;
+    } };
+    const first = mkHost({ now: () => NOW, lcu }, dir).handlers;
+    ok((await first['lol:friends']()).friends[0].status === 'chat', 'arkadaşlar: canlı durum istemciden gelir');
+    const saved = fs.readFileSync(path.join(dir, 'lolcounter.json'), 'utf8');
+    ok(!saved.includes('test-presence') && !saved.includes('"status"'), 'arkadaşlar: çevrimiçi durum ve durum mesajı kalıcı kayda girmez');
+    rmode = 'ok'; clientOn = false;
+    const reopened = mkHost({ lcu, riot: { get: rget } }, dir).handlers;
+    const snapshot = await reopened['lol:friends']();
+    ok(snapshot.cachedAt === NOW && snapshot.friends[0].tag === 'TR1' && snapshot.friends[0].status === 'offline', 'arkadaşlar: istemci kapalı ve Kovan yeniden açıldığında son liste yüklenir');
+    ok((await reopened['lol:player:search']({ query: 'Ben#TR1', riotOnly: true })).state === 'riot_key_required', 'arkadaş profili: eksik Riot API anahtarı açıklanır');
+    await reopened['lol:riot:set']({ key: KEY, id: 'Baska#TR1', region: 'tr1' });
+    ok((await reopened['lol:friends']()).state === 'noclient', 'arkadaşlar: farklı hesaba ait kayıt gösterilmez');
+    await reopened['lol:riot:set']({ key: KEY, id: 'Sahip#TR1', region: 'tr1' });
+    const friend = await reopened['lol:player:search']({ query: 'Ben#TR1', riotOnly: true });
+    ok(friend.state === 'ok' && friend.player.puuid !== lcuFriend && friend.player.level === 112, 'arkadaş profili: Riot Kimliğinden doğru API PUUID ve profil bulunur');
+    confirmAns = true;
+    await reopened['lol:data:clear']();
+    ok((await mkHost({ lcu }, dir).handlers['lol:friends']()).state === 'noclient', 'arkadaşlar: League verileri silinince yerel liste de silinir');
   }
   // ---- host entegrasyonu: kanallar kayıtlı, arayüz yol/URL gönderemez
   const host = createHost({ service: { closeAll() {} }, lol: { dataDir: path.join(tmp, 'entegre'), get } });

@@ -958,7 +958,7 @@ const LOLMOD = (() => {
   /* arkadaş listesi: yalnız ad/etiket/puuid/simge/durum, en çok 200 */
   function parseFriends(j) {
     const out = []; for (const f of Array.isArray(j) ? j : []) { if (!f || typeof f !== 'object') continue; const puuid = String(f.puuid || '').slice(0, 100); const name = String(f.gameName || f.name || '').slice(0, 30); if (!/^[A-Za-z0-9_-]{20,100}$/.test(puuid) || !name) continue;
-      out.push({ puuid, name, tag: String(f.gameTag || f.tagLine || '').slice(0, 10), icon: Math.round(Number(f.icon || f.profileIconId)) || 0, status: String(f.availability || f.statusMessage && 'chat' || 'offline').slice(0, 16) }); if (out.length >= 200) break; }
+      out.push({ puuid, name, tag: String(f.gameTag || f.tagLine || f.tag || '').slice(0, 10), icon: Math.round(Number(f.icon || f.profileIconId)) || 0, status: String(f.availability || f.statusMessage && 'chat' || 'offline').slice(0, 16) }); if (out.length >= 200) break; }
     const rk = (x) => (x.status === 'dnd' || x.status === 'chat' || x.status === 'away' || x.status === 'mobile' ? 0 : 1); return out.sort((a, b) => rk(a) - rk(b) || a.name.localeCompare(b.name));
   }
   function parseStats(json) {
@@ -1396,6 +1396,7 @@ const LOLMOD = (() => {
     if (muRankSet(state.murank) === null) state.murank = 'all'; if (!state.notes || typeof state.notes !== 'object' || Array.isArray(state.notes)) state.notes = {}; if (!state.ov || typeof state.ov !== 'object') state.ov = { on: false, secs: 20 }; state.ov = { on: state.ov.on === true, secs: clamp(Math.round(Number(state.ov.secs)) || 20, 8, 60) }; if (typeof state.muUrl !== 'string') state.muUrl = null; state.gold = { on: !(state.gold && state.gold.on === false) };
     if (!state.playerLp || typeof state.playerLp !== 'object' || Array.isArray(state.playerLp)) state.playerLp = {};
     const save = () => { if (!stateFile) return; try { fs.mkdirSync(path.dirname(stateFile), { recursive: true }); const t = stateFile + '.tmp'; fs.writeFileSync(t, JSON.stringify(state)); fs.renameSync(t, stateFile); } catch (e) { /* bellekte kalir */ } };
+    let friendsRead = 0;
 
     /* --- ag: yalniz Data Dragon (sabit sunucu) --- */
     const httpGet = deps.get || ((host, p, maxBody) => new Promise((resolve, reject) => {
@@ -1957,6 +1958,12 @@ const LOLMOD = (() => {
         try {
           const bad = await needRoster(); if (bad) return bad; req = req || {}; let who = null; let puuid = null;
           if (req.puuid != null) { puuid = String(req.puuid); if (!/^[A-Za-z0-9_-]{20,100}$/.test(puuid)) return errE('Oyuncu kimliği geçersiz.'); } else { who = parsePlayerQuery(req.query); if (!who) return { state: 'badquery' }; }
+          if (req.riotOnly === true) {
+            if (!riot.key) return { state: 'riot_key_required' };
+            if (Date.now() < riotBlock) return { state: 'riot_rate_limited' };
+            const notes = [];
+            return await riotProfile(who, puuid, req.view, notes) || { state: notes.length ? 'riot_unavailable' : 'notfound', notes };
+          }
           const info = await lcuFind(); if (!info) { const notes = []; return await riotProfile(who, puuid, req.view, notes) || { state: notes.length ? 'unavailable' : 'noclient', notes }; }
           const wait = lastLookup + 1000 - now(); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); lastLookup = now();
           const msg = (e) => String(e && e.message || e).slice(0, 80); const nf = (e) => /404|not.?found/i.test(String(e && e.message || e)); const notes = [];
@@ -2046,7 +2053,30 @@ const LOLMOD = (() => {
         try { req = req || {}; const ent = playerCache.get(String(req.puuid || '')); if (!ent || now() - ent.t > PLAYER_TTL) return { state: 'expired' }; return { state: 'ok', view: playerView(ent, req) }; } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:friends': async () => {
-        try { const info = await lcuFind(); if (!info) return { state: 'noclient' }; let j; try { j = await lcuRead(info, '/lol-chat/v1/friends'); } catch (e) { return { state: 'error', notes: [String(e && e.message || e).slice(0, 80)] }; } return { state: 'ok', friends: parseFriends(j) }; } catch (e) { return errE(String(e && e.message || e)); }
+        const read = ++friendsRead;
+        try {
+          const info = await lcuFind();
+          if (!info) {
+            const snapshot = state.friendsSnapshot;
+            if (!snapshot || !parsePlayerQuery(snapshot.owner) || !Number.isSafeInteger(snapshot.at) || snapshot.at <= 0 ||
+                snapshot.at > 8640000000000000 || !Array.isArray(snapshot.friends) ||
+                (riot.id && riot.id.toLowerCase() !== snapshot.owner.toLowerCase())) return { state: 'noclient' };
+            return { state: 'ok', cachedAt: snapshot.at, friends: parseFriends(snapshot.friends) };
+          }
+          const [rows, owner] = await Promise.all([
+            lcuRead(info, '/lol-chat/v1/friends'),
+            lcuRead(info, '/lol-summoner/v1/current-summoner').catch(() => null)
+          ]);
+          if (!Array.isArray(rows)) return { state: 'error' };
+          const friends = parseFriends(rows);
+          const id = parsePlayerQuery((owner?.gameName || '') + '#' + (owner?.tagLine || ''));
+          if (id && read === friendsRead && (!rows.length || friends.length)) {
+            state.friendsSnapshot = { owner: id.name + '#' + id.tag, at: now(),
+              friends: friends.map(({ puuid, name, tag, icon }) => ({ puuid, name, tag, icon })) };
+            save();
+          }
+          return { state: 'ok', friends };
+        } catch (e) { return { state: 'error' }; }
       },
       'lol:bans': async (_e, req) => {
         try {
@@ -2091,8 +2121,9 @@ const LOLMOD = (() => {
       },
       'lol:data:clear': async () => {
         try {
-          if (!deps.confirm) return errE('Onay penceresi yok; silinmedi.'); const n = Object.keys(state.matches).length; const okc = await deps.confirm({ title: 'League verileri silinsin mi?', message: 'Bu bilgisayarda saklanan ' + n + ' maç, LP geçmişi ve profil bilgisi silinecek. Şampiyon havuzun ve elle girdiğin maç kayıtların silinmez. Bu geri alınamaz.', ok: 'Sil', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
-          state.me = null; state.lp = []; state.playerLp = {}; playerCache.clear(); state.matches = {}; state.rank = null; save(); return { ok: true };
+          if (!deps.confirm) return errE('Onay penceresi yok; silinmedi.'); const n = Object.keys(state.matches).length; const okc = await deps.confirm({ title: 'League verileri silinsin mi?', message: 'Bu bilgisayarda saklanan ' + n + ' maç, LP geçmişi, profil bilgisi ve arkadaş listesi silinecek. Şampiyon havuzun ve elle girdiğin maç kayıtların silinmez. Bu geri alınamaz.', ok: 'Sil', cancel: 'Vazgeç' }); if (!okc) return { canceled: true };
+          state.me = null; state.lp = []; state.playerLp = {}; playerCache.clear(); state.matches = {}; state.rank = null;
+          ++friendsRead; delete state.friendsSnapshot; save(); return { ok: true };
         } catch (e) { return errE(String(e && e.message || e)); }
       },
       'lol:live': async (_e, localOnly) => {

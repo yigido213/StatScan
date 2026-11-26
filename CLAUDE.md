@@ -33,7 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
-- Blitz arkadas listesi cevrimdisi onbellegi - Codex: basladi (codex/blitz-friends-cache).
+- Blitz Arkadaşlarım listesi League kapalıyken yerel kayıttan açılıyor ve seçilen profil Riot API’den yükleniyor — Codex: bitti (`codex/blitz-friends-cache`, Blitz 0.9.0, Kovan beta 0.1.27). Gerçek Windows istemcisinde liste baştan okunup test profilinde yeniden yüklendi.
 - HOTFIX: Kovan ana sayfa amblemi yuvarlatılmış metal altıgen ve K harfiyle yenilendi. İmleç amblemin açısını ve ışık yansımasını değiştirir — Codex: bitti (`codex/kovan-hero-mark`).
 - Discord Stable denetimi, WinGet Available sütunu ve takip edilen uygulamalar için Kovan içi güncelleme bildirimi — Codex: bitti (`codex/discord-update-notifications`, Kovan beta 0.1.26). Windows/Electron 33: Discord x64 `1.0.9269 → 1.0.9270`, Steam, Yenile, bağlantı hatası ve bildirim akışları doğrulandı. Ayrıntı: `docs/KOD-HARITASI.md`.
 - 2026-11-18 — Codex: Gömülü XOR çıktıları otomatik çözülüp altta listeleniyor ve indirme onay istiyor. Bitti (Kovan beta 0.1.25). XOR motoru, tarayıcı ve depo güncelleme testleri geçti.

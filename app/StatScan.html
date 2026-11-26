@@ -7117,6 +7117,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       "Oyuncu ara": "Find player", "Ad#ETİKET (ör. Faker#KR1)": "Name#TAG (e.g. Faker#KR1)", "Riot Kimliği": "Riot ID", "Ara": "Search", "Arkadaşlarım": "My friends",
       "Riot Kimliğini Ad#ETİKET olarak yaz ya da arkadaş listenden seç. Veriler League istemcisinden okunur (yalnız okuma); sonuç yalnızca bellekte tutulur, diske kaydedilmez.": "Type the Riot ID as Name#TAG or pick from your friends list. Data is read from the League client (read-only); the result is kept in memory only and never saved to disk.",
       "Okunuyor…": "Reading…", "Arkadaş listesi okunamadı.": "Could not read the friends list.", "League istemcisi bulunamadı (açık mı?).": "League client not found (is it open?).", "Arkadaş listesi boş ya da okunamadı.": "The friends list is empty or unreadable.",
+      "League istemcisi açıkken Arkadaşlarım’a bir kez bas.": "Open the League client and click My friends once.",
+      "Son kaydedilen arkadaş listesi · {0}": "Last saved friends list · {0}",
+      "Arkadaş profillerini açmak için Blitz’te Riot API anahtarını ayarla.": "Set your Riot API key in Blitz to open friends' profiles.",
+      "Riot API istek sınırına ulaşıldı. Biraz sonra tekrar dene.": "The Riot API rate limit was reached. Try again shortly.",
+      "Arkadaş profili Riot API’den alınamadı.": "Could not load the friend's profile from the Riot API.",
+      "Riot API anahtarı geçersiz ya da süresi dolmuş.": "The Riot API key is invalid or expired.",
+      "Riot API istek sınırına takıldı; birazdan tekrar denenecek.": "The Riot API rate limit was reached. Try again shortly.",
       "Geçerli bir Riot Kimliği yaz (Ad#ETİKET).": "Enter a valid Riot ID (Name#TAG).", "Oyuncu bulunamadı": "Player not found", "Ad ve etiketi kontrol et (büyük/küçük harf fark etmez).": "Check the name and tag (case does not matter).", "Oyuncu okunamadı.": "Could not read the player.",
       "Sonuç süresi doldu; yeniden ara.": "The result expired; search again.", "{0} maç okundu, {1} tanesinin oyuncu ayrıntısı var.": "{0} matches read, {1} with full player details.", "önbellekten": "from cache", "LP farkı, bu profilin iki derece kaydı arasında tek maç doğrulanırsa görünür. Eski LP değerleri geriye dönük alınamaz.": "LP changes appear when a single match can be verified between two rank snapshots. Earlier LP cannot be recovered.", "Roller": "Roles",
       "Oyuncu ara: Ad#ETİKET (ör. Faker#KR1)": "Find player: Name#TAG (e.g. Faker#KR1)",
@@ -7785,7 +7792,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.26';
+  const KOVAN_VER = 'beta 0.1.27';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -9508,12 +9515,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       applyPlayer(r); drawHero(); if (st.tab === keep) load(keep);
     }
     function drawPlayer() { if (!$('#lg-pl-res', panes.player)) put(panes.player, h('div', { id: 'lg-pl-res', 'aria-live': 'polite' }, empty(KT('Oyuncu ara'), KT('Yukarıdaki kutuya Riot Kimliğini (Ad#ETİKET) yaz ya da “Arkadaşlarım”dan birini seç. Veriler League istemcisinden okunur (yalnız okuma); sonuç yalnızca bellekte tutulur, diske kaydedilmez.')))); if (st.pl.data) drawPlayerRes(); }
+    let friendsRequest = 0;
     async function plFriends() {
-      const box = $('#lg-pl-fr'); if (!box) return; if (box.firstChild && box.dataset.open === '1') { put(box); box.dataset.open = ''; return; } box.dataset.open = '1'; put(box, h('p', { class: 'lg-sub' }, KT('Okunuyor…'))); const r = await call(H.lolFriends);
+      const box = $('#lg-pl-fr'); if (!box) return;
+      const request = ++friendsRequest;
+      if (box.dataset.open === '1') { put(box); box.dataset.open = ''; return; }
+      box.dataset.open = '1'; put(box, h('p', { class: 'lg-sub', role: 'status' }, KT('Okunuyor…')));
+      const r = await call(H.lolFriends);
+      if (request !== friendsRequest) return;
       if (!r || r.error || r.state === 'error') { put(box, h('p', { class: 'lg-sub warn' }, r && r.state === 'error' ? KT('Arkadaş listesi okunamadı.') : failMsg(r))); return; }
-      if (r.state === 'noclient') { put(box, h('p', { class: 'lg-sub warn' }, KT('League istemcisi bulunamadı (açık mı?).'))); return; }
-      if (!r.friends.length) { put(box, h('p', { class: 'lg-sub' }, KT('Arkadaş listesi boş ya da okunamadı.'))); return; }
-      put(box, h('ul', { class: 'lg-frl', id: 'lg-frl' }, ...r.friends.slice(0, 60).map((f) => h('li', {}, h('button', { type: 'button', class: 'lg-fr' + (f.status === 'offline' ? '' : ' on'), 'data-puuid': f.puuid, onclick: () => { st.pl.q = f.name + (f.tag ? '#' + f.tag : ''); plInp.value = st.pl.q; box.dataset.open = ''; put(box); plSearch({ puuid: f.puuid }); } }, icon('profile', f.icon, f.name), h('b', {}, f.name), f.tag ? h('small', {}, '#' + f.tag) : null)))));
+      if (r.state === 'noclient') { put(box, h('p', { class: 'lg-sub warn' }, KT('League istemcisi açıkken Arkadaşlarım’a bir kez bas.'))); return; }
+      const cached = !!r.cachedAt;
+      const saved = cached ? h('p', { class: 'lg-sub', role: 'status' }, KT('Son kaydedilen arkadaş listesi · {0}',
+        new Date(r.cachedAt).toLocaleString(document.documentElement.lang, { dateStyle: 'short', timeStyle: 'short' }))) : null;
+      if (!r.friends.length) { put(box, saved, h('p', { class: 'lg-sub' }, KT('Arkadaş listesi boş ya da okunamadı.'))); return; }
+      put(box, saved, h('ul', { class: 'lg-frl', id: 'lg-frl' }, ...r.friends.map((f) => h('li', {}, h('button', { type: 'button',
+        class: 'lg-fr' + (!cached && f.status !== 'offline' ? ' on' : ''), 'data-puuid': f.puuid, onclick: () => {
+          if (st.pl.busy) return;
+          st.pl.q = f.name + (f.tag ? '#' + f.tag : ''); plInp.value = st.pl.q; box.dataset.open = ''; put(box);
+          const target = cached && f.tag ? { query: st.pl.q } : { puuid: f.puuid };
+          plSearch({ ...target, riotOnly: cached });
+        } }, icon('profile', f.icon, f.name), h('b', {}, f.name), f.tag ? h('small', {}, '#' + f.tag) : null)))));
     }
     async function plSearch(req, recordedPlayer) {
       if (st.pl.busy) return; if (st.tab !== 'player') setTab('player'); const res = $('#lg-pl-res', panes.player); if (!res) return; st.pl.busy = true; put(res, h('p', { class: 'lg-sub', role: 'status' }, KT('Okunuyor…')));
@@ -9521,6 +9543,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       const r = await call(H.lolPlayerSearch, req); st.pl.busy = false; if (st.tab !== 'player') return; const res2 = $('#lg-pl-res', panes.player); if (!res2) return;
       if (!(r && !r.error && r.state === 'ok')) dropOther(); /* sonuç yoksa başlık ve sekmeler kendi profile döner */
       if (!r || r.error) { put(res2, h('p', { class: 'lg-sub warn' }, failMsg(r))); return; }
+      if (r.state === 'riot_key_required') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Arkadaş profillerini açmak için Blitz’te Riot API anahtarını ayarla.'))); return; }
+      if (r.state === 'riot_rate_limited') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Riot API istek sınırına ulaşıldı. Biraz sonra tekrar dene.'))); return; }
+      if (r.state === 'riot_unavailable') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Arkadaş profili Riot API’den alınamadı.')), h('p', { class: 'lg-sub' }, r.notes.map((note) => KT(note)).join(' · '))); return; }
       if (r.state === 'badquery') { put(res2, h('p', { class: 'lg-sub warn' }, KT('Geçerli bir Riot Kimliği yaz (Ad#ETİKET).'))); return; }
       if (r.state === 'noclient' || (r.state !== 'ok' && recordedPlayer && (r.state === 'unavailable' || r.state === 'notfound'))) {
         if (recordedPlayer) {
@@ -10152,7 +10177,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
       { id: 'netmon', cat: 'windows', name: 'Ağ İzleyici', icon: 'radar', beta: true, ver: '0.0.1', desc: 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'ramanaliz', cat: 'windows', name: 'RAM Analizi', icon: 'chip', beta: true, ver: '0.0.1', desc: 'Windows bellek dökümünü (.raw .mem .dmp .vmem .lime) kendi Volatility 3 kurulumunla çözer; gizli süreç, enjekte kod, silinmiş modül, taklit sistem süreci ve şüpheli komut/bağlantıları sezgisel olarak işaretler ve 0-100 şüphe puanı verir. “Temiz” hükmü vermez. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
-      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.8.5', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
+      { id: 'lolcounter', cat: 'oyun', name: 'Blitz', icon: 'swords', beta: true, ver: '0.9.0', desc: 'League of Legends’ta rakibine karşı ne seçeceğini gösterir (Blitz tarzı). Şampiyon verisini arka planda çeker, tarayıcı açmaz; şampiyon havuzuna ve kendi maç kaydına göre kişiselleşir. League istemcisinden şampiyon seçimini yalnızca okur; oyuna dokunmaz. Öneriler tahmindir, istatistik değildir. Yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'notes', name: 'Notlarım', icon: 'note', owner: true, desc: 'Aklına gelen fikirleri yaz; otomatik kaydedilir, yalnızca bu bilgisayarda durur. Yalnızca sahip modunda görünür.', actions: [{ label: 'Yeni not', run: () => { go('notes'); setTimeout(() => KovanAccess.newNote && KovanAccess.newNote(), 60); } }] },
       { id: 'admin', name: 'Yönetim', icon: 'key', owner: true, desc: 'Kurulum kimliği ve imzalı engelli listesi. Yalnızca sahip modunda görünür.', actions: [] }];
     const ids = ['home', ...CATS.map((c) => 'c-' + c[0]), ...MODULES.map((m) => m.id)]; const nav = $('#side-nav'); const ownerBox = $('#side-owner'); const grid = $('#toolgrid'); let current = null; const linkOf = {};

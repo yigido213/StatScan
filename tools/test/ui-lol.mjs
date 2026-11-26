@@ -43,7 +43,7 @@ async function page(vp, hostObj, en = false, rm = 'reduce', autoDefault = false)
   if (hostObj) { await pg.exposeFunction('__h', async (ch, ...a) => { const f = hostObj.handlers[ch]; return f ? JSON.parse(JSON.stringify(await f(null, ...a))) : { error: 'nochan' }; });
     await pg.addInitScript((map) => { const c = (ch, ...a) => window.__h(ch, ...a); const o = { desktop: true };
       /* preload.js ile ayni arguman bicimi (kopru burada elle kuruldugu icin) */
-      const shape = { lolSync: (d) => [{ deep: d === true }], lolBans: (r, l) => [{ role: String(r), limit: Number(l) || undefined }], lolComp: (a, e) => [{ allies: Array.isArray(a) ? a.slice(0, 5).map(String) : [], enemies: Array.isArray(e) ? e.slice(0, 5).map(String) : [] }], lolIcon: (k, i) => [{ kind: String(k), id: String(i) }], lolItems: (o) => [{ me: String((o && o.me) || ''), role: o && o.role ? String(o.role) : undefined, enemies: o && Array.isArray(o.enemies) ? o.enemies.slice(0, 5).map(String) : [] }], lolPlayerSearch: (o) => [{ query: o && o.query != null ? String(o.query) : undefined, puuid: o && o.puuid != null ? String(o.puuid) : undefined, fresh: !!(o && o.fresh === true), view: { queue: 'all' } }], lolPlayerView: (o) => [{ puuid: String((o && o.puuid) || ''), queue: String((o && o.queue) || 'all'), role: o && o.role ? String(o.role) : undefined, offset: Number(o && o.offset) || 0, limit: Number(o && o.limit) || 20 }], lolPlayerLp: (o) => [{ puuid: String((o && o.puuid) || ''), queue: o && o.queue === 'flex' ? 'flex' : 'solo' }], lolMuRank: (r) => [String(r)], lolMuUrlSet: (u) => [u === null ? null : String(u)], lolMu: (o) => [{ me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), rank: o && o.rank ? String(o.rank) : undefined }], lolNoteSet: (o) => [{ me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), text: String((o && o.text) || '') }], lolOvSet: (o) => [{ on: o && typeof o.on === 'boolean' ? o.on : undefined, secs: o && o.secs != null ? Number(o.secs) : undefined }], lolLp: (q) => [q === 'flex' ? 'flex' : 'solo'], lolMatches: (r) => [{ queue: String((r && r.queue) || 'all'), offset: Number(r && r.offset) || 0, limit: Number(r && r.limit) || 20 }], lolStats: (r) => [{ queue: String((r && r.queue) || 'all'), role: r && r.role ? String(r.role) : undefined }] };
+      const shape = { lolSync: (d) => [{ deep: d === true }], lolBans: (r, l) => [{ role: String(r), limit: Number(l) || undefined }], lolComp: (a, e) => [{ allies: Array.isArray(a) ? a.slice(0, 5).map(String) : [], enemies: Array.isArray(e) ? e.slice(0, 5).map(String) : [] }], lolIcon: (k, i) => [{ kind: String(k), id: String(i) }], lolItems: (o) => [{ me: String((o && o.me) || ''), role: o && o.role ? String(o.role) : undefined, enemies: o && Array.isArray(o.enemies) ? o.enemies.slice(0, 5).map(String) : [] }], lolPlayerSearch: (o) => [{ query: o && o.query != null ? String(o.query) : undefined, puuid: o && o.puuid != null ? String(o.puuid) : undefined, fresh: !!(o && o.fresh === true), riotOnly: o?.riotOnly === true, view: { queue: 'all' } }], lolPlayerView: (o) => [{ puuid: String((o && o.puuid) || ''), queue: String((o && o.queue) || 'all'), role: o && o.role ? String(o.role) : undefined, offset: Number(o && o.offset) || 0, limit: Number(o && o.limit) || 20 }], lolPlayerLp: (o) => [{ puuid: String((o && o.puuid) || ''), queue: o && o.queue === 'flex' ? 'flex' : 'solo' }], lolMuRank: (r) => [String(r)], lolMuUrlSet: (u) => [u === null ? null : String(u)], lolMu: (o) => [{ me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), rank: o && o.rank ? String(o.rank) : undefined }], lolNoteSet: (o) => [{ me: String((o && o.me) || ''), enemy: String((o && o.enemy) || ''), role: String((o && o.role) || ''), text: String((o && o.text) || '') }], lolOvSet: (o) => [{ on: o && typeof o.on === 'boolean' ? o.on : undefined, secs: o && o.secs != null ? Number(o.secs) : undefined }], lolLp: (q) => [q === 'flex' ? 'flex' : 'solo'], lolMatches: (r) => [{ queue: String((r && r.queue) || 'all'), offset: Number(r && r.offset) || 0, limit: Number(r && r.limit) || 20 }], lolStats: (r) => [{ queue: String((r && r.queue) || 'all'), role: r && r.role ? String(r.role) : undefined }] };
       for (const k in map) o[k] = (...a) => c(map[k], ...(shape[k] ? shape[k](...a) : a)); window.statscanHost = Object.freeze(o); }, MAP); }
   return pg;
 }
@@ -401,6 +401,27 @@ ok(/All champions/.test(await pe.evaluate(() => document.querySelector('label:ha
 for (const tb of ['overview', 'champs', 'lp', 'partners', 'counter']) { await pe.click('#lg-tab-' + tb); await pe.waitForTimeout(350); const left = await pe.evaluate((id) => { const w = document.createTreeWalker(document.querySelector('#lg-pane-' + id), NodeFilter.SHOW_TEXT); const out = []; let n; while ((n = w.nextNode())) { const s = n.textContent.trim(); if (s && /[ğüşıöçĞÜŞİÖÇ]/.test(s) && !/Yiğit|Kai|Nunu|Willump|Wukong|Zed|Ahri|Jinx/.test(s) && !n.parentElement.closest('#lc-dl,option,code,pre')) out.push(s.slice(0, 60)); } return out; }, tb); ok(left.length === 0, 'English: ' + tb + ' sekmesinde çevrilmemiş Türkçe metin yok ' + left.slice(0, 4).join(' | ')); }
 ok(/Blitz/.test(await txt(pe, '#app-c-oyun')), 'English: Oyun kategori sayfasında “Blitz”'); await pe.context().close();
 
+// ---- kaydedilmiş arkadaş listesi (istemci kapalı)
+{
+  const dir = path.join(tmp, 'friends-offline');
+  const friend = 'LCU_friend_abcdefghijklmnopqrstuvwxyz01234';
+  rich = (p) => p === '/lol-summoner/v1/current-summoner' ? { gameName: 'Ben', tagLine: 'TR1' } :
+    p === '/lol-chat/v1/friends' ? [{ puuid: friend, gameName: 'Arkadas', gameTag: 'TR1', availability: 'chat' }] : null;
+  await mkHost(dir, true).handlers['lol:friends']();
+  rich = null;
+  const h = mkHost(dir);
+  const search = h.handlers['lol:player:search']; let request;
+  h.handlers['lol:player:search'] = (event, params) => { request = params; return search(event, params); };
+  const pf = await page(null, h); await pf.goto(URL + '#/lolcounter'); await ready(pf);
+  await pf.click('#lg-pl-friends'); await pf.locator('#lg-frl .lg-fr').waitFor();
+  ok(/Son kaydedilen arkadaş listesi/.test(await txt(pf, '#lg-pl-fr')) && await pf.locator('#lg-frl .lg-fr.on').count() === 0,
+    'arkadaşlar: kayıt zamanı gösterilir ve eski çevrimiçi durumu kullanılmaz');
+  await pf.click('#lg-frl .lg-fr');
+  await pf.getByText('Arkadaş profillerini açmak için Blitz’te Riot API anahtarını ayarla.').waitFor();
+  ok(request?.riotOnly === true && request.query === 'Arkadas#TR1' && !request.puuid,
+    'arkadaşlar: kayıtlı arkadaş seçilince Riot Kimliğiyle Riot API istenir');
+  await pf.context().close();
+}
 // ---- cevrimdisi (onbellek)
 offline = true; const ho = mkHost(path.join(tmp, 'data')); const po = await page(null, ho); await po.goto(URL + '#/lolcounter'); await po.waitForFunction(() => /Çevrimdışı/.test((document.querySelector('#lc-live') || {}).textContent || ''), null, { timeout: 15000 }); ok(true, 'çevrimdışı: önbellekteki veriyle açılır');
 
