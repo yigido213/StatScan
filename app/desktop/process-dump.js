@@ -18,6 +18,12 @@ async function list(image) {
   return JSON.parse(await worker('list', { KOVAN_DUMP_IMAGE: image }));
 }
 
+async function regions(image, row) {
+  return JSON.parse(await worker('regions', {
+    KOVAN_DUMP_IMAGE: image, KOVAN_DUMP_PID: String(row.id), KOVAN_DUMP_STARTED: row.started
+  }));
+}
+
 async function capture(image, row, destination) {
   if (path.extname(destination).toLowerCase() !== '.dmp') throw new Error('Dosya uzantısı .dmp olmalı.');
   const temporary = path.join(path.dirname(destination), '.kovan-' + randomUUID() + '.tmp');
@@ -61,9 +67,17 @@ function register({ ipcMain, dialog, window, pageURL }) {
     selection = { image, rows, token: randomUUID() };
     return { rows, token: selection.token };
   });
-  handle('dump:save', async (win, token, id) => {
+  function selectedProcess(token, id) {
     const row = selection?.rows.find(item => item.id === id);
     if (!row || token !== selection.token) throw new Error('Süreç listesini yenile.');
+    return row;
+  }
+  handle('dump:regions', async (_win, token, id) => {
+    const row = selectedProcess(token, id);
+    return regions(selection.image, row);
+  });
+  handle('dump:save', async (win, token, id) => {
+    const row = selectedProcess(token, id);
     const { image } = selection;
     const save = await dialog.showSaveDialog(win, {
       title: 'Tanılama dökümünü kaydet', defaultPath: path.basename(image, path.extname(image)) + '-' + id + '.dmp',
@@ -73,4 +87,4 @@ function register({ ipcMain, dialog, window, pageURL }) {
     return capture(image, row, save.filePath);
   });
 }
-module.exports = { register, list, capture };
+module.exports = { register, list, capture, regions };

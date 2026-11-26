@@ -3,6 +3,7 @@
 Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavraması içindir. **Önce `CLAUDE.md` (kurallar + çalışma günlüğü), sonra bu dosya.** Günlük "ne zaman neyi yaptık" der; bu dosya "kod nerede, nasıl çalışır" der. Bir şeyi değiştirince bu dosyayı da güncelle (ilgili satırı).
 
 ## Genel yapı
+- EXE Dumper’daki “Bellekte kod ara” işlemi seçili PID için `VirtualQueryEx` ile `MEM_PRIVATE` ve `MEM_MAPPED` çalıştırılabilir bölgelerin özelliklerini listeler. Sorgu anındaki bellek haritasını gösterir.
 - Güvenlik → EXE Dumper, `StatScan.html` içinde `packAudit` ile diskteki EXE’yi inceler. `desktop/process-dump.js` kaydetme diyaloğunu ve MDMP doğrulamasını yönetir. `desktop/process-dump.ps1` geçerli oturumda tam yolu eşleşen örnekleri listeler, seçilen işlemin yolunu ve başlangıç zamanını aynı tanıtıcıyla doğrular ve tanılama dökümü alır.
 - **Uygulama**: Windows Electron uygulaması "Kovan" (StatScan'in yeni adı). Çoğu araç yalnız masaüstünde çalışır; arayüz tarayıcıda da açılır ama host gerektiren araçlar orada kapalıdır.
 - **Tek dosya arayüz**: `app/StatScan.html` (~1,4 MB). HTML + CSS + tüm arayüz JS'i. Elle baştan yazma; hedefli düzenle. Motor parçaları `src/engine/NN-*.js` içinde yazılır, `node tools/inject.mjs` ile HTML'e yerleştirilir.

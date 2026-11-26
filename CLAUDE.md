@@ -33,6 +33,7 @@ Bu proje 3 ayrı Claude hesabıyla aynı anda geliştirilir. Hafızalar ortak DE
 - Testleri çalıştır (`tools/test/`), günlüğe "bitti" yaz, kısa commit mesajı ver.
 
 ## Çalışma günlüğü (en yeni üstte)
+- EXE Dumper seçili işlemin çalıştırılabilir özel ve eşlenmiş bellek bölgelerini adres, boyut, tür ve korumayla gösterir (beta 0.1.29).
 - HOTFIX: İndirilmiş Kovan sürümü henüz çalışmıyorsa elle güncelleme denetimi yeniden başlatmayı tekrar önerir.
 - EXE Dumper, Güvenlik kategorisine eklendi (beta 0.1.28). Diskteki PE paketleme göstergeleri ve seçili çalışan örneğin Windows minidump çıktısı. Electron dosya seçimi ve gerçek Windows dökümü test edildi.
 - HOTFIX: Blitz Tab altın bindirmesi yaklaşık bir rozet yüksekliği kadar aşağı alındı (1080p’de 16 px) — Codex: bitti (`codex/blitz-tab-overlay-position`, Blitz 0.9.2).

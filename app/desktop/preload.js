@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('statscanHost', Object.freeze({
   desktop: true,
   dumpProcesses: file => call('dump:list', require('electron').webUtils.getPathForFile(file)),
   dumpSave: (token, id) => call('dump:save', token, id),
+  dumpRegions: (token, id) => call('dump:regions', token, id),
   /* Arayuz olcegi (Ayarlar): yalniz sayi alir; 0.4-3 disinda reddeder */
   uiZoom: (f) => { const n = Number(f); if (!(n >= 0.4 && n <= 3)) return false; try { webFrame.setZoomFactor(n); return true; } catch (e) { return false; } },
   status: () => call('dyn:status'),

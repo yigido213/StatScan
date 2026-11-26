@@ -7673,6 +7673,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Çalışan örnek': 'Running instance',
       'Süreçleri yenile': 'Refresh processes',
       'Dökümü kaydet': 'Save dump',
+      'Bellekte kod ara': 'Find code in memory',
+      'Bellek bölgeleri taranıyor…': 'Scanning memory regions…',
+      'Çalıştırılabilir özel veya eşlenmiş bölge bulunamadı.': 'No executable private or mapped regions found.',
+      'Bellekteki çalıştırılabilir bölgeler': 'Executable memory regions',
+      'Adres': 'Address', 'Koruma': 'Protection',
+      'İlk 500 bölge gösteriliyor.': 'Showing the first 500 regions.',
+      'Bu bölgeler açılmış kod veya JIT çıktısı içerebilir. Sütunlar bellek sayfalarının özelliklerini gösterir.': 'These regions may contain unpacked or JIT-generated code. The columns show memory page attributes.',
       'Çalışan örnekler aranıyor…': 'Finding running instances…',
       'Kaydedilecek örneği seç.': 'Select an instance to capture.',
       'Bu yolda erişilebilir çalışan örnek bulunamadı.': 'No accessible running instance at this path.',
@@ -7808,7 +7815,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.28';
+  const KOVAN_VER = 'beta 0.1.29';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -8184,15 +8191,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
           const select = h('select', { 'aria-label': KT('Çalışan örnek') });
           const refresh = h('button', { type: 'button', class: 'cv-btn' }, KT('Süreçleri yenile'));
           const save = h('button', { type: 'button', class: 'cv-btn cv-primary' }, KT('Dökümü kaydet'));
+          const inspect = h('button', { type: 'button', class: 'cv-btn' }, KT('Bellekte kod ara'));
+          const memory = h('div', { class: 'sc-body', hidden: true });
           const status = h('p', { role: 'status', class: 'cv-live', style: 'overflow-wrap:anywhere' });
-          box.append(h('h2', {}, KT('Çalışan örnek')), h('div', { class: 'cv-actions' }, select, refresh, save), status);
+          box.append(h('h2', {}, KT('Çalışan örnek')), h('div', { class: 'cv-actions' }, select, refresh, inspect, save), status, memory);
           let token;
           function busy(on) {
             select.disabled = on || !select.options.length;
             save.disabled = on || !select.value;
+            inspect.disabled = on || !select.value || !bridge.dumpRegions;
             refresh.disabled = on;
           }
+          function clearMemory() { memory.hidden = true; memory.replaceChildren(); }
           async function reload() {
+            clearMemory();
             select.replaceChildren();
             busy(true);
             status.textContent = KT('Çalışan örnekler aranıyor…');
@@ -8205,6 +8217,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
             finally { busy(false); }
           }
           refresh.onclick = reload;
+          select.onchange = () => { clearMemory(); status.textContent = KT('Kaydedilecek örneği seç.'); };
+          inspect.onclick = async () => {
+            clearMemory();
+            busy(true);
+            status.textContent = KT('Bellek bölgeleri taranıyor…');
+            try {
+              const rows = await bridge.dumpRegions(token, Number(select.value));
+              if (!rows.length) { status.textContent = KT('Çalıştırılabilir özel veya eşlenmiş bölge bulunamadı.'); return; }
+              const headers = ['Adres', 'Boyut', 'Tür', 'Koruma'];
+              const body = h('tbody', {}, rows.map(row => h('tr', {},
+                [row.address, fmt(row.size), row.type, row.protection].map(value => h('td', {}, value)))));
+              memory.append(h('h2', {}, KT('Bellekteki çalıştırılabilir bölgeler')),
+                h('p', {}, KT('Bu bölgeler açılmış kod veya JIT çıktısı içerebilir. Sütunlar bellek sayfalarının özelliklerini gösterir.')),
+                h('div', { class: 'cmpwrap' }, h('table', { class: 'mtable' }, h('thead', {},
+                  h('tr', {}, headers.map(label => h('th', { scope: 'col' }, KT(label))))), body)));
+              memory.hidden = false;
+              status.textContent = rows.length === 500 ? KT('İlk 500 bölge gösteriliyor.') : '';
+            } catch (error) { status.textContent = error.message; }
+            finally { busy(false); }
+          };
           save.onclick = async () => {
             busy(true);
             status.textContent = KT('Döküm hazırlanıyor…');
