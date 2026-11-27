@@ -461,11 +461,6 @@ button.primary { font-weight: 700; box-shadow: 0 10px 26px -14px var(--accent); 
 .ledger { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
 .ledger li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 2px 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed var(--line); }
 .ledger .ln { grid-column: 2; color: var(--muted); font-size: 12.5px; }
-.scan-tree { margin: 10px 0; }
-.scan-tree-list { margin: 0; padding-inline-start: 16px; list-style: none; }
-.scan-tree-list li { margin-block: 5px; overflow-wrap: anywhere; }
-.scan-tree-list .scan-tree-list { border-inline-start: 1px solid var(--line); }
-.scan-tree .ledger .ln { display: flex; gap: 6px; flex-wrap: wrap; }
 .lst { font: 500 11px var(--f-mono); padding: 2px 8px; border-radius: 999px; text-align: center; border: 1px solid currentColor; }
 .lst.ok { color: var(--s0, var(--s0)); } .lst.part { color: var(--s2, var(--honey)); } .lst.sk, .lst.na { color: var(--muted); } .lst.uns { color: var(--s3, var(--s3)); }
 .sblk h4 { margin: 12px 0 4px; font: 500 12px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
@@ -2672,7 +2667,7 @@ async function analyzePE(u8, name, st, depth) {
   const cfg = st.cfg; const F = []; const children = []; let p = null;
   try { p = parsePE(u8); } catch (e) { p = null; }
   if (!p) return { findings: [mk('pe_bad', 'low', 4, 'Bozuk PE başlığı', 'MZ imzası var ama PE yapısı tutarsız. Bu, bozuk veya elle düzenlenmiş bir dosya olabilir.', 'Dosyayı bir PE editörde incele.', [], 'pe')], info: { kind: 'PE?' }, children };
-  const info = { kind: p.clr ? '.NET assembly (' + (p.is64 ? 'x64' : 'x86') + ')' : (p.dll ? 'PE DLL' : 'PE EXE') + ' (' + (p.is64 ? 'x64' : p.machine === 0x14c ? 'x86' : '0x' + p.machine.toString(16)) + ')', sections: p.sections.map((s) => ({ n: s.name, size: s.rsize, off: s.rptr, ent: +s.ent.toFixed(2), rwx: ((s.ch & 0x20000000) ? 'X' : '-') + ((s.ch & 0x80000000) ? 'W' : '-') })), importCount: [...p.imports.values()].reduce((a, v) => a + v.length, 0), dlls: [...p.imports.keys()].slice(0, 30), exports: p.exports.slice(0, 20), signed: p.signed, timestamp: p.ts ? new Date(p.ts * 1000).toISOString().slice(0, 10) : '0', overlay: p.overlay, subsystem: p.subsystem === 2 ? 'GUI' : p.subsystem === 3 ? 'Konsol' : p.subsystem };
+  const info = { kind: p.clr ? '.NET assembly (' + (p.is64 ? 'x64' : 'x86') + ')' : (p.dll ? 'PE DLL' : 'PE EXE') + ' (' + (p.is64 ? 'x64' : p.machine === 0x14c ? 'x86' : '0x' + p.machine.toString(16)) + ')', sections: p.sections.map((s) => ({ n: s.name, size: s.rsize, ent: +s.ent.toFixed(2), rwx: ((s.ch & 0x20000000) ? 'X' : '-') + ((s.ch & 0x80000000) ? 'W' : '-') })), importCount: [...p.imports.values()].reduce((a, v) => a + v.length, 0), dlls: [...p.imports.keys()].slice(0, 30), exports: p.exports.slice(0, 20), signed: p.signed, timestamp: p.ts ? new Date(p.ts * 1000).toISOString().slice(0, 10) : '0', overlay: p.overlay, subsystem: p.subsystem === 2 ? 'GUI' : p.subsystem === 3 ? 'Konsol' : p.subsystem };
   const apis = new Set(); for (const fns of p.imports.values()) for (const f of fns) apis.add(f.toLowerCase());
   const strs = extractStrings(u8, 6, cfg.strCap); const text = strs.join('\n'); await pace(st, 'PE metin dizileri', null);
   const hits = newHits(); runRules(text, hits, '', '', st);
@@ -2790,10 +2785,6 @@ async function scanBuffer(u8, name, st, depth) {
       let entries = readZip(u8); const hasClass = entries.some((e) => /\.class$/.test(e.name));
       res.type = ext === 'jar' || hasClass ? 'JAR / Java arşivi' : ext === 'apk' ? 'APK' : OFFICE_RE.test(ext) ? 'Ofis belgesi (OOXML)' : 'ZIP arşivi'; res.info.kind = res.type;
       const total = entries.reduce((a, e) => a + (e.size || 0), 0);
-      if (cfg.id === 'deep') {
-        res.archiveIndex = { total: entries.length, entries: entries.slice(0, cfg.maxEntries)
-          .map(e => ({ name: e.name, size: e.size, dir: e.dir, encrypted: e.enc, offset: e.off })) };
-      }
       if (total > 4e9 || (entries.length > 20 && total / Math.max(1, u8.length) > 900 && total > 2e8)) { F.push(mk('zip_bomb', 'high', 30, 'Zip bombası olasılığı', 'Sıkıştırma oranı olağandışı yüksek (' + Math.round(total / Math.max(1, u8.length)) + '×). Güvenlik için içerik açılmadı.', 'Arşivi açma.', [], 'arch')); limitHit(st, 'bomb', 'Aşırı sıkıştırma oranı nedeniyle arşiv içeriği açılmadı.'); }
       else if (hasClass) { const r = await analyzeJar(u8, entries, st, depth, name); F = F.concat(r.findings); Object.assign(res.info, r.info); res.children = res.children.concat(r.children); }
       else {
@@ -2811,9 +2802,7 @@ async function scanBuffer(u8, name, st, depth) {
           if (EXE_EXT.has(x) || x === 'zip' || x === 'jar' || x === 'rar' || x === 'exe' || TEXT_EXT.has(x) || officeObj) {
             if (depth >= cfg.depth) { if (EXE_EXT.has(x) || x === 'zip' || x === 'jar') limitHit(st, 'depth', 'İç içe arşiv derinliği sınırına ulaşıldı; daha derindeki dosyalar taranmadı (' + baseName(e.name) + ').'); continue; }
             let d = null; try { d = await readBudget(u8, e, st); } catch (er) {} if (!d) continue;
-            const kr = await scanBuffer(d, name + ' › ' + e.name, st, depth + 1);
-            if (cfg.id === 'deep') kids.push({ ...kr, archiveMember: idx - 1 });
-            else if (kr.score > 0 || EXE_EXT.has(x) || officeObj) kids.push(kr);
+            const kr = await scanBuffer(d, name + ' › ' + e.name, st, depth + 1); if (kr.score > 0 || EXE_EXT.has(x) || officeObj) kids.push(kr);
           } else if (!cfg.parse) { skip(st, 'ext');
           } else if (cfg.parse) {
             if (!(e.size >= 2 && e.size < 8e6)) skip(st, 'ext');
@@ -7771,17 +7760,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       'Bellek bölgeleri taranıyor…': 'Scanning memory regions…',
       'Çalıştırılabilir özel veya eşlenmiş bölge bulunamadı.': 'No executable private or mapped regions found.',
       'Bellekteki çalıştırılabilir bölgeler': 'Executable memory regions',
-      'Dosya ağacı ve kanıt konumu': 'File tree and evidence locations',
-      'Dosya ofseti': 'File offset',
-      'Bu konuma bağlı bulgu yok.': 'No findings linked to this location.',
-      'Bulguları göster': 'Show findings',
-      'ZIP girdi başlığı': 'ZIP entry header',
-      'Arşiv girdisi': 'Archive entry',
-      'Şifreli': 'Encrypted',
-      'Klasör': 'Folder',
-      'Bölüm başlangıcı': 'Section start',
-      'Listelenen arşiv girdileri': 'Archive entries listed',
-      'Daha fazla göster': 'Show more',
       'Adres': 'Address', 'Koruma': 'Protection',
       'İlk 500 bölge gösteriliyor.': 'Showing the first 500 regions.',
       'Bu bölgeler açılmış kod veya JIT çıktısı içerebilir. Sütunlar bellek sayfalarının özelliklerini gösterir.': 'These regions may contain unpacked or JIT-generated code. The columns show memory page attributes.',
@@ -7920,7 +7898,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.30';
+  const KOVAN_VER = 'beta 0.1.29';
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -11158,86 +11136,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       h('summary', { class: 'nochev' }, h('span', { class: 'pill b' + band(k.score) }, k.score), h('span', { class: 'kn' }, k.name), h('span', { class: 'fw' }, k.type + ' · ' + fmt(k.size) + (k.deduped ? ' · tekrar' : ''))),
       h('div', { class: 'in' }, factsOf(k), (k.info && k.info.classView ? makeViewer(k).el : null), findingsBlock(k).nodes, iocBlock(k.info), k.children && k.children.length ? kidsBlock(k.children, true) : null));
   }
-  function scanTree(root, inspector) {
-    const detail = h('div', { class: 'dbody', tabindex: '-1' });
-    const branch = h('div', { class: 'dbody' });
-    const archiveRules = new Set(['zip_slip', 'zip_dupe', 'zip_enc', 'arch_exec', 'pk_hidden_pe']);
-    const sectionRules = new Set(['pk_packer', 'pe_rwx', 'pe_ep_last', 'pe_virtual', 'pe_highent']);
-    const validOffset = (offset, size) => Number.isSafeInteger(offset) && offset >= 0 && offset < size;
-    function location(file, offset, length, label) {
-      const text = label + ' · 0x' + offset.toString(16);
-      return file === root && inspector
-        ? h('button', { type: 'button', onclick: () => inspector.go(offset, length) }, text)
-        : h('span', null, text);
-    }
-    function show(name, file, findings, position) {
-      detail.replaceChildren(h('h3', { class: 'fname' }, name), position,
-        findings.length ? h('ul', { class: 'ledger' }, findings.map(f => h('li', null,
-          h('span', null, SEV[f.sev] || f.sev), h('b', null, f.title),
-          h('span', { class: 'ln' }, (f.loc || []).filter(x => validOffset(x.o, file.size))
-            .map(x => location(file, x.o, x.n, x.l || KT('Dosya ofseti')))))))
-          : h('p', { class: 'fine' }, KT('Bu konuma bağlı bulgu yok.')));
-      detail.focus();
-    }
-    function node(file, name, position, parents = [], linked = []) {
-      const path = parents.concat(name);
-      const label = path.join(' › ');
-      const findings = file.findings || [];
-      const inspect = h('button', { type: 'button', onclick: () => show(label, file, findings.concat(linked), position) }, KT('Bulguları göster'));
-      const children = file.children || [];
-      const indexed = new Map(children.filter(c => Number.isInteger(c.archiveMember)).map(c => [c.archiveMember, c]));
-      const entries = file.archiveIndex?.entries || [];
-      const sections = (file.info?.sections || []).filter(s => Number.isSafeInteger(s.off));
-      const extra = children.filter(c => !Number.isInteger(c.archiveMember) || !entries[c.archiveMember]);
-      const items = entries.length + sections.length + extra.length;
-      const title = name + ' · ' + fmt(file.size);
-      if (!items) return h('li', null, h('span', { class: 'fname' }, title), ' ', inspect);
-      const list = h('ul', { class: 'scan-tree-list' });
-      const more = h('button', { type: 'button' }, KT('Daha fazla göster'));
-      let shown = 0;
-      function append() {
-        const end = Math.min(items, shown + 80);
-        for (; shown < end; shown++) {
-          const entry = entries[shown];
-          const section = sections[shown - entries.length];
-          if (entry) {
-            const child = indexed.get(shown);
-            const matches = findings.filter(f => archiveRules.has(f.id) && f.ev?.includes(entry.name));
-            const offset = validOffset(entry.offset, file.size) ? location(file, entry.offset, 4, KT('ZIP girdi başlığı')) : null;
-            if (child) {
-              list.append(node(child, entry.name, offset, path, matches.map(f => ({ ...f, loc: [] }))));
-            } else {
-              const status = entry.dir ? KT('Klasör') : entry.encrypted ? KT('Şifreli') : KT('Arşiv girdisi');
-              list.append(h('li', null, h('span', { class: 'fname' }, entry.name + ' · ' + status), ' ',
-                h('button', { type: 'button', onclick: () => show(path.concat(entry.name).join(' › '), file, matches, offset) }, KT('Bulguları göster'))));
-            }
-          } else if (section) {
-            const matches = findings.filter(f => sectionRules.has(f.id) && f.ev?.includes(
-              f.id === 'pe_highent' ? section.n + ' entropi ' + section.ent.toFixed(2) : section.n));
-            const offset = section.size > 0 && validOffset(section.off, file.size)
-              ? location(file, section.off, Math.min(section.size, file.size - section.off), KT('Bölüm başlangıcı')) : null;
-            list.append(h('li', null, h('span', { class: 'fname' }, section.n + ' · ' + fmt(section.size)), ' ',
-              h('button', { type: 'button', onclick: () => show(path.concat(section.n).join(' › '), file, matches, offset) }, KT('Bulguları göster'))));
-          } else {
-            const child = extra[shown - entries.length - sections.length];
-            const prefix = file.name + ' › ';
-            list.append(node(child, child.name.startsWith(prefix) ? child.name.slice(prefix.length) : child.name, null, path));
-          }
-        }
-        more.hidden = shown >= items;
-      }
-      more.onclick = append;
-      const group = h('details', null, h('summary', { class: 'fname' }, title), inspect, list, more,
-        file.archiveIndex?.total > entries.length ? h('p', { class: 'fine' }, KT('Listelenen arşiv girdileri') + ' · ' + entries.length + ' / ' + file.archiveIndex.total) : null);
-      group.addEventListener('toggle', () => { if (group.open && !shown) append(); });
-      return h('li', null, group);
-    }
-    const panel = h('details', { class: 'cover scan-tree' }, h('summary', null, KT('Dosya ağacı ve kanıt konumu')), branch, detail);
-    panel.addEventListener('toggle', () => {
-      if (panel.open && !branch.childElementCount) branch.append(h('ul', { class: 'scan-tree-list' }, node(root, root.name, null)));
-    });
-    return panel;
-  }
   function kidsBlock(list, inner) {
     const sorted = list.slice().sort((a, b) => b.score - a.score); const shown = sorted.slice(0, 14);
     const body = h('div', { class: 'kidlist', style: inner ? 'padding:8px 0 0' : '' }, shown.map(kidEl), sorted.length > shown.length ? h('p', { class: 'fine' }, '+ ' + (sorted.length - shown.length) + ' alt dosya daha (JSON raporunda hepsi var).') : null);
@@ -11313,7 +11211,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       statusNotes(r));
     const body = h('div', { class: 'body' }, summaryBox(r), trustBlock(r), factsOf(r), breakdown(r), cmpBtn ? h('div', { class: 'actions', style: 'padding:4px 0 8px' }, cmpBtn, h('span', { class: 'hint', style: 'flex-basis:auto' }, 'Aynı dosyayı diğer iki modla da tarar ve farkı gösterir.')) : null, cmpHolder, dynBlock(r), analysisBlock(r), structBlock(r), attackBlock(r), obfPanel(r), insp ? insp.el : null, viewer ? viewer.el : null, iocTreeBlock(r), iocBlock(r.info), fbar, bodyHolder,
       r.info && r.info.urls && r.info.urls.length ? [h('div', { class: 'sechead' }, 'Bulunan adresler · ' + r.info.urls.length), h('pre', { class: 'ev' }, r.info.urls.join('\n'))] : null);
-    const sec = h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, coverBlock(r), r.mode === 'deep' ? scanTree(r, insp) : null, body, r.children && r.children.length ? kidsBlock(r.children) : null, null);
+    const sec = h('section', { class: 'card', style: 'animation-delay:' + Math.min(idx, 4) * 60 + 'ms', 'aria-label': r.name + ' sonucu' }, head, coverBlock(r), body, r.children && r.children.length ? kidsBlock(r.children) : null, null);
     const num = sec.querySelector('.num'); if (num && !reduce()) { const to = r.score, t0 = performance.now(), D = 700; const step = (t) => { const p = Math.min(1, (t - t0) / D); num.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
     return sec;
   }
