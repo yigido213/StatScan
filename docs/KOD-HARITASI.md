@@ -139,6 +139,13 @@ Yapılmayanlar: maç kartında büyü/rün gösterimi (büyü kimliği→ad eşl
 - **Arayüz:** "Geçmiş" sekmesi (`#view-history`; arama, süzgeç, Ayrıntı = tam SHA-256/klasör/ilk-son görülme/bulgular, "Daha fazla göster", 3 sn'de bir otomatik yenileme yalnız görünürken). `HIST` yardımcısı: masaüstünde host, tarayıcıda localStorage `statscan.history` (son 300). Elle tarama (`scanFile` sonrası) ve izleme taraması geçmişe yazılır. Dar ekranda (≤600 px) sekmeler kendi satırına geçer.
 - Testler: `watch.cjs` (+~22: dup, kalıcılık, süzgeç/sayfalama, temizleme, bozuk dosya, bildirim bastırma), yeni `ui-history.mjs` (gerçek host + gerçek klasör izleme; mtime 3 kez değişse de ikinci bildirim gelmez, yeniden başlatma, 390 px, tarayıcı yedeği).
 
+## Minecraft Mod ve Plugin Uyumluluk Denetçisi
+
+- Minecraft kategorisi → Uyumluluk Denetçisi (#/mccompat). Klasörün kökündeki JAR’ları veya seçilen JAR’ları yerelde okur. Hedef yükleyici, Minecraft ve Java sürümü kullanıcıdan gelir. Mod hedeflerinde istemci/sunucu filtresi ve isteğe bağlı yükleyici sürümü vardır.
+- Motor: src/engine/107-mccompat.js (mcCheckCompatibility), arşiv için mzRead/mzData ve Java sınıf başlığı için mmMajor kullanır. Fabric, Quilt, Forge, NeoForge, Bukkit ve Paper bildirimleri desteklenir. Zorunlu bağımlılıklar, takma adlar, bildirilen gömülü JAR’lar ve üst düzey çift kimlikler incelenir.
+- En fazla 500 JAR, arşiv başına 128 MiB. Karmaşık sürüm ifadeleri, kısmi okumalar ve çalışma zamanında doğrulanması gereken uyumluluk raporda ayrı tutulur. Dosyalar çalıştırılmaz, değiştirilmez veya yüklenmez.
+- Test: node tools/test/mccompat.mjs.
+
 ## Testler (`tools/test/`)
 - Host: `node tools/test/lol-host.cjs` (sahte `deps.get/getBin/lcu/live/confirm`), `flow-host.cjs`, `game-host.cjs`, `mem-host.cjs`, `sys-host.cjs`, `access-host.cjs`, `compile-host.cjs`, `obf-host.cjs`, `srcobf.cjs` …
 - Arayüz (Playwright, gerçek host koduna köprü): `node tools/test/ui-lol.mjs`, `ui-flow.mjs`, `ui-shell.mjs`, `ui-lang.mjs`, `ui-conv.mjs`, `ui-game.mjs`, `ui-mem.mjs` … Playwright yolu testlerde `/home/claude/.npm-global/lib/node_modules/`. Ekran görüntüsü: `SHOT=<klasör> node tools/test/ui-lol.mjs`.

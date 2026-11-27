@@ -651,6 +651,8 @@ button.nav-item { width: 100%; border: 0; background: none; cursor: pointer; tex
 .cv-opts { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
 .cv-f { display: grid; gap: 4px; min-width: 0; flex: 1 1 200px; } .cv-opts .cv-btn { flex: none; } .cv-f span { font-size: 12.5px; color: var(--muted); }
 .cv-f select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 14px var(--f-body); max-width: 100%; }
+#app-mccompat .cv-f input { width: 100%; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 14px var(--f-body); }
+#app-mccompat summary { overflow-wrap: anywhere; }
 .cv-live { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--muted); }
 .cv-res { border: 1px solid var(--line); border-radius: var(--r); padding: 16px; background: var(--surface); display: grid; gap: 12px; }
 .cv-res h2 { margin: 0; font-size: 18px; } .cv-sum { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
@@ -1443,6 +1445,7 @@ html[data-fx="off"] #app-lolcounter *, html[data-fx="off"] #app-lolcounter *::be
 </section>
 <section id="app-texpack" class="kv" aria-label="Doku paketi dönüştürücü" hidden></section>
 <section id="app-modconv" class="kv" aria-label="Mod sürüm ayarlayıcı" hidden></section>
+<section id="app-mccompat" class="kv" aria-label="Mod ve Plugin Uyumluluk Denetçisi" hidden></section>
 <section id="app-compiler" class="kv" aria-label="Derleyici" hidden></section>
 <section id="app-obfuscate" class="kv" aria-label="Obfuscate" hidden></section>
 <section id="app-imza" class="kv" aria-label="İmza ve Sertifika Denetçisi" hidden></section>
@@ -4512,6 +4515,394 @@ function peStealth(u8, p, apis, info) {
   return out;
 }
 /*#endregion stealthpe*/
+/*#region mccompat*/
+/* Read-only, manifest-based Minecraft instance checks. Keep unknown results distinct from incompatibilities. */
+const MCC_LIMIT = { files: 500, jarBytes: 128 * 1048576, classBytes: 64 * 1048576, nestedBytes: 48 * 1048576, nestedCount: 64 };
+const MCC_MANIFESTS = [
+  ['bukkit', 'plugin.yml'], ['paper', 'paper-plugin.yml'], ['fabric', 'fabric.mod.json'],
+  ['quilt', 'quilt.mod.json'], ['forge', 'META-INF/mods.toml'],
+  ['neoforge', 'META-INF/neoforge.mods.toml'], ['legacy', 'mcmod.info']
+];
+
+function mccVersion(value) {
+  const text = String(value ?? '').trim();
+  if (!/^\d{1,9}(?:\.\d{1,9}){0,7}(?:\+[-\w.]+)?$/.test(text)) return null;
+  return text.split('+')[0].split('.').map(Number);
+}
+
+function mccCompare(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0);
+    if (diff) return Math.sign(diff);
+  }
+  return 0;
+}
+
+function mccCombine(states, mode) {
+  if (mode === 'any') return states.includes(true) ? true : states.includes(null) ? null : false;
+  return states.includes(false) ? false : states.includes(null) ? null : true;
+}
+
+function mccMatches(version, range, style) {
+  if (range == null || range === '*' || (style === 'maven' && range === '')) return true;
+  if (Array.isArray(range) && range.length) return mccCombine(range.map((part) => mccMatches(version, part, style)), 'any');
+  if (typeof range !== 'string' || !version) return null;
+  range = range.trim();
+  if (version === range || (style !== 'maven' && range === '=' + version)) return true;
+  const v = mccVersion(version);
+  if (!v) return null;
+  if (style === 'maven') {
+    if (mccVersion(range)) return true; // A bare Maven version is a soft recommendation.
+    const intervals = range.match(/[[(][^\])]*[\])]/g) || [];
+    if (!intervals.length || intervals.join(',') !== range.replace(/\s*,\s*(?=[[(])/g, ',')) return null;
+    return mccCombine(intervals.map((interval) => {
+      const parts = interval.slice(1, -1).split(',').map((p) => p.trim());
+      const [lo, hi] = parts.map(mccVersion);
+      if (parts.length === 1 && interval[0] === '[' && interval.endsWith(']')) return lo ? mccCompare(v, lo) === 0 : null;
+      if (parts.length !== 2 || (parts[0] && !lo) || (parts[1] && !hi)) return null;
+      const low = lo ? mccCompare(v, lo) : 1;
+      const high = hi ? mccCompare(v, hi) : -1;
+      return (low > 0 || (low === 0 && interval[0] === '[')) && (high < 0 || (high === 0 && interval.endsWith(']')));
+    }), 'any');
+  }
+  return mccCombine(range.split(/\s*\|\|\s*/).map((part) => mccCombine(part.split(/\s+/).map((token) => {
+    if (token === '*') return true;
+    const wildcard = /^(\d{1,9}(?:\.\d{1,9})*)\.(?:x|\*)(?:\.(?:x|\*))*$/i.exec(token);
+    if (wildcard) return wildcard[1].split('.').every((n, i) => Number(n) === (v[i] ?? 0));
+    const match = /^(>=|<=|>|<|=|~|\^)?(.+)$/.exec(token);
+    const base = match && mccVersion(match[2]);
+    if (!base) return null;
+    const order = mccCompare(v, base);
+    switch (match[1]) {
+      case '>=': return order >= 0;
+      case '<=': return order <= 0;
+      case '>': return order > 0;
+      case '<': return order < 0;
+      case '~': return order >= 0 && v[0] === base[0] && (v[1] ?? 0) === (base[1] ?? 0);
+      case '^': return order >= 0 && v[0] === base[0];
+      default: return order === 0;
+    }
+  }), 'all')), 'any');
+}
+
+function mccStripComment(line) {
+  let quote = '';
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (quote === '"' && c === '\\') i++;
+    else if (c === quote) quote = '';
+    else if (!quote && (c === '"' || c === "'")) quote = c;
+    else if (!quote && c === '#') return line.slice(0, i).trimEnd();
+  }
+  return line.trimEnd();
+}
+
+function mccUnquote(value) {
+  return value.trim().replace(/^(["'])(.*)\1$/, '$2');
+}
+
+function mccYaml(text, paper) {
+  const values = new Map();
+  const lists = new Map();
+  const dependencies = new Map();
+  const stack = [];
+  let limited = false;
+  for (const source of text.split(/\r?\n/)) {
+    const line = mccStripComment(source);
+    if (!line.trim()) continue;
+    const item = /^ *-\s+(.+)$/.exec(line);
+    if (item && ['depend', 'provides'].includes(stack[0]?.key)) {
+      const key = stack[0].key;
+      if (!lists.has(key)) lists.set(key, []);
+      lists.get(key).push(mccUnquote(item[1]));
+      continue;
+    }
+    const field = /^( *)([\w.-]+|"[^"]+"|'[^']+')\s*:\s*(.*)$/.exec(line);
+    if (!field) {
+      if (stack[0]?.key === 'dependencies' || ['depend', 'provides'].includes(stack[0]?.key)) limited = true;
+      continue;
+    }
+    const [, spaces, rawKey, raw] = field;
+    const indent = spaces.length;
+    const key = mccUnquote(rawKey);
+    while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+    stack.push({ indent, key });
+    if (indent === 0) {
+      if (['name', 'version', 'api-version'].includes(key)) values.set(key, mccUnquote(raw));
+      if (['depend', 'provides'].includes(key) && raw) {
+        if (/^\[.*\]$/.test(raw)) lists.set(key, raw.slice(1, -1).split(',').map(mccUnquote).filter(Boolean));
+        else limited = true;
+      }
+      if (key === 'dependencies' && raw && raw !== '{}') limited = true;
+    }
+    if (paper && stack[0]?.key === 'dependencies' && ['server', 'bootstrap'].includes(stack[1]?.key)) {
+      if (stack.length === 2 && raw && raw !== '{}') limited = true;
+      if (stack.length === 3) {
+        const id = stack[1].key + '/' + key;
+        if (raw && raw !== '{}') limited = true;
+        else dependencies.set(id, { id: key, required: true });
+      }
+      if (stack.length === 4 && key === 'required') {
+        const dependency = dependencies.get(stack[1].key + '/' + stack[2].key);
+        if (dependency && /^(true|false)$/i.test(raw)) dependency.required = raw.toLowerCase() === 'true';
+        else limited = true;
+      }
+    }
+  }
+  const deps = paper ? [...dependencies.values()].filter((x) => x.required) : (lists.get('depend') || []).map((id) => ({ id }));
+  return { mods: [{ id: values.get('name'), version: values.get('version'), aliases: lists.get('provides') || [], deps, api: values.get('api-version') }], limited };
+}
+
+function mccToml(text, target) {
+  const mods = [];
+  const dependencies = [];
+  let table;
+  let limited = false;
+  let multiline = '';
+  const tracked = new Set(['modId', 'version', 'mandatory', 'type', 'versionRange', 'side']);
+  for (const source of text.split(/\r?\n/)) {
+    if (multiline) {
+      if (source.includes(multiline)) multiline = '';
+      continue;
+    }
+    const line = mccStripComment(source).trim();
+    if (line.startsWith('[')) {
+      table = null;
+      if (/^\[\[\s*mods\s*\]\]$/.test(line)) {
+        table = {};
+        mods.push(table);
+      }
+      const owner = /^\[\[\s*dependencies\s*\.\s*([\w.-]+|"[^"]+"|'[^']+')\s*\]\]$/.exec(line);
+      if (owner) {
+        table = { owner: mccUnquote(owner[1]) };
+        dependencies.push(table);
+      } else if (/^\[\[\s*dependencies\b/.test(line)) limited = true;
+      continue;
+    }
+    const field = /^(\w+)\s*=\s*(.*)$/.exec(line);
+    if (!field) continue;
+    const delimiter = /^(?:"""|''')/.exec(field[2]);
+    if (delimiter && !field[2].slice(3).includes(delimiter[0])) multiline = delimiter[0];
+    if (table && tracked.has(field[1])) table[field[1]] = mccUnquote(field[2]);
+  }
+  return {
+    mods: mods.map((mod) => ({
+      id: mod.modId, version: mod.version, aliases: [],
+      deps: dependencies.filter((d) => d.owner === mod.modId &&
+        (d.type === 'required' || (d.type == null && d.mandatory !== 'false')) &&
+        !(d.side === 'CLIENT' && target.side === 'server') && !(d.side === 'SERVER' && target.side === 'client'))
+        .map((d) => ({ id: d.modId, range: d.versionRange }))
+    })),
+    limited
+  };
+}
+
+function mccManifest(text, kind, target) {
+  if (kind === 'bukkit' || kind === 'paper') return mccYaml(text, kind === 'paper');
+  if (kind === 'forge' || kind === 'neoforge') return mccToml(text, target);
+  const json = JSON.parse(text);
+  if (kind === 'legacy') {
+    const mods = Array.isArray(json) ? json : json.modList;
+    if (!Array.isArray(mods)) throw new Error('mcmod.info');
+    return { mods: mods.map((m) => ({ id: m.modid, version: m.version, aliases: [], deps: [] })), limited: true };
+  }
+  if (kind === 'fabric') {
+    const { id, version, provides, depends, jars, environment } = json;
+    if (environment && environment !== '*' && environment !== target.side) {
+      return { mods: [], inactive: true };
+    }
+    return {
+      mods: [{ id, version, aliases: (provides || []).filter((x) => typeof x === 'string'), deps: Object.entries(depends || {}).map(([id, range]) => ({ id, range })) }],
+      nested: (jars || []).map((jar) => jar.file)
+    };
+  }
+  const { id, version, provides, depends, jars } = json.quilt_loader;
+  const environment = json.minecraft?.environment;
+  if (environment && environment !== '*' && environment !== target.side && ['client', 'server'].includes(environment)) {
+    return { mods: [], inactive: true };
+  }
+  const required = (depends || []).filter((d) => !d?.optional);
+  return {
+    mods: [{
+      id, version,
+      aliases: (provides || []).map((p) => typeof p === 'string' ? p : { id: p?.id, version: p?.version }),
+      deps: required.filter((d) => typeof d === 'string' || (typeof d?.id === 'string' && !d.unless)).map((d) =>
+        typeof d === 'string' ? { id: d } : { id: d.id, range: d.versions })
+    }],
+    nested: jars || [],
+    limited: required.some((d) => typeof d !== 'string' && (typeof d?.id !== 'string' || d.unless))
+  };
+}
+
+function mccSelect(entries, loader) {
+  const found = MCC_MANIFESTS.filter(([, path]) => entries.has(path));
+  const order = { paper: ['paper', 'bukkit'], bukkit: ['bukkit'], fabric: ['fabric'], quilt: ['quilt', 'fabric'],
+    forge: ['forge', 'legacy'], neoforge: ['neoforge', 'forge'] }[loader];
+  const selected = order.map((kind) => found.find(([k]) => k === kind)).find(Boolean);
+  return { selected, found: found.map(([kind]) => kind) };
+}
+
+async function mccInspect(zip, row, target, depth, budget) {
+  const entries = new Map(zip.entries.filter((e) => !e.isDir).map((e) => [e.name, e]));
+  const { selected, found } = mccSelect(entries, target.loader);
+  if (!selected) {
+    if (depth === 0) {
+      row.findings.push(found.length ? ['wrongLoader', found.join(', ')] : ['noManifest']);
+      if (!found.length) row.metadataPartial = true;
+    }
+    return;
+  }
+  const [kind, manifest] = selected;
+  let data;
+  try {
+    data = mccManifest(new TextDecoder().decode(await mzData(zip, entries.get(manifest), 1024 * 1024)), kind, target);
+    if (!data.inactive && (!data.mods.length || data.mods.some((m) => typeof m.id !== 'string' || !m.id.trim()))) throw new Error(manifest);
+  } catch {
+    row.findings.push(['badManifest', manifest]);
+    row.metadataPartial = true;
+    return;
+  }
+  if (data.inactive) {
+    if (depth === 0) row.findings.push(['inactive']);
+    return;
+  }
+  if (data.limited || (target.loader === 'neoforge' && kind === 'forge')) {
+    row.findings.push(['limitedManifest', manifest]);
+    row.metadataPartial = true;
+  }
+  row.mods.push(...data.mods.map((mod) => ({ ...mod, kind, depth })));
+  let max = 0;
+  let classPartial = false;
+  for (const entry of entries.values()) {
+    if (!entry.name.endsWith('.class') || entry.name.startsWith('META-INF/') || entry.name === 'module-info.class') continue;
+    if (entry.usize > budget.classBytes) {
+      classPartial = true;
+      continue;
+    }
+    budget.classBytes -= entry.usize;
+    try {
+      const major = mmMajor(await mzData(zip, entry, 2 * 1048576));
+      if (!major) classPartial = true;
+      max = Math.max(max, major);
+    } catch {
+      classPartial = true;
+    }
+    if (max > target.java + 44) break;
+  }
+  if (max > target.java + 44) row.findings.push(['javaClass', max - 44, selected[1]]);
+  if (classPartial) row.findings.push(['partialClasses']);
+  const nested = [...new Set(data.nested || [])];
+  if (['forge', 'neoforge'].includes(kind) && entries.has('META-INF/jarjar/metadata.json')) {
+    try {
+      const info = JSON.parse(new TextDecoder().decode(await mzData(zip, entries.get('META-INF/jarjar/metadata.json'), 1024 * 1024)));
+      nested.push(...info.jars.map((jar) => jar.path));
+    } catch {
+      row.findings.push(['limitedManifest', 'META-INF/jarjar/metadata.json']);
+      row.metadataPartial = true;
+    }
+  }
+  for (const name of new Set(nested)) {
+    const entry = entries.get(name);
+    if (entry && depth < 3 && budget.nestedCount > 0 && entry.usize <= budget.nestedBytes) {
+      budget.nestedCount--;
+      budget.nestedBytes -= entry.usize;
+      try {
+        await mccInspect(mzRead(await mzData(zip, entry, MCC_LIMIT.nestedBytes)), row, target, depth + 1, budget);
+        continue;
+      } catch { /* report the unread archive below */ }
+    }
+    row.findings.push(['partialNested', typeof name === 'string' ? name : '—']);
+    row.metadataPartial = true;
+  }
+}
+
+function mccResolve(rows, target) {
+  const providers = new Map();
+  const topIds = new Map();
+  const plugin = target.loader === 'paper' || target.loader === 'bukkit';
+  const key = (name) => plugin ? name.toLowerCase() : name;
+  const builtins = new Map([['minecraft', target.minecraft], ['java', String(target.java)]]);
+  const loaderIds = { fabric: ['fabricloader'], quilt: ['quilt_loader', 'fabricloader'], forge: ['forge'], neoforge: ['neoforge'] }[target.loader] || [];
+  for (const id of loaderIds) builtins.set(id, id === 'fabricloader' && target.loader === 'quilt' ? '' : target.loaderVersion);
+  const partial = rows.some((row) => row.metadataPartial);
+  const addProvider = (name, version) => {
+    if (typeof name !== 'string' || !name) return;
+    const k = key(name);
+    if (!providers.has(k)) providers.set(k, []);
+    providers.get(k).push(version);
+  };
+  for (const row of rows) for (const mod of row.mods) {
+    addProvider(mod.id, mod.version);
+    for (const alias of mod.aliases) {
+      if (typeof alias === 'string') addProvider(alias, mod.version);
+      else addProvider(alias?.id, alias?.version);
+    }
+    if (mod.depth !== 0) continue;
+    const id = key(mod.id);
+    if (!topIds.has(id)) topIds.set(id, new Set());
+    topIds.get(id).add(row);
+  }
+  for (const row of rows) for (const mod of row.mods) {
+    const dup = mod.depth === 0 && topIds.get(key(mod.id));
+    if (dup && dup.size > 1) row.findings.push(['duplicate', mod.id, [...dup].filter((other) => other !== row).map((other) => other.name).join(', ')]);
+    if (mod.api) {
+      const current = mccVersion(target.minecraft);
+      const minimum = mccVersion(mod.api);
+      if (current && minimum && mccCompare(current, minimum) < 0) row.findings.push(['minecraft', mod.api]);
+      else if (!minimum) row.findings.push(['unknownVersion', 'api-version', mod.api]);
+    }
+    for (const dep of mod.deps) {
+      if (typeof dep.id !== 'string' || !dep.id) {
+        row.findings.push(['limitedManifest', mod.id]);
+        continue;
+      }
+      const builtin = !plugin && builtins.has(dep.id);
+      const versions = builtin ? [builtins.get(dep.id)] : providers.get(key(dep.id));
+      if (!versions) {
+        row.findings.push([partial ? 'uncertainDependency' : 'missing', dep.id, mod.id]);
+        continue;
+      }
+      const style = ['forge', 'neoforge'].includes(mod.kind) ? 'maven' : 'predicate';
+      const result = mccCombine(versions.map((v) => mccMatches(v, dep.range, style)), 'any');
+      const range = typeof dep.range === 'string' ? dep.range : JSON.stringify(dep.range);
+      if (result === false) {
+        if (builtin && dep.id === 'minecraft') row.findings.push(['minecraft', range]);
+        else if (builtin && dep.id === 'java') row.findings.push(['javaDeclared', range]);
+        else row.findings.push(['dependencyVersion', dep.id, range, versions.join(', ')]);
+      } else if (result === null) row.findings.push(['unknownVersion', dep.id, range]);
+    }
+  }
+  for (const row of rows) {
+    const unique = new Map(row.findings.map((finding) => [JSON.stringify(finding), finding]));
+    row.findings = [...unique.values()];
+  }
+}
+
+async function mcCheckCompatibility(files, target, progress = () => {}) {
+  const list = Array.from(files).filter((file) => /\.jar$/i.test(file.name));
+  if (list.length > MCC_LIMIT.files) return { tooMany: MCC_LIMIT.files, rows: [] };
+  const rows = [];
+  for (const file of list) {
+    const row = { name: file.webkitRelativePath || file.name, mods: [], findings: [], metadataPartial: false };
+    if (file.size > MCC_LIMIT.jarBytes) {
+      row.findings.push(['tooLarge', MCC_LIMIT.jarBytes / 1048576]);
+      row.metadataPartial = true;
+    } else {
+      try {
+        const zip = mzRead(new Uint8Array(await file.arrayBuffer()));
+        await mccInspect(zip, row, target, 0, { classBytes: MCC_LIMIT.classBytes, nestedBytes: MCC_LIMIT.nestedBytes, nestedCount: MCC_LIMIT.nestedCount });
+      } catch {
+        row.findings.push(['badJar']);
+        row.metadataPartial = true;
+      }
+    }
+    rows.push(row);
+    progress(rows.length, list.length);
+  }
+  mccResolve(rows, target);
+  return { rows };
+}
+/*#endregion mccompat*/
 /*#region dotnet*/
 /* ---------- v3.6: .NET meta veri (ECMA-335) ayristirma ----------
    Gercek tablo ayristirmasi: TypeRef/MemberRef/P-Invoke (ImplMap)/AssemblyRef/ManifestResource.
@@ -6482,7 +6873,7 @@ function mmReportText(r, srcName) {
   return L.join('\n');
 }
 /*#endregion modconv*/
-const api = { xorRecover, x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, srcScan, srcPlan, srcLangOf, srcLangName, SRC_LANGS, srcObf, srcObfSupport, sigAudit, packAudit, sigBrandMatch, ramScan, ramReportText, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '5.0.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
+const api = { mcCheckCompatibility, xorRecover, x86Decode, nativeAnalyze: natAnalyze, mzRead, mzWrite, mzData, mzCrc, MzError, javaScan, javaPlan, srcScan, srcPlan, srcLangOf, srcLangName, SRC_LANGS, srcObf, srcObfSupport, sigAudit, packAudit, sigBrandMatch, ramScan, ramReportText, mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText, methodMatrix, familyGroups, fuzzyCompare, ctph, confusableName, pdbPaths, trustSnapshot, trustNameKey, iocTree: collectIocTree, iocExport, SRC, REFS, DETECT, SKIP_LABELS, loadRulePack, scanFile, scanBuffer, diffResults, compareModes, flatTree, verdict, parsePE, parseClass, readZip, STR_RULES, MODES, AXES, version: '5.0.0', md5, EXT, obf: (u8, name, o) => obfRun(u8, name, o), obfKind, OBF_TOOLS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StatScan = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -6841,6 +7232,43 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
      KAPSAM DISI: StatScan'in analiz ekranlari ve olusturulan raporlar (.md) / motorun uyari ayrintilari — Turkce kalir. */
   const KL = (function () {
     const EN = {
+      "Mod ve Plugin Uyumluluk Denetçisi": "Mod and Plugin Compatibility Checker",
+      "Minecraft modlarını ve sunucu eklentilerini topluca kontrol eder. Eksik bağımlılıkları, çift yüklemeleri ve sürüm uyuşmazlıklarını gösterir.": "Check Minecraft mods and server plugins in bulk for missing dependencies, duplicates, and version mismatches.",
+      "Bir mods veya plugins klasörü seç. JAR dosyaları bu cihazda yalnızca okunur.": "Choose a mods or plugins folder. JAR files are read locally and never run.",
+      "Sonuçlar bildirime ve sınıf başlıklarına dayanır. Eklentiler arasındaki çalışma zamanı çakışmaları bu denetimin dışındadır.": "Checks use manifests and class headers. Runtime conflicts between plugins are outside the scope of this check.",
+      "Minecraft sürümü": "Minecraft version",
+      "Java sürümü": "Java version",
+      "Yükleyici sürümü (isteğe bağlı)": "Loader version (optional)",
+      "Çalışma ortamı": "Environment",
+      "İstemci": "Client",
+      "Sunucu": "Server",
+      "Klasör seç": "Choose folder",
+      "JAR dosyaları seç": "Choose JAR files",
+      "Seçimde JAR dosyası bulunamadı.": "No JAR files found in the selection.",
+      "{0} JAR seçildi.": "{0} JAR files selected.",
+      "Uyumluluğu denetle": "Check compatibility",
+      "Denetleniyor… {0} / {1}": "Checking… {0} / {1}",
+      "Bir seferde en fazla {0} JAR denetlenebilir.": "You can check up to {0} JAR files at a time.",
+      "{0} JAR denetlendi · {1} sorunlu · {2} belirsiz": "{0} JAR files checked · {1} with issues · {2} uncertain",
+      "Bildirime göre sorun bulunmadı.": "No issues found in the supported checks.",
+      "Seçilen yükleyiciye uymuyor. Bulunan bildirimler: {0}.": "Does not match the selected loader. Detected manifests: {0}.",
+      "Tanınan bir Minecraft bildirimi bulunamadı.": "No recognized Minecraft manifest was found.",
+      "Bildirim okunamadı veya kimlik bilgisi geçersiz: {0}.": "The manifest could not be read or contains an invalid ID: {0}.",
+      "Bildirim tam değerlendirilemedi: {0}.": "The manifest could not be fully evaluated: {0}.",
+      "Seçilen çalışma ortamı için etkin değil.": "Inactive in the selected environment.",
+      "Java {0} gerektiren sınıf bulundu ({1}).": "Found a class requiring Java {0} ({1}).",
+      "Bildirime göre gerekli Java sürümü: {0}.": "Required Java version in the manifest: {0}.",
+      "Bazı sınıf başlıkları incelenemedi.": "Some class headers could not be checked.",
+      "Gömülü JAR incelenemedi: {0}.": "Could not check embedded JAR: {0}.",
+      "Aynı kimlik başka JAR dosyalarında da var: {0} ({1}).": "The same ID appears in other JAR files: {0} ({1}).",
+      "Hedef Minecraft sürümüyle uyuşmuyor. Bildirimdeki gereksinim: {0}.": "Does not match the target Minecraft version. Manifest requirement: {0}.",
+      "Gerekli bağımlılık seçilen dosyalarda yok: {0} ({1}).": "Required dependency is missing from the selection: {0} ({1}).",
+      "Gerekli bağımlılık doğrulanamadı: {0} ({1}). Bazı bildirimler eksik veya okunamadı.": "Required dependency could not be verified: {0} ({1}). Some manifests are missing or unreadable.",
+      "{0} için sürüm uyuşmuyor. Gereken: {1}. Bulunan: {2}.": "Version mismatch for {0}. Required: {1}. Found: {2}.",
+      "{0} sürüm gereksinimi doğrulanamadı: {1}.": "Could not verify the version requirement for {0}: {1}.",
+      "JAR, {0} MiB sınırını aşıyor.": "The JAR exceeds the {0} MiB limit.",
+      "JAR açılamadı veya arşiv biçimi desteklenmiyor.": "The JAR could not be opened or uses an unsupported archive format.",
+      "Denetim tamamlanamadı.": "The check could not be completed.",
       'Birden fazla dosya seçilebilir': 'Multiple files supported', 'Kapsam': 'Scope', 'Hoş geldin,': 'Welcome,', 'Ana sayfa': 'Home', 'Komut ara': 'Find a command',
       'Uygulama': 'Application', 'ayarları.': 'settings.', 'Çalışma alanı': 'Workspace',
       'çalışma alanı': 'workspace', 'Ara…': 'Search…', 'Araçlar': 'Tools', 'Güvenlik': 'Security', 'Kodlama': 'Coding', 'Görev Yöneticisi': 'Task Manager', 'Ağ İzleyici': 'Network Monitor', 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.': 'Basic: plain, like the Windows Task Manager. Extended: shows everything that is running in detail (process tree, signature, SHA-256, command line, DLLs, connections, services, drivers, startup, scheduled tasks) and gives a suspicion score. Works only in the desktop app.', 'Hangi süreç nereye bağlanıyor? Her bağlantıyı sürece ve imzasına bağlar; şüpheli port, imzasız/geçici klasör süreçlerinin internete çıkışı ve düzenli aralıklı (beacon benzeri) trafiği işaretler. Yalnızca masaüstü uygulamasında çalışır.': 'Which process connects where? Ties every connection to its process and signature; flags suspicious ports, unsigned or temp-folder processes reaching the internet, and regularly timed (beacon-like) traffic. Works only in the desktop app.', 'Görev Yöneticisi: Extended modu': 'Task Manager: Extended mode', 'Bu araç sistem bilgisini okumak için masaüstü uygulaması gerektirir; tarayıcı sayfasında çalışmaz.': 'This tool needs the desktop app to read system information; it does not work in a browser page.', 'Derleyici': 'Compiler', 'Doku paketi dönüştürücü': 'Texture pack converter', 'Mod sürüm ayarlayıcı': 'Mod version adjuster', 'Ayarlar': 'Settings', 'Tema': 'Theme',
@@ -7870,7 +8298,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
     let obs = null;
     function attach() {
       document.documentElement.lang = lang; if (lang !== 'en' || obs) return;
-      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-exedump, #app-xorcozucu, #app-ramanaliz, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
+      const roots = [...document.querySelectorAll('.side, #app-home, #settings, #pal, #app-texpack, #app-modconv, #app-mccompat, #app-compiler, #app-obfuscate, #app-imza, #app-paketleyici, #app-ioc, #app-exedump, #app-xorcozucu, #app-ramanaliz, #app-lolcounter, section[id^="app-c-"], #skip, #cp-ready')];
       obs = new MutationObserver((recs) => { for (const r of recs) { if (r.type === 'childList') r.addedNodes.forEach(walk); else if (r.type === 'characterData') { if (!SKIP.has(r.target.parentNode && r.target.parentNode.tagName)) walk(r.target); } else if (r.type === 'attributes') fixAttrs(r.target); } });
       for (const r of roots) { walk(r); obs.observe(r, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR }); }
     }
@@ -7898,7 +8326,142 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 
 
   /* ---------- Kovan araclari: Minecraft surum donusturuculeri (beta 0.0.1) ---------- */
-  const KOVAN_VER = 'beta 0.1.29';
+  const KOVAN_VER = 'beta 0.1.30';
+  (function kovanMcCompatibility() {
+    const root = $('#app-mccompat');
+    const pluginTargets = new Set(['paper', 'bukkit']);
+    const issueCodes = new Set(['wrongLoader', 'javaClass', 'javaDeclared', 'duplicate', 'minecraft', 'missing', 'dependencyVersion']);
+    const loaders = {
+      paper: 'Paper', bukkit: 'Bukkit / Spigot', fabric: 'Fabric',
+      quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge', legacy: 'Forge (mcmod.info)'
+    };
+    const messages = {
+      wrongLoader: 'Seçilen yükleyiciye uymuyor. Bulunan bildirimler: {0}.',
+      noManifest: 'Tanınan bir Minecraft bildirimi bulunamadı.',
+      badManifest: 'Bildirim okunamadı veya kimlik bilgisi geçersiz: {0}.',
+      limitedManifest: 'Bildirim tam değerlendirilemedi: {0}.',
+      inactive: 'Seçilen çalışma ortamı için etkin değil.',
+      javaClass: 'Java {0} gerektiren sınıf bulundu ({1}).',
+      javaDeclared: 'Bildirime göre gerekli Java sürümü: {0}.',
+      partialClasses: 'Bazı sınıf başlıkları incelenemedi.',
+      partialNested: 'Gömülü JAR incelenemedi: {0}.',
+      duplicate: 'Aynı kimlik başka JAR dosyalarında da var: {0} ({1}).',
+      minecraft: 'Hedef Minecraft sürümüyle uyuşmuyor. Bildirimdeki gereksinim: {0}.',
+      missing: 'Gerekli bağımlılık seçilen dosyalarda yok: {0} ({1}).',
+      uncertainDependency: 'Gerekli bağımlılık doğrulanamadı: {0} ({1}). Bazı bildirimler eksik veya okunamadı.',
+      dependencyVersion: '{0} için sürüm uyuşmuyor. Gereken: {1}. Bulunan: {2}.',
+      unknownVersion: '{0} sürüm gereksinimi doğrulanamadı: {1}.',
+      tooLarge: 'JAR, {0} MiB sınırını aşıyor.',
+      badJar: 'JAR açılamadı veya arşiv biçimi desteklenmiyor.'
+    };
+    const labeled = (label, control) => h('label', { class: 'cv-f' }, h('span', {}, label), control);
+    const option = ([value, text]) => h('option', { value }, text);
+    const loader = h('select', { id: 'mcc-loader' }, Object.entries(loaders).filter(([id]) => id !== 'legacy').map(option));
+    const minecraft = h('input', { id: 'mcc-minecraft', type: 'text', required: true, placeholder: '26.3', pattern: '[0-9]{1,9}([.][0-9]{1,9}){1,3}', maxlength: '39' });
+    const java = h('input', { id: 'mcc-java', type: 'number', required: true, min: '1', max: '200', step: '1', placeholder: '25' });
+    const side = h('select', { id: 'mcc-side' }, [['client', 'İstemci'], ['server', 'Sunucu']].map(option));
+    const loaderVersion = h('input', { id: 'mcc-loader-version', type: 'text', maxlength: '80', placeholder: '0.18.0' });
+    const sideField = labeled('Çalışma ortamı', side);
+    const loaderVersionField = labeled('Yükleyici sürümü (isteğe bağlı)', loaderVersion);
+    const folder = h('input', { id: 'mcc-folder', type: 'file', webkitdirectory: true, multiple: true, hidden: true });
+    const jars = h('input', { id: 'mcc-files', type: 'file', accept: '.jar', multiple: true, hidden: true });
+    const pickFolder = h('button', { type: 'button', class: 'cv-btn' }, 'Klasör seç');
+    const pickFiles = h('button', { type: 'button', class: 'cv-btn' }, 'JAR dosyaları seç');
+    const submit = h('button', { type: 'submit', class: 'cv-btn cv-primary', disabled: true }, 'Uyumluluğu denetle');
+    const live = h('p', { class: 'cv-live', role: 'status', 'aria-live': 'polite' });
+    const selection = h('p', { class: 'cv-file' });
+    const results = h('div', { class: 'cv-res', hidden: true });
+    const fields = h('fieldset', { class: 'cv-opts', style: 'border:0; padding:0; margin:0; min-width:0' },
+      labeled('Yükleyici', loader), labeled('Minecraft sürümü', minecraft), labeled('Java sürümü', java),
+      sideField, loaderVersionField, submit);
+    const form = h('form', {}, fields);
+    root.append(h('header', { class: 'cv-head' },
+      h('h1', { 'data-focus': '', tabindex: '-1' }, 'Mod ve Plugin Uyumluluk Denetçisi'),
+      h('p', { class: 'cv-lead' }, 'Bir mods veya plugins klasörü seç. JAR dosyaları bu cihazda yalnızca okunur.')),
+      h('div', { class: 'cv-note' }, 'Sonuçlar bildirime ve sınıf başlıklarına dayanır. Eklentiler arasındaki çalışma zamanı çakışmaları bu denetimin dışındadır.'),
+      h('div', { class: 'cv-actions' }, pickFolder, pickFiles), folder, jars, selection, form, live, results);
+
+    let files = [];
+    let busy = false;
+    function clearResult() {
+      results.replaceChildren();
+      results.hidden = true;
+      live.textContent = '';
+    }
+
+    function updateTarget() {
+      const plugin = pluginTargets.has(loader.value);
+      sideField.hidden = loaderVersionField.hidden = plugin;
+      sideField.style.display = loaderVersionField.style.display = plugin ? 'none' : '';
+      clearResult();
+    }
+
+    function choose(input, isFolder) {
+      if (busy || !input.files.length) return;
+      files = Array.from(input.files).filter((f) => /\.jar$/i.test(f.name) &&
+        (!isFolder || f.webkitRelativePath.split('/').length <= 2));
+      input.value = '';
+      clearResult();
+      submit.disabled = !files.length;
+      selection.textContent = files.length ? KT('{0} JAR seçildi.', files.length) : KT('Seçimde JAR dosyası bulunamadı.');
+    }
+
+    function show(report) {
+      if (report.tooMany) {
+        live.textContent = KT('Bir seferde en fazla {0} JAR denetlenebilir.', report.tooMany);
+        return;
+      }
+      let issues = 0;
+      let uncertain = 0;
+      const sorted = report.rows.map((row) => {
+        const issue = row.findings.some(([code]) => issueCodes.has(code));
+        const unknown = row.findings.some(([code]) => code !== 'inactive' && !issueCodes.has(code));
+        if (issue) issues++;
+        if (unknown) uncertain++;
+        return { row, priority: issue ? 2 : unknown ? 1 : 0 };
+      }).sort((a, b) => b.priority - a.priority);
+      live.textContent = KT('{0} JAR denetlendi · {1} sorunlu · {2} belirsiz', sorted.length, issues, uncertain);
+      for (const { row, priority } of sorted) {
+        const findings = row.findings.map(([code, ...args]) => {
+          if (code === 'wrongLoader') args[0] = args[0].split(', ').map((id) => loaders[id] || id).join(', ');
+          return h('li', {}, KT(messages[code], ...args));
+        });
+        if (!findings.length) findings.push(h('li', {}, 'Bildirime göre sorun bulunmadı.'));
+        const ids = row.mods.filter((mod) => mod.depth === 0).map((mod) => mod.id + (mod.version ? ' ' + mod.version : ''));
+        const label = row.name + (ids.length ? ' · ' + ids.join(', ') : '');
+        results.append(h('details', { class: priority ? 'cv-sec warn' : 'cv-sec', open: priority > 0 },
+          h('summary', {}, label), h('ul', {}, findings)));
+      }
+      results.hidden = false;
+    }
+
+    pickFolder.addEventListener('click', () => folder.click());
+    pickFiles.addEventListener('click', () => jars.click());
+    folder.addEventListener('change', () => choose(folder, true));
+    jars.addEventListener('change', () => choose(jars, false));
+    loader.addEventListener('change', updateTarget);
+    form.addEventListener('input', clearResult);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (busy || !files.length || !form.reportValidity()) return;
+      clearResult();
+      const target = { loader: loader.value, minecraft: minecraft.value.trim(), java: java.valueAsNumber, side: side.value, loaderVersion: loaderVersion.value.trim() };
+      busy = true;
+      pickFolder.disabled = pickFiles.disabled = fields.disabled = true;
+      live.textContent = KT('Denetleniyor… {0} / {1}', 0, files.length);
+      try {
+        const report = await StatScan.mcCheckCompatibility(files, target,
+          (done, total) => { live.textContent = KT('Denetleniyor… {0} / {1}', done, total); });
+        show(report);
+      } catch {
+        live.textContent = KT('Denetim tamamlanamadı.');
+      } finally {
+        busy = false;
+        pickFolder.disabled = pickFiles.disabled = fields.disabled = false;
+      }
+    });
+    updateTarget();
+  })();
   (function kovanConv() {
     const { mcConvertPack, mcDetectPack, mcReportText, MC_VERS, MC_TEX_PREFIX, mcVer, mmAnalyze, mmConvert, mmReportText } = StatScan;
     const MAXB = 700 * 1048576;
@@ -10355,6 +10918,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
       { id: 'xorcozucu', cat: 'guvenlik', name: 'XOR Çözücü', icon: 'key', beta: true, desc: 'XOR ile gizlenen veriyi yerel olarak çöz ve tara.', actions: [] },
       { id: 'texpack', cat: 'minecraft', name: 'Doku paketi dönüştürücü', icon: 'cube', beta: true, desc: 'Minecraft Java kaynak paketinin pack.mcmeta biçimini ve vanilla doku adlarını seçtiğin sürüme göre günceller. Yeniden çizilen dokuları çevirmez; rapor açıkça listeler.', actions: [] },
       { id: 'modconv', cat: 'minecraft', name: 'Mod sürüm ayarlayıcı', icon: 'puzzle', beta: true, desc: 'Mod/eklenti bildirimindeki hedef Minecraft sürümünü günceller ve kırılma riskini raporlar. Derlenmiş kodu çevirmez; çalışacağını garanti etmez.', actions: [] },
+      { id: "mccompat", cat: "minecraft", name: "Mod ve Plugin Uyumluluk Denetçisi", icon: "puzzle", beta: true, desc: "Minecraft modlarını ve sunucu eklentilerini topluca kontrol eder. Eksik bağımlılıkları, çift yüklemeleri ve sürüm uyuşmazlıklarını gösterir.", actions: [] },
       { id: 'compiler', cat: 'kodlama', name: 'Derleyici', icon: 'hammer', beta: true, desc: 'Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran ve D kaynak dosyalarını otomatik algılar, bilgisayarındaki derleyiciyle derler ve çıktıyı İndirilenler klasörüne kaydeder. Derleyicileri kendin kurarsın; yalnızca masaüstü uygulamasında çalışır.', actions: [] },
       { id: 'obfuscate', cat: 'kodlama', name: 'Obfuscate', icon: 'mask', beta: true, desc: 'Kaynak kodunu (Java, C, C++, Rust, C#, Go, Zig, Kotlin, Pascal, Fortran, D) yorumlardan/gereksiz boşluktan arındırır ve desteklenen dillerde yalnızca güvenli olduğu kanıtlanabilen yerel (fonksiyon içi) değişken adlarını anlamsız adlarla değiştirir. Dosyalar hiçbir yere gönderilmez; her şey bu cihazda, tarayıcıda çalışır. Tarayıcıda ve masaüstünde çalışır.', actions: [] },
       { id: 'taskmgr', cat: 'windows', name: 'Görev Yöneticisi', icon: 'monitor', beta: true, ver: '0.0.1', desc: 'Basic: sade, Windows Görev Yöneticisi gibi. Extended: çalışan her şeyi ayrıntısıyla gösterir (süreç ağacı, imza, SHA-256, komut satırı, DLL’ler, bağlantılar, hizmetler, sürücüler, başlangıç, zamanlanmış görevler) ve şüphe puanı verir. Yalnızca masaüstü uygulamasında çalışır.', actions: [{ label: 'Görev Yöneticisi: Extended modu', run: () => { LS.set('kovan.tm.mode', 'ext'); if (location.hash === '#/taskmgr') location.reload(); else location.hash = '#/taskmgr'; } }] },
