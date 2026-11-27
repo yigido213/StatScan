@@ -16,6 +16,7 @@ jobs:
       - name: Verify actual WebView2 and Rust IPC
         run: |
           $exe = Join-Path (Get-Location) 'rust/kovan-tauri/target/debug/kovan-tauri.exe'
+          $failedModes = @()
           foreach ($mode in @('regular', 'transparent')) {
             $argsForTest = @('--verify-webview2')
             if ($mode -eq 'transparent') { $argsForTest += '--transparent' }
@@ -27,8 +28,11 @@ jobs:
               $p.Kill()
               $p.WaitForExit()
               Get-Content $out, $err
-              throw "$mode window did not report a WebView2 result"
+              Write-Output "$mode window did not report a WebView2 result"
+              $failedModes += $mode
+              continue
             }
             Get-Content $out, $err
-            if ($p.ExitCode -ne 0) { throw "$mode window check exited $($p.ExitCode)" }
+            if ($p.ExitCode -ne 0) { $failedModes += $mode }
           }
+          if ($failedModes.Count) { throw ('Window checks failed: ' + ($failedModes -join ', ')) }
