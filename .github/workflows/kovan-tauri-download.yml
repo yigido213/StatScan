@@ -1,0 +1,53 @@
+name: Build Kovan Tauri for Windows
+on:
+  push:
+    branches: [codex-tauri-windows-download]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: rustup default stable
+      - name: Build Windows x64 executable
+        run: cargo build --release --target x86_64-pc-windows-msvc --manifest-path rust/kovan-tauri/Cargo.toml --features custom-protocol
+      - name: Verify startup and stage the portable executable
+        run: |
+          $file = Join-Path (Get-Location) 'rust/kovan-tauri/target/x86_64-pc-windows-msvc/release/kovan-tauri.exe'
+          if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Build did not produce an executable" }
+          $p = Start-Process -FilePath $file -WindowStyle Hidden -PassThru
+          try {
+            $title = $null
+            for ($i = 0; $i -lt 60; $i++) {
+              $p.Refresh()
+              if ($p.HasExited) { throw "Kovan exited with code $($p.ExitCode)" }
+              $visibleWindows = Get-Process -Id $p.Id -ErrorAction Stop
+              if ($visibleWindows.MainWindowTitle -match 'Home.*Kovan') {
+                $title = $visibleWindows.MainWindowTitle
+                break
+              }
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $title) { throw "The Home window did not report its title within 30 seconds" }
+            Write-Output "Verified release window title: $title"
+          } finally {
+            if (-not $p.HasExited) { $p.Kill(); $p.WaitForExit() }
+          }
+          $output = Join-Path $env:RUNNER_TEMP 'kovan-tauri-package'
+          New-Item -ItemType Directory -Path $output | Out-Null
+          $exe = Join-Path $output 'kovan-tauri.exe'
+          Copy-Item -LiteralPath $file -Destination $exe
+          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
+          "$hash  kovan-tauri.exe" | Set-Content -Encoding ascii -Path (Join-Path $output 'SHA256.txt')
+          Write-Output "SHA256: $hash"
+          Write-Output "Bytes: $((Get-Item -LiteralPath $exe).Length)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kovan-tauri-windows-x64
+          path: ${{ runner.temp }}/kovan-tauri-package/
+          if-no-files-found: error
+          retention-days: 30
