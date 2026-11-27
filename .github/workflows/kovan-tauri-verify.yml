@@ -1,0 +1,33 @@
+name: Verify Kovan Tauri on Windows
+on:
+  push:
+    branches: [codex-tauri-windows-check]
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install chromium
+      - run: node tools/test/ui-shell.mjs
+      - if: success() || failure()
+        run: node tools/test/ui-lang.mjs
+      - if: success() || failure()
+        run: node tools/test/ui-fx.mjs
+  tauri:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup default stable
+      - run: cargo build --manifest-path rust/kovan-tauri/Cargo.toml --features custom-protocol
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: node tools/test/tauri-webview2-check.cjs
