@@ -2,6 +2,14 @@
 
 Bu dosya, hafızası olmayan yeni bir Claude oturumunun projeyi 5 dakikada kavraması içindir. **Önce `CLAUDE.md` (kurallar + çalışma günlüğü), sonra bu dosya.** Günlük "ne zaman neyi yaptık" der; bu dosya "kod nerede, nasıl çalışır" der. Bir şeyi değiştirince bu dosyayı da güncelle (ilgili satırı).
 
+## Tauri v2 ana menü kabuğu
+
+- `rust/kovan-tauri/` bağımsız Cargo projesi, mevcut `statscan-core` kütüphanesine yol bağımlılığıyla bağlanır. Yerel derleme: `cargo build --release --manifest-path rust/kovan-tauri/Cargo.toml --features custom-protocol`. Yerel çalıştırma: `cargo run --manifest-path rust/kovan-tauri/Cargo.toml --features custom-protocol`.
+- Tauri doğrudan `app/StatScan.html` ve göreli tema dosyalarını yükler. Home, kenar çubuğu ve kategori yönlendirmesi mevcut HTML'de çalışır. Yerel pencere başlığı kategoriyle eşleşir. En dar içerik genişliği 390 mantıksal piksel. Windows'ta `-- --transparent` ile şeffaf pencere katmanı açılır. Sayfa kendi tema arka planını çizer.
+- `build.rs` preload'dan yöntem adlarını okur. `src/bridge.js` bunları `window.statscanHost` olarak sunar. Ayarlar, yerel depo, pencere ve tarama Rust komutlarına gider. Blitz, oyun, güncelleyici, ACCESSMOD ve diğer masaüstü kanalları Türkçe durum mesajı verir.
+- `src/scan.rs` kullanıcının seçtiği dosyayı parçalar halinde alır, boyut sınırını uygular ve mevcut Rust çekirdeğini arka planda çağırır. Rust çekirdeğinin kapsamı motorun mevcut denetimleriyle sınırlıdır. Özel kural paketi veya güven listesi gerektiren taramalar mevcut JavaScript motoruyla yapılır.
+- `src/settings.rs` Tauri'ye ait uygulama ayarlarını saklar. Masaüstü paketi ve güncelleme kanalı için yapılandırma varsayılanı paketleme kapalıdır.
+
 ## Genel yapı
 - EXE Dumper’daki “Bellekte kod ara” işlemi seçili PID için `VirtualQueryEx` ile `MEM_PRIVATE` ve `MEM_MAPPED` çalıştırılabilir bölgelerin özelliklerini listeler. Sorgu anındaki bellek haritasını gösterir.
 - Güvenlik → EXE Dumper, `StatScan.html` içinde `packAudit` ile diskteki EXE’yi inceler. `desktop/process-dump.js` kaydetme diyaloğunu ve MDMP doğrulamasını yönetir. `desktop/process-dump.ps1` geçerli oturumda tam yolu eşleşen örnekleri listeler, seçilen işlemin yolunu ve başlangıç zamanını aynı tanıtıcıyla doğrular ve tanılama dökümü alır.
