@@ -1785,6 +1785,11 @@ const FP = {
   pe_antidbg: 'Oyun koruma sistemleri ve lisans kontrolleri anti-debug kullanır.',
   pe_keystate: 'Oyun, kısayol ve makro araçları tuş durumunu okur.',
   pe_fewimp: 'Küçük yükleyiciler ve bazı özel derlemeler az import kullanır.',
+  pe_stl_mba: 'Lisans/kopya koruması ve bazı oyun koruyucuları dizeleri şifreleyip çalışırken çözer; yalnızca bu sinyal zararlı demek değildir.',
+  pe_stl_nop: 'Elle yazılmış derleme kodu ve bazı koruyucular NOP dolgusu kullanır.',
+  pe_stl_hidden: 'Küçük, kendi kendine yeten araçlar (ör. oyun yükleyicileri, Go/Rust araçları) az import kullanabilir; gizli çözümleme çıkarımdır, doğrulanmadı.',
+  pe_stl_caps: 'Ekran kaydedici, uzaktan destek ve pano yöneticisi gibi meşru programlar da ekran/pano/WMI işlevlerini birlikte kullanır.',
+  pe_stl_profile: 'Davranış profili eşleşmesidir, aile tespiti değil. Korumalı (packed) ticari yazılımlar da bu sinyallerden birkaçını taşıyabilir; kesin karar için dinamik analiz veya bilinen imza gerekir.',
   pe_overlay: 'Kurulum paketleri (NSIS, Inno) ve imzalı dosyalar overlay içerir.',
   pe_inject: 'Hile/overlay/yardımcı araçlar ve bazı güvenlik yazılımları süreç enjeksiyonu API’lerini meşru kullanır; asıl kriter hedefin ne olduğudur.',
   pe_net: 'Ağ erişimi tek başına kötü niyet göstermez.',
@@ -2689,6 +2694,7 @@ async function analyzePE(u8, name, st, depth) {
   if (p.sections.some((s) => s.rsize === 0 && s.vsize > 0x10000) && packed.length) F.push(mk('pe_virtual', 'low', 4, 'Diskte boş, bellekte dolan bölüm', 'Paketleyicilerin kullandığı kalıp.', '—', p.sections.filter((s) => s.rsize === 0 && s.vsize > 0x10000).map((s) => s.name), 'pe'));
   if (!p.clr && info.importCount > 0 && info.importCount <= 6 && u8.length > 30000) F.push(mk('pe_fewimp', 'med', 10, 'Çok az import', 'Dosya büyük ama neredeyse hiç API import etmiyor. API’ler çalışma anında gizlice çözülüyor olabilir.', 'Paketleyici veya shellcode yükleyici ihtimaline bak.', [info.dlls.join(', ')], 'pe'));
   else if (!p.clr && info.importCount === 0 && u8.length > 20000 && !p.dll) F.push(mk('pe_noimp', 'med', 10, 'Import tablosu yok', 'Çalıştırılabilir dosyada import tablosu bulunamadı.', 'Paketli/özel yükleyici olabilir.', [], 'pe'));
+  try { for (const x of peStealth(u8, p, apis, info)) F.push(x); } catch (e) { /* gizlenmis stealer profili: hata taramayi durdurmaz */ }
   if (p.overlay > 4096 && p.overlay / u8.length > 0.3) {
     F.push(mk('pe_overlay', 'low', 5, 'Büyük overlay verisi', 'Dosyanın %' + Math.round(100 * p.overlay / u8.length) + '’i bölümlerin dışında ek veri. Kurulum paketleri ve yükleyiciler de böyledir.', 'Overlay içinde ek yürütülebilir olup olmadığına bak.', [p.overlay + ' bayt'], 'pe'));
     if (!cfg.deepJar) { const mz = findMZ(u8.subarray(u8.length - p.overlay), 4); if (mz >= 0) F.push(mk('pe_overlay_mz', 'high', 12, 'Overlay içinde gömülü çalıştırılabilir', 'Dosyanın sonuna eklenmiş başka bir PE bulundu.', 'Gömülü dosyayı çıkarıp ayrıca tara.', ['ofset +' + mz], 'pe')); }
@@ -2943,13 +2949,13 @@ const MITRE = {
   long_b64_exe: ['T1027.009', 'T1140'], long_b64: ['T1027'], js_active: ['T1059.007'], vbs_exec: ['T1059.005'], sh_pipe: ['T1105', 'T1059.004'], py_exec: ['T1059.006', 'T1027'], py_ctypes: ['T1106'], js_obf: ['T1027'], bat_obf: ['T1027.010'],
   lnk_cmd: ['T1204.002', 'T1059'], lnk_shell: ['T1204.002', 'T1059'], office_macro: ['T1204.002', 'T1059.005'], office_vba: ['T1204.002', 'T1059.005'], ole_vba: ['T1204.002', 'T1059.005'], office_remote: ['T1221'], hta: ['T1218.005'], hardcoded_ip: ['T1071.001'],
   persist_startup: ['T1547.001'], pe_inject: ['T1055'], pe_hollow: ['T1055.012'], pe_keylog: ['T1056.001'], pe_dlexec: ['T1105'], pe_antidbg: ['T1622'], pe_priv: ['T1134'], pe_service: ['T1543.003'], pe_ransom_api: ['T1486'], pe_clip: ['T1115'], pe_screen: ['T1113'],
-  pe_dynapi: ['T1027.007'], pe_dpapi: ['T1555.003'], pe_net_obf: ['T1027'], pe_net_load: ['T1620'], pk_packer: ['T1027.002'], pe_highent: ['T1027.002'], pe_embedded: ['T1027.009'], pe_overlay_mz: ['T1027.009'], xor_pe: ['T1027', 'T1140'],
+  pe_dynapi: ['T1027.007'], pe_stl_mba: ['T1027', 'T1140'], pe_stl_nop: ['T1027'], pe_stl_hidden: ['T1027.007'], pe_stl_caps: ['T1113', 'T1115', 'T1047'], pe_stl_profile: ['T1027', 'T1113', 'T1115'], pe_dpapi: ['T1555.003'], pe_net_obf: ['T1027'], pe_net_load: ['T1620'], pk_packer: ['T1027.002'], pe_highent: ['T1027.002'], pe_embedded: ['T1027.009'], pe_overlay_mz: ['T1027.009'], xor_pe: ['T1027', 'T1140'],
   deobf_pe: ['T1140', 'T1027.009'], deobf_zip: ['T1140'], deobf_layer: ['T1140'], pe_sig_mismatch: ['T1553.002'], ext_mismatch: ['T1036.008'], name_double: ['T1036.007'], name_rtlo: ['T1036.002'], pk_hidden_pe: ['T1036.008', 'T1027.009'],
   js_eval: ['T1059.007', 'T1027'], js_escape: ['T1027'], pdf_active: ['T1204.002', 'T1203'], combo_dropper: ['T1105'], combo_loader: ['T1620'], combo_persist_net: ['T1547.001'], combo_evasion: ['T1497'], combo_obf_risk: ['T1027']
 };
 const FACT_IDS = new Set(['name_rtlo', 'name_double', 'name_scr', 'ext_mismatch', 'pe_bad', 'pe_rwx', 'pe_ep_out', 'pe_ep_last', 'pe_noimp', 'pe_fewimp', 'pe_overlay', 'pe_overlay_mz', 'pe_embedded', 'xor_pe', 'zip_slip', 'zip_dupe', 'zip_enc', 'pe_sig_ok', 'pe_sig_mismatch', 'pe_sig_bad', 'pe_sig_self', 'pe_signed',
   'pe_ts_future', 'pe_ts_zero', 'pe_noaslr', 'pe_tls', 'office_vba', 'office_remote', 'ole_vba', 'hta', 'deobf_pe', 'deobf_zip', 'deobf_layer', 'arch_exec', 'arch_unsupported', 'pk_hidden_pe', 'pe_fw', 'too_big', 'scan_err', 'pe_virtual', 'jf_trustall', 'j_ver', 'j_badclass', 'j_hidden_class', 'j_modinfo', 'tg_link']);
-const HEUR_IDS = new Set(['pe_highent', 'bin_highent', 'txt_oneline', 'js_escape', 'long_b64', 'js_obf', 'bat_obf', 'ps_obf', 'pe_dynapi', 'pk_packer', 'pe_rsrc_blob', 'zip_bomb', 'j_obf', 'j_blob', 'pe_net_obf', 'hardcoded_ip']);
+const HEUR_IDS = new Set(['pe_highent', 'bin_highent', 'txt_oneline', 'js_escape', 'long_b64', 'js_obf', 'bat_obf', 'ps_obf', 'pe_dynapi', 'pe_stl_mba', 'pe_stl_nop', 'pe_stl_hidden', 'pe_stl_caps', 'pe_stl_profile', 'pk_packer', 'pe_rsrc_blob', 'zip_bomb', 'j_obf', 'j_blob', 'pe_net_obf', 'hardcoded_ip']);
 const BASIS_LABEL = { fact: 'Gözlem', inference: 'Çıkarım', heuristic: 'Sezgisel' };
 function enrich(x) {
   if (!x.basis) x.basis = FACT_IDS.has(x.id) ? 'fact' : HEUR_IDS.has(x.id) ? 'heuristic' : 'inference';
@@ -4440,6 +4446,83 @@ async function xorRecover(input, manualKey) {
   return {data,layers,offset,embedded,format};
 }
 /*#endregion xordec*/
+/*#region stealthpe*/
+/* Gizlenmis bilgi calici (stealer) PE profili — STATIK, dosya CALISTIRILMAZ, yalnizca bayt kaliplari + import adlari.
+   Neden: Lumma gibi aileler dizelerini yigina sifreli yazip calisma aninda MBA (and/or/not/add/sub kimlikleriyle gizlenmis
+   aritmetik) ile cozer, API'leri gizli cozer, araya NOP kizaklari koyar. Dizeye/import'a bakan kurallar bunlarda 0 verir.
+   Her sinyal tek basina ZAYIFTIR (korumali/ticari yazilimlarda da gorulebilir); bulgu ancak sinyaller birlesince guclenir.
+   Aile adi KOYMAZ: 'bu davranis profili stealer ile uyumlu' der. Eslesme kesin hukum degildir. */
+const STL_LIM = { scan: 6e6, window: 160 };
+function stlExec(p) { return p.sections.filter((s) => (s.ch & 0x20000000) && s.rsize > 0); }
+/* NOP kizaklari: >=8 ardisik 0x90 (derleyici dolgusu 0x90 degil int3/cok baytli nop kullanir). */
+function stlNopSleds(b, s, e) {
+  let n = 0, run = 0;
+  for (let i = s; i < e; i++) { if (b[i] === 0x90) run++; else { if (run >= 8) n++; run = 0; } }
+  if (run >= 8) n++;
+  return n;
+}
+/* Yigina dize yazma bloklari: >=4 ardisik 'mov dword [esp/ebp+d8], imm32' (C7 44 24 d8 imm32 / C7 45 d8 imm32). */
+function stlStackBlocks(b, s, e) {
+  let blocks = 0, i = s;
+  while (i < e - 8) {
+    let k = 0, j = i;
+    for (;;) {
+      if (j + 8 <= e && b[j] === 0xc7 && b[j + 1] === 0x44 && b[j + 2] === 0x24) { j += 8; k++; }
+      else if (j + 7 <= e && b[j] === 0xc7 && b[j + 1] === 0x45) { j += 7; k++; }
+      else break;
+    }
+    if (k >= 4) { blocks++; i = j; } else i++;
+  }
+  return blocks;
+}
+/* MBA bayt-cozme dongusu: yigin tamponundan bayt oku (movzx r32, byte [esp+idx+d8]), araya >=3 mantik islemi
+   (and/or/not) koy, ayni adrese geri yaz (mov [esp+idx+d8], r8). Sade kod (CRC, toupper) bu kalibi tasimaz. */
+function stlMbaLoops(b, s, e) {
+  let loops = 0;
+  for (let i = s; i < e - 12; i++) {
+    if (b[i] !== 0x0f || b[i + 1] !== 0xb6 || (b[i + 2] & 0xc7) !== 0x44 || (b[i + 3] & 7) !== 4) continue;
+    const sib = b[i + 3], d = b[i + 4]; const end = Math.min(e - 4, i + STL_LIM.window); let logic = 0, store = false;
+    for (let j = i + 5; j < end; j++) {
+      const c = b[j];
+      if (c === 0xf7 && b[j + 1] >= 0xd0 && b[j + 1] <= 0xd7) logic++;                               /* not r */
+      else if ((c === 0x21 || c === 0x23 || c === 0x09 || c === 0x0b) && b[j + 1] >= 0xc0) logic++;    /* and/or r,r */
+      else if ((c === 0x81 || c === 0x83) && (b[j + 1] & 0xf8) === 0xc8) logic++;                       /* or r,imm */
+      else if ((c === 0x81 || c === 0x83) && (b[j + 1] & 0xf8) === 0xe0) logic++;                       /* and r,imm */
+      if (c === 0x88 && (b[j + 1] & 0xc7) === 0x44 && b[j + 2] === sib && b[j + 3] === d) { store = true; break; }
+    }
+    if (store && logic >= 3) { loops++; i += 4; }
+  }
+  return loops;
+}
+function peStealth(u8, p, apis, info) {
+  const out = []; if (!p || p.clr) return out;
+  const has = (n) => { n = n.toLowerCase(); return apis.has(n) || apis.has(n + 'a') || apis.has(n + 'w') || apis.has(n + 'exa') || apis.has(n + 'exw') || apis.has(n + 'ex'); };
+  const secs = stlExec(p); let codeSize = 0, nop = 0, stack = 0, mba = 0, budget = STL_LIM.scan;
+  for (const s of secs) {
+    const a = s.rptr, e = Math.min(u8.length, s.rptr + s.rsize, a + budget); if (e <= a) continue; budget -= e - a; codeSize += e - a;
+    nop += stlNopSleds(u8, a, e); stack += stlStackBlocks(u8, a, e); mba += stlMbaLoops(u8, a, e);
+    if (budget <= 0) break;
+  }
+  if (codeSize < 4096) return out;
+  const dyn = has('LoadLibrary') || has('GetProcAddress') || has('LdrGetProcedureAddress') || has('LdrLoadDll') || has('GetModuleHandle') || has('LoadLibraryEx');
+  const net = ['InternetOpen', 'InternetConnect', 'InternetReadFile', 'HttpSendRequest', 'WinHttpOpen', 'WinHttpConnect', 'WSAStartup', 'socket', 'connect', 'send', 'recv', 'getaddrinfo', 'URLDownloadToFile', 'DnsQuery'].some(has);
+  const screen = has('BitBlt') && (has('CreateCompatibleBitmap') || has('GetDIBits') || has('CreateDIBSection'));
+  const clip = has('OpenClipboard') && has('GetClipboardData');
+  const wmi = has('CoCreateInstance') && (has('CoSetProxyBlanket') || has('CoInitializeSecurity'));
+  const disk = has('GetDiskFreeSpace');
+  const caps = [screen && 'ekran görüntüsü (BitBlt)', clip && 'pano okuma', wmi && 'WMI/COM sorgusu', disk && 'disk boyutu sorgusu'].filter(Boolean);
+  const nImp = info && info.importCount != null ? info.importCount : apis.size;
+  const sig = {};
+  if (mba >= 6) { sig.mba = true; out.push(mk('pe_stl_mba', 'med', mba >= 40 ? 18 : 14, 'Şifreli dizeler yığında açılıyor (MBA çözme döngüleri)', mba + ' bayt çözme döngüsü bulundu: yığın tamponundan bayt okuyup and/or/not aritmetiğiyle değiştirip geri yazıyor' + (stack ? '; ' + stack + ' yığın dizi bloğu da var' : '') + '. Bilgi çalıcılar URL, tarayıcı yolu ve API adlarını düz metin bırakmamak için bunu kullanır.', 'Dosyayı bir sanal makinede/Sandbox’ta incele; çözülen dizeler bellekte görünür.', [mba + ' çözme döngüsü', stack + ' yığın dizi bloğu'], 'pe')); }
+  if (nop >= 100) { sig.nop = true; out.push(mk('pe_stl_nop', 'low', 6, 'Kodda çok sayıda NOP kızağı', nop + ' adet 8+ baytlık NOP dizisi var. Derleyiciler dolguyu bu biçimde yazmaz; gizleme/imza kaçırma için araya eklenir.', 'Tek başına zararlı değildir; diğer gizleme izleriyle birlikte değerlendir.', [nop + ' NOP dizisi'], 'pe')); }
+  if (!dyn && !net && codeSize >= 100000 && nImp <= 80) { sig.hid = true; out.push(mk('pe_stl_hidden', 'med', 10, 'Büyük kod, küçük import tablosu, dinamik yükleme yok', 'Kod ' + Math.round(codeSize / 1024) + ' KB ama yalnızca ' + nImp + ' işlev import ediliyor; LoadLibrary/GetProcAddress da yok ve hiç ağ API’si import edilmiyor. Ağ ve dosya işlevleri çalışırken gizlice çözülüyor olabilir (çıkarım; doğrulanmadı).', 'Dinamik analizde ağ bağlantılarına ve yüklenen modüllere bak.', [nImp + ' import', Math.round(codeSize / 1024) + ' KB kod'], 'pe')); }
+  if (caps.length >= 3 && !net) { sig.caps = true; out.push(mk('pe_stl_caps', 'med', 10, 'Bilgi toplama işlevleri var, ağ import’u yok', 'Birlikte bulunan işlevler: ' + caps.join(', ') + '. Ağ API’si import edilmiyor; veri dışarı başka yolla çıkıyor olabilir. Tek tek zararsız işlevlerdir.', 'İşlev kombinasyonunu programın amacıyla karşılaştır (ekran kaydedici, uzaktan destek vb. meşru olabilir).', caps, 'pe')); }
+  const n = (sig.mba ? 1 : 0) + (sig.nop ? 1 : 0) + (sig.hid ? 1 : 0) + (sig.caps ? 1 : 0);
+  if (n >= 3 && (sig.mba || sig.hid)) out.push(mk('pe_stl_profile', 'high', 25, 'Gizlenmiş bilgi çalıcı (stealer) davranış profiliyle uyumlu', n + ' bağımsız sinyal bir arada: ' + [sig.mba && 'MBA dize çözme', sig.nop && 'NOP kızakları', sig.hid && 'gizli API çözümleme izi', sig.caps && 'ekran/pano/WMI işlevleri'].filter(Boolean).join(', ') + '. Bu bir aile tespiti değil, davranış profili eşleşmesidir; kesin hüküm için dinamik analiz veya imza gerekir.', 'Çalıştırma. Sandbox’ta dinamik analizle ağ ve dosya erişimlerini doğrula; şüphe sürüyorsa paylaşan kaynağı ve hash’i bir ücretsiz çok motorlu servisle karşılaştır.', [n + '/4 sinyal'], 'pe'));
+  if (out.length) { info.stealth = { mbaLoops: mba, stackBlocks: stack, nopSleds: nop, codeKB: Math.round(codeSize / 1024), dynLoad: dyn, netImports: net, caps }; }
+  return out;
+}
+/*#endregion stealthpe*/
 /*#region dotnet*/
 /* ---------- v3.6: .NET meta veri (ECMA-335) ayristirma ----------
    Gercek tablo ayristirmasi: TypeRef/MemberRef/P-Invoke (ImplMap)/AssemblyRef/ManifestResource.
@@ -11542,9 +11625,9 @@ ${d ? '' : dynHtml(r)}${(r.children || []).filter((c) => c.score > 0 || c.findin
   function blindSpots(r) {
     const out = [];
     if (hasId(r, ['pk_packer', 'pe_highent', 'bin_highent', 'deobf_pe', 'xor_pe', 'pk_hidden_pe'])) out.push({ t: 'Dosya paketlenmiş veya şifrelenmiş görünüyor', w: 'Asıl kod yalnızca çalışırken açılıyorsa statik tarama onu hiç görmez; görünen kısım sadece açıcı koddur.' });
-    if (hasId(r, ['pe_fewimp', 'pe_noimp', 'pe_dynapi'])) out.push({ t: 'Kullanılan sistem işlevleri gizlenmiş olabilir', w: 'İçe aktarım tablosu boş/çok küçük. Zararlılar işlevleri çalışırken çözdüğünde ne yaptıkları statik olarak okunamaz.' });
+    if (hasId(r, ['pe_fewimp', 'pe_noimp', 'pe_dynapi', 'pe_stl_hidden', 'pe_stl_profile'])) out.push({ t: 'Kullanılan sistem işlevleri gizlenmiş olabilir', w: 'İçe aktarım tablosu boş/çok küçük. Zararlılar işlevleri çalışırken çözdüğünde ne yaptıkları statik olarak okunamaz.' });
     if (hasId(r, ['pe_overlay', 'pe_overlay_mz', 'pe_rsrc_blob', 'pe_embedded', 'pk_exe_inside'])) out.push({ t: 'Dosyaya eklenmiş veya gömülü bir veri bloğu var', w: 'Ek/kaynak içindeki yük çalışma sırasında diske veya belleğe açılabilir; içeriği şifreliyse statik tarama okuyamaz.' });
-    if (hasId(r, ['j_obf', 'j_strdec', 'js_obf', 'ps_obf', 'js_eval', 'combo_obf_risk', 'deobf_layer'])) out.push({ t: 'Kod gizlenmiş (obfuscation)', w: 'Metinler ve çağrılar çalışma anında çözülüyorsa kurallar gerçek davranışı göremez.' });
+    if (hasId(r, ['j_obf', 'j_strdec', 'js_obf', 'ps_obf', 'js_eval', 'combo_obf_risk', 'deobf_layer', 'pe_stl_mba'])) out.push({ t: 'Kod gizlenmiş (obfuscation)', w: 'Metinler ve çağrılar çalışma anında çözülüyorsa kurallar gerçek davranışı göremez.' });
     if (hasId(r, ['j_dynload', 'j_refl', 'pe_net_load', 'pe_dlexec'])) out.push({ t: 'Dosya çalışma anında başka kod indirebilir/yükleyebilir', w: 'Asıl zararlı kod dosyanın içinde değil, sonradan gelen bir bileşendir; ancak çalışınca görülebilir.' });
     if (r.partial || hasId(r, ['zip_enc', 'arch_unsupported']) || (r.skipped && r.skipped.length)) out.push({ t: 'Tarama kısmi kaldı veya bazı içerikler okunamadı', w: 'Şifreli/desteklenmeyen/sınırı aşan girdiler incelenemedi; bu kısımlarda ne olduğu bilinmiyor.' });
     if (/SFX|NSIS|Inno|self-extract|kurulum/i.test(r.type || '')) out.push({ t: 'Kurulum/kendi kendine açılan paket', w: 'Asıl içerik çalışırken açılır; yaptıkları ancak çalıştırılarak izlenebilir.' });
