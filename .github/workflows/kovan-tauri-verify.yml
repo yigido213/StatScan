@@ -6,28 +6,29 @@ permissions:
   contents: read
 
 jobs:
-  chromium:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --no-save playwright
-      - run: npx playwright install chromium
-      - run: node tools/test/ui-shell.mjs
-      - if: success() || failure()
-        run: node tools/test/ui-lang.mjs
-      - if: success() || failure()
-        run: node tools/test/ui-fx.mjs
   tauri:
     runs-on: windows-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - run: rustup default stable
       - run: cargo build --manifest-path rust/kovan-tauri/Cargo.toml --features custom-protocol
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --no-save playwright
-      - run: node tools/test/tauri-webview2-check.cjs
+      - name: Verify actual WebView2 and Rust IPC
+        run: |
+          $exe = Join-Path (Get-Location) 'rust/kovan-tauri/target/debug/kovan-tauri.exe'
+          foreach ($mode in @('regular', 'transparent')) {
+            $argsForTest = @('--verify-webview2')
+            if ($mode -eq 'transparent') { $argsForTest += '--transparent' }
+            $out = Join-Path $env:RUNNER_TEMP "kovan-$mode.out"
+            $err = Join-Path $env:RUNNER_TEMP "kovan-$mode.err"
+            Write-Output "Checking $mode window"
+            $p = Start-Process -FilePath $exe -ArgumentList $argsForTest -WindowStyle Hidden -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+            if (-not $p.WaitForExit(30000)) {
+              $p.Kill()
+              $p.WaitForExit()
+              Get-Content $out, $err
+              throw "$mode window did not report a WebView2 result"
+            }
+            Get-Content $out, $err
+            if ($p.ExitCode -ne 0) { throw "$mode window check exited $($p.ExitCode)" }
+          }

@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod qa;
 mod scan;
 mod settings;
 
@@ -26,6 +27,7 @@ fn window_route(window: WebviewWindow, title: String) -> Result<(), String> {
 }
 
 fn main() {
+    let verify = std::env::args().any(|arg| arg == "--verify-webview2");
     let login = std::env::args().any(|arg| arg == "--autostart");
     let transparent = cfg!(windows) && std::env::args().any(|arg| arg == "--transparent");
 
@@ -54,6 +56,7 @@ fn main() {
             scan::scan_run,
             scan::scan_cancel,
             scan::scan_discard,
+            qa::webview2_result,
             window_zoom,
             window_route,
         ])
@@ -68,16 +71,21 @@ fn main() {
                 WebviewUrl::App("StatScan.html".into()),
             )
             .title("Kovan")
-            .inner_size(1280.0, 900.0)
+            .inner_size(if verify { 390.0 } else { 1280.0 }, 900.0)
             .min_inner_size(390.0, 540.0)
             .visible(false)
             .transparent(transparent)
             .background_color(if transparent { Color(0, 0, 0, 0) } else { Color(16, 17, 20, 255) })
             .disable_drag_drop_handler()
             .initialization_script(include_str!(concat!(env!("OUT_DIR"), "/bridge.js")))
-            .on_page_load(|window, page| {
+            .on_page_load(move |window, page| {
                 if matches!(page.event(), PageLoadEvent::Started) {
                     window.state::<scan::Scanner>().reset();
+                } else if verify {
+                    if let Err(error) = window.eval(include_str!("qa.js")) {
+                        eprintln!("WebView2 test script could not run: {error}");
+                        window.app_handle().exit(1);
+                    }
                 }
             })
             .on_navigation(|url| {
